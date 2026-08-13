@@ -8,7 +8,6 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.supplier_db import Supplier
 
 # توحيد اسم الـ Blueprint وتحديد مسار الملفات الثابتة
 wallet_bp = Blueprint(
@@ -18,6 +17,14 @@ wallet_bp = Blueprint(
     static_folder='static',
     static_url_path='/static'
 )
+
+def get_trx_type_attr():
+    """التحقق الديناميكي من اسم حقل نوع المعاملة في النموذج"""
+    if hasattr(WalletTransaction, 'transaction_type'):
+        return WalletTransaction.transaction_type
+    elif hasattr(WalletTransaction, 'trx_type'):
+        return WalletTransaction.trx_type
+    return None
 
 def get_current_supplier_id():
     """استخراج رقم المورد الحالي سواء كان هو التاجر أو موظف لدى المورد"""
@@ -54,39 +61,40 @@ def get_or_create_supplier_wallet(supplier_id):
 @wallet_bp.route('/wallet', methods=['GET'])
 @login_required
 def wallet():
-    """
-    نافذة المحفظة (كشف الحساب العام):
-    مخصصة لعرض الأرصدة الإجمالية وجدولة الحركات المالية الفعلية من قاعدة البيانات مع الترقيم والفلترة.
-    """
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    trx_type_col = get_trx_type_attr()
 
-    # حساب الأرصدة الفعلية ديناميكياً
     if wallet_obj:
         wallet_id = wallet_obj.id
         
-        # الأرباح المكتملة المعلقة أو المعالجة
-        completed_credits = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
+        # استعلامات الأرصدة مع التحقق من الحقل الديناميكي
+        q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.transaction_type == 'credit',
             WalletTransaction.status == 'completed'
-        ).scalar() or 0.00
+        )
+        if trx_type_col is not None:
+            q_completed = q_completed.filter(trx_type_col == 'credit')
+        completed_credits = q_completed.scalar() or 0.00
 
-        pending_credits = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
+        q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.transaction_type == 'credit',
             WalletTransaction.status == 'pending'
-        ).scalar() or 0.00
+        )
+        if trx_type_col is not None:
+            q_pending = q_pending.filter(trx_type_col == 'credit')
+        pending_credits = q_pending.scalar() or 0.00
 
-        total_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
+        q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.transaction_type.in_(['withdrawal', 'debit']),
             WalletTransaction.status == 'completed'
-        ).scalar() or 0.00
+        )
+        if trx_type_col is not None:
+            q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
+        total_withdrawn = q_withdrawn.scalar() or 0.00
 
-        # حساب الرصيد المتاح بمرونة
         avail_bal = getattr(wallet_obj, 'available_balance', None)
-        if avail_bal is None:  # تم التصحيح إلى None
+        if avail_bal is None:
             avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00)) - float(total_withdrawn)
             avail_bal = max(0.00, avail_bal)
 
@@ -108,7 +116,6 @@ def wallet():
             'currency': 'ر.س'
         }
 
-    # الفلترة والبحث من قاعدة البيانات مباشرة
     page = request.args.get('page', 1, type=int)
     PER_PAGE = 10
     
@@ -116,11 +123,11 @@ def wallet():
     if wallet_obj:
         query = query.filter_by(wallet_id=wallet_obj.id)
     else:
-        query = query.filter_by(id=-1)  # نتيجة فارغة إذا لم تتوفر محفظة
+        query = query.filter_by(id=-1)
 
     trx_type = request.args.get('type', 'all')
-    if trx_type != 'all':
-        query = query.filter(WalletTransaction.transaction_type == trx_type)
+    if trx_type != 'all' and trx_type_col is not None:
+        query = query.filter(trx_type_col == trx_type)
 
     status = request.args.get('status', 'all')
     if status != 'all':
@@ -133,10 +140,7 @@ def wallet():
             (WalletTransaction.description.ilike(f"%{search_query}%"))
         )
 
-    # الترتيب حسب الأحدث
     query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
-
-    # الترقيم (Pagination)
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
     pagination = {
@@ -161,22 +165,20 @@ def wallet():
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
-    """
-    نافذة طلب السحب المستقلة:
-    مخصصة كلياً لتقديم ومتابعة طلبات سحب الأرباح والمدفوعات الفعيلة للتاجر من قاعدة البيانات.
-    """
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    trx_type_col = get_trx_type_attr()
 
-    # حساب الرصيد المتاح الفعلي من قاعدة البيانات
     if wallet_obj:
         wallet_id = wallet_obj.id
 
-        total_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
+        q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.transaction_type.in_(['withdrawal', 'debit']),
             WalletTransaction.status.in_(['completed', 'pending'])
-        ).scalar() or 0.00
+        )
+        if trx_type_col is not None:
+            q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
+        total_withdrawn = q_withdrawn.scalar() or 0.00
 
         avail_bal = getattr(wallet_obj, 'available_balance', None)
         if avail_bal is None:
@@ -196,7 +198,6 @@ def withdraw():
         'currency': curr
     }
 
-    # معالجة تقديم طلب سحب جديد (POST)
     if request.method == 'POST':
         try:
             amount = float(request.form.get('amount', 0))
@@ -212,26 +213,31 @@ def withdraw():
             elif not account_details:
                 flash("يرجى إدخال تفاصيل الحساب البنكي أو شركة الصرافة بشكل صحيح.", "danger")
             else:
-                # إنشاء معاملة سحب جديدة في قاعدة البيانات
                 ref_code = f"WDR-{uuid.uuid4().hex[:6].upper()}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 
-                tx = WalletTransaction(
-                    wallet_id=wallet_obj.id,
-                    amount=amount,
-                    transaction_type='withdrawal',
-                    payout_method=payout_label,
-                    account_details=account_details,
-                    status='pending',
-                    reference_code=ref_code,
-                    description=f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
-                    created_at=datetime.utcnow()
-                )
+                tx_kwargs = {
+                    'wallet_id': wallet_obj.id,
+                    'amount': amount,
+                    'payout_method': payout_label,
+                    'account_details': account_details,
+                    'status': 'pending',
+                    'reference_code': ref_code,
+                    'description': f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
+                    'created_at': datetime.utcnow()
+                }
+                
+                # إسناد قيمة نوع المعاملة حسب الحقل الموجود
+                if hasattr(WalletTransaction, 'transaction_type'):
+                    tx_kwargs['transaction_type'] = 'withdrawal'
+                elif hasattr(WalletTransaction, 'trx_type'):
+                    tx_kwargs['trx_type'] = 'withdrawal'
 
+                tx = WalletTransaction(**tx_kwargs)
                 db.session.add(tx)
                 db.session.commit()
 
-                flash("تم تقديم طلب السحب بنجاح، وهو قيد المعالجة المالي والتسوية خلال 24-48 ساعة.", "success")
+                flash("تم تقديم طلب السحب بنجاح، وهو قيد المعالجة والتسوية.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
         except ValueError:
             flash("يرجى إدخال مبلغ مالي صحيح ومقبول.", "danger")
@@ -239,7 +245,6 @@ def withdraw():
             db.session.rollback()
             flash(f"حدث خطأ أثناء تقديم الطلب: {str(e)}", "danger")
 
-    # تصفية وجلب سجل طلبات السحب السابقة (GET)
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
     PER_PAGE = 10
@@ -247,7 +252,8 @@ def withdraw():
     query = WalletTransaction.query
     if wallet_obj:
         query = query.filter_by(wallet_id=wallet_obj.id)
-        query = query.filter(WalletTransaction.transaction_type.in_(['withdrawal', 'debit']))
+        if trx_type_col is not None:
+            query = query.filter(trx_type_col.in_(['withdrawal', 'debit']))
     else:
         query = query.filter_by(id=-1)
 
@@ -255,7 +261,6 @@ def withdraw():
         query = query.filter(WalletTransaction.status == status_filter)
 
     query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
-    
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
     pagination = {
