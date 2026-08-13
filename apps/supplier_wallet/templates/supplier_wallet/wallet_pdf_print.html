@@ -8,16 +8,20 @@
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
         body { font-family: 'Cairo', sans-serif; color: #1f2937; }
         
+        /* تحسينات للطباعة */
         @media print {
+            body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .no-print { display: none !important; }
-            body { background: white !important; padding: 0 !important; margin: 20px !important; }
             .print-border { border: 1px solid #e5e7eb !important; }
+            /* إجبار المتصفح على طباعة الخلفيات الملونة */
+            .bg-purple-print { background-color: #4A154B !important; color: white !important; }
+            .bg-purple-light-print { background-color: #f8f1f9 !important; }
         }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
 
-    <!-- أزرار التحكم (لا تظهر عند الطباعة) -->
+    <!-- أزرار التحكم -->
     <div class="no-print max-w-4xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <span class="text-xs font-bold text-gray-500">معاينة كشف الحساب قبل الطباعة</span>
         <div class="flex gap-2">
@@ -29,7 +33,7 @@
     <!-- المستند -->
     <div class="max-w-4xl mx-auto bg-white p-10 shadow-lg border border-gray-200 print-border min-h-[900px]">
         
-        <!-- الترويسة الاحترافية -->
+        <!-- الترويسة -->
         <div class="flex justify-between items-start border-b-2 border-[#4A154B] pb-8 mb-8">
             <div>
                 <h1 class="text-3xl font-black text-[#4A154B] tracking-tight">Mahjoub Online</h1>
@@ -42,7 +46,7 @@
         </div>
 
         <!-- تفاصيل المستند -->
-        <div class="flex justify-between items-center bg-gray-50 p-4 rounded-xl mb-8">
+        <div class="flex justify-between items-center bg-gray-50 p-4 rounded-xl mb-8 border border-gray-100">
             <div class="space-y-1">
                 <p class="text-[11px] text-gray-500 font-bold">تاريخ الإصدار</p>
                 <p class="text-sm font-bold text-gray-900 font-mono">{{ current_date }}</p>
@@ -63,9 +67,9 @@
                 <p class="text-[11px] text-gray-500 mb-1">إجمالي الرصيد</p>
                 <p class="text-xl font-black text-gray-900">{{ "{:,.2f}".format(summary.total_balance) }}</p>
             </div>
-            <div class="border-2 border-[#4A154B] rounded-xl p-4 bg-[#4A154B]/5">
-                <p class="text-[11px] text-[#4A154B] font-bold mb-1">الرصيد المتاح للسحب</p>
-                <p class="text-xl font-black text-[#4A154B]">{{ "{:,.2f}".format(summary.available_balance) }}</p>
+            <div class="border-2 border-[#4A154B] rounded-xl p-4 bg-purple-print">
+                <p class="text-[11px] text-white/80 font-bold mb-1">الرصيد المتاح للسحب</p>
+                <p class="text-xl font-black text-white">{{ "{:,.2f}".format(summary.available_balance) }}</p>
             </div>
             <div class="border border-gray-200 rounded-xl p-4">
                 <p class="text-[11px] text-gray-500 mb-1">إجمالي المسحوبات</p>
@@ -87,19 +91,20 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
+                    {% set status_text = {'completed': 'مكتمل', 'pending': 'قيد المراجعة', 'cancelled': 'مرفوض'} %}
                     {% if transactions %}
                         {% for tx in transactions %}
                             <tr class="text-sm hover:bg-gray-50">
                                 <td class="p-3 font-mono font-bold text-gray-600">{{ tx.reference_number or '-' }}</td>
                                 <td class="p-3 text-gray-800">{{ tx.description or 'حركة مالية' }}</td>
                                 <td class="p-3">
-                                    <span class="text-[10px] font-bold px-2 py-1 rounded bg-gray-100">
-                                        {{ 'مكتمل' if tx.status == 'completed' else (tx.status if tx.status else 'قيد المراجعة') }}
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 text-gray-600">
+                                        {{ status_text.get(tx.status, tx.status or 'غير محدد') }}
                                     </span>
                                 </td>
                                 <td class="p-3 text-gray-500 text-left font-mono text-xs">{{ tx.created_at.strftime('%Y-%m-%d') if tx.created_at else '-' }}</td>
                                 <td class="p-3 font-black text-left {% if tx.amount < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
-                                    {{ "{:,.2f}".format(tx.amount) }}
+                                    {{ "{:+,.2f}".format(tx.amount) }}
                                 </td>
                             </tr>
                         {% endfor %}
