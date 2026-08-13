@@ -33,11 +33,12 @@ def wallet():
             q_completed = q_completed.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
         completed_credits = q_completed.scalar() or 0.00
 
+        # تعديل الاستعلام ليشمل طلبات السحب والحركات المعلقة (قيد المراجعة) بجانب الإيرادات المعلقة
         q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
         if status_col is not None:
             q_pending = q_pending.filter(status_col == 'pending')
         if trx_type_col is not None:
-            q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
+            q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit', 'withdrawal', 'debit']))
         pending_credits = q_pending.scalar() or 0.00
 
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
