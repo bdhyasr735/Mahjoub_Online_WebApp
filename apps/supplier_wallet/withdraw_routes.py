@@ -14,16 +14,19 @@ from apps.supplier_wallet.utils import (
     get_registered_supplier_payout_info
 )
 
+# الحد الأدنى المسموح به لتقديم طلب سحب رصيد
+MIN_WITHDRAW_AMOUNT = Decimal('50.00')
+
+
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw():
+    """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب جديد للمورد."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
-
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
     avail_bal = Decimal('0.00')
-    min_withdraw = Decimal('50.00')
     curr = 'SAR'
 
     if wallet_obj:
@@ -32,25 +35,27 @@ def withdraw():
 
     summary = {
         'available_balance': float(avail_bal),
-        'min_withdraw_amount': float(min_withdraw),
+        'balance_sar': float(avail_bal),
+        'min_withdraw_amount': float(MIN_WITHDRAW_AMOUNT),
         'currency': curr
     }
 
+    # معالجة إرسال طلب السحب (POST)
     if request.method == 'POST':
         try:
-            raw_amount = request.form.get('amount', '0')
+            raw_amount = request.form.get('amount', '0').strip()
             amount = Decimal(str(raw_amount))
             method = request.form.get('method', 'bank')
 
-            # --- التحقق المنطقي من الرصيد والحدود ---
+            # --- التحقق المنطقي من الرصيد والحدود الأدنى والأقصى ---
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
             elif avail_bal <= Decimal('0.00'):
                 flash("رصيدك غير كافٍ، لا يوجد رصيد متاح للسحب حالياً.", "danger")
             elif amount > avail_bal:
                 flash("رصيدك غير كافٍ لتغطية المبلغ المطلوب!", "danger")
-            elif amount < min_withdraw:
-                flash(f"الحد الأدنى للسحب هو {float(min_withdraw):,.2f} {curr}", "danger")
+            elif amount < MIN_WITHDRAW_AMOUNT:
+                flash(f"الحد الأدنى لطلب السحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}", "danger")
             else:
                 owner_name = registered_owner or f"مورد رقم #{supplier_id}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
@@ -59,13 +64,13 @@ def withdraw():
                 # صياغة النص بحد أقصى 255 حرفاً (سعة العمود description)
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # إنشاء المعاملة بحقول جدول WalletTransaction الصحيحة حصراً
+                # إنشاء المعاملة بحقول جدول WalletTransaction الصحيحة
                 new_tx = WalletTransaction(
                     wallet_id=wallet_obj.id,
                     owner_id=supplier_id,     
                     owner_type='supplier',   
                     trans_type='withdrawal',
-                    status='pending',          # 👈 حالة الطلب "قيد المراجعة"
+                    status='pending',          # حالة الطلب الأولي: قيد المراجعة
                     amount=amount,
                     currency=curr,
                     description=full_desc
@@ -74,7 +79,8 @@ def withdraw():
                 db.session.add(new_tx)
                 db.session.commit()
 
-                flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة.", "success")
+                ref_num = getattr(new_tx, 'reference_number', None) or f"#{new_tx.id}"
+                flash(f"تم تقديم طلب السحب بنجاح برقم مرجعي: {ref_num}، وهو قيد المراجعة.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
                 
         except (ValueError, InvalidOperation):
@@ -83,9 +89,10 @@ def withdraw():
             db.session.rollback()
             flash(f"حدث خطأ غير متوقع أثناء حفظ الطلب: {str(e)}", "danger")
 
+    # استعلام واستعراض سجل عمليات السحب (GET)
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
-    PER_PAGE = 10
+    per_page = 10
 
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
     query = query.filter(WalletTransaction.trans_type == 'withdrawal')
@@ -96,12 +103,12 @@ def withdraw():
     pagination_obj = query.order_by(
         WalletTransaction.created_at.desc(), 
         WalletTransaction.id.desc()
-    ).paginate(page=page, per_page=PER_PAGE, error_out=False)
+    ).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
         'supplier_wallet/withdraw.html',
         summary=summary,
-        wallet=summary,
+        wallet=wallet_obj,
         withdrawals=pagination_obj.items,
         active_filter=status_filter,
         pagination=pagination_obj,
