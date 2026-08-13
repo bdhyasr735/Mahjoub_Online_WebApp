@@ -1,5 +1,6 @@
 {# 📂 apps/supplier_wallet/templates/supplier_wallet/components/tables.html #}
 
+{# --- 1. جدول حركات كشف الحساب العام --- #}
 {% macro render_wallet_table(transactions, currency='SAR') %}
 <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
     <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -7,7 +8,7 @@
             <span class="w-2.5 h-2.5 rounded-full bg-[#4A154B]"></span>
             <h3 class="text-xs font-black text-gray-900">سجل حركات الحساب والعمليات المالية المكتملة</h3>
         </div>
-        <span class="text-[11px] text-gray-500">إجمالي السندات: <strong class="text-gray-900 font-mono">{{ transactions|length }}</strong></span>
+        <span class="text-[11px] text-gray-500">إجمالي السندات: <strong class="text-gray-900 font-mono">{{ transactions|length if transactions else 0 }}</strong></span>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-right border-collapse">
@@ -47,6 +48,73 @@
                         <div class="flex flex-col items-center gap-2">
                             <svg class="w-8 h-8 opacity-20 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             <span class="text-xs font-bold">لا توجد حركات مالية مكتملة مسبقاً في كشف الحساب.</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# --- 2. جدول طلبات سحب الأرباح المخصص لصفحة withdraw.html --- #}
+{% macro render_withdrawals_table(withdrawals, currency='SAR') %}
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#4A154B]"></span>
+            <h3 class="text-xs font-black text-gray-900">سجل طلبات سحب الأرباح</h3>
+        </div>
+        <span class="text-[11px] text-gray-500">إجمالي الطلبات: <strong class="text-gray-900 font-mono">{{ withdrawals|length if withdrawals else 0 }}</strong></span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+            <thead class="bg-gray-50 text-gray-500 text-[11px] font-black border-b border-gray-100">
+                <tr>
+                    <th class="py-3.5 px-4">رقم الطلب / المرجع</th>
+                    <th class="py-3.5 px-4">المبلغ المطلوب</th>
+                    <th class="py-3.5 px-4">تفاصيل الحساب / الوسيلة</th>
+                    <th class="py-3.5 px-4">الحالة</th>
+                    <th class="py-3.5 px-4">التاريخ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
+                {% for item in withdrawals %}
+                <tr class="hover:bg-gray-50/80 transition-colors">
+                    <td class="py-3.5 px-4 font-mono font-bold text-gray-900">{{ item.reference_number or item.id_code or ('#' ~ item.id) }}</td>
+                    <td class="py-3.5 px-4 font-mono font-black text-rose-600">
+                        {{ "{:,.2f}".format(item.amount|abs) }} <span class="text-[10px] text-gray-400 font-normal">{{ item.currency or currency }}</span>
+                    </td>
+                    <td class="py-3.5 px-4 font-medium text-gray-800">
+                        {{ item.payout_method or item.bank_name or 'تحويل بنكي / محفظة' }}
+                        {% if item.account_number %}
+                            <div class="text-[10px] text-gray-400 font-mono text-left dir-ltr">{{ item.account_number }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="py-3.5 px-4">
+                        {% set status = (item.status or '')|lower %}
+                        {% if status in ['completed', 'approved', 'success', 'مكتمل'] %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">مكتمل</span>
+                        {% elif status in ['pending', 'processing', 'قيد الانتظار', 'قيد المعالجة'] %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">قيد الانتظار</span>
+                        {% elif status in ['rejected', 'cancelled', 'failed', 'مرفوض'] %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">مرفوض</span>
+                        {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">{{ item.status or 'غير محدد' }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3.5 px-4 text-gray-500 font-mono text-[11px]">
+                        {{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else '-' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="py-12 text-center text-gray-400">
+                        <div class="flex flex-col items-center gap-2">
+                            <svg class="w-8 h-8 opacity-20 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span class="text-xs font-bold">لا توجد طلبات سحب أرباح سابقة.</span>
                         </div>
                     </td>
                 </tr>
