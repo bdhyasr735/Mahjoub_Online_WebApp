@@ -4,7 +4,6 @@
 import logging
 from flask import url_for, Blueprint, has_app_context
 
-# تعريف الـ Blueprint هنا لضمان وجوده في الموديول
 supplier_wallet_bp = Blueprint(
     'supplier_wallet', 
     __name__,
@@ -14,7 +13,6 @@ supplier_wallet_bp = Blueprint(
 
 logger = logging.getLogger(__name__)
 
-# المسميات العربية للسلايدر
 MODULE_NAME = "الرقابة المالية"
 TITLE = "الرقابة المالية"
 NAME = "الرقابة المالية"
@@ -24,7 +22,7 @@ MODULE_ICON = "fa-wallet"
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
-    "supplier_wallet.wallet": "💳 كشف الحساب",
+    "supplier_wallet.wallet_dashboard": "💳 كشف الحساب",
     "supplier_wallet.withdraw": "💸 طلب سحب"
 }
 
@@ -33,9 +31,14 @@ def register_module(app):
     """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
     try:
         if 'supplier_wallet' not in app.blueprints:
-            # استيراد مسارات البلوبرنت قبل تسجيله لضمان ربط جميع الـ endpoints بالـ Blueprint
+            # استيراد مسارات البلوبرنت من الملفات الفعلية الموجودة لدينا
             try:
-                from . import routes
+                from . import wallet_routes
+            except ImportError:
+                pass
+
+            try:
+                from . import withdraw_routes
             except ImportError:
                 pass
 
@@ -49,7 +52,6 @@ def register_module(app):
         else:
             print("ℹ️ [Registry Wallet]: موديول الرقابة المالية مسجل مسبقاً.")
 
-        # إضافة الـ Context Processor بشكل آمن يمنع التكرار
         if not hasattr(app, '_supplier_wallet_context_injected'):
             @app.context_processor
             def inject_supplier_wallet_meta():
@@ -72,7 +74,6 @@ def get_module_stats():
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        # استيراد الدوال المساعدة من الملف المخصص لها
         from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 
         supplier_id = get_current_supplier_id()
@@ -85,7 +86,6 @@ def get_module_stats():
 
         trx_type_col = get_trx_type_attr()
 
-        # حساب الرصيد المعلق
         q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_obj.id,
             WalletTransaction.status == 'pending'
@@ -94,7 +94,6 @@ def get_module_stats():
             q_pending = q_pending.filter(trx_type_col == 'credit')
         pending_credits = float(q_pending.scalar() or 0.00)
 
-        # حساب المسحوبات المكتملة أو قيد المعالجة
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_obj.id,
             WalletTransaction.status.in_(['completed', 'pending'])
@@ -103,7 +102,6 @@ def get_module_stats():
             q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
         total_withdrawn = float(q_withdrawn.scalar() or 0.00)
 
-        # الرصيد المتاح والإجمالي
         raw_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
         avail_bal = max(0.00, raw_bal - total_withdrawn)
         tot_bal = avail_bal + pending_credits
@@ -124,7 +122,7 @@ def get_module_stats():
 def get_module_link():
     """الحصول على رابط المحفظة الرئيسي"""
     try:
-        return url_for('supplier_wallet.wallet')
+        return url_for('supplier_wallet.wallet_dashboard')
     except:
         return '/supplier/wallet/'
 
