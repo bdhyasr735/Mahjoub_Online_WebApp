@@ -3,7 +3,7 @@
 
 """
 Mahjoub Online - Supplier Wallet Routes
-تتضمن كافة المنطق للفلترة ومعالجة حركات الحساب وطلبات السحب اعتماداً على البيانات المسجلة في القاعدة
+تتضمن كافة المنطق للفلترة ومعالجة حركات الحساب وطلبات السحب بناءً على البيانات والسياسات المسجلة في النظام
 """
 import uuid
 from datetime import datetime
@@ -11,7 +11,8 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
-# استيراد نموذج ملف المورد أو البيانات المسجلة إن وجد
+
+# محاولة استيراد جدول ملف المورد أو بيانات البروفايل إن وجد
 try:
     from apps.models.supplier_db import SupplierProfile
 except ImportError:
@@ -27,7 +28,7 @@ wallet_bp = Blueprint(
 )
 
 def get_trx_type_attr():
-    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية (Properties)"""
+    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية (Properties) لضمان عمل استعلامات SQLAlchemy بكفاءة"""
     for col_name in ['transaction_type', 'trx_type', 'trans_type']:
         if hasattr(WalletTransaction, col_name):
             attr = getattr(WalletTransaction, col_name)
@@ -75,18 +76,18 @@ def get_or_create_supplier_wallet(supplier_id):
     return wallet
 
 def get_registered_supplier_payout_info(supplier_id):
-    """جلب بيانات الحساب واسم المالك المسجلة مسبقاً في قاعدة بيانات الموردين"""
+    """جلب بيانات المالك وتفاصيل الحساب المسجلة مسبقاً في قاعدة البيانات تلقائياً دون إدخال بشري"""
     owner_name = ""
     account_details = ""
     
-    # 1. محاولة الجلب من جدول SupplierProfile إن وجد
+    # 1. البحث في جدول بروفايل المورد إن وجد
     if SupplierProfile and supplier_id:
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first() or SupplierProfile.query.filter_by(id=supplier_id).first()
         if profile:
             owner_name = getattr(profile, 'owner_name', None) or getattr(profile, 'name', None) or getattr(profile, 'full_name', '')
             account_details = getattr(profile, 'bank_details', None) or getattr(profile, 'account_details', None) or getattr(profile, 'payout_info', '')
 
-    # 2. الجلب من بيانات الحساب الحالي (current_user) إذا لم تتوفر في البروفايل
+    # 2. الاستناد إلى بيانات الحساب الحالي إذا لم تُوجَد في البروفايل
     if not owner_name and current_user.is_authenticated:
         owner_name = getattr(current_user, 'full_name', None) or getattr(current_user, 'name', None) or getattr(current_user, 'username', '')
 
@@ -240,7 +241,7 @@ def withdraw():
     trx_type_col = get_trx_type_attr()
     status_col = get_status_attr()
 
-    # جلب البيانات المسجلة للمورد من قاعدة البيانات تلقائياً
+    # جلب البيانات المسجلة مسبقاً في قاعدة البيانات تلقائياً
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
     if wallet_obj:
@@ -278,7 +279,7 @@ def withdraw():
             amount = float(request.form.get('amount', 0))
             method = request.form.get('method', 'bank')
 
-            # الاعتماد التام على البيانات المسجلة في قاعدة البيانات بدلاً من طلبها من النموذج
+            # الاعتماد التام على البيانات المسجلة في القواعد والبيانات دون طلبها من النموذج
             owner_name = registered_owner
             account_details = registered_details
 
@@ -289,12 +290,12 @@ def withdraw():
             elif amount > avail_bal:
                 flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
             elif not owner_name:
-                flash("اسم المالك غير مسجل في قاعدة البيانات، يرجى تحديث بيانات حسابك أولاً.", "danger")
+                flash("اسم المالك غير مسجل في قاعدة البيانات، يرجى تحديث بيانات الحساب الأساسية أولاً.", "danger")
             else:
                 ref_code = f"WDR-{uuid.uuid4().hex[:6].upper()}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 
-                details_text = f" - التفاصيل: {account_details}" if account_details else " - (مسجل بالسجل الأساسي)"
+                details_text = f" - التفاصيل: {account_details}" if account_details else " - (معتمد من السجل الأساسي)"
                 
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
@@ -325,7 +326,7 @@ def withdraw():
                 db.session.add(tx)
                 db.session.commit()
 
-                flash("تم تقديم طلب السحب بنجاح بناءً على البيانات المسجلة، وهو قيد المعالجة والتسوية.", "success")
+                flash("تم تقديم طلب السحب بنجاح بناءً على القواعد والبيانات المسجلة، وهو قيد المعالجة والتسوية.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
         except ValueError:
             flash("يرجى إدخال مبلغ مالي صحيح ومقبول.", "danger")
