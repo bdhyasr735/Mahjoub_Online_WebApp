@@ -28,21 +28,36 @@ LINKS = {
     "supplier_wallet.withdraw": "💸 طلب سحب"
 }
 
+
 def register_module(app):
-    """تسجيل الموديول وسياق القوالب"""
+    """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
     try:
         if 'supplier_wallet' not in app.blueprints:
+            # استيراد مسارات البلوبرنت قبل تسجيله لضمان ربط جميع الـ endpoints بالـ Blueprint
+            try:
+                from . import routes
+            except ImportError:
+                pass
+
+            try:
+                from . import export_routes
+            except ImportError:
+                pass
+
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
             print("✅ [Registry Wallet]: تم تسجيل موديول الرقابة المالية بنجاح.")
         else:
             print("ℹ️ [Registry Wallet]: موديول الرقابة المالية مسجل مسبقاً.")
 
-        @app.context_processor
-        def inject_supplier_wallet_meta():
-            return dict(
-                SUPPLIER_WALLET_THEME_COLOR='#4A154B',
-                DEFAULT_PER_PAGE=10
-            )
+        # إضافة الـ Context Processor بشكل آمن يمنع التكرار
+        if not hasattr(app, '_supplier_wallet_context_injected'):
+            @app.context_processor
+            def inject_supplier_wallet_meta():
+                return dict(
+                    SUPPLIER_WALLET_THEME_COLOR='#4A154B',
+                    DEFAULT_PER_PAGE=10
+                )
+            app._supplier_wallet_context_injected = True
 
     except Exception as e:
         print(f"❌ [Registry Wallet]: خطأ أثناء تسجيل supplier_wallet: {e}")
