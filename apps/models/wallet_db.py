@@ -120,7 +120,7 @@ class WalletTransaction(db.Model):
     owner_type = db.Column(db.String(20), default='supplier')
     owner_id = db.Column(db.Integer, nullable=False)
 
-    trans_type = db.Column(db.String(30), nullable=False)  # credit, debit, withdrawal, refund, etc.
+    trans_type = db.Column(db.String(30), nullable=False)  # credit, debit, withdrawal, sale_revenue, refund, etc.
     status = db.Column(db.String(30), default='completed', index=True) # completed, pending, cancelled, refund
     source_type = db.Column(db.String(20), default='manual')
     
@@ -198,10 +198,10 @@ class WalletTransaction(db.Model):
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
     """
-    يقوم بحساب رقم السند ورقم المرجع تلقائياً واحتساب الرصيد السابق واللاحق وتحديث جدول المحفظة
-    مباشرة بدقة متناهية دون السقوط في فخ أخطاء ORM.
+    يقوم بحساب رقم السند ورقم المرجع الديناميكي المعزول لكل محفظة تلقائياً،
+    واحتساب الرصيد وتحديث جدول المحفظة بدقة متناهية دون السقوط في فخ أخطاء ORM.
     """
-    # 1. إنشاء رقم السند الآلي عند عدم وجوده
+    # 1. إنشاء رقم السند الآلي العام عند عدم وجوده
     if not target.voucher_number:
         last_num = 12327
         last_trans_stmt = (
@@ -218,12 +218,25 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
                 pass
         target.voucher_number = f"MJ-2026-{last_num + 1:07d}"
 
-    # 1.5. إنشاء رقم مرجعي آلي فريد للعملية (Reference Number) عند عدم توفره
+    # 2. إنشاء الرقم المرجعي الذكي والمعزول لكل محفظة والتاريخ (Prefix-{wallet_id}-{YYYYMMDD}-{sequence})
     if not target.reference_number:
         date_str = datetime.utcnow().strftime('%Y%m%d')
+        
+        prefix_map = {
+            'withdrawal': 'WD',
+            'sale_revenue': 'REV',
+            'deposit': 'DEP',
+            'refund': 'REF',
+            'adjustment_credit': 'ADJ'
+        }
+        
+        prefix_code = prefix_map.get(target.trans_type, 'TRX')
+        prefix_pattern = f"{prefix_code}-{target.wallet_id}-{date_str}-"
+        
         last_ref_stmt = (
             select(WalletTransaction.reference_number)
-            .where(WalletTransaction.reference_number.like(f"WD-{date_str}-%"))
+            .where(WalletTransaction.wallet_id == target.wallet_id)
+            .where(WalletTransaction.reference_number.like(f"{prefix_pattern}%"))
             .order_by(WalletTransaction.id.desc())
             .limit(1)
         )
@@ -234,9 +247,10 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
                 ref_num = int(last_ref.split('-')[-1]) + 1
             except (ValueError, IndexError):
                 pass
-        target.reference_number = f"WD-{date_str}-{ref_num:06d}"
+        
+        target.reference_number = f"{prefix_pattern}{ref_num:04d}"
 
-    # 2. حساب balance_before و balance_after وتحديث جدول المحفظة تلقائياً
+    # 3. حساب balance_before و balance_after وتحديث جدول المحفظة تلقائياً
     if target.balance_before is None or target.balance_after is None:
         wallet_table = SupplierWallet.__table__
         
