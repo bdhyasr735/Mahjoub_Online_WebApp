@@ -111,6 +111,7 @@ class WalletTransaction(db.Model):
         db.Index('idx_trans_status', 'status'),
         db.Index('idx_trans_owner', 'owner_type', 'owner_id'),
         db.Index('idx_trans_voucher', 'voucher_number'),
+        db.Index('idx_trans_reference', 'reference_number'),
         {'extend_existing': True}
     )
 
@@ -129,7 +130,7 @@ class WalletTransaction(db.Model):
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
     
     description = db.Column(db.String(255))
-    reference_number = db.Column(db.String(50))
+    reference_number = db.Column(db.String(50), unique=True, nullable=True)
     related_order_id = db.Column(db.String(50), nullable=True)
     voucher_number = db.Column(db.String(30), unique=True, nullable=True)
     
@@ -190,14 +191,14 @@ class WalletTransaction(db.Model):
         }
 
     def __repr__(self):
-        return f'<WalletTransaction {self.voucher_number} | Type: {self.trans_type} | Status: {self.status} | {self.currency} {self.amount}>'
+        return f'<WalletTransaction {self.voucher_number} | Ref: {self.reference_number} | Type: {self.trans_type} | Status: {self.status} | {self.currency} {self.amount}>'
 
 
 # --- مشغل الأحداث للتسوية التلقائية والحفاظ على دقة الأرصدة ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
     """
-    يقوم بحساب رقم السند تلقائياً واحتساب الرصيد السابق واللاحق وتحديث جدول المحفظة
+    يقوم بحساب رقم السند ورقم المرجع تلقائياً واحتساب الرصيد السابق واللاحق وتحديث جدول المحفظة
     مباشرة بدقة متناهية دون السقوط في فخ أخطاء ORM.
     """
     # 1. إنشاء رقم السند الآلي عند عدم وجوده
@@ -216,6 +217,24 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             except (ValueError, IndexError):
                 pass
         target.voucher_number = f"MJ-2026-{last_num + 1:07d}"
+
+    # 1.5. إنشاء رقم مرجعي آلي فريد للعملية (Reference Number) عند عدم توفره
+    if not target.reference_number:
+        date_str = datetime.utcnow().strftime('%Y%m%d')
+        last_ref_stmt = (
+            select(WalletTransaction.reference_number)
+            .where(WalletTransaction.reference_number.like(f"WD-{date_str}-%"))
+            .order_by(WalletTransaction.id.desc())
+            .limit(1)
+        )
+        last_ref = connection.execute(last_ref_stmt).scalar()
+        ref_num = 1
+        if last_ref:
+            try:
+                ref_num = int(last_ref.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                pass
+        target.reference_number = f"WD-{date_str}-{ref_num:06d}"
 
     # 2. حساب balance_before و balance_after وتحديث جدول المحفظة تلقائياً
     if target.balance_before is None or target.balance_after is None:
