@@ -1,36 +1,78 @@
-<!-- Transactions Table Component (apps/supplier_wallet/templates/supplier_wallet/components/tables.html) -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+<!-- Transactions Table Component (tables.html) -->
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden flex flex-col">
     <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-        <h2 class="text-sm font-semibold text-gray-800">جدول الحركة المالية للمورد (10 حركات بالصفحة)</h2>
-        <span class="text-xs text-gray-500">خاصية الترقيم per_page=10</span>
+        <h2 class="text-xs font-extrabold text-gray-800 flex items-center gap-2">
+            <span>جدول المعاملات المالية الحالية</span>
+        </h2>
+        <span class="text-[11px] text-gray-400 bg-white px-2.5 py-1 rounded-lg border border-gray-200 font-mono">
+            per_page=10
+        </span>
     </div>
+    
     <div class="overflow-x-auto">
         <table class="w-full text-right text-xs">
-            <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
+            <thead class="bg-gray-50/80 text-gray-500 border-b border-gray-200 font-bold">
                 <tr>
-                    <th class="px-4 py-3">رقم الحركة</th>
-                    <th class="px-4 py-3">التاريخ</th>
-                    <th class="px-4 py-3">نوع العملية</th>
-                    <th class="px-4 py-3">البيان</th>
-                    <th class="px-4 py-3">المبلغ</th>
-                    <th class="px-4 py-3 text-center">الحالة</th>
+                    <th class="px-5 py-3.5">رقم الحركة</th>
+                    <th class="px-5 py-3.5">التاريخ والوقت</th>
+                    <th class="px-5 py-3.5">نوع العملية</th>
+                    <th class="px-5 py-3.5">البيان</th>
+                    <th class="px-5 py-3.5">المبلغ</th>
+                    <th class="px-5 py-3.5 text-center">الحالة</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-                {% if pagination and pagination['items'] %}
-                    {% for trx in pagination['items'] %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 font-mono font-bold">{{ trx.reference_code }}</td>
-                        <td class="px-4 py-3 text-gray-500">{{ trx.created_at }}</td>
-                        <td class="px-4 py-3">{{ trx.trx_type }}</td>
-                        <td class="px-4 py-3">{{ trx.description }}</td>
-                        <td class="px-4 py-3 font-bold">{{ trx.amount }} ج.م</td>
-                        <td class="px-4 py-3 text-center">{{ trx.status }}</td>
+            <tbody class="divide-y divide-gray-100 text-gray-700">
+                {% set items = pagination.items if pagination.items is defined else pagination['items'] %}
+                {% if items %}
+                    {% for trx in items %}
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4 font-mono font-bold text-slate-800">
+                            {{ trx.reference_code|default(trx.reference) }}
+                        </td>
+                        <td class="px-5 py-4 text-slate-500 text-[11px]">
+                            {{ trx.created_at|default(trx.date) }}
+                        </td>
+                        <td class="px-5 py-4 font-medium">
+                            {% if trx.trx_type == 'credit' or trx.type == 'credit' %}
+                                <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">إيداع مبيعات</span>
+                            {% else %}
+                                <span class="text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-bold">سحب تحويل</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-slate-600 font-medium">
+                            {{ trx.description }}
+                        </td>
+                        <td class="px-5 py-4 font-mono font-bold text-slate-900 text-sm">
+                            {{ "{:,.2f}".format(trx.amount) }} <span class="text-[10px] text-gray-400">ج.م</span>
+                        </td>
+                        <td class="px-5 py-4 text-center">
+                            {% if trx.status in ['completed', 'approved'] %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    تم الموافقة والتحويل
+                                </span>
+                            {% elif trx.status == 'pending' %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    قيد المراجعة
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    مرفوض
+                                </span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" class="p-6 text-center text-gray-400">لا توجد حركات مالية مسجلة حالياً.</td>
+                        <td colspan="6" class="p-10 text-center text-gray-400">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                <span>لا توجد حركات مالية مسجلة حالياً وفق معايير البحث.</span>
+                            </div>
+                        </td>
                     </tr>
                 {% endif %}
             </tbody>
