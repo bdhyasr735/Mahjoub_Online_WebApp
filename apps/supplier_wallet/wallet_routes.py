@@ -2,7 +2,7 @@
 # 📂 apps/supplier_wallet/wallet_routes.py
 
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
 from apps.extensions import db
@@ -13,6 +13,10 @@ from apps.supplier_wallet.utils import (
     get_or_create_supplier_wallet,
     get_registered_supplier_payout_info
 )
+
+# الحد الأدنى المسموح به لتقديم طلب سحب
+MIN_WITHDRAW_AMOUNT = Decimal('50.00')
+
 
 @supplier_wallet_bp.route('/', methods=['GET'], strict_slashes=False)
 @supplier_wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
@@ -31,9 +35,11 @@ def wallet_dashboard():
 
     summary = {
         'balance_sar': balance_sar,
+        'available_balance': balance_sar,
         'balance_pending': balance_pending,
         'total_withdrawn': total_withdrawn,
-        'currency': curr
+        'currency': curr,
+        'min_withdraw_amount': float(MIN_WITHDRAW_AMOUNT)
     }
 
     # معاملات الفلترة، البحث، والتقسيم (Pagination)
@@ -61,8 +67,11 @@ def wallet_dashboard():
             )
         )
 
-    # الاستفادة من الفهرس المركب الجديد لتسريع عملية الترتيب والفلترة
-    pagination_obj = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    # الترتيب تنازلياً حسب التاريخ والرقم المعرف
+    pagination_obj = query.order_by(
+        WalletTransaction.created_at.desc(), 
+        WalletTransaction.id.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
         'supplier_wallet/wallet.html',
@@ -78,57 +87,103 @@ def wallet_dashboard():
     )
 
 
-@supplier_wallet_bp.route('/withdraw', methods=['POST'], strict_slashes=False)
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
-def request_withdrawal():
-    """معالجة طلب السحب المالي للمورد بأعلى معايير الأمان والتكامل."""
+def withdraw():
+    """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب رصيد جديد."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
-    
+
     if not wallet_obj:
-        flash('المحفظة غير موجودة.', 'danger')
+        flash('لم يتم العثور على محفظة المورد.', 'danger')
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
-    try:
-        amount = Decimal(str(request.form.get('amount', '0')))
-    except (ValueError, TypeError):
-        flash('مبلغ السحب غير صالح.', 'danger')
-        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+    balance_sar = float(getattr(wallet_obj, 'balance_sar', 0.00))
+    curr = getattr(wallet_obj, 'default_currency', 'SAR')
 
-    if amount <= 0:
-        flash('يجب أن يكون مبلغ السحب أكبر من الصفر.', 'danger')
-        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+    summary = {
+        'available_balance': balance_sar,
+        'balance_sar': balance_sar,
+        'min_withdraw_amount': float(MIN_WITHDRAW_AMOUNT),
+        'currency': curr
+    }
 
-    # التحقق من الرصيد المتاح قبل إرسال الطلب
-    if wallet_obj.balance_sar < amount:
-        flash('رصيد المحفظة الحالي غير كافٍ لإتمام عملية السحب.', 'danger')
-        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+    # معالجة طلب السحب المالي عند إرسال النموذج (POST)
+    if request.method == 'POST':
+        try:
+            amount_raw = request.form.get('amount', '0').strip()
+            amount = Decimal(amount_raw)
+        except (ValueError, TypeError, InvalidOperation):
+            flash('يرجى إدخال مبلغ سحب صحيح.', 'danger')
+            return redirect(url_for('supplier_wallet.withdraw'))
 
-    payout_method = request.form.get('payout_method', 'bank_transfer')
-    user_desc = request.form.get('description', f'طلب سحب مالي بمبلغ {amount} SAR')
-    
-    # دمج وسيلة السحب في الوصف بدلاً من الحقل الملغى
-    full_description = f"{user_desc} | طريقة السحب: {payout_method}"[:255]
+        if amount < MIN_WITHDRAW_AMOUNT:
+            flash(f'الحد الأدنى لطلب السحب هو {MIN_WITHDRAW_AMOUNT} {curr}.', 'danger')
+            return redirect(url_for('supplier_wallet.withdraw'))
 
-    try:
-        # إنشاء المعاملة بحقول الجدول الصحيحة فقط
-        transaction = WalletTransaction(
-            wallet_id=wallet_obj.id,
-            owner_type='supplier',
-            owner_id=supplier_id,
-            trans_type='withdrawal',
-            status='pending',
-            amount=amount,
-            currency='SAR',
-            description=full_description
-        )
+        available_decimal = Decimal(str(wallet_obj.balance_sar or 0))
+        if amount > available_decimal:
+            flash('رصيد المحفظة الحالي غير كافٍ لإتمام عملية السحب.', 'danger')
+            return redirect(url_for('supplier_wallet.withdraw'))
 
-        db.session.add(transaction)
-        db.session.commit()
+        payout_method = request.form.get('method', 'bank')
+        method_label = 'تحويل بنكي' if payout_method == 'bank' else 'شركات التحويل والصرافة'
+        full_description = f'طلب سحب مالي | طريقة التحويل: {method_label}'
 
-        flash(f'تم إرسال طلب السحب بنجاح برقم مرجعي: {transaction.reference_number}', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'حدث خطأ غير متوقع أثناء معالجة طلب السحب: {str(e)}', 'danger')
+        try:
+            # إنشاء معاملة سحب معلقة
+            transaction = WalletTransaction(
+                wallet_id=wallet_obj.id,
+                owner_type='supplier',
+                owner_id=supplier_id,
+                trans_type='withdrawal',
+                status='pending',
+                amount=amount,
+                currency=curr,
+                description=full_description
+            )
 
+            db.session.add(transaction)
+            db.session.commit()
+
+            ref_num = getattr(transaction, 'reference_number', None) or f"#{transaction.id}"
+            flash(f'تم إرسال طلب السحب بنجاح برقم مرجعي: {ref_num}', 'success')
+            return redirect(url_for('supplier_wallet.withdraw'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ غير متوقع أثناء معالجة طلب السحب: {str(e)}', 'danger')
+            return redirect(url_for('supplier_wallet.withdraw'))
+
+    # عرض سجل طلبات السحب (GET)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    status_filter = request.args.get('status', 'all')
+
+    query = WalletTransaction.query.filter_by(
+        wallet_id=wallet_obj.id,
+        trans_type='withdrawal'
+    )
+
+    if status_filter != 'all':
+        query = query.filter(WalletTransaction.status == status_filter)
+
+    pagination_obj = query.order_by(
+        WalletTransaction.created_at.desc(),
+        WalletTransaction.id.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template(
+        'supplier_wallet/withdraw.html',
+        wallet=wallet_obj,
+        summary=summary,
+        pagination=pagination_obj
+    )
+
+
+@supplier_wallet_bp.route('/export-pdf', methods=['GET'], strict_slashes=False)
+@login_required
+def export_wallet_pdf():
+    """تصدير كشف حساب المحفظة كملف PDF."""
+    flash('جاري إعداد تقرير كشف الحساب بصيغة PDF...', 'info')
     return redirect(url_for('supplier_wallet.wallet_dashboard'))
