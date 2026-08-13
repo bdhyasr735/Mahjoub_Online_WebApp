@@ -1,73 +1,100 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/wallet_routes.py
+# 📂 apps/supplier_wallet/withdraw_routes.py
 
 from datetime import datetime
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.wallet_db import WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
-from apps.supplier_wallet.utils import get_current_supplier_id, get_or_create_supplier_wallet
+from apps.supplier_wallet.utils import (
+    get_current_supplier_id, 
+    get_or_create_supplier_wallet, 
+    get_registered_supplier_payout_info
+)
 
-@supplier_wallet_bp.route('/', methods=['GET'], strict_slashes=False)
-@supplier_wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
-def wallet():
+def withdraw():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
 
-    # تجهيز ملخص المحفظة مباشرة من الموديل
+    registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
+
+    avail_bal = 0.00
+    min_withdraw = 50.00
+    curr = 'SAR'
+
+    if wallet_obj:
+        avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
+        curr = getattr(wallet_obj, 'default_currency', 'SAR')
+
     summary = {
-        'total_balance': float(wallet_obj.balance_sar or 0.0),
-        'available_balance': float(wallet_obj.balance_sar or 0.0),
-        'pending_balance': float(wallet_obj.balance_pending or 0.0),
-        'total_withdrawn': float(wallet_obj.total_withdrawn or 0.0),
-        'currency': 'SAR',
-        'min_withdraw_amount': 50.00
+        'available_balance': avail_bal,
+        'min_withdraw_amount': min_withdraw,
+        'currency': curr
     }
 
-    # معالجة الفلاتر وعرض المعاملات
+    if request.method == 'POST':
+        try:
+            amount = float(request.form.get('amount', 0))
+            method = request.form.get('method', 'bank')
+
+            if not wallet_obj:
+                flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
+            elif amount < min_withdraw:
+                flash(f"الحد الأدنى للسحب هو {min_withdraw:,.2f} {curr}", "danger")
+            elif amount > avail_bal:
+                flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
+            elif not registered_owner:
+                flash("اسم المالك غير مسجل في قاعدة البيانات.", "danger")
+            else:
+                payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
+                details_text = f" - التفاصيل: {registered_details}" if registered_details else ""
+                
+                new_tx = WalletTransaction(
+                    wallet_id=wallet_obj.id,
+                    owner_id=supplier_id,     
+                    owner_type='supplier',   
+                    trans_type='withdrawal',
+                    status='pending',
+                    amount=amount,
+                    currency=curr,
+                    description=f"طلب سحب عبر {payout_label} | المالك: {registered_owner}{details_text}",
+                    payout_method=payout_label,
+                    account_details=registered_details or 'مسجل بالنظام'
+                )
+
+                db.session.add(new_tx)
+                db.session.commit()
+
+                flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة.", "success")
+                return redirect(url_for('supplier_wallet.withdraw'))
+        except ValueError:
+            flash("يرجى إدخال مبلغ مالي صحيح.", "danger")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"حدث خطأ: {str(e)}", "danger")
+
+    status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
     PER_PAGE = 10
-    
-    query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id)
 
-    # فلترة حسب النوع والحالة
-    trx_type = request.args.get('type', 'all')
-    if trx_type != 'all':
-        query = query.filter(WalletTransaction.trans_type == trx_type)
+    query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
+    query = query.filter(WalletTransaction.trans_type == 'withdrawal')
 
-    status = request.args.get('status', 'all')
-    if status != 'all':
-        query = query.filter(WalletTransaction.status == status)
-    else:
-        # افتراضياً إخفاء المعلقات إذا لم يطلب المستخدم رؤيتها
-        query = query.filter(WalletTransaction.status != 'pending')
+    if status_filter != 'all':
+        query = query.filter(WalletTransaction.status == status_filter)
 
-    # بحث
-    search_query = request.args.get('search', '').strip()
-    if search_query:
-        from sqlalchemy import or_
-        query = query.filter(or_(
-            WalletTransaction.reference_number.ilike(f"%{search_query}%"),
-            WalletTransaction.voucher_number.ilike(f"%{search_query}%"),
-            WalletTransaction.description.ilike(f"%{search_query}%")
-        ))
-
-    # التاريخ
-    from_date = request.args.get('from_date', '').strip()
-    to_date = request.args.get('to_date', '').strip()
-    if from_date:
-        query = query.filter(WalletTransaction.created_at >= datetime.strptime(from_date, '%Y-%m-%d'))
-    if to_date:
-        query = query.filter(WalletTransaction.created_at <= datetime.strptime(to_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
-
-    pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=PER_PAGE, error_out=False)
+    pagination_obj = query.order_by(WalletTransaction.id.desc()).paginate(page=page, per_page=PER_PAGE, error_out=False)
 
     return render_template(
-        'supplier_wallet/wallet.html',
+        'supplier_wallet/withdraw.html',
         summary=summary,
         wallet=summary,
-        transactions=pagination_obj.items,
-        pagination=pagination_obj
+        withdrawals=pagination_obj.items,
+        active_filter=status_filter,
+        pagination=pagination_obj,
+        registered_owner=registered_owner,
+        registered_details=registered_details
     )
