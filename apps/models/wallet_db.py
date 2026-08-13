@@ -48,14 +48,11 @@ class SupplierWallet(db.Model):
         """جلب كائن التشفير مع ضمان مفتاح Fernet صحيح بحجم 32 بايت."""
         key = os.environ.get('ENCRYPTION_KEY')
         if not key:
-            # مفتاح افتراضي آمن بحجم 32 بايت مشفر Base64
             key = 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V='
         
-        # التأكد من تجهيز المفتاح بترميز base64 صحيح
         try:
             return Fernet(key.encode('utf-8'))
         except Exception:
-            # في حال كان المفتاح المدخل ليس Base64 قياسي، يتم تحويله تلقائياً
             b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
             return Fernet(b64_key)
 
@@ -111,6 +108,7 @@ class WalletTransaction(db.Model):
         db.Index('idx_trans_wallet', 'wallet_id'),
         db.Index('idx_trans_date', 'created_at'),
         db.Index('idx_trans_type', 'trans_type'),
+        db.Index('idx_trans_status', 'status'),
         db.Index('idx_trans_owner', 'owner_type', 'owner_id'),
         db.Index('idx_trans_voucher', 'voucher_number'),
         {'extend_existing': True}
@@ -122,20 +120,45 @@ class WalletTransaction(db.Model):
     owner_id = db.Column(db.Integer, nullable=False)
 
     trans_type = db.Column(db.String(30), nullable=False)  # credit, debit, withdrawal, etc.
+    status = db.Column(db.String(30), default='completed', index=True) # completed, pending, cancelled
     source_type = db.Column(db.String(20), default='manual')
+    
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     currency = db.Column(db.String(5), nullable=False, default='SAR')
     balance_before = db.Column(db.Numeric(18, 2), nullable=False)
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
+    
     description = db.Column(db.String(255))
     reference_number = db.Column(db.String(50))
     related_order_id = db.Column(db.String(50), nullable=True)
     voucher_number = db.Column(db.String(30), unique=True, nullable=True)
+    
+    # حقول تفاصيل السحب الإضافية للتوافق التام مع مسارات السحب
+    payout_method = db.Column(db.String(50), nullable=True)
+    account_details = db.Column(db.Text, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, nullable=True)
 
     # جلب المحفظة مع المعاملة
     wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
+
+    # --- توافقية الأسماء لتجنب أي أخطاء في الـ Routes ---
+    @property
+    def transaction_type(self):
+        return self.trans_type
+
+    @transaction_type.setter
+    def transaction_type(self, value):
+        self.trans_type = value
+
+    @property
+    def trx_type(self):
+        return self.trans_type
+
+    @trx_type.setter
+    def trx_type(self, value):
+        self.trans_type = value
 
     @property
     def default_currency(self):
@@ -149,6 +172,8 @@ class WalletTransaction(db.Model):
             'owner_type': self.owner_type,
             'owner_id': self.owner_id,
             'trans_type': self.trans_type,
+            'transaction_type': self.trans_type,
+            'status': self.status,
             'source_type': self.source_type,
             'amount': float(self.amount or 0.0),
             'currency': self.currency,
@@ -158,12 +183,14 @@ class WalletTransaction(db.Model):
             'reference_number': self.reference_number,
             'related_order_id': self.related_order_id,
             'voucher_number': self.voucher_number,
+            'payout_method': self.payout_method,
+            'account_details': self.account_details,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
     def __repr__(self):
-        return f'<WalletTransaction {self.voucher_number} | {self.trans_type} | {self.currency} {self.amount} | Balance: {self.balance_after}>'
+        return f'<WalletTransaction {self.voucher_number} | Type: {self.trans_type} | Status: {self.status} | {self.currency} {self.amount}>'
 
 
 # --- مشغل الأحداث للتسوية التلقائية والحفاظ على دقة الأرصدة ---
@@ -176,7 +203,6 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
     # 1. إنشاء رقم السند الآلي عند عدم وجوده
     if not target.voucher_number:
         last_num = 12327
-        # الحصول على آخر سند مرتب بحسب ID بدلاً من الفرز النصي الخاطئ
         last_trans_stmt = (
             select(WalletTransaction.voucher_number)
             .where(WalletTransaction.voucher_number.isnot(None))
@@ -195,7 +221,6 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
     if target.balance_before is None or target.balance_after is None:
         wallet_table = SupplierWallet.__table__
         
-        # قراءة السجل من الجدول مباشرة باستخدام المخطط (Mappings) لمنع إرجاع Tuple غير معرّف
         wallet_row = connection.execute(
             select(wallet_table).where(wallet_table.c.id == target.wallet_id)
         ).mappings().first()
@@ -204,13 +229,11 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             curr_code = (target.currency or 'SAR').lower()
             attr = f'balance_{curr_code}' if curr_code in ['sar', 'yer', 'usd'] else 'balance_sar'
             
-            # قراءة الرصيد الحالي بدقة
             current_balance = Decimal(str(wallet_row.get(attr) or 0))
             amount_dec = Decimal(str(target.amount or 0))
 
             target.balance_before = current_balance
 
-            # تحديد نوع المعاملة (إضافة أم خصم)
             CREDIT_TYPES = {'credit', 'adjustment_credit', 'sale_revenue', 'deposit', 'refund'}
             
             if target.trans_type in CREDIT_TYPES:
@@ -218,7 +241,6 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             else:
                 target.balance_after = current_balance - amount_dec
 
-            # تحديث الرصيد وقيمة updated_at داخل جدول المحافظ فوراً
             connection.execute(
                 db.update(wallet_table)
                 .where(wallet_table.c.id == target.wallet_id)
