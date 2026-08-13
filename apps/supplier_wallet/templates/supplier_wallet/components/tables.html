@@ -22,9 +22,9 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-gray-700">
-                {% set items = pagination.items if pagination.items is defined else pagination['items'] %}
-                {% if items %}
-                    {% for trx in items %}
+                {% set items_list = pagination['items'] if pagination is mapping else (pagination.items if pagination is defined else []) %}
+                {% if items_list %}
+                    {% for trx in items_list %}
                     <tr class="hover:bg-purple-50/30 transition-colors">
                         <td class="px-5 py-4 font-mono font-bold text-slate-800">
                             {{ trx.reference_code|default(trx.reference) }}
