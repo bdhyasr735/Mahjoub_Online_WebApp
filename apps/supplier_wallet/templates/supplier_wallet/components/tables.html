@@ -1,4 +1,4 @@
-<!-- Transactions Table Component (tables.html) -->
+{% macro render_transactions_table(items, pagination=None, currency="ر.س") %}
 <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden flex flex-col">
     <!-- Table Header -->
     <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -6,11 +6,13 @@
             <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
             </svg>
-            <span>جدول المعاملات المالية الحالية</span>
+            <span>جدول المعاملات المالية</span>
         </h2>
+        {% if pagination %}
         <span class="text-[11px] text-gray-400 bg-white px-2.5 py-1 rounded-lg border border-gray-200 font-mono">
             per_page={{ pagination.per_page|default(10) }}
         </span>
+        {% endif %}
     </div>
     
     <!-- Table Body -->
@@ -27,9 +29,8 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-gray-700">
-                {% set items_list = pagination['items'] if pagination is mapping else (pagination.items if pagination is defined else []) %}
-                {% if items_list %}
-                    {% for trx in items_list %}
+                {% if items %}
+                    {% for trx in items %}
                     <tr class="hover:bg-purple-50/30 transition-colors">
                         <!-- Reference Code -->
                         <td class="px-5 py-4 font-mono font-bold text-slate-800 dir-ltr text-right">
@@ -63,9 +64,7 @@
                         <!-- Amount & Dynamic Currency -->
                         <td class="px-5 py-4 font-mono font-bold text-slate-900 text-sm">
                             {{ "{:,.2f}".format(trx.amount|float) if trx.amount is not none else "0.00" }} 
-                            <span class="text-[10px] text-gray-400 font-sans">
-                                {{ wallet.currency|default(summary.currency|default('ر.س')) }}
-                            </span>
+                            <span class="text-[10px] text-gray-400 font-sans">{{ currency }}</span>
                         </td>
 
                         <!-- Status Badge -->
@@ -105,3 +104,4 @@
         </table>
     </div>
 </div>
+{% endmacro %}
