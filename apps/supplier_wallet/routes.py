@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/supplier_wallet/routes.py
+
 """
 Mahjoub Online - Supplier Wallet Routes
 تتضمن كافة المنطق للفلترة ومعالجة حركات الحساب وطلبات السحب المباشرة من قاعدة البيانات
@@ -24,6 +27,8 @@ def get_trx_type_attr():
         return WalletTransaction.transaction_type
     elif hasattr(WalletTransaction, 'trx_type'):
         return WalletTransaction.trx_type
+    elif hasattr(WalletTransaction, 'trans_type'):
+        return WalletTransaction.trans_type
     return None
 
 def get_status_attr():
@@ -84,7 +89,7 @@ def wallet():
         if status_col is not None:
             q_completed = q_completed.filter(status_col == 'completed')
         if trx_type_col is not None:
-            q_completed = q_completed.filter(trx_type_col == 'credit')
+            q_completed = q_completed.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
         completed_credits = q_completed.scalar() or 0.00
 
         # 2. الإيداعات قيد الانتظار
@@ -94,7 +99,7 @@ def wallet():
         if status_col is not None:
             q_pending = q_pending.filter(status_col == 'pending')
         if trx_type_col is not None:
-            q_pending = q_pending.filter(trx_type_col == 'credit')
+            q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
         pending_credits = q_pending.scalar() or 0.00
 
         # 3. إجمالي السحوبات (يشمل الطلبات المكتملة والمعلقة لحجز الرصيد)
@@ -110,7 +115,7 @@ def wallet():
         # 4. الرصيد المتاح المتبقي
         avail_bal = getattr(wallet_obj, 'available_balance', None)
         if avail_bal is None:
-            avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00)) - float(total_withdrawn)
+            avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
             avail_bal = max(0.00, avail_bal)
 
         tot_bal = avail_bal + float(pending_credits)
@@ -154,8 +159,10 @@ def wallet():
     search_query = request.args.get('search', '').strip()
     if search_query:
         search_filters = []
-        if hasattr(WalletTransaction, 'reference_code'):
-            search_filters.append(WalletTransaction.reference_code.ilike(f"%{search_query}%"))
+        if hasattr(WalletTransaction, 'reference_number'):
+            search_filters.append(WalletTransaction.reference_number.ilike(f"%{search_query}%"))
+        if hasattr(WalletTransaction, 'voucher_number'):
+            search_filters.append(WalletTransaction.voucher_number.ilike(f"%{search_query}%"))
         if hasattr(WalletTransaction, 'description'):
             search_filters.append(WalletTransaction.description.ilike(f"%{search_query}%"))
         if search_filters:
@@ -230,7 +237,7 @@ def withdraw():
         avail_bal = getattr(wallet_obj, 'available_balance', None)
         if avail_bal is None:
             raw_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
-            avail_bal = max(0.00, raw_bal - float(total_withdrawn))
+            avail_bal = max(0.00, raw_bal)
 
         min_withdraw = 500.00
         curr = getattr(wallet_obj, 'currency', 'ر.س')
@@ -266,7 +273,7 @@ def withdraw():
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
                     'amount': amount,
-                    'reference_code': ref_code,
+                    'reference_number': ref_code,  # متوافق مع reference_number في Model
                     'description': f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
                     'created_at': datetime.utcnow()
                 }
@@ -281,7 +288,9 @@ def withdraw():
                     tx_kwargs['account_details'] = account_details
                 
                 # إسناد قيمة نوع المعاملة حسب الحقل الموجود
-                if hasattr(WalletTransaction, 'transaction_type'):
+                if hasattr(WalletTransaction, 'trans_type'):
+                    tx_kwargs['trans_type'] = 'withdrawal'
+                elif hasattr(WalletTransaction, 'transaction_type'):
                     tx_kwargs['transaction_type'] = 'withdrawal'
                 elif hasattr(WalletTransaction, 'trx_type'):
                     tx_kwargs['trx_type'] = 'withdrawal'
