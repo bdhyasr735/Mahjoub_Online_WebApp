@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <!-- رسائل التنبيه والإشعارات المتوسطة بشكل احترافي -->
+    <!-- رسائل التنبيه والإشعارات -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="mb-8 flex flex-col items-center justify-center">
@@ -43,7 +43,7 @@
                         {% elif category == 'danger' or category == 'error' %} bg-rose-50 text-rose-800 border border-rose-200 
                         {% else %} bg-blue-50 text-blue-800 border border-blue-200 {% endif %}">
                         
-                        <!-- أيقونة التنبيه حسب الفئة -->
+                        <!-- أيقونة التنبيه -->
                         {% if category == 'success' %}
                             <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         {% elif category == 'danger' or category == 'error' %}
@@ -67,7 +67,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
         <div class="text-xs font-bold">
-            <span>تنبيه هام:</span> الحد الأدنى المسموح به لأي عملية سحب هو <span dir="ltr" class="text-rose-600 font-black">50.00 SAR</span>. يرجى التأكد من أن المبلغ المطلوب يساوي أو يتجاوز هذا الحد.
+            <span>تنبيه هام:</span> الحد الأدنى المسموح به لأي عملية سحب هو <span dir="ltr" class="text-rose-600 font-black">50.00 SAR</span>.
         </div>
     </div>
 
@@ -79,32 +79,21 @@
         </h2>
 
         <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" class="space-y-4">
-            <!-- حماية الـ CSRF (إلزامية لمنع خطأ 400 Bad Request) -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                <!-- المبلغ المطلوب سحبه -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">المبلغ المطلوب سحبه <span class="text-rose-500">*</span></label>
                     <div class="relative">
-                        <input type="number" 
-                               step="0.01" 
-                               name="amount" 
-                               required 
-                               min="{{ summary.min_withdraw_amount }}" 
-                               max="{{ summary.available_balance }}"
-                               placeholder="0.00" 
-                               dir="ltr"
-                               lang="en"
-                               inputmode="decimal"
+                        <input type="number" step="0.01" name="amount" required 
+                               min="{{ summary.min_withdraw_amount }}" max="{{ summary.available_balance }}"
+                               placeholder="0.00" dir="ltr" lang="en" inputmode="decimal"
                                class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B] transition-all font-bold text-gray-800 pl-16 text-right">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500" dir="ltr">SAR</span>
                     </div>
                     <p class="text-[10px] text-gray-400 mt-1">الحد الأدنى للسحب: <span dir="ltr" class="inline-block font-bold text-gray-600">{{ "{:,.2f}".format(summary.min_withdraw_amount) }} SAR</span></p>
                 </div>
 
-                <!-- طريقة السحب -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">طريقة السحب <span class="text-rose-500">*</span></label>
                     <select name="method" class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B] transition-all font-bold text-gray-800">
@@ -114,37 +103,21 @@
                 </div>
             </div>
 
-            <!-- الحقول التي يتم جلبها تلقائياً واستناداً إلى البيانات المسجلة مسبقاً -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                
-                <!-- اسم المالك المسجل -->
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">
-                        اسم المالك (صاحب الحساب) 
-                        <span class="text-emerald-600 text-[10px] font-normal">(مستند تلقائياً من السجل الأساسي)</span>
-                    </label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">اسم المالك <span class="text-emerald-600 text-[10px] font-normal">(مستند تلقائياً)</span></label>
                     <div class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-100 font-bold text-gray-800 flex items-center justify-between gap-2">
                         <span class="break-words">{{ registered_owner or 'غير مسجل' }}</span>
                         <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     </div>
                 </div>
-
-                <!-- تفاصيل الحساب أو الصرافة المسجلة -->
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">
-                        تفاصيل الحساب أو شركة الصرافة 
-                        <span class="text-emerald-600 text-[10px] font-normal">(معتمد مسبقاً من النظام)</span>
-                    </label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">تفاصيل الحساب <span class="text-emerald-600 text-[10px] font-normal">(معتمد مسبقاً)</span></label>
                     <div class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-100 text-gray-800 flex items-center justify-between gap-2">
-                        <span class="break-words">{{ registered_details or 'لا توجد تفاصيل إضافية مسجلة' }}</span>
+                        <span class="break-words">{{ registered_details or 'لا توجد تفاصيل إضافية' }}</span>
                         <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     </div>
                 </div>
-            </div>
-
-            <div class="bg-purple-50/50 p-3 rounded-xl border border-purple-100 flex items-center gap-2 text-purple-900 text-[11px]">
-                <svg class="w-4 h-4 text-[#4A154B] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>يتم مراجعة طلبات السحب بدقة والاعتماد الأساسي على اسم المالك والحسابات المسجلة في السجل لضمان وصول المستحقات المالية بأمان تام.</span>
             </div>
 
             <div class="flex justify-end pt-2">
@@ -156,28 +129,15 @@
         </form>
     </div>
 
-    <!-- جدول سجل سحوبات الأرباح السابقة مع الفلاتر والترقيم -->
+    <!-- جدول سجل سحوبات الأرباح -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        
-        <!-- عنوان السجل ومعيار الفلترة والتصدير -->
         <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h2 class="text-sm font-black text-gray-800">سجل عمليات وطلبات السحب السابقة</h2>
+                <h2 class="text-sm font-black text-gray-800">سجل عمليات السحب السابقة</h2>
                 <span class="text-[11px] text-gray-400 mt-0.5 block" dir="ltr">إجمالي الطلبات: {{ pagination.total_items if pagination and pagination.total_items is defined else (withdrawals|length) }}</span>
             </div>
             
             <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-                <!-- زر تصدير PDF -->
-                <a href="{{ url_for('supplier_wallet.export_pdf', status=request.args.get('status', 'all')) }}" 
-                   class="px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm flex items-center gap-1.5"
-                   title="تصدير السجل إلى ملف PDF">
-                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <span>تصدير PDF</span>
-                </a>
-
-                <!-- فلتر الحالة -->
                 <form method="GET" action="{{ url_for('supplier_wallet.withdraw') }}" class="flex items-center gap-2">
                     <span class="text-xs font-bold text-gray-500 whitespace-nowrap">حالة الطلب:</span>
                     <select name="status" onchange="this.form.submit()" class="text-xs py-2 px-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#4A154B] font-bold text-gray-700">
@@ -187,6 +147,15 @@
                         <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
                     </select>
                 </form>
+
+                <a href="{{ url_for('supplier_wallet.export_pdf', status=request.args.get('status', 'all')) }}" 
+                   class="px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm flex items-center gap-1.5"
+                   title="تصدير كشف السحوبات">
+                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    تصدير كشف
+                </a>
             </div>
         </div>
 
@@ -196,10 +165,10 @@
                     <tr class="bg-gray-50/70 border-b border-gray-100 text-[11px] font-black text-gray-500">
                         <th class="p-4">رقم المرجع</th>
                         <th class="p-4">المبلغ</th>
-                        <th class="p-4">طريقة التحويل / التفاصيل</th>
+                        <th class="p-4">التفاصيل</th>
                         <th class="p-4">اسم المالك</th>
                         <th class="p-4">الحالة</th>
-                        <th class="p-4">التاريخ والوقت</th>
+                        <th class="p-4">التاريخ</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
@@ -208,7 +177,7 @@
                             <tr class="hover:bg-gray-50/50 transition-all">
                                 <td class="p-4 font-mono font-bold text-[#4A154B]" dir="ltr">{{ tx.reference_number or '-' }}</td>
                                 <td class="p-4 font-black text-gray-900" dir="ltr">{{ "{:,.2f}".format(tx.amount) }} SAR</td>
-                                <td class="p-4 text-gray-600 break-words" title="{{ tx.description }}">{{ tx.description or '-' }}</td>
+                                <td class="p-4 text-gray-600 break-words">{{ tx.description or '-' }}</td>
                                 <td class="p-4 font-bold text-gray-800 break-words">{{ tx.owner_name or registered_owner or '-' }}</td>
                                 <td class="p-4">
                                     {% if tx.status == 'completed' %}
@@ -226,21 +195,18 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="6" class="p-8 text-center text-gray-400 font-bold">لا توجد طلبات سحب سابقة مطابقة للفلتر المحدد.</td>
+                            <td colspan="6" class="p-8 text-center text-gray-400 font-bold">لا توجد طلبات سحب سابقة.</td>
                         </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
 
-        <!-- ترقيم الصفحات الاحترافي (Pagination) -->
         {% if pagination and pagination.total_pages > 1 %}
         <div class="p-6 border-t border-gray-100 flex justify-center items-center gap-1.5 bg-gray-50/50">
-            <!-- زر السابق -->
             <a href="{{ url_for('supplier_wallet.withdraw', page=pagination.page-1, status=request.args.get('status', 'all')) }}" 
                class="px-3.5 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm {% if not pagination.has_prev %}pointer-events-none opacity-40{% endif %}">السابق</a>
             
-            <!-- أرقام الصفحات -->
             {% for p in range(1, pagination.total_pages + 1) %}
                 {% if p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
                     <a href="{{ url_for('supplier_wallet.withdraw', page=p, status=request.args.get('status', 'all')) }}" 
@@ -252,13 +218,10 @@
                 {% endif %}
             {% endfor %}
 
-            <!-- زر التالي -->
             <a href="{{ url_for('supplier_wallet.withdraw', page=pagination.page+1, status=request.args.get('status', 'all')) }}" 
                class="px-3.5 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm {% if not pagination.has_next %}pointer-events-none opacity-40{% endif %}">التالي</a>
         </div>
         {% endif %}
-
     </div>
-
 </div>
 {% endblock %}
