@@ -1,52 +1,41 @@
-<!-- Pagination Component (pagination.html) -->
-{% set total_pages = pagination.total_pages if pagination.total_pages is defined else pagination['total_pages'] %}
-{% set page = pagination.page if pagination.page is defined else pagination['page'] %}
-{% set has_prev = pagination.has_prev if pagination.has_prev is defined else pagination['has_prev'] %}
-{% set has_next = pagination.has_next if pagination.has_next is defined else pagination['has_next'] %}
-
-{% set current_search = request.args.get('search', '') %}
-{% set current_type = request.args.get('type', 'all') %}
-{% set current_status = request.args.get('status', 'all') %}
-{% set current_from = request.args.get('from_date', '') %}
-{% set current_to = request.args.get('to_date', '') %}
-
-{% if pagination and total_pages > 1 %}
-<div class="bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between border border-gray-200/80 rounded-2xl shadow-xs gap-4">
-    <div class="text-xs text-gray-500 font-medium">
-        عرض الصفحة <span class="font-bold text-gray-900">{{ page }}</span> من إجمالي <span class="font-bold text-gray-900">{{ total_pages }}</span> صفحة
-    </div>
+{% macro render_pagination(pagination, endpoint=None) %}
+    {% set endpoint = endpoint or request.endpoint %}
+    {% set current_args = request.args.to_dict() %}
     
-    <div class="flex items-center gap-1.5 dir-rtl">
-        <!-- السابق -->
-        {% if has_prev %}
-        <a href="{{ url_for('supplier_wallet.wallet', page=page-1, search=current_search, type=current_type, status=current_status, from_date=current_from, to_date=current_to) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
-            &lt;
-        </a>
-        {% else %}
-        <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">&lt;</span>
-        {% endif %}
-
-        <!-- الأرقام -->
-        {% for p in range(1, total_pages + 1) %}
-            {% if p == page %}
-            <span class="px-3.5 py-1.5 text-xs font-black text-white bg-[#4A154B] rounded-xl shadow-xs">
-                {{ p }}
-            </span>
+    {% if pagination and pagination.pages > 1 %}
+    <div class="bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between border border-gray-200/80 rounded-2xl shadow-xs gap-4">
+        <div class="text-xs text-gray-500 font-medium">
+            عرض الصفحة <span class="font-bold text-gray-900">{{ pagination.page }}</span> من إجمالي <span class="font-bold text-gray-900">{{ pagination.pages }}</span>
+        </div>
+        
+        <div class="flex items-center gap-1.5 dir-rtl">
+            <!-- السابق -->
+            {% if pagination.has_prev %}
+                <a href="{{ url_for(endpoint, **{**current_args, 'page': pagination.prev_num}) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">&lt;</a>
             {% else %}
-            <a href="{{ url_for('supplier_wallet.wallet', page=p, search=current_search, type=current_type, status=current_status, from_date=current_from, to_date=current_to) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
-                {{ p }}
-            </a>
+                <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">&lt;</span>
             {% endif %}
-        {% endfor %}
 
-        <!-- التالي -->
-        {% if has_next %}
-        <a href="{{ url_for('supplier_wallet.wallet', page=page+1, search=current_search, type=current_type, status=current_status, from_date=current_from, to_date=current_to) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
-            &gt;
-        </a>
-        {% else %}
-        <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">&gt;</span>
-        {% endif %}
+            <!-- الأرقام -->
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    {% if p == pagination.page %}
+                        <span class="px-3.5 py-1.5 text-xs font-black text-white bg-[#4A154B] rounded-xl shadow-xs">{{ p }}</span>
+                    {% else %}
+                        <a href="{{ url_for(endpoint, **{**current_args, 'page': p}) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">{{ p }}</a>
+                    {% endif %}
+                {% else %}
+                    <span class="px-3.5 py-1.5 text-xs text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+
+            <!-- التالي -->
+            {% if pagination.has_next %}
+                <a href="{{ url_for(endpoint, **{**current_args, 'page': pagination.next_num}) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">&gt;</a>
+            {% else %}
+                <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">&gt;</span>
+            {% endif %}
+        </div>
     </div>
-</div>
-{% endif %}
+    {% endif %}
+{% endmacro %}
