@@ -1,33 +1,69 @@
-<!-- Pagination Component (apps/supplier_wallet/templates/supplier_wallet/components/pagination.html) -->
-{% if pagination and pagination.total_pages > 1 %}
-<div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-b-xl">
-    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between text-xs">
-        <div>
-            <p class="text-gray-600">
-                عرض الصفحات <span class="font-bold text-gray-900">{{ pagination.page }}</span> من إجمالي <span class="font-bold text-gray-900">{{ pagination.total_pages }}</span> صفحة (<span class="font-bold text-[#4A154B]">{{ pagination.per_page }} عناصر/صفحة</span>)
-            </p>
+<!-- KPI Cards Component (kpi_cards.html) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <!-- Card 1: Total Balance -->
+    <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs relative overflow-hidden transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-gray-500">إجمالي الرصيد</span>
+            <div class="p-2.5 bg-purple-50 text-[#4A154B] rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
         </div>
-        <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-xs -space-x-px dir-rtl gap-1" aria-label="Pagination">
-                {% if pagination.has_prev %}
-                <a href="?page={{ pagination.page - 1 }}" class="relative inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    السابق
-                </a>
-                {% endif %}
-
-                {% for p in range(1, pagination.total_pages + 1) %}
-                <a href="?page={{ p }}" class="relative inline-flex items-center px-3 py-1.5 border text-xs font-bold rounded-md {% if p == pagination.page %}bg-[#4A154B] text-white border-[#4A154B]{% else %}bg-white border-gray-300 text-gray-700 hover:bg-gray-50{% endif %}">
-                    {{ p }}
-                </a>
-                {% endfor %}
-
-                {% if pagination.has_next %}
-                <a href="?page={{ p + 1 }}" class="relative inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    التالي
-                </a>
-                {% endif %}
-            </nav>
+        <div class="space-y-1">
+            <div class="text-2xl font-black text-gray-900 tracking-tight">
+                {{ "{:,.2f}".format(wallet.total_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">ج.م</span>
+            </div>
+            <p class="text-[11px] text-gray-400">الرصيد الإجمالي التراكمي</p>
         </div>
     </div>
+
+    <!-- Card 2: Featured Available Balance (Dark Purple) -->
+    <div class="bg-[#3B113F] text-white p-5 rounded-2xl shadow-lg shadow-[#3B113F]/20 relative overflow-hidden transition-all hover:scale-[1.01]">
+        <div class="absolute -left-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-3 relative z-10">
+            <span class="text-xs font-bold text-purple-200">الرصيد المتاح للسحب</span>
+            <div class="p-2.5 bg-white/10 text-emerald-400 rounded-xl backdrop-blur-md">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+        </div>
+        <div class="space-y-1 relative z-10">
+            <div class="text-2xl font-black text-white tracking-tight">
+                {{ "{:,.2f}".format(wallet.available_balance|default(0.0)) }} <span class="text-xs font-normal text-purple-200">ج.م</span>
+            </div>
+            <p class="text-[11px] text-purple-200/80">جاهز للتحويل الفوري</p>
+        </div>
+    </div>
+
+    <!-- Card 3: Pending Balance -->
+    <div class="bg-white p-5 rounded-2xl border border-amber-200/80 shadow-xs relative overflow-hidden border-r-4 border-r-amber-500 transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-gray-500">المعاملات المعلقة</span>
+            <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+        </div>
+        <div class="space-y-1">
+            <div class="text-2xl font-black text-amber-600 tracking-tight">
+                {{ "{:,.2f}".format(wallet.pending_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">ج.م</span>
+            </div>
+            <p class="text-[11px] text-gray-400">قيد المعالجة والتسوية</p>
+        </div>
+    </div>
+
+    <!-- Card 4: Total Withdrawals -->
+    <div class="bg-white p-5 rounded-2xl border border-emerald-200/80 shadow-xs relative overflow-hidden border-r-4 border-r-emerald-500 transition-all hover:shadow-md">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-gray-500">إجمالي المسحوبات</span>
+            <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            </div>
+        </div>
+        <div class="space-y-1">
+            <div class="text-2xl font-black text-gray-900 tracking-tight">
+                {{ "{:,.2f}".format(wallet.total_withdrawn|default(0.0)) }} <span class="text-xs font-normal text-gray-500">ج.م</span>
+            </div>
+            <p class="text-[11px] text-gray-400">المبالغ المحولة سابقاً</p>
+        </div>
+    </div>
+
 </div>
-{% endif %}
