@@ -9,13 +9,14 @@ from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
 
 logger = logging.getLogger(__name__)
 
-MODULE_NAME = "محفظة المورد"
+MODULE_NAME = "الرقابة المالية"
 MODULE_ICON = "fa-wallet"
 SHOW_IN_SUPPLIER = True
 
+# ✅ تم تصحيح اسم المسار ليتوافق تماماً مع دالة withdraw في routes.py
 LINKS = {
     "supplier_wallet.wallet": "💳 كشف الحساب",
-    "supplier_wallet.withdrawal_request": "💸 طلب سحب"
+    "supplier_wallet.withdraw": "💸 طلب سحب"
 }
 
 def register_module(app):
