@@ -5,7 +5,7 @@
 {% block content %}
 <div class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- Flash Messages / Notifications (مصحح) -->
+    <!-- Flash Messages / Notifications -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="space-y-3">
@@ -44,7 +44,15 @@
                 متابعة تفصيلية لكافة العمليات المالية، المبيعات، والإيداعات، وعمليات السحب الخاصة بحسابك في المنصة.
             </p>
         </div>
+        
         <div class="flex items-center gap-3 shrink-0">
+            <!-- زر التصدير PDF -->
+            <a href="{{ url_for('supplier_wallet.export_wallet_pdf') }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-all hover:scale-[1.01]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>تصدير PDF</span>
+            </a>
+            
+            <!-- زر طلب سحب -->
             <a href="{{ url_for('supplier_wallet.withdraw') }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#4A154B] hover:bg-[#3B113F] text-white font-black text-xs shadow-md shadow-[#4A154B]/20 transition-all hover:scale-[1.01]">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span>طلب سحب أرباح جديد</span>
