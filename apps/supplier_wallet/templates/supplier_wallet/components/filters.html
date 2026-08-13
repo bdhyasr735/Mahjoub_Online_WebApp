@@ -14,7 +14,7 @@
             <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="رقم المرجع أو البيان..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
         </div>
 
-        <!-- 2. فلتر نوع الحركة -->
+        <!-- 2. فلتر نوع الحركة (يظهر في المحفظة فقط) -->
         {% if show_type is not defined or show_type is true %}
         <div class="space-y-1.5">
             <label class="text-[11px] font-bold text-gray-700">نوع الحركة</label>
@@ -26,15 +26,13 @@
         </div>
         {% endif %}
 
-        <!-- 3. فلتر حالة الطلب (يظهر حصرياً إذا تم تعيين show_status بـ true صراحةً) -->
+        <!-- 3. فلتر حالة الطلب (يظهر في صفحة طلبات السحب فقط) -->
         {% if show_status is defined and show_status is true %}
         <div class="space-y-1.5">
             <label class="text-[11px] font-bold text-gray-700">حالة الطلب</label>
             <select name="status" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
                 <option value="">جميع الحالات</option>
                 <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
-                <option value="processing" {% if request.args.get('status') == 'processing' %}selected{% endif %}>جاري المعالجة / التحويل</option>
-                <option value="on_hold" {% if request.args.get('status') == 'on_hold' %}selected{% endif %}>معلّق (يتطلب إجراء)</option>
                 <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
                 <option value="reverted" {% if request.args.get('status') == 'reverted' %}selected{% endif %}>مسترجع إلى المحفظة</option>
                 <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض / ملغي</option>
