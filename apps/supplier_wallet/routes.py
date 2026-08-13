@@ -29,7 +29,7 @@ wallet_bp = Blueprint(
 )
 
 def get_trx_type_attr():
-    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية (Properties) لضمان عمل استعلامات SQLAlchemy بكفاءة"""
+    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية لضمان عمل استعلامات SQLAlchemy بكفاءة"""
     for col_name in ['transaction_type', 'trx_type', 'trans_type']:
         if hasattr(WalletTransaction, col_name):
             attr = getattr(WalletTransaction, col_name)
@@ -38,7 +38,7 @@ def get_trx_type_attr():
     return None
 
 def get_status_attr():
-    """التحقق الديناميكي من اسم حقل الحالة وتجنب الخصائص البرمجية (Properties)"""
+    """التحقق الديناميكي من اسم حقل الحالة وتجنب الخصائص البرمجية"""
     for col_name in ['status', 'state']:
         if hasattr(WalletTransaction, col_name):
             attr = getattr(WalletTransaction, col_name)
@@ -90,13 +90,11 @@ def get_registered_supplier_payout_info(supplier_id):
     owner_name = ""
     account_details = ""
     
-    # 1. البحث مباشرة في نموذج المورد الأساسي (Supplier) أولاً لضمان دقة اسم المالك والكود
     if Supplier and supplier_id:
         supplier_obj = Supplier.query.get(supplier_id)
         if supplier_obj:
             owner_name = getattr(supplier_obj, 'owner_name', None) or getattr(supplier_obj, 'trade_name', None) or ''
 
-    # 2. البحث في جدول بروفايل المورد (SupplierProfile) لجلب تفاصيل الحساب البنكي أو الصرافة
     if SupplierProfile and supplier_id and not account_details:
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first() or SupplierProfile.query.filter_by(id=supplier_id).first()
         if profile:
@@ -104,7 +102,6 @@ def get_registered_supplier_payout_info(supplier_id):
                 owner_name = getattr(profile, 'owner_name', None) or getattr(profile, 'name', None) or getattr(profile, 'full_name', '')
             account_details = getattr(profile, 'bank_details', None) or getattr(profile, 'account_details', None) or getattr(profile, 'payout_info', '')
 
-    # 3. الاعتماد على بيانات الحساب الحالي إذا لم تُوجَد مسبقاً
     if not owner_name and current_user.is_authenticated:
         owner_name = getattr(current_user, 'owner_name', None) or getattr(current_user, 'full_name', None) or getattr(current_user, 'name', '') or getattr(current_user, 'username', '')
 
@@ -231,13 +228,22 @@ def wallet():
 
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
+    # استخراج العناصر بشكل آمن لضمان عدم حدوث خطأ النوع (TypeError)
+    items = []
+    if hasattr(pagination_obj, 'items'):
+        items = pagination_obj.items() if callable(pagination_obj.items) else pagination_obj.items
+    elif isinstance(pagination_obj, dict):
+        items = pagination_obj.get('items', [])
+        if callable(items):
+            items = items()
+
     pagination = {
-        'items': pagination_obj.items,
-        'page': pagination_obj.page,
-        'total_pages': pagination_obj.pages,
-        'total_items': pagination_obj.total,
-        'has_prev': pagination_obj.has_prev,
-        'has_next': pagination_obj.has_next,
+        'items': list(items) if items else [],
+        'page': getattr(pagination_obj, 'page', page) if not isinstance(pagination_obj, dict) else pagination_obj.get('page', page),
+        'total_pages': getattr(pagination_obj, 'pages', getattr(pagination_obj, 'total_pages', 1)) if not isinstance(pagination_obj, dict) else pagination_obj.get('pages', 1),
+        'total_items': getattr(pagination_obj, 'total', getattr(pagination_obj, 'total_items', 0)) if not isinstance(pagination_obj, dict) else pagination_obj.get('total', 0),
+        'has_prev': getattr(pagination_obj, 'has_prev', False) if not isinstance(pagination_obj, dict) else pagination_obj.get('has_prev', False),
+        'has_next': getattr(pagination_obj, 'has_next', False) if not isinstance(pagination_obj, dict) else pagination_obj.get('has_next', False),
         'per_page': PER_PAGE
     }
 
@@ -253,16 +259,13 @@ def wallet():
 @wallet_bp.route('/wallet/export-pdf', methods=['GET'], strict_slashes=False)
 @login_required
 def export_pdf():
-    """مسار تصدير كشف حساب المحفظة للطباعة كملف PDF مع الحفاظ على كافة الفلاتر والبحث"""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     trx_type_col = get_trx_type_attr()
     status_col = get_status_attr()
 
-    # جلب الملخص المالي بنفس منطق صفحة المحفظة
     if wallet_obj:
         wallet_id = wallet_obj.id
-        
         q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
         if status_col is not None:
             q_completed = q_completed.filter(status_col == 'completed')
@@ -303,7 +306,6 @@ def export_pdf():
             'pending_balance': 0.00, 'total_withdrawn': 0.00, 'currency': 'ر.س'
         }
 
-    # جلب الحركات مطابقة لفلاتر البحث دون تصفح صفحات (لضمان تصدير كل النتائج المفلترة للتقرير)
     query = WalletTransaction.query
     if wallet_obj:
         query = query.filter_by(wallet_id=wallet_obj.id)
@@ -354,12 +356,10 @@ def withdraw():
     trx_type_col = get_trx_type_attr()
     status_col = get_status_attr()
 
-    # جلب البيانات المسجلة مسبقاً في قاعدة البيانات تلقائياً
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
     if wallet_obj:
         wallet_id = wallet_obj.id
-
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id
         )
@@ -392,7 +392,6 @@ def withdraw():
             amount = float(request.form.get('amount', 0))
             method = request.form.get('method', 'bank')
 
-            # الاعتماد التام على البيانات المسجلة في القواعد والبيانات دون طلبها من النموذج
             owner_name = registered_owner
             account_details = registered_details
 
@@ -407,10 +406,8 @@ def withdraw():
             else:
                 ref_code = f"WDR-{uuid.uuid4().hex[:6].upper()}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
-                
                 details_text = f" - التفاصيل: {account_details}" if account_details else " - (معتمد من السجل الأساسي)"
                 
-                # إضافة owner_id و owner_type لتجنب خطأ NotNullViolation
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
                     'owner_id': supplier_id,      
@@ -472,13 +469,21 @@ def withdraw():
 
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
+    items = []
+    if hasattr(pagination_obj, 'items'):
+        items = pagination_obj.items() if callable(pagination_obj.items) else pagination_obj.items
+    elif isinstance(pagination_obj, dict):
+        items = pagination_obj.get('items', [])
+        if callable(items):
+            items = items()
+
     pagination = {
-        'items': pagination_obj.items,
-        'page': pagination_obj.page,
-        'total_pages': pagination_obj.pages,
-        'total_items': pagination_obj.total,
-        'has_prev': pagination_obj.has_prev,
-        'has_next': pagination_obj.has_next,
+        'items': list(items) if items else [],
+        'page': getattr(pagination_obj, 'page', page) if not isinstance(pagination_obj, dict) else pagination_obj.get('page', page),
+        'total_pages': getattr(pagination_obj, 'pages', getattr(pagination_obj, 'total_pages', 1)) if not isinstance(pagination_obj, dict) else pagination_obj.get('pages', 1),
+        'total_items': getattr(pagination_obj, 'total', getattr(pagination_obj, 'total_items', 0)) if not isinstance(pagination_obj, dict) else pagination_obj.get('total', 0),
+        'has_prev': getattr(pagination_obj, 'has_prev', False) if not isinstance(pagination_obj, dict) else pagination_obj.get('has_prev', False),
+        'has_next': getattr(pagination_obj, 'has_next', False) if not isinstance(pagination_obj, dict) else pagination_obj.get('has_next', False),
         'per_page': PER_PAGE
     }
 
@@ -486,7 +491,7 @@ def withdraw():
         'supplier_wallet/withdraw.html',
         summary=summary,
         wallet=summary,
-        withdrawals=pagination_obj.items,
+        withdrawals=pagination['items'],
         active_filter=status_filter,
         pagination_obj=pagination_obj,
         pagination=pagination,
