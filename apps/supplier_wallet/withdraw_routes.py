@@ -1,7 +1,6 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/withdraw_routes.py
 
-import uuid
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for
@@ -43,7 +42,7 @@ def withdraw():
             amount = Decimal(str(raw_amount))
             method = request.form.get('method', 'bank')
 
-            # --- منطق التحقق والشروط ---
+            # --- التحقق المنطقي من الرصيد والحدود ---
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
             elif avail_bal <= Decimal('0.00'):
@@ -53,17 +52,15 @@ def withdraw():
             elif amount < min_withdraw:
                 flash(f"الحد الأدنى للسحب هو {float(min_withdraw):,.2f} {curr}", "danger")
             else:
-                # في حال عدم وجود اسم مالك مسجل، نستخدم اسم افتراضي لتفادي فشل الحفظ
                 owner_name = registered_owner or f"مورد رقم #{supplier_id}"
-                
-                # توليد رقم مرجعي فريد لمنع خطأ الحفظ في قاعدة البيانات
-                ref_num = f"WD-{uuid.uuid4().hex[:8].upper()}"
-
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
-                details_text = f" - التفاصيل: {registered_details}" if registered_details else ""
+                details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
                 
+                # صياغة النص بحيث لا يتجاوز 255 حرفاً (سعة العمود)
+                full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
+
+                # إنشاء المعاملة بالحقول المطابقة لـ WalletTransaction حصراً
                 new_tx = WalletTransaction(
-                    reference_number=ref_num,
                     wallet_id=wallet_obj.id,
                     owner_id=supplier_id,     
                     owner_type='supplier',   
@@ -71,10 +68,7 @@ def withdraw():
                     status='pending',
                     amount=amount,
                     currency=curr,
-                    description=f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}",
-                    payout_method=payout_label,
-                    account_details=registered_details or 'مسجل بالنظام',
-                    created_by=supplier_id
+                    description=full_desc
                 )
 
                 db.session.add(new_tx)
