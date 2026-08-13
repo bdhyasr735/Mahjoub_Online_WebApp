@@ -33,7 +33,7 @@ def create_app():
 
     app.jinja_env.globals.update(getattr=getattr)
 
-    # ✅ حل جذري وشامل لـ CORS للسماح لـ Apollo Sandbox والأدوات الخارجية بالاتصال وتمرير الجلسات
+    # ✅ إعدادات CORS للسماح لـ Apollo Sandbox والأدوات الخارجية
     CORS(app, resources={
         r"/admin/graphql*": {
             "origins": [
@@ -58,7 +58,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إعادة بناء الجداول تلقائياً وتحديث الأعمدة والزراعة
+    # ✅ تهيئة الجداول وزراعة البيانات عند التشغيل الأول فقط
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -75,105 +75,60 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        print("🔄 [DB]: جاري إعادة ضبط وبناء الجداول بالهيكلة الكاملة...")
-        
-        db.session.execute(db.text('DROP SCHEMA public CASCADE; CREATE SCHEMA public;'))
-        db.session.commit()
+        # إنشاء الجداول إن لم تكن موجودة بدون مسح القاعدة في كل مرة
         db.create_all()
-        print("✅ [DB]: تم إعادة إنشاء جميع الجداول بنجاح.")
 
         # ✅ 1. زراعة المالك
         try:
-            admin = AdminUser(username='ali_mahjoub', role='Owner')
-            admin.set_password('123')
-            db.session.merge(admin)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع المالك بنجاح.")
+            if not AdminUser.query.filter_by(username='ali_mahjoub').first():
+                admin = AdminUser(username='ali_mahjoub', role='Owner')
+                admin.set_password('123')
+                db.session.add(admin)
+                db.session.commit()
+                print("✅ [Seed]: تم زرع المالك بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
 
         # ✅ 2. زراعة موظف إدارة
         try:
-            staff = AdminStaff(
-                username='admin_staff_test',
-                name='موظف الإدارة التجريبي',
-                email='admin_staff@mahjoub.online',
-                role_title='مشرف عام الإدارة',
-                is_active=True,
-                permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
-            )
-            staff.set_password('123')
-            db.session.merge(staff)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع موظف الإدارة افتراضياً.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [Seed]: خطأ في زراعة موظف الإدارة: {e}")
-        
-        # ✅ 3. زراعة مورد
-        try:
-            supplier = Supplier(
-                username='test_supplier',
-                trade_name='متجر تجريبي',
-                owner_name='المورد التجريبي',
-                phone='0500000000',
-                status='active'
-            )
-            supplier.set_password('123')
-            db.session.add(supplier)
-            db.session.flush()
-                
-            wallet = SupplierWallet(
-                supplier_id=supplier.id,
-                wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=1000.00
-            )
-            db.session.add(wallet)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع مورد تجريبي مع محفظة.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
-
-        # ✅ 4. زراعة موظف مورد
-        try:
-            sup = Supplier.query.filter_by(username='test_supplier').first()
-            if sup:
-                s_staff = SupplierStaff(
-                    supplier_id=sup.id,
-                    username='supplier_staff_test',
-                    name='موظف المورد التجريبي',
-                    email='supplier_staff@mahjoub.online',
-                    role_title='مسؤول مبيعات المورد',
+            if not AdminStaff.query.filter_by(username='admin_staff_test').first():
+                staff = AdminStaff(
+                    username='admin_staff_test',
+                    name='موظف الإدارة التجريبي',
+                    email='admin_staff@mahjoub.online',
+                    role_title='مشرف عام الإدارة',
                     is_active=True,
-                    permissions={'manage_catalog': True, 'process_orders': True}
+                    permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
                 )
-                s_staff.set_password('123')
-                db.session.merge(s_staff)
+                staff.set_password('123')
+                db.session.add(staff)
                 db.session.commit()
-                print("✅ [Seed]: تم زرع موظف المورد افتراضياً.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [Seed]: خطأ في زراعة موظف المورد: {e}")
-
-        # ✅ 5. زراعة منتج تجريبي
+        
+        # ✅ 3. زراعة مورد وتجهيز محفظته
         try:
-            sup = Supplier.query.filter_by(username='test_supplier').first()
-            if sup:
-                mapping = ProductSupplierMapping(
-                    product_qid='TEST_PROD_001',
-                    supplier_id=sup.id,
-                    price=100.00,
-                    quantity=10,
+            if not Supplier.query.filter_by(username='test_supplier').first():
+                supplier = Supplier(
+                    username='test_supplier',
+                    trade_name='متجر تجريبي',
+                    owner_name='المورد التجريبي',
+                    phone='0500000000',
                     status='active'
                 )
-                db.session.merge(mapping)
+                supplier.set_password('123')
+                db.session.add(supplier)
+                db.session.flush()
+                    
+                wallet = SupplierWallet(
+                    supplier_id=supplier.id,
+                    wallet_code=f"MAH-WEL963{supplier.id}",
+                    balance_sar=1000.00
+                )
+                db.session.add(wallet)
                 db.session.commit()
-                print(f"✅ [Seed]: تم ربط منتج تجريبي بالمورد.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [Seed]: خطأ في زراعة المنتج التجريبي: {e}")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -212,9 +167,17 @@ def create_app():
             return redirect(url_for('suppliers_auth.login'))
         return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
 
+    # ============================================================
+    # ✅ حماية المسارات مع استثناء الشامل لكافة ملفات الـ Static
+    # ============================================================
     @app.before_request
     def protect_routes():
         path = request.path
+        
+        # استثناء جميع طلبات ملفات Static بغض النظر عن البلوبرينت
+        if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
+            return
+
         exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection', '/admin/graphql']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
@@ -243,12 +206,37 @@ def create_app():
         if not path.startswith(admin_login_path):
             return redirect(admin_login_path)
 
+    # ============================================================
+    # ✅ إعدادات Talisman مع السماح بـ Tailwind CDN ومكتبات الأيقونات
+    # ============================================================
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
-            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com"],
-            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com"],
+            'style-src': [
+                "'self'", 
+                "'unsafe-inline'", 
+                "https://fonts.googleapis.com", 
+                "https://cdn.jsdelivr.net", 
+                "https://cdnjs.cloudflare.com", 
+                "https://ckeditor.com",
+                "https://cdn.tailwindcss.com"
+            ],
+            'font-src': [
+                "'self'", 
+                "https://fonts.gstatic.com", 
+                "https://cdn.jsdelivr.net", 
+                "https://cdnjs.cloudflare.com"
+            ],
+            'script-src': [
+                "'self'", 
+                "'unsafe-inline'", 
+                "'unsafe-eval'", 
+                "https://code.jquery.com", 
+                "https://cdn.jsdelivr.net", 
+                "https://cdnjs.cloudflare.com", 
+                "https://ckeditor.com",
+                "https://cdn.tailwindcss.com"
+            ],
             'img-src': ["'self'", "data:", "https://*"],
             'connect-src': [
                 "'self'", 
@@ -271,15 +259,11 @@ def create_app():
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
 
-    # ============================================================
-    # ✅ المسار الجديد: محطة عبور GraphQL لـ Apollo Sandbox (مضبوط بالكامل)
-    # ============================================================
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
-    @csrf.exempt  # إعفاء تام من حماية CSRF لطلبات الساندبوكس الخارجية
+    @csrf.exempt
     def graphql_proxy():
         origin = request.headers.get('Origin', 'https://studio.apollographql.com')
 
-        # الاستجابة الصحيحة الكاملة لطلبات اختبار الاتصال المسبق Preflight
         if request.method == 'OPTIONS':
             response = make_response('', 200)
             response.headers['Access-Control-Allow-Origin'] = origin
@@ -289,7 +273,6 @@ def create_app():
             return response
 
         try:
-            # معالجة استعلامات GET (غالباً ما يستخدمها Apollo Sandbox لجلب Schema Introspection)
             if request.method == 'GET':
                 query = request.args.get('query')
                 variables = request.args.get('variables')
@@ -300,7 +283,6 @@ def create_app():
                 variables = data.get('variables')
                 operation_name = data.get('operationName')
 
-            # استخدام عميل GraphQL لتمرير الطلب للخادم الفعلي
             client = GraphQLClient()
             result = client.execute(query, variables, operation_name)
 
@@ -310,7 +292,6 @@ def create_app():
             return response
 
         except Exception as e:
-            print(f"❌ [GraphQL Proxy Error]: {str(e)}")
             response = jsonify({
                 "error": str(e),
                 "message": "فشل تمرير طلب GraphQL إلى الخادم"
@@ -320,9 +301,6 @@ def create_app():
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             return response
 
-    # ============================================================
-    # ✅ مسار اختبار الاتصال بـ GraphQL
-    # ============================================================
     @app.route('/m7jb_test_connection')
     def test_graphql_connection():
         try:
@@ -347,7 +325,6 @@ def create_app():
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
-        print("✅ [Portal]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل بوابة المصادقة الإدارية: {e}")
 
@@ -355,7 +332,6 @@ def create_app():
         from apps.suppliers_auth_portal.routes import suppliers_bp
         app.register_blueprint(suppliers_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_bp)
-        print("✅ [Portal]: تم تسجيل بوابة الموردين بنجاح تحت المسار /supplier.")
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
 
@@ -363,17 +339,14 @@ def create_app():
         from apps.admin.graphql_routes import graphql_bp 
         app.register_blueprint(graphql_bp)
         csrf.exempt(graphql_bp)
-        print("✅ [Portal]: تم تسجيل GraphQL بنجاح.")
     except ImportError:
         pass
 
     # ============================================================
-    # ✅ البحث عن الموديولات الديناميكية وتسجيلها تلقائياً
+    # ✅ تسجيل الموديولات الديناميكية
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
-    
-    print("🔄 [Registry]: جارٍ البحث عن الموديولات الإضافية...")
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -385,14 +358,10 @@ def create_app():
             registry_file = os.path.join(item_path, 'registry.py')
             if os.path.exists(registry_file):
                 try:
-                    print(f"🔍 [Registry]: جارٍ تحميل موديول '{item}'...")
                     module = importlib.import_module(f"apps.{item}.registry")
                     
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
-                        print(f"✅ [Registry]: تم تسجيل موديول '{item}' بنجاح.")
-                    else:
-                        print(f"⚠️ [Registry]: الموديول '{item}' لا يحتوي على register_module")
                     
                     links_data = None
                     if hasattr(module, 'LINKS'):
@@ -418,25 +387,12 @@ def create_app():
                         }
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
-                            print(f"    📌 [Supplier]: تمت إضافة '{mod_data['display_name']}' إلى قائمة الموردين")
                         else:
                             ADMIN_MODULES[item] = mod_data
-                            print(f"    📌 [Admin]: تمت إضافة '{mod_data['display_name']}' إلى قائمة الإدارة")
                             
-                except ImportError as e:
-                    print(f"❌ [Registry]: خطأ في استيراد موديول '{item}': {e}")
                 except Exception as e:
                     print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
 
-    print(f"✅ [Registry]: تم تسجيل {len(ADMIN_MODULES)} موديول للإدارة و {len(SUPPLIER_MODULES)} موديول للموردين.")
-    
-    print("\n📋 [Blueprints] المسجلة:")
-    for bp_name in app.blueprints:
-        print(f"  - {bp_name}")
-
-    # ============================================================
-    # ✅ حقن المتغيرات الموحدة وحسابات المورد المالي والشخصي في Jinja Context
-    # ============================================================
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
@@ -445,7 +401,6 @@ def create_app():
             except Exception:
                 return '#'
         
-        # السياق الافتراضي للمورد والمالية
         supplier_context = {
             'current_supplier': None,
             'owner_full_name': '',
