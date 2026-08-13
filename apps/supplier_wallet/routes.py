@@ -86,7 +86,7 @@ def wallet():
 
         # حساب الرصيد المتاح بمرونة
         avail_bal = getattr(wallet_obj, 'available_balance', None)
-        if avail_bal is none:
+        if avail_bal is None:  # تم التصحيح إلى None
             avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00)) - float(total_withdrawn)
             avail_bal = max(0.00, avail_bal)
 
@@ -153,7 +153,8 @@ def wallet():
         'supplier_wallet/wallet.html',
         summary=summary,
         wallet=summary,
-        pagination=pagination
+        pagination=pagination,
+        pagination_obj=pagination_obj
     )
 
 
@@ -257,11 +258,22 @@ def withdraw():
     
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
+    pagination = {
+        'items': pagination_obj.items,
+        'page': pagination_obj.page,
+        'total_pages': pagination_obj.pages,
+        'total_items': pagination_obj.total,
+        'has_prev': pagination_obj.has_prev,
+        'has_next': pagination_obj.has_next,
+        'per_page': PER_PAGE
+    }
+
     return render_template(
         'supplier_wallet/withdraw.html',
         summary=summary,
         wallet=summary,
         withdrawals=pagination_obj.items,
         active_filter=status_filter,
-        pagination_obj=pagination_obj
+        pagination_obj=pagination_obj,
+        pagination=pagination
     )
