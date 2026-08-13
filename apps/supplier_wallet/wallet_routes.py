@@ -16,7 +16,7 @@ def wallet():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
 
-    # تجهيز ملخص المحفظة مباشرة من الموديل (لا حاجة لحسابات يدوية معقدة)
+    # تجهيز ملخص المحفظة مباشرة من الموديل
     summary = {
         'total_balance': float(wallet_obj.balance_sar or 0.0),
         'available_balance': float(wallet_obj.balance_sar or 0.0),
@@ -68,8 +68,8 @@ def wallet():
         'supplier_wallet/wallet.html',
         summary=summary,
         wallet=summary,
-        pagination=pagination_obj,
-        pagination_obj=pagination_obj
+        transactions=pagination_obj.items, # <-- تم إضافة هذا ليعمل الـ Macro
+        pagination=pagination_obj
     )
 
 
@@ -98,10 +98,6 @@ def withdraw():
             elif amount > summary['available_balance']:
                 flash("المبلغ المطلوب يتجاوز الرصيد المتاح", "danger")
             else:
-                # إنشاء الطلب فقط، المشغل (Trigger) سيقوم بالباقي:
-                # 1. إنشاء رقم مرجعي (WD-...)
-                # 2. إنشاء رقم سند (Voucher)
-                # 3. تحديث الأرصدة تلقائياً
                 new_tx = WalletTransaction(
                     wallet_id=wallet_obj.id,
                     amount=amount,
@@ -121,7 +117,7 @@ def withdraw():
             flash(f"حدث خطأ أثناء معالجة طلب السحب: {str(e)}", "danger")
 
     # استعلام السحوبات
-    withdrawals = WalletTransaction.query.filter_by(
+    pagination_obj = WalletTransaction.query.filter_by(
         wallet_id=wallet_obj.id, 
         trans_type='withdrawal'
     ).order_by(WalletTransaction.created_at.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=10)
@@ -130,6 +126,6 @@ def withdraw():
         'supplier_wallet/withdraw.html',
         summary=summary,
         registered_details=registered_details,
-        withdrawals=withdrawals.items,
-        pagination=withdrawals
+        transactions=pagination_obj.items, # <-- تم إضافة هذا ليعمل الـ Macro
+        pagination=pagination_obj
     )
