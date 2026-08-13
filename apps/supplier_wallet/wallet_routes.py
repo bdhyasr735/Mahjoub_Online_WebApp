@@ -1,100 +1,76 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/withdraw_routes.py
+# 📂 apps/supplier_wallet/wallet_routes.py
 
 from datetime import datetime
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
-from apps.models.wallet_db import WalletTransaction
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
-    get_current_supplier_id, 
-    get_or_create_supplier_wallet, 
+    get_current_supplier_id,
+    get_or_create_supplier_wallet,
     get_registered_supplier_payout_info
 )
 
-@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@supplier_wallet_bp.route('/', methods=['GET'], strict_slashes=False)
+@supplier_wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
 @login_required
-def withdraw():
+def wallet_dashboard():
+    """عرض لوحة المحفظة العامة وكشف حساب المعاملات المالية للمورد."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
-
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
-    avail_bal = 0.00
-    min_withdraw = 50.00
-    curr = 'SAR'
-
-    if wallet_obj:
-        avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
-        curr = getattr(wallet_obj, 'default_currency', 'SAR')
+    # حساب الملخص المالي والأرصدة
+    balance_sar = float(getattr(wallet_obj, 'balance_sar', 0.00)) if wallet_obj else 0.00
+    balance_pending = float(getattr(wallet_obj, 'balance_pending', 0.00)) if wallet_obj else 0.00
+    total_withdrawn = float(getattr(wallet_obj, 'total_withdrawn', 0.00)) if wallet_obj else 0.00
+    curr = getattr(wallet_obj, 'default_currency', 'SAR') if wallet_obj else 'SAR'
 
     summary = {
-        'available_balance': avail_bal,
-        'min_withdraw_amount': min_withdraw,
+        'balance_sar': balance_sar,
+        'balance_pending': balance_pending,
+        'total_withdrawn': total_withdrawn,
         'currency': curr
     }
 
-    if request.method == 'POST':
-        try:
-            amount = float(request.form.get('amount', 0))
-            method = request.form.get('method', 'bank')
-
-            if not wallet_obj:
-                flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
-            elif amount < min_withdraw:
-                flash(f"الحد الأدنى للسحب هو {min_withdraw:,.2f} {curr}", "danger")
-            elif amount > avail_bal:
-                flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
-            elif not registered_owner:
-                flash("اسم المالك غير مسجل في قاعدة البيانات.", "danger")
-            else:
-                payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
-                details_text = f" - التفاصيل: {registered_details}" if registered_details else ""
-                
-                new_tx = WalletTransaction(
-                    wallet_id=wallet_obj.id,
-                    owner_id=supplier_id,     
-                    owner_type='supplier',   
-                    trans_type='withdrawal',
-                    status='pending',
-                    amount=amount,
-                    currency=curr,
-                    description=f"طلب سحب عبر {payout_label} | المالك: {registered_owner}{details_text}",
-                    payout_method=payout_label,
-                    account_details=registered_details or 'مسجل بالنظام'
-                )
-
-                db.session.add(new_tx)
-                db.session.commit()
-
-                flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة.", "success")
-                return redirect(url_for('supplier_wallet.withdraw'))
-        except ValueError:
-            flash("يرجى إدخال مبلغ مالي صحيح.", "danger")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"حدث خطأ: {str(e)}", "danger")
-
-    status_filter = request.args.get('status', 'all')
+    # معاملات الفلترة، البحث، والتقسيم (Pagination)
     page = request.args.get('page', 1, type=int)
-    PER_PAGE = 10
+    per_page = 10
+    
+    status_filter = request.args.get('status', 'all')
+    type_filter = request.args.get('type', 'all')
+    search_query = request.args.get('q', '').strip()
 
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
-    query = query.filter(WalletTransaction.trans_type == 'withdrawal')
 
     if status_filter != 'all':
         query = query.filter(WalletTransaction.status == status_filter)
 
-    pagination_obj = query.order_by(WalletTransaction.id.desc()).paginate(page=page, per_page=PER_PAGE, error_out=False)
+    if type_filter != 'all':
+        query = query.filter(WalletTransaction.trans_type == type_filter)
+
+    if search_query:
+        query = query.filter(
+            db.or_(
+                WalletTransaction.reference_number.ilike(f"%{search_query}%"),
+                WalletTransaction.voucher_number.ilike(f"%{search_query}%"),
+                WalletTransaction.description.ilike(f"%{search_query}%")
+            )
+        )
+
+    pagination_obj = query.order_by(WalletTransaction.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
-        'supplier_wallet/withdraw.html',
+        'supplier_wallet/wallet.html',
+        wallet=wallet_obj,
         summary=summary,
-        wallet=summary,
-        withdrawals=pagination_obj.items,
-        active_filter=status_filter,
+        transactions=pagination_obj.items,
         pagination=pagination_obj,
+        active_status=status_filter,
+        active_type=type_filter,
+        search_query=search_query,
         registered_owner=registered_owner,
         registered_details=registered_details
     )
