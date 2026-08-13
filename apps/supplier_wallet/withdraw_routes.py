@@ -52,9 +52,6 @@ def withdraw():
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" - التفاصيل: {registered_details}" if registered_details else ""
                 
-                # إنشاء المعاملة فقط؛ قاعدة البيانات (Trigger) ستتولى:
-                # 1. توليد الرقم المرجعي الفريد (مثال: WD-{wallet_id}-YYYYMMDD-0001)
-                # 2. خصم المبلغ من balance_sar وتحديث جدول المحفظة تلقائياً
                 new_tx = WalletTransaction(
                     wallet_id=wallet_obj.id,
                     owner_id=supplier_id,     
@@ -89,17 +86,8 @@ def withdraw():
     if status_filter != 'all':
         query = query.filter(WalletTransaction.status == status_filter)
 
+    # استخدام الـ paginate المعتمد والتأكد من إرجاعه للكائن الصحيح
     pagination_obj = query.order_by(WalletTransaction.id.desc()).paginate(page=page, per_page=PER_PAGE, error_out=False)
-    
-    pagination = {
-        'items': pagination_obj.items,
-        'page': pagination_obj.page,
-        'total_pages': pagination_obj.pages,
-        'total_items': pagination_obj.total,
-        'has_prev': pagination_obj.has_prev,
-        'has_next': pagination_obj.has_next,
-        'per_page': PER_PAGE
-    }
 
     return render_template(
         'supplier_wallet/withdraw.html',
@@ -107,8 +95,7 @@ def withdraw():
         wallet=summary,
         withdrawals=pagination_obj.items,
         active_filter=status_filter,
-        pagination_obj=pagination_obj,
-        pagination=pagination,
+        pagination=pagination_obj,  # تمرير الكائن الأصلي هنا بوضوح
         registered_owner=registered_owner,
         registered_details=registered_details
     )
