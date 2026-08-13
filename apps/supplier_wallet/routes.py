@@ -125,20 +125,42 @@ def wallet():
     else:
         query = query.filter_by(id=-1)
 
+    # 1. فلتر نوع الحركة (Type)
     trx_type = request.args.get('type', 'all')
     if trx_type != 'all' and trx_type_col is not None:
         query = query.filter(trx_type_col == trx_type)
 
+    # 2. فلتر الحالة (Status)
     status = request.args.get('status', 'all')
     if status != 'all':
         query = query.filter(WalletTransaction.status == status)
 
+    # 3. فلتر البحث المباشر (Search)
     search_query = request.args.get('search', '').strip()
     if search_query:
         query = query.filter(
             (WalletTransaction.reference_code.ilike(f"%{search_query}%")) |
             (WalletTransaction.description.ilike(f"%{search_query}%"))
         )
+
+    # 4. فلاتر التواريخ (من تاريخ / إلى تاريخ) القادمة من نموذج الواجهة
+    from_date_str = request.args.get('from_date', '').strip()
+    to_date_str = request.args.get('to_date', '').strip()
+
+    if from_date_str:
+        try:
+            from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
+            query = query.filter(WalletTransaction.created_at >= from_date)
+        except ValueError:
+            pass
+
+    if to_date_str:
+        try:
+            to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
+            to_date_end = to_date.replace(hour=23, minute=59, second=59)
+            query = query.filter(WalletTransaction.created_at <= to_date_end)
+        except ValueError:
+            pass
 
     query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
