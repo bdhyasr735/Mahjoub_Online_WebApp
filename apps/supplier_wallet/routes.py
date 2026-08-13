@@ -22,21 +22,21 @@ wallet_bp = Blueprint(
 )
 
 def get_trx_type_attr():
-    """التحقق الديناميكي من اسم حقل نوع المعاملة في النموذج"""
-    if hasattr(WalletTransaction, 'transaction_type'):
-        return WalletTransaction.transaction_type
-    elif hasattr(WalletTransaction, 'trx_type'):
-        return WalletTransaction.trx_type
-    elif hasattr(WalletTransaction, 'trans_type'):
-        return WalletTransaction.trans_type
+    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية (Properties) لضمان عمل استعلامات SQLAlchemy بكفاءة"""
+    for col_name in ['transaction_type', 'trx_type', 'trans_type']:
+        if hasattr(WalletTransaction, col_name):
+            attr = getattr(WalletTransaction, col_name)
+            if not isinstance(attr, property):
+                return attr
     return None
 
 def get_status_attr():
-    """التحقق الديناميكي من اسم حقل الحالة في النموذج"""
-    if hasattr(WalletTransaction, 'status'):
-        return WalletTransaction.status
-    elif hasattr(WalletTransaction, 'state'):
-        return WalletTransaction.state
+    """التحقق الديناميكي من اسم حقل الحالة وتجنب الخصائص البرمجية (Properties)"""
+    for col_name in ['status', 'state']:
+        if hasattr(WalletTransaction, col_name):
+            attr = getattr(WalletTransaction, col_name)
+            if not isinstance(attr, property):
+                return attr
     return None
 
 def get_current_supplier_id():
@@ -273,7 +273,7 @@ def withdraw():
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
                     'amount': amount,
-                    'reference_number': ref_code,  # متوافق مع reference_number في Model
+                    'reference_number': ref_code, 
                     'description': f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
                     'created_at': datetime.utcnow()
                 }
