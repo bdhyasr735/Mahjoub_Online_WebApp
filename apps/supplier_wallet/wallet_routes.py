@@ -110,24 +110,14 @@ def wallet():
     else:
         query = query.order_by(WalletTransaction.id.desc())
 
+    # تنفيذ التصفح وتمرير كائن الـ Pagination مباشرة للقالب
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
-    items = pagination_obj.items() if callable(pagination_obj.items) else pagination_obj.items
-
-    pagination = {
-        'items': list(items) if items else [],
-        'page': pagination_obj.page,
-        'total_pages': pagination_obj.pages,
-        'total_items': pagination_obj.total,
-        'has_prev': pagination_obj.has_prev,
-        'has_next': pagination_obj.has_next,
-        'per_page': PER_PAGE
-    }
 
     return render_template(
         'supplier_wallet/wallet.html',
         summary=summary,
         wallet=summary,
-        pagination=pagination,
+        pagination=pagination_obj,
         pagination_obj=pagination_obj
     )
 
