@@ -56,16 +56,16 @@ def withdraw():
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
                 
-                # صياغة النص بحيث لا يتجاوز 255 حرفاً (سعة العمود)
+                # صياغة النص بحد أقصى 255 حرفاً (سعة العمود description)
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # إنشاء المعاملة بالحقول المطابقة لـ WalletTransaction حصراً
+                # إنشاء المعاملة بحقول جدول WalletTransaction الصحيحة حصراً
                 new_tx = WalletTransaction(
                     wallet_id=wallet_obj.id,
                     owner_id=supplier_id,     
                     owner_type='supplier',   
                     trans_type='withdrawal',
-                    status='pending',
+                    status='pending',          # 👈 حالة الطلب "قيد المراجعة"
                     amount=amount,
                     currency=curr,
                     description=full_desc
