@@ -14,8 +14,8 @@
             <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="رقم المرجع أو البيان..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
         </div>
 
-        <!-- 2. فلتر نوع الحركة (يظهر فقط إذا كان show_type == true) -->
-        {% if show_type|default(true) %}
+        <!-- 2. فلتر نوع الحركة -->
+        {% if show_type is not defined or show_type is true %}
         <div class="space-y-1.5">
             <label class="text-[11px] font-bold text-gray-700">نوع الحركة</label>
             <select name="type" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
@@ -26,21 +26,24 @@
         </div>
         {% endif %}
 
-        <!-- 3. فلتر الحالة (مختفي في wallet.html لأن show_status = false) -->
-        {% if show_status %}
+        <!-- 3. فلتر حالة الطلب (يظهر حصرياً إذا تم تعيين show_status بـ true صراحةً) -->
+        {% if show_status is defined and show_status is true %}
         <div class="space-y-1.5">
-            <label class="text-[11px] font-bold text-gray-700">الحالة</label>
+            <label class="text-[11px] font-bold text-gray-700">حالة الطلب</label>
             <select name="status" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
                 <option value="">جميع الحالات</option>
                 <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+                <option value="processing" {% if request.args.get('status') == 'processing' %}selected{% endif %}>جاري المعالجة / التحويل</option>
+                <option value="on_hold" {% if request.args.get('status') == 'on_hold' %}selected{% endif %}>معلّق (يتطلب إجراء)</option>
                 <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
+                <option value="reverted" {% if request.args.get('status') == 'reverted' %}selected{% endif %}>مسترجع إلى المحفظة</option>
                 <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض / ملغي</option>
             </select>
         </div>
         {% endif %}
 
         <!-- 4. نطاق التواريخ -->
-        {% if show_dates|default(true) %}
+        {% if show_dates is not defined or show_dates is true %}
         <div class="space-y-1.5">
             <label class="text-[11px] font-bold text-gray-700">من تاريخ</label>
             <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
