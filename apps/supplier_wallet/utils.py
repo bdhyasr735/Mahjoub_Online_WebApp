@@ -1,6 +1,8 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/utils.py
 
+from typing import Optional, Tuple
+from decimal import Decimal
 from flask import session
 from flask_login import current_user
 from apps.extensions import db
@@ -13,25 +15,29 @@ except ImportError:
     Supplier = None
     SupplierProfile = None
 
-def get_current_supplier_id():
-    """استخراج رقم المورد الحالي سواء كان تاجراً أو موظفاً"""
-    if not current_user.is_authenticated:
+
+def get_current_supplier_id() -> Optional[int]:
+    """استخراج رقم المورد الحالي سواء كان تاجراً أو موظفاً."""
+    if not current_user or not getattr(current_user, 'is_authenticated', False):
         return None
+
     user_type = session.get('user_type')
-    
-    # إذا كان المستخدم موظفاً (Staff) نأخذ رقم المورد التابع له، وإلا نأخذ الـ ID مباشرة
+
+    # إذا كان المستخدم موظفاً (Staff) نأخذ رقم المورد التابع له
     if user_type == 'staff':
         return getattr(current_user, 'supplier_id', None)
-    
+
+    # المورد المباشر أو المعرف الأساسي للمستخدم
     return getattr(current_user, 'supplier_id', getattr(current_user, 'id', None))
 
-def get_or_create_supplier_wallet(supplier_id):
-    """جلب محفظة المورد أو إنشائها تلقائياً إذا لم تكن موجودة"""
+
+def get_or_create_supplier_wallet(supplier_id: Optional[int]) -> Optional[SupplierWallet]:
+    """جلب محفظة المورد أو إنشائها تلقائياً إذا لم تكن موجودة بأمان مع معالجة سباق البيانات (Race Conditions)."""
     if not supplier_id:
         return None
-        
+
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-    
+
     if not wallet:
         try:
             # محاولة الحصول على كود المورد لإنشاء كود محفظة فريد
@@ -40,38 +46,39 @@ def get_or_create_supplier_wallet(supplier_id):
                 supplier_obj = Supplier.query.get(supplier_id)
                 if supplier_obj:
                     sup_code = getattr(supplier_obj, 'supplier_code', None)
-            
+
             if not sup_code:
                 sup_code = f"SUP{supplier_id}"
 
             wallet = SupplierWallet(
                 supplier_id=supplier_id,
                 wallet_code=f"WEL-{sup_code}",
-                balance_sar=0.00,
-                balance_pending=0.00,
-                total_withdrawn=0.00
+                balance_sar=Decimal('0.00'),
+                balance_pending=Decimal('0.00'),
+                total_withdrawn=Decimal('0.00')
             )
             db.session.add(wallet)
             db.session.commit()
-        except Exception as e:
+        except Exception:
             db.session.rollback()
-            # في حال فشل الإنشاء، نحاول البحث عنها مرة أخرى لضمان الاستمرارية
+            # في حال فشل الإنشاء التزمني، نحاول البحث مرة أخرى لضمان الاستمرارية
             wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-            
+
     return wallet
 
-def get_registered_supplier_payout_info(supplier_id):
-    """جلب بيانات السحب (اسم المالك وتفاصيل البنك) من السجلات الأساسية"""
+
+def get_registered_supplier_payout_info(supplier_id: Optional[int]) -> Tuple[str, str]:
+    """جلب بيانات السحب (اسم المالك وتفاصيل البنك/الحساب) من السجلات الأساسية المتاحة."""
     owner_name = ""
     account_details = ""
-    
+
     # 1. البحث في نموذج المورد (Supplier)
     if Supplier and supplier_id:
         supplier_obj = Supplier.query.get(supplier_id)
         if supplier_obj:
             owner_name = getattr(supplier_obj, 'owner_name', None) or getattr(supplier_obj, 'trade_name', None) or ''
 
-    # 2. البحث في نموذج البروفايل (SupplierProfile) إذا لم نجد بيانات
+    # 2. البحث في نموذج البروفايل (SupplierProfile) إذا لم نجد البيانات
     if SupplierProfile and supplier_id:
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
         if profile:
@@ -80,11 +87,11 @@ def get_registered_supplier_payout_info(supplier_id):
             if not account_details:
                 account_details = getattr(profile, 'bank_details', None) or getattr(profile, 'account_details', None) or ''
 
-    # 3. الاعتماد على المستخدم الحالي كخيار أخير
-    if current_user.is_authenticated:
+    # 3. الاعتماد على المستخدم الحالي كخيار أخير في حالة نقص البيانات
+    if current_user and getattr(current_user, 'is_authenticated', False):
         if not owner_name:
-            owner_name = getattr(current_user, 'owner_name', None) or getattr(current_user, 'full_name', '')
+            owner_name = getattr(current_user, 'owner_name', None) or getattr(current_user, 'full_name', '') or ''
         if not account_details:
-            account_details = getattr(current_user, 'bank_details', None) or getattr(current_user, 'account_details', '')
+            account_details = getattr(current_user, 'bank_details', None) or getattr(current_user, 'account_details', '') or ''
 
     return owner_name.strip(), account_details.strip()
