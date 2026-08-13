@@ -40,9 +40,10 @@ def wallet():
             q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit', 'withdrawal', 'debit']))
         pending_credits = q_pending.scalar() or 0.00
 
+        # تم التعديل هنا: حصر إجمالي المسحوبات على الحركات المكتملة فقط (completed)
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
         if status_col is not None:
-            q_withdrawn = q_withdrawn.filter(status_col.in_(['completed', 'pending']))
+            q_withdrawn = q_withdrawn.filter(status_col == 'completed')
         if trx_type_col is not None:
             q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
         total_withdrawn = q_withdrawn.scalar() or 0.00
