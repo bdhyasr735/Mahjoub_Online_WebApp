@@ -52,7 +52,7 @@
     {% set action_url = url_for('supplier_wallet.wallet_dashboard') %}
     {% set filter_title = 'تصفية حركات الحساب' %}
     {% set show_type = true %}
-    {% set show_status = true %}
+    {% set show_status = false %}  <!-- تم التعديل هنا لإخفاء الحالة في صفحة المحفظة -->
     {% set show_dates = true %}
     {% include "supplier_wallet/components/filters.html" %}
 
