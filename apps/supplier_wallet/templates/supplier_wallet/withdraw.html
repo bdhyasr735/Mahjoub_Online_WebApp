@@ -47,6 +47,16 @@
         {% endif %}
     {% endwith %}
 
+    <!-- تنبيه الحد الأدنى للسحب -->
+    <div class="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 text-amber-900 shadow-sm">
+        <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <div class="text-xs font-bold">
+            <span>تنبيه هام:</span> الحد الأدنى المسموح به لأي عملية سحب هو <span dir="ltr" class="text-rose-600 font-black">50.00 SAR</span>. يرجى التأكد من أن المبلغ المطلوب يساوي أو يتجاوز هذا الحد.
+        </div>
+    </div>
+
     <!-- نموذج تقديم طلب سحب جديد -->
     <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
         <h2 class="text-sm font-black text-gray-800 mb-4 flex items-center gap-2">
@@ -69,10 +79,10 @@
                                max="{{ summary.available_balance }}"
                                placeholder="0.00" 
                                dir="ltr"
-                               class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B] transition-all font-bold text-gray-800 pl-12 text-right">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">{{ summary.currency }}</span>
+                               class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B] transition-all font-bold text-gray-800 pl-16 text-right">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500" dir="ltr">{{ summary.currency }}</span>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1">الحد الأدنى للسحب: <span dir="ltr" class="inline-block">{{ "{:,.2f}".format(summary.min_withdraw_amount) }}</span> {{ summary.currency }}</p>
+                    <p class="text-[10px] text-gray-400 mt-1">الحد الأدنى للسحب: <span dir="ltr" class="inline-block font-bold text-gray-600">{{ "{:,.2f}".format(summary.min_withdraw_amount) }} {{ summary.currency }}</span></p>
                 </div>
 
                 <!-- طريقة السحب -->
@@ -88,7 +98,7 @@
             <!-- الحقول التي يتم جلبها تلقائياً واستناداً إلى البيانات المسجلة مسبقاً -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
                 
-                <!-- اسم المالك المسجل (يعرض تلقائياً بالكامل وواضح) -->
+                <!-- اسم المالك المسجل -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         اسم المالك (صاحب الحساب) 
@@ -100,7 +110,7 @@
                     </div>
                 </div>
 
-                <!-- تفاصيل الحساب أو الصرافة المسجلة (تعرض كاملة وواضحة بدون إخفاء) -->
+                <!-- تفاصيل الحساب أو الصرافة المسجلة -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1">
                         تفاصيل الحساب أو شركة الصرافة 
