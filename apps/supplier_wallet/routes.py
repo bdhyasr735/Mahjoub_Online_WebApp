@@ -4,12 +4,13 @@ Mahjoub Online - Supplier Wallet Routes
 """
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 
-# توحيد اسم الـ Blueprint مع نظام التسجيل Registry
+# توحيد اسم الـ Blueprint وتحديد مسار الملقات الثابتة لضمان تحميل theme.css
 wallet_bp = Blueprint(
     'supplier_wallet', 
     __name__,
     template_folder='templates',
-    static_folder='static'
+    static_folder='static',
+    static_url_path='/static'
 )
 
 def apply_wallet_filters_logic(transactions, args):
@@ -120,9 +121,11 @@ def wallet():
         'per_page': PER_PAGE
     }
 
+    # تم تمرير wallet=summary لتوافق المكونات الفرعية مثل kpi_cards.html
     return render_template(
         'supplier_wallet/wallet.html',
         summary=summary,
+        wallet=summary,
         pagination=pagination
     )
 
@@ -134,7 +137,9 @@ def withdraw():
     مخصصة كلياً لتقديم ومتابعة طلبات سحب الأرباح والمدفوعات الخاصة بالمورد.
     """
     summary = {
+        'total_balance': 48500.00,
         'available_balance': 35200.00,
+        'pending_balance': 8300.00,
         'min_withdraw_amount': 500.00,
         'currency': 'ج.م'
     }
@@ -200,5 +205,6 @@ def withdraw():
     return render_template(
         'supplier_wallet/withdraw.html',
         summary=summary,
+        wallet=summary,
         pagination=pagination
     )
