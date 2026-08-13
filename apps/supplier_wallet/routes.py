@@ -57,8 +57,8 @@ def get_or_create_supplier_wallet(supplier_id):
     return wallet
 
 
-@wallet_bp.route('/', methods=['GET'])
-@wallet_bp.route('/wallet', methods=['GET'])
+@wallet_bp.route('/', methods=['GET'], strict_slashes=False)
+@wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
 @login_required
 def wallet():
     supplier_id = get_current_supplier_id()
@@ -68,7 +68,7 @@ def wallet():
     if wallet_obj:
         wallet_id = wallet_obj.id
         
-        # استعلامات الأرصدة مع التحقق من الحقل الديناميكي
+        # 1. إجمالي الإيداعات / المبيعات المكتملة
         q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
             WalletTransaction.status == 'completed'
@@ -77,6 +77,7 @@ def wallet():
             q_completed = q_completed.filter(trx_type_col == 'credit')
         completed_credits = q_completed.scalar() or 0.00
 
+        # 2. الإيداعات قيد الانتظار
         q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
             WalletTransaction.status == 'pending'
@@ -85,14 +86,16 @@ def wallet():
             q_pending = q_pending.filter(trx_type_col == 'credit')
         pending_credits = q_pending.scalar() or 0.00
 
+        # 3. إجمالي السحوبات (يشمل الطلبات المكتملة والمعلقة لحجز الرصيد)
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.status == 'completed'
+            WalletTransaction.status.in_(['completed', 'pending'])
         )
         if trx_type_col is not None:
             q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
         total_withdrawn = q_withdrawn.scalar() or 0.00
 
+        # 4. الرصيد المتاح المتبقي
         avail_bal = getattr(wallet_obj, 'available_balance', None)
         if avail_bal is None:
             avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00)) - float(total_withdrawn)
@@ -143,7 +146,7 @@ def wallet():
             (WalletTransaction.description.ilike(f"%{search_query}%"))
         )
 
-    # 4. فلاتر التواريخ (من تاريخ / إلى تاريخ) القادمة من نموذج الواجهة
+    # 4. فلاتر التواريخ
     from_date_str = request.args.get('from_date', '').strip()
     to_date_str = request.args.get('to_date', '').strip()
 
@@ -184,7 +187,7 @@ def wallet():
     )
 
 
-@wallet_bp.route('/withdraw', methods=['GET', 'POST'])
+@wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw():
     supplier_id = get_current_supplier_id()
@@ -241,13 +244,17 @@ def withdraw():
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
                     'amount': amount,
-                    'payout_method': payout_label,
-                    'account_details': account_details,
                     'status': 'pending',
                     'reference_code': ref_code,
                     'description': f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
                     'created_at': datetime.utcnow()
                 }
+
+                # إضافة الحقول الاختيارية حسب متطلبات النموذج
+                if hasattr(WalletTransaction, 'payout_method'):
+                    tx_kwargs['payout_method'] = payout_label
+                if hasattr(WalletTransaction, 'account_details'):
+                    tx_kwargs['account_details'] = account_details
                 
                 # إسناد قيمة نوع المعاملة حسب الحقل الموجود
                 if hasattr(WalletTransaction, 'transaction_type'):
