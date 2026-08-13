@@ -105,10 +105,13 @@ def request_withdrawal():
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
     payout_method = request.form.get('payout_method', 'bank_transfer')
-    description = request.form.get('description', f'طلب سحب مالي بمبلغ {amount} SAR')
+    user_desc = request.form.get('description', f'طلب سحب مالي بمبلغ {amount} SAR')
+    
+    # دمج وسيلة السحب في الوصف بدلاً من الحقل الملغى
+    full_description = f"{user_desc} | طريقة السحب: {payout_method}"[:255]
 
     try:
-        # إنشاء المعاملة: توليد المرجع والرقم السند يتم تلقائياً عبر قاعدة البيانات
+        # إنشاء المعاملة بحقول الجدول الصحيحة فقط
         transaction = WalletTransaction(
             wallet_id=wallet_obj.id,
             owner_type='supplier',
@@ -117,9 +120,7 @@ def request_withdrawal():
             status='pending',
             amount=amount,
             currency='SAR',
-            description=description,
-            payout_method=payout_method,
-            created_by=supplier_id
+            description=full_description
         )
 
         db.session.add(transaction)
