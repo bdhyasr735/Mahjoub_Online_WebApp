@@ -250,6 +250,102 @@ def wallet():
     )
 
 
+@wallet_bp.route('/wallet/export-pdf', methods=['GET'], strict_slashes=False)
+@login_required
+def export_pdf():
+    """مسار تصدير كشف حساب المحفظة للطباعة كملف PDF مع الحفاظ على كافة الفلاتر والبحث"""
+    supplier_id = get_current_supplier_id()
+    wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    trx_type_col = get_trx_type_attr()
+    status_col = get_status_attr()
+
+    # جلب الملخص المالي بنفس منطق صفحة المحفظة
+    if wallet_obj:
+        wallet_id = wallet_obj.id
+        
+        q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
+        if status_col is not None:
+            q_completed = q_completed.filter(status_col == 'completed')
+        if trx_type_col is not None:
+            q_completed = q_completed.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
+        completed_credits = q_completed.scalar() or 0.00
+
+        q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
+        if status_col is not None:
+            q_pending = q_pending.filter(status_col == 'pending')
+        if trx_type_col is not None:
+            q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
+        pending_credits = q_pending.scalar() or 0.00
+
+        q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
+        if status_col is not None:
+            q_withdrawn = q_withdrawn.filter(status_col.in_(['completed', 'pending']))
+        if trx_type_col is not None:
+            q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
+        total_withdrawn = q_withdrawn.scalar() or 0.00
+
+        avail_bal = getattr(wallet_obj, 'available_balance', None)
+        if avail_bal is None:
+            avail_bal = max(0.00, float(getattr(wallet_obj, 'balance_sar', 0.00)))
+
+        tot_bal = avail_bal + float(pending_credits)
+
+        summary = {
+            'total_balance': float(tot_bal),
+            'available_balance': float(avail_bal),
+            'pending_balance': float(pending_credits),
+            'total_withdrawn': float(total_withdrawn),
+            'currency': getattr(wallet_obj, 'currency', 'ر.س')
+        }
+    else:
+        summary = {
+            'total_balance': 0.00, 'available_balance': 0.00,
+            'pending_balance': 0.00, 'total_withdrawn': 0.00, 'currency': 'ر.س'
+        }
+
+    # جلب الحركات مطابقة لفلاتر البحث دون تصفح صفحات (لضمان تصدير كل النتائج المفلترة للتقرير)
+    query = WalletTransaction.query
+    if wallet_obj:
+        query = query.filter_by(wallet_id=wallet_obj.id)
+    else:
+        query = query.filter_by(id=-1)
+
+    trx_type = request.args.get('type', 'all')
+    if trx_type != 'all' and trx_type_col is not None:
+        query = query.filter(trx_type_col == trx_type)
+
+    status = request.args.get('status', 'all')
+    if status != 'all' and status_col is not None:
+        query = query.filter(status_col == status)
+
+    search_query = request.args.get('search', '').strip()
+    if search_query:
+        search_filters = []
+        if hasattr(WalletTransaction, 'reference_number'):
+            search_filters.append(WalletTransaction.reference_number.ilike(f"%{search_query}%"))
+        if hasattr(WalletTransaction, 'voucher_number'):
+            search_filters.append(WalletTransaction.voucher_number.ilike(f"%{search_query}%"))
+        if hasattr(WalletTransaction, 'description'):
+            search_filters.append(WalletTransaction.description.ilike(f"%{search_query}%"))
+        if search_filters:
+            from sqlalchemy import or_
+            query = query.filter(or_(*search_filters))
+
+    if hasattr(WalletTransaction, 'created_at'):
+        query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
+    else:
+        query = query.order_by(WalletTransaction.id.desc())
+
+    transactions = query.all()
+
+    return render_template(
+        'supplier_wallet/wallet_pdf_print.html',
+        summary=summary,
+        transactions=transactions,
+        current_date=datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+    )
+
+
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw():
