@@ -1,42 +1,65 @@
+{# 📂 apps/supplier_wallet/templates/supplier_wallet/components/pagination.html #}
+
 {% macro render_pagination(pagination, endpoint=None) %}
     {% set endpoint = endpoint or request.endpoint %}
     {% set current_args = request.args.to_dict() %}
     {% set _ = current_args.pop('page', None) %}
     
     {% if pagination and pagination.pages > 1 %}
-    <div class="bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between border border-gray-200/80 rounded-2xl shadow-xs gap-4">
+    <div class="bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between border border-gray-200/80 rounded-2xl shadow-xs gap-4 mt-6">
+        <!-- معلومات الصفحات -->
         <div class="text-xs text-gray-500 font-medium">
-            عرض الصفحة <span class="font-bold text-gray-900">{{ pagination.page }}</span> من إجمالي <span class="font-bold text-gray-900">{{ pagination.pages }}</span>
+            عرض الصفحة <span class="font-bold text-gray-900">{{ pagination.page }}</span> من إجمالي <span class="font-bold text-gray-900">{{ pagination.pages }}</span> 
+            {% if pagination.total is defined %}
+            (إجمالي <span class="font-bold text-gray-900">{{ pagination.total }}</span> عنصر)
+            {% endif %}
         </div>
         
-        <div class="flex items-center gap-1.5 dir-rtl">
+        <!-- أزرار أرقام الصفحات والتنقل -->
+        <div class="flex items-center gap-1.5 flex-wrap justify-center" dir="rtl">
             <!-- السابق -->
             {% if pagination.has_prev %}
-                <a href="{{ url_for(endpoint, page=pagination.prev_num, **current_args) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">&lt;</a>
+                <a href="{{ url_for(endpoint, page=pagination.prev_num, **current_args) }}" 
+                   class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-[#4A154B] transition-all">
+                    السابق
+                </a>
             {% else %}
-                <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">&lt;</span>
+                <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">
+                    السابق
+                </span>
             {% endif %}
 
-            <!-- الأرقام -->
+            <!-- أرقام الصفحات -->
             {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                 {% if p %}
                     {% if p == pagination.page %}
-                        <span class="px-3.5 py-1.5 text-xs font-black text-white bg-[#4A154B] rounded-xl shadow-xs">{{ p }}</span>
+                        <span class="px-3.5 py-1.5 text-xs font-black text-white bg-[#4A154B] border border-[#4A154B] rounded-xl shadow-xs">{{ p }}</span>
                     {% else %}
-                        <a href="{{ url_for(endpoint, page=p, **current_args) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">{{ p }}</a>
+                        <a href="{{ url_for(endpoint, page=p, **current_args) }}" 
+                           class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-[#4A154B] transition-all">{{ p }}</a>
                     {% endif %}
                 {% else %}
-                    <span class="px-3.5 py-1.5 text-xs text-gray-400">...</span>
+                    <span class="px-2 py-1.5 text-xs text-gray-400 font-bold">...</span>
                 {% endif %}
             {% endfor %}
 
             <!-- التالي -->
             {% if pagination.has_next %}
-                <a href="{{ url_for(endpoint, page=pagination.next_num, **current_args) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">&gt;</a>
+                <a href="{{ url_for(endpoint, page=pagination.next_num, **current_args) }}" 
+                   class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-[#4A154B] transition-all">
+                    التالي
+                </a>
             {% else %}
-                <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">&gt;</span>
+                <span class="px-3.5 py-1.5 text-xs font-bold text-gray-300 bg-gray-50 border border-gray-100 rounded-xl cursor-not-allowed">
+                    التالي
+                </span>
             {% endif %}
         </div>
     </div>
     {% endif %}
 {% endmacro %}
+
+{# تنفيذ تلقائي في حال استخدام {% include %} دون استدعاء الماكرو صراحة #}
+{% if pagination is defined and pagination %}
+    {{ render_pagination(pagination, endpoint) }}
+{% endif %}
