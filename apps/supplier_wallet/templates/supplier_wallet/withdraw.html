@@ -33,17 +33,31 @@
         </div>
     </div>
 
-    <!-- رسائل التنبيه -->
+    <!-- رسائل التنبيه والإشعارات المتوسطة بشكل احترافي -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, message in messages %}
-                <div class="mb-6 p-4 rounded-xl text-xs font-bold shadow-sm 
-                    {% if category == 'success' %} bg-emerald-50 text-emerald-800 border border-emerald-200 
-                    {% elif category == 'danger' or category == 'error' %} bg-rose-50 text-rose-800 border border-rose-200 
-                    {% else %} bg-blue-50 text-blue-800 border border-blue-200 {% endif %}">
-                    {{ message }}
-                </div>
-            {% endfor %}
+            <div class="mb-8 flex flex-col items-center justify-center">
+                {% for category, message in messages %}
+                    <div class="w-full max-w-xl mx-auto p-4 mb-3 rounded-2xl text-xs font-bold shadow-md flex items-center gap-3 transition-all transform animate-fade-in
+                        {% if category == 'success' %} bg-emerald-50 text-emerald-800 border border-emerald-200 
+                        {% elif category == 'danger' or category == 'error' %} bg-rose-50 text-rose-800 border border-rose-200 
+                        {% else %} bg-blue-50 text-blue-800 border border-blue-200 {% endif %}">
+                        
+                        <!-- أيقونة التنبيه حسب الفئة -->
+                        {% if category == 'success' %}
+                            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        {% elif category == 'danger' or category == 'error' %}
+                            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        {% else %}
+                            <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {% endif %}
+                        
+                        <div class="flex-1 text-center sm:text-right">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
     {% endwith %}
 
@@ -142,11 +156,26 @@
         </form>
     </div>
 
-    <!-- جدول سجل سحوبات الأرباح السابقة -->
+    <!-- جدول سجل سحوبات الأرباح السابقة مع الفلاتر والترقيم -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h2 class="text-sm font-black text-gray-800">سجل عمليات وطلبات السحب السابقة</h2>
-            <span class="text-xs text-gray-400" dir="ltr">إجمالي الطلبات: {{ pagination.total_items if pagination and pagination.total_items is defined else (withdrawals|length) }}</span>
+        
+        <!-- عنوان السجل ومعيار الفلترة -->
+        <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="text-sm font-black text-gray-800">سجل عمليات وطلبات السحب السابقة</h2>
+                <span class="text-[11px] text-gray-400 mt-0.5 block" dir="ltr">إجمالي الطلبات: {{ pagination.total_items if pagination and pagination.total_items is defined else (withdrawals|length) }}</span>
+            </div>
+            
+            <!-- فلتر الحالة -->
+            <form method="GET" action="{{ url_for('supplier_wallet.withdraw') }}" class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <span class="text-xs font-bold text-gray-500 whitespace-nowrap">حالة الطلب:</span>
+                <select name="status" onchange="this.form.submit()" class="text-xs py-2 px-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#4A154B] font-bold text-gray-700">
+                    <option value="all" {% if request.args.get('status') == 'all' or not request.args.get('status') %}selected{% endif %}>جميع الحالات</option>
+                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+                    <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
+                    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
+                </select>
+            </form>
         </div>
 
         <div class="overflow-x-auto">
@@ -173,9 +202,9 @@
                                     {% if tx.status == 'completed' %}
                                         <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black border border-emerald-100">مكتمل</span>
                                     {% elif tx.status == 'pending' %}
-                                        <span class="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-black border border-amber-100">قيد المعالجة</span>
+                                        <span class="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-black border border-amber-100">قيد المراجعة</span>
                                     {% else %}
-                                        <span class="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-black border border-rose-100">{{ tx.status or 'مرفوض' }}</span>
+                                        <span class="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-black border border-rose-100">مرفوض</span>
                                     {% endif %}
                                 </td>
                                 <td class="p-4 text-gray-400 text-[11px] font-mono" dir="ltr">
@@ -185,12 +214,38 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="6" class="p-8 text-center text-gray-400 font-bold">لا توجد طلبات سحب سابقة مسجلة حتى الآن.</td>
+                            <td colspan="6" class="p-8 text-center text-gray-400 font-bold">لا توجد طلبات سحب سابقة مطابقة للفلتر المحدد.</td>
                         </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
+
+        <!-- ترقيم الصفحات الاحترافي (Pagination) -->
+        {% if pagination and pagination.total_pages > 1 %}
+        <div class="p-6 border-t border-gray-100 flex justify-center items-center gap-1.5 bg-gray-50/50">
+            <!-- زر السابق -->
+            <a href="{{ url_for('supplier_wallet.withdraw', page=pagination.page-1, status=request.args.get('status', 'all')) }}" 
+               class="px-3.5 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm {% if not pagination.has_prev %}pointer-events-none opacity-40{% endif %}">السابق</a>
+            
+            <!-- أرقام الصفحات -->
+            {% for p in range(1, pagination.total_pages + 1) %}
+                {% if p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
+                    <a href="{{ url_for('supplier_wallet.withdraw', page=p, status=request.args.get('status', 'all')) }}" 
+                       class="px-3.5 py-2 text-xs font-bold rounded-xl transition-all {% if p == pagination.page %}bg-[#4A154B] text-white shadow-sm{% else %}text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 shadow-sm{% endif %}">
+                       {{ p }}
+                    </a>
+                {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
+                    <span class="px-2 text-gray-400 font-bold">..</span>
+                {% endif %}
+            {% endfor %}
+
+            <!-- زر التالي -->
+            <a href="{{ url_for('supplier_wallet.withdraw', page=pagination.page+1, status=request.args.get('status', 'all')) }}" 
+               class="px-3.5 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm {% if not pagination.has_next %}pointer-events-none opacity-40{% endif %}">التالي</a>
+        </div>
+        {% endif %}
+
     </div>
 
 </div>
