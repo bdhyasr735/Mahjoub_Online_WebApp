@@ -2,7 +2,8 @@
 # 📂 apps/supplier_wallet/wallet_routes.py
 
 from datetime import datetime
-from flask import render_template, request, flash, redirect, url_for
+from decimal import Decimal
+from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -60,7 +61,8 @@ def wallet_dashboard():
             )
         )
 
-    pagination_obj = query.order_by(WalletTransaction.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    # الاستفادة من الفهرس المركب الجديد لتسريع عملية الترتيب والفلترة
+    pagination_obj = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
         'supplier_wallet/wallet.html',
@@ -74,3 +76,58 @@ def wallet_dashboard():
         registered_owner=registered_owner,
         registered_details=registered_details
     )
+
+
+@supplier_wallet_bp.route('/withdraw', methods=['POST'], strict_slashes=False)
+@login_required
+def request_withdrawal():
+    """معالجة طلب السحب المالي للمورد بأعلى معايير الأمان والتكامل."""
+    supplier_id = get_current_supplier_id()
+    wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    
+    if not wallet_obj:
+        flash('المحفظة غير موجودة.', 'danger')
+        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    try:
+        amount = Decimal(str(request.form.get('amount', '0')))
+    except (ValueError, TypeError):
+        flash('مبلغ السحب غير صالح.', 'danger')
+        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    if amount <= 0:
+        flash('يجب أن يكون مبلغ السحب أكبر من الصفر.', 'danger')
+        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    # التحقق من الرصيد المتاح قبل إرسال الطلب
+    if wallet_obj.balance_sar < amount:
+        flash('رصيد المحفظة الحالي غير كافٍ لإتمام عملية السحب.', 'danger')
+        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    payout_method = request.form.get('payout_method', 'bank_transfer')
+    description = request.form.get('description', f'طلب سحب مالي بمبلغ {amount} SAR')
+
+    try:
+        # إنشاء المعاملة: توليد المرجع والرقم السند يتم تلقائياً عبر قاعدة البيانات
+        transaction = WalletTransaction(
+            wallet_id=wallet_obj.id,
+            owner_type='supplier',
+            owner_id=supplier_id,
+            trans_type='withdrawal',
+            status='pending',
+            amount=amount,
+            currency='SAR',
+            description=description,
+            payout_method=payout_method,
+            created_by=supplier_id
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        flash(f'تم إرسال طلب السحب بنجاح برقم مرجعي: {transaction.reference_number}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ غير متوقع أثناء معالجة طلب السحب: {str(e)}', 'danger')
+
+    return redirect(url_for('supplier_wallet.wallet_dashboard'))
