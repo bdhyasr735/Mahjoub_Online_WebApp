@@ -7,7 +7,7 @@ from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction
-from apps.supplier_wallet import wallet_bp
+from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
     get_current_supplier_id, 
     get_or_create_supplier_wallet, 
@@ -16,7 +16,7 @@ from apps.supplier_wallet.utils import (
     get_registered_supplier_payout_info
 )
 
-@wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw():
     supplier_id = get_current_supplier_id()
