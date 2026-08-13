@@ -78,6 +78,9 @@ def wallet():
     status = request.args.get('status', 'all')
     if status != 'all' and status_col is not None:
         query = query.filter(status_col == status)
+    elif status_col is not None:
+        # استبعاد الحركات المعلقة (قيد المراجعة) افتراضياً ومن "جميع الحالات" حتى يتم اعتمادها
+        query = query.filter(status_col != 'pending')
 
     search_query = request.args.get('search', '').strip()
     if search_query:
@@ -112,7 +115,6 @@ def wallet():
 
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
-    # فئة غلاف لتوحيد جميع أسماء الخصائص التي يتوقعها القالب
     class PaginationWrapper:
         def __init__(self, p_obj, per_page):
             self.items = p_obj.items
@@ -159,6 +161,8 @@ def export_pdf():
     status = request.args.get('status', 'all')
     if status != 'all' and status_col is not None:
         query = query.filter(status_col == status)
+    elif status_col is not None:
+        query = query.filter(status_col != 'pending')
 
     transactions = query.order_by(WalletTransaction.id.desc()).all()
 
