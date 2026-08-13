@@ -1,107 +1,189 @@
-{% macro render_transactions_table(items, pagination=None, currency="ر.س") %}
-<div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden flex flex-col">
-    <!-- Table Header -->
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-        <h2 class="text-xs font-extrabold text-gray-800 flex items-center gap-2">
-            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            <span>جدول المعاملات المالية</span>
+{# 📂 apps/supplier_wallet/templates/supplier_wallet/components/tables.html #}
+
+{# 1. جدول كشف الحساب والعمليات المالية #}
+{% macro render_wallet_table(transactions, currency='SAR') %}
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden mb-6">
+    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <h2 class="text-xs font-black text-gray-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#4A154B]"></span>
+            سجل حركات الحساب والعمليات المالية
         </h2>
-        {% if pagination %}
-        <span class="text-[11px] text-gray-400 bg-white px-2.5 py-1 rounded-lg border border-gray-200 font-mono">
-            per_page={{ pagination.per_page|default(10) }}
+        <span class="text-xs text-gray-500 font-medium">
+            عدد الحركات: <strong class="text-gray-900 font-black">{{ transactions|length if transactions else 0 }}</strong>
         </span>
-        {% endif %}
     </div>
-    
-    <!-- Table Body -->
+
     <div class="overflow-x-auto">
-        <table class="w-full text-right text-xs">
-            <thead class="bg-gray-50/80 text-gray-500 border-b border-gray-200 font-bold">
-                <tr>
-                    <th class="px-5 py-3.5">رقم الحركة</th>
-                    <th class="px-5 py-3.5">التاريخ والوقت</th>
-                    <th class="px-5 py-3.5">نوع العملية</th>
-                    <th class="px-5 py-3.5">البيان</th>
-                    <th class="px-5 py-3.5">المبلغ</th>
-                    <th class="px-5 py-3.5 text-center">الحالة</th>
+        <table class="w-full text-right border-collapse">
+            <thead>
+                <tr class="border-b border-gray-100 text-[11px] font-black text-gray-400 bg-gray-50/30">
+                    <th class="p-4">رقم المرجع</th>
+                    <th class="p-4">تفاصيل الحركة / البيان</th>
+                    <th class="p-4">نوع الحركة</th>
+                    <th class="p-4 text-center">المبلغ</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">التاريخ</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 text-gray-700">
-                {% if items %}
-                    {% for trx in items %}
-                    <tr class="hover:bg-purple-50/30 transition-colors">
-                        <!-- Reference Code -->
-                        <td class="px-5 py-4 font-mono font-bold text-slate-800 dir-ltr text-right">
-                            {{ trx.reference_code|default(trx.reference|default('#' ~ trx.id)) }}
-                        </td>
+            <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
+                {% for tx in transactions %}
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                    <!-- رقم المرجع -->
+                    <td class="p-4 font-mono font-bold text-gray-800 whitespace-nowrap">
+                        {{ tx.reference_number or tx.reference or '#' ~ tx.id }}
+                    </td>
 
-                        <!-- Date & Time -->
-                        <td class="px-5 py-4 text-slate-500 text-[11px] dir-ltr text-right">
-                            {% if trx.created_at and trx.created_at.strftime is defined %}
-                                {{ trx.created_at.strftime('%Y-%m-%d %H:%M') }}
-                            {% else %}
-                                {{ trx.created_at|default(trx.date|default('-')) }}
-                            {% endif %}
-                        </td>
+                    <!-- التفاصيل -->
+                    <td class="p-4 font-bold text-gray-600 max-w-xs truncate" title="{{ tx.description }}">
+                        {{ tx.description or 'عملية مالية' }}
+                    </td>
 
-                        <!-- Transaction Type -->
-                        <td class="px-5 py-4 font-medium">
-                            {% set current_trx_type = trx.trx_type|default(trx.transaction_type|default(trx.type)) %}
-                            {% if current_trx_type in ['credit', 'deposit'] %}
-                                <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold inline-block">إيداع مبيعات</span>
-                            {% else %}
-                                <span class="text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-bold inline-block">سحب / تحويل</span>
-                            {% endif %}
-                        </td>
+                    <!-- نوع الحركة -->
+                    <td class="p-4 font-bold whitespace-nowrap">
+                        {% if tx.type == 'withdrawal' or tx.is_credit == false %}
+                            <span class="text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg text-[11px]">سحب / خصم</span>
+                        {% elif tx.type == 'sale_revenue' %}
+                            <span class="text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg text-[11px]">أرباح مبيعات</span>
+                        {% else %}
+                            <span class="text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg text-[11px]">إيداع / إضافة</span>
+                        {% endif %}
+                    </td>
 
-                        <!-- Description -->
-                        <td class="px-5 py-4 text-slate-600 font-medium max-w-xs truncate" title="{{ trx.description }}">
-                            {{ trx.description|default('لا يوجد بيان', true) }}
-                        </td>
+                    <!-- المبلغ -->
+                    <td class="p-4 font-black text-center whitespace-nowrap" dir="ltr">
+                        {% set is_negative = (tx.type == 'withdrawal' or tx.is_credit == false) %}
+                        <span class="{% if is_negative %}text-rose-600{% else %}text-emerald-600{% endif %} font-black">
+                            {% if is_negative %}-{% else %}+{% endif %}{{ "{:,.2f}".format(tx.amount|abs) }}
+                        </span>
+                        <span class="text-[10px] font-normal text-gray-400 ml-1">{{ tx.currency or currency }}</span>
+                    </td>
 
-                        <!-- Amount & Dynamic Currency -->
-                        <td class="px-5 py-4 font-mono font-bold text-slate-900 text-sm">
-                            {{ "{:,.2f}".format(trx.amount|float) if trx.amount is not none else "0.00" }} 
-                            <span class="text-[10px] text-gray-400 font-sans">{{ currency }}</span>
-                        </td>
+                    <!-- الحالة -->
+                    <td class="p-4 whitespace-nowrap">
+                        {% set status_map = {
+                            'completed': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                            'pending': 'bg-amber-50 text-amber-700 border border-amber-200',
+                            'cancelled': 'bg-rose-50 text-rose-700 border border-rose-200',
+                            'rejected': 'bg-rose-50 text-rose-700 border border-rose-200',
+                            'refunded': 'bg-blue-50 text-blue-700 border border-blue-200'
+                        } %}
+                        {% set status_text = {
+                            'completed': 'مكتمل',
+                            'pending': 'قيد المراجعة',
+                            'cancelled': 'ملغي',
+                            'rejected': 'مرفوض',
+                            'refunded': 'مسترجع'
+                        } %}
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold inline-block {{ status_map.get(tx.status, 'bg-gray-100 text-gray-600') }}">
+                            {{ status_text.get(tx.status, tx.status) }}
+                        </span>
+                    </td>
 
-                        <!-- Status Badge -->
-                        <td class="px-5 py-4 text-center">
-                            {% if trx.status in ['completed', 'approved'] %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    مكتمل / تم التحويل
-                                </span>
-                            {% elif trx.status == 'pending' %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                    قيد المراجعة
-                                </span>
-                            {% else %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                    مرفوض / ملغى
-                                </span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    <!-- التاريخ -->
+                    <td class="p-4 text-gray-400 text-[11px] font-mono whitespace-nowrap">
+                        {{ tx.created_at.strftime('%Y-%m-%d') if tx.created_at and tx.created_at.strftime else tx.created_at }}
+                    </td>
+                </tr>
                 {% else %}
-                    <tr>
-                        <td colspan="6" class="p-10 text-center text-gray-400 bg-gray-50/30">
-                            <div class="flex flex-col items-center justify-center space-y-2">
-                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                </svg>
-                                <span>لا توجد حركات مالية مسجلة حالياً وفق معايير البحث.</span>
-                            </div>
-                        </td>
-                    </tr>
-                {% endif %}
+                <tr>
+                    <td colspan="6" class="py-16 text-center text-gray-400">
+                        <div class="flex flex-col items-center gap-2">
+                            <svg class="w-10 h-10 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span class="text-xs font-bold">لا توجد حركات مالية مطابقة لشروط البحث حالياً.</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 {% endmacro %}
+
+
+{# 2. جدول سجل طلبات السحب #}
+{% macro render_withdrawals_table(requests, currency='SAR') %}
+<div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden mb-6">
+    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <h2 class="text-xs font-black text-gray-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#4A154B]"></span>
+            سجل عمليات وطلبات السحب
+        </h2>
+        <span class="text-xs text-gray-500 font-medium">
+            إجمالي الطلبات: <strong class="text-gray-900 font-black">{{ requests|length if requests else 0 }}</strong>
+        </span>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+            <thead>
+                <tr class="border-b border-gray-100 text-[11px] font-black text-gray-400 bg-gray-50/30">
+                    <th class="p-4">رقم المرجع</th>
+                    <th class="p-4">المبلغ المطلوب</th>
+                    <th class="p-4">طريقة السحب</th>
+                    <th class="p-4">الحالة</th>
+                    <th class="p-4">تاريخ الطلب</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
+                {% for req in requests %}
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                    <td class="p-4 font-mono font-bold text-gray-800 whitespace-nowrap">
+                        {{ req.reference_number or req.reference or '#' ~ req.id }}
+                    </td>
+                    <td class="p-4 font-black whitespace-nowrap" dir="ltr">
+                        <span class="text-gray-900">{{ "{:,.2f}".format(req.amount) }}</span>
+                        <span class="text-[10px] font-normal text-gray-400 ml-1">{{ req.currency or currency }}</span>
+                    </td>
+                    <td class="p-4 font-bold text-gray-600">
+                        {% if req.method == 'bank' %}
+                            تحويل بنكي
+                        {% elif req.method == 'exchange' %}
+                            شركات التحويل والصرافة
+                        {% else %}
+                            {{ req.method or 'غير محدد' }}
+                        {% endif %}
+                    </td>
+                    <td class="p-4 whitespace-nowrap">
+                        {% set status_map = {
+                            'completed': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                            'pending': 'bg-amber-50 text-amber-700 border border-amber-200',
+                            'cancelled': 'bg-rose-50 text-rose-700 border border-rose-200',
+                            'rejected': 'bg-rose-50 text-rose-700 border border-rose-200'
+                        } %}
+                        {% set status_text = {
+                            'completed': 'مكتمل',
+                            'pending': 'قيد المراجعة',
+                            'cancelled': 'ملغي',
+                            'rejected': 'مرفوض'
+                        } %}
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold inline-block {{ status_map.get(req.status, 'bg-gray-100 text-gray-600') }}">
+                            {{ status_text.get(req.status, req.status) }}
+                        </span>
+                    </td>
+                    <td class="p-4 text-gray-400 text-[11px] font-mono whitespace-nowrap">
+                        {{ req.created_at.strftime('%Y-%m-%d') if req.created_at and req.created_at.strftime else req.created_at }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="py-16 text-center text-gray-400">
+                        <div class="flex flex-col items-center gap-2">
+                            <svg class="w-8 h-8 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs font-bold">لا توجد طلبات سحب سابقة حالياً.</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endmacro %}
+
+{# تنفيذ تلقائي عند التضمين المباشر #}
+{% if transactions is defined %}
+    {{ render_wallet_table(transactions) }}
+{% elif requests is defined or pagination is defined %}
+    {{ render_withdrawals_table(requests|default(pagination.items if pagination else [])) }}
+{% endif %}
