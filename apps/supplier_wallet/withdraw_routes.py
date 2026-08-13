@@ -62,8 +62,8 @@ def withdraw():
                 
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
-                    'owner_id': supplier_id,      
-                    'owner_type': 'supplier',    
+                    'owner_id': supplier_id,     
+                    'owner_type': 'supplier',   
                     'amount': amount,
                     'reference_number': ref_code, 
                     'description': f"طلب سحب عبر {payout_label} | المالك: {registered_owner}{details_text}",
