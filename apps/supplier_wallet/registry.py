@@ -9,11 +9,15 @@ from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
 
 logger = logging.getLogger(__name__)
 
+# Mappings المسميات لضمان التعرف عليها في الـ Sidebar Loader بغض النظر عن المفتاح المستخدم
 MODULE_NAME = "الرقابة المالية"
+TITLE = "الرقابة المالية"
+NAME = "الرقابة المالية"
+DISPLAY_NAME = "الرقابة المالية"
+
 MODULE_ICON = "fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ تم تصحيح اسم المسار ليتوافق تماماً مع دالة withdraw في routes.py
 LINKS = {
     "supplier_wallet.wallet": "💳 كشف الحساب",
     "supplier_wallet.withdraw": "💸 طلب سحب"
@@ -73,7 +77,10 @@ def get_dashboard_card():
 
 __all__ = [
     'supplier_wallet_bp',
-    'MODULE_NAME', 
+    'MODULE_NAME',
+    'TITLE',
+    'NAME',
+    'DISPLAY_NAME',
     'MODULE_ICON', 
     'SHOW_IN_SUPPLIER', 
     'LINKS', 
