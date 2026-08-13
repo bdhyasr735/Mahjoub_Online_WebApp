@@ -256,6 +256,7 @@ def withdraw():
         try:
             amount = float(request.form.get('amount', 0))
             method = request.form.get('method', 'bank')
+            owner_name = request.form.get('owner_name', '').strip()
             account_details = request.form.get('account_details', '').strip()
 
             if not wallet_obj:
@@ -264,17 +265,19 @@ def withdraw():
                 flash(f"الحد الأدنى للسحب هو {min_withdraw:,.2f} {curr}", "danger")
             elif amount > avail_bal:
                 flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
-            elif not account_details:
-                flash("يرجى إدخال تفاصيل الحساب البنكي أو شركة الصرافة بشكل صحيح.", "danger")
+            elif not owner_name:
+                flash("يرجى إدخال اسم المالك (صاحب الحساب) الأساسي بشكل صحيح.", "danger")
             else:
                 ref_code = f"WDR-{uuid.uuid4().hex[:6].upper()}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
+                
+                details_text = f" - التفاصيل: {account_details}" if account_details else " - (بدون تفاصيل إضافية)"
                 
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
                     'amount': amount,
                     'reference_number': ref_code, 
-                    'description': f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
+                    'description': f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}",
                     'created_at': datetime.utcnow()
                 }
 
@@ -284,7 +287,9 @@ def withdraw():
                 if hasattr(WalletTransaction, 'payout_method'):
                     tx_kwargs['payout_method'] = payout_label
                 if hasattr(WalletTransaction, 'account_details'):
-                    tx_kwargs['account_details'] = account_details
+                    tx_kwargs['account_details'] = account_details or 'غير محدد'
+                if hasattr(WalletTransaction, 'owner_name'):
+                    tx_kwargs['owner_name'] = owner_name
                 
                 if hasattr(WalletTransaction, 'trans_type'):
                     tx_kwargs['trans_type'] = 'withdrawal'
