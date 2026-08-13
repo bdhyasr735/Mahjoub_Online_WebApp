@@ -6,6 +6,7 @@ from flask_login import current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
+# محاولة استيراد النماذج (Models) مع التعامل مع احتمالية عدم وجودها
 try:
     from apps.models.supplier_db import Supplier, SupplierProfile
 except ImportError:
