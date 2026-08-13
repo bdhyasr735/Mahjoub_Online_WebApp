@@ -28,7 +28,6 @@ def export_wallet_pdf():
     if wallet_obj:
         wallet_id = wallet_obj.id
         
-        # حساب الملخصات المالية لنفس الكشف
         q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
         if status_col is not None:
             q_completed = q_completed.filter(status_col == 'completed')
