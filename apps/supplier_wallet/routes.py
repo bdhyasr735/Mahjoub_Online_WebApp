@@ -239,11 +239,12 @@ def withdraw():
             raw_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
             avail_bal = max(0.00, raw_bal)
 
-        min_withdraw = 500.00
+        # تم التعديل هنا إلى 50 ريال بدلاً من 500
+        min_withdraw = 50.00
         curr = getattr(wallet_obj, 'currency', 'ر.س')
     else:
         avail_bal = 0.00
-        min_withdraw = 500.00
+        min_withdraw = 50.00
         curr = 'ر.س'
 
     summary = {
