@@ -40,7 +40,7 @@ def wallet():
             q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit', 'withdrawal', 'debit']))
         pending_credits = q_pending.scalar() or 0.00
 
-        # تم التعديل هنا: حصر إجمالي المسحوبات على الحركات المكتملة فقط (completed)
+        # حصر إجمالي المسحوبات على الحركات المكتملة فقط (completed)
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(WalletTransaction.wallet_id == wallet_id)
         if status_col is not None:
             q_withdrawn = q_withdrawn.filter(status_col == 'completed')
@@ -258,7 +258,7 @@ def withdraw():
 @supplier_wallet_bp.route('/wallet/export-pdf', methods=['GET'], strict_slashes=False)
 @supplier_wallet_bp.route('/withdraw/export-pdf', methods=['GET'], strict_slashes=False)
 @login_required
-def export_pdf():
+def export_wallet_pdf():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     trx_type_col = get_trx_type_attr()
