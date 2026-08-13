@@ -239,7 +239,6 @@ def withdraw():
             raw_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
             avail_bal = max(0.00, raw_bal)
 
-        # تم التعديل هنا إلى 50 ريال بدلاً من 500
         min_withdraw = 50.00
         curr = getattr(wallet_obj, 'currency', 'ر.س')
     else:
@@ -282,13 +281,11 @@ def withdraw():
                 if status_col is not None and hasattr(WalletTransaction, 'status'):
                     tx_kwargs['status'] = 'pending'
 
-                # إضافة الحقول الاختيارية حسب متطلبات النموذج
                 if hasattr(WalletTransaction, 'payout_method'):
                     tx_kwargs['payout_method'] = payout_label
                 if hasattr(WalletTransaction, 'account_details'):
                     tx_kwargs['account_details'] = account_details
                 
-                # إسناد قيمة نوع المعاملة حسب الحقل الموجود
                 if hasattr(WalletTransaction, 'trans_type'):
                     tx_kwargs['trans_type'] = 'withdrawal'
                 elif hasattr(WalletTransaction, 'transaction_type'):
