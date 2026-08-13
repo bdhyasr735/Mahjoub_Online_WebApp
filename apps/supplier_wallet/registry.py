@@ -2,12 +2,19 @@
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
-from flask import url_for, session, has_app_context
-from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
+from flask import url_for, Blueprint, has_app_context
+
+# تعريف الـ Blueprint هنا لضمان وجوده في الموديول
+supplier_wallet_bp = Blueprint(
+    'supplier_wallet', 
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
 
 logger = logging.getLogger(__name__)
 
-# Mappings المسميات لضمان التعرف عليها في الـ Sidebar Loader
+# المسميات العربية للسلايدر
 MODULE_NAME = "الرقابة المالية"
 TITLE = "الرقابة المالية"
 NAME = "الرقابة المالية"
@@ -26,9 +33,9 @@ def register_module(app):
     try:
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-            print("✅ [Registry Wallet]: تم تسجيل موديول محفظة الموردين بنجاح.")
+            print("✅ [Registry Wallet]: تم تسجيل موديول الرقابة المالية بنجاح.")
         else:
-            print("ℹ️ [Registry Wallet]: موديول المحفظة مسجل مسبقاً.")
+            print("ℹ️ [Registry Wallet]: موديول الرقابة المالية مسجل مسبقاً.")
 
         @app.context_processor
         def inject_supplier_wallet_meta():
@@ -50,7 +57,8 @@ def get_module_stats():
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        from apps.supplier_wallet.routes import get_current_supplier_id, get_trx_type_attr
+        # استيراد الدوال المساعدة من الملف المخصص لها
+        from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 
         supplier_id = get_current_supplier_id()
         if not supplier_id:
@@ -99,16 +107,15 @@ def get_module_stats():
 
 
 def get_module_link():
-    """الحصول على رابط المحفظة الرئيسي مع التراجع الآمن"""
+    """الحصول على رابط المحفظة الرئيسي"""
     try:
         return url_for('supplier_wallet.wallet')
-    except Exception as e:
-        logger.error(f"❌ [Registry Wallet Link Error]: {e}")
+    except:
         return '/supplier/wallet/'
 
 
 def get_dashboard_card():
-    """توليد كارت لوحة التحكم بالبيانات الحقيقية والعملة الصحيحة"""
+    """توليد كارت لوحة التحكم"""
     stats = get_module_stats()
     curr = stats.get('currency', 'ر.س')
     avail = stats.get('available_balance', '0.00')
@@ -122,19 +129,3 @@ def get_dashboard_card():
         'badge': avail,
         'subtitle': f"المتاح: {avail} {curr}"
     }
-
-
-__all__ = [
-    'supplier_wallet_bp',
-    'MODULE_NAME',
-    'TITLE',
-    'NAME',
-    'DISPLAY_NAME',
-    'MODULE_ICON', 
-    'SHOW_IN_SUPPLIER', 
-    'LINKS', 
-    'register_module', 
-    'get_module_stats', 
-    'get_module_link', 
-    'get_dashboard_card'
-]
