@@ -75,8 +75,21 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        # إنشاء الجداول إن لم تكن موجودة بدون مسح القاعدة في كل مرة
+        # إنشاء الجداول إن لم تكن موجودة
         db.create_all()
+
+        # ✅ PATCH: إضافة الأعمدة المفقودة في حال عدم وجودها (إصلاح مشكلة التوافق)
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'completed';"))
+                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS trans_type VARCHAR(30);"))
+                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS payout_method VARCHAR(50);"))
+                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS account_details TEXT;"))
+                conn.commit()
+            print("✅ [Schema Patch]: تم التأكد من سلامة أعمدة جدول wallet_transactions.")
+        except Exception as e:
+            print(f"⚠️ [Schema Patch Error]: {e}")
 
         # ✅ 1. زراعة المالك
         try:
@@ -168,13 +181,12 @@ def create_app():
         return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
 
     # ============================================================
-    # ✅ حماية المسارات مع استثناء الشامل لكافة ملفات الـ Static
+    # ✅ حماية المسارات
     # ============================================================
     @app.before_request
     def protect_routes():
         path = request.path
         
-        # استثناء جميع طلبات ملفات Static بغض النظر عن البلوبرينت
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
             return
 
@@ -207,54 +219,17 @@ def create_app():
             return redirect(admin_login_path)
 
     # ============================================================
-    # ✅ إعدادات Talisman مع السماح بـ Tailwind CDN ومكتبات الأيقونات
+    # ✅ إعدادات Talisman
     # ============================================================
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
-            'style-src': [
-                "'self'", 
-                "'unsafe-inline'", 
-                "https://fonts.googleapis.com", 
-                "https://cdn.jsdelivr.net", 
-                "https://cdnjs.cloudflare.com", 
-                "https://ckeditor.com",
-                "https://cdn.tailwindcss.com"
-            ],
-            'font-src': [
-                "'self'", 
-                "https://fonts.gstatic.com", 
-                "https://cdn.jsdelivr.net", 
-                "https://cdnjs.cloudflare.com"
-            ],
-            'script-src': [
-                "'self'", 
-                "'unsafe-inline'", 
-                "'unsafe-eval'", 
-                "https://code.jquery.com", 
-                "https://cdn.jsdelivr.net", 
-                "https://cdnjs.cloudflare.com", 
-                "https://ckeditor.com",
-                "https://cdn.tailwindcss.com"
-            ],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
+            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
             'img-src': ["'self'", "data:", "https://*"],
-            'connect-src': [
-                "'self'", 
-                "https://ckeditor.com", 
-                "https://*.ckeditor.com", 
-                "https://mahjoub.online",
-                "https://studio.apollographql.com",
-                "https://embed.apollographql.com",
-                "https://sandbox.embed.apollographql.com",
-                "https://cdn.jsdelivr.net", 
-                "https://cdnjs.cloudflare.com"
-            ],
-            'frame-ancestors': [
-                "'self'",
-                "https://studio.apollographql.com",
-                "https://embed.apollographql.com",
-                "https://sandbox.embed.apollographql.com"
-            ]
+            'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com"]
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
@@ -263,7 +238,6 @@ def create_app():
     @csrf.exempt
     def graphql_proxy():
         origin = request.headers.get('Origin', 'https://studio.apollographql.com')
-
         if request.method == 'OPTIONS':
             response = make_response('', 200)
             response.headers['Access-Control-Allow-Origin'] = origin
@@ -271,7 +245,6 @@ def create_app():
             response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight, Accept'
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
             return response
-
         try:
             if request.method == 'GET':
                 query = request.args.get('query')
@@ -282,20 +255,14 @@ def create_app():
                 query = data.get('query')
                 variables = data.get('variables')
                 operation_name = data.get('operationName')
-
             client = GraphQLClient()
             result = client.execute(query, variables, operation_name)
-
             response = jsonify(result)
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             return response
-
         except Exception as e:
-            response = jsonify({
-                "error": str(e),
-                "message": "فشل تمرير طلب GraphQL إلى الخادم"
-            })
+            response = jsonify({"error": str(e), "message": "فشل تمرير طلب GraphQL إلى الخادم"})
             response.status_code = 500
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -306,17 +273,9 @@ def create_app():
         try:
             client = GraphQLClient()
             success = client.test_connection()
-            return jsonify({
-                "connection_status": success,
-                "endpoint": client.endpoint,
-                "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"
-            })
+            return jsonify({"connection_status": success, "endpoint": client.endpoint, "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"})
         except Exception as e:
-            return jsonify({
-                "connection_status": False,
-                "error": str(e),
-                "message": f"❌ خطأ: {str(e)}"
-            }), 500
+            return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
     @app.route('/')
     def index():
@@ -347,97 +306,63 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
-    
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
-            
             if not os.path.isdir(item_path) or item in ignored_dirs:
                 continue
-                
             registry_file = os.path.join(item_path, 'registry.py')
             if os.path.exists(registry_file):
                 try:
                     module = importlib.import_module(f"apps.{item}.registry")
-                    
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
-                    
                     links_data = None
                     if hasattr(module, 'LINKS'):
                         raw_links = getattr(module, 'LINKS')
-                        if isinstance(raw_links, dict):
-                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
-                        elif isinstance(raw_links, list):
-                            links_data = {ep: lbl for ep, lbl in raw_links}
-
+                        if isinstance(raw_links, dict): links_data = {ep: lbl for ep, lbl in raw_links.items()}
+                        elif isinstance(raw_links, list): links_data = {ep: lbl for ep, lbl in raw_links}
                     menu_items_func = getattr(module, 'get_menu_items', None)
                     if not links_data and menu_items_func:
                         res = menu_items_func()
-                        if isinstance(res, dict):
-                            links_data = res
-                        elif isinstance(res, list):
-                            links_data = {ep: lbl for ep, lbl in res}
-
+                        if isinstance(res, dict): links_data = res
+                        elif isinstance(res, list): links_data = {ep: lbl for ep, lbl in res}
                     if links_data:
                         mod_data = {
                             "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
                             "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
                             "links": links_data,
                         }
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
-                            SUPPLIER_MODULES[item] = mod_data
-                        else:
-                            ADMIN_MODULES[item] = mod_data
-                            
+                        if getattr(module, 'SHOW_IN_SUPPLIER', False): SUPPLIER_MODULES[item] = mod_data
+                        else: ADMIN_MODULES[item] = mod_data
                 except Exception as e:
                     print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
 
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
-            try:
-                return url_for(endpoint, **values)
-            except Exception:
-                return '#'
-        
+            try: return url_for(endpoint, **values)
+            except Exception: return '#'
         supplier_context = {
-            'current_supplier': None,
-            'owner_full_name': '',
-            'supplier_bank_name': '',
-            'supplier_bank_account': '',
-            'supplier_wallet': None,
-            'pending_financials_count': 0,
-            'total_pending_payouts': 0.00
+            'current_supplier': None, 'owner_full_name': '', 'supplier_bank_name': '',
+            'supplier_bank_account': '', 'supplier_wallet': None,
+            'pending_financials_count': 0, 'total_pending_payouts': 0.00
         }
-
         if current_user.is_authenticated:
             try:
                 user_type = session.get('user_type')
                 if user_type in ['supplier', 'staff']:
                     supplier_id = getattr(current_user, 'supplier_id', None) if user_type == 'staff' else getattr(current_user, 'id', None)
-                    
                     if supplier_id:
                         from apps.models.supplier_db import Supplier
                         from apps.models.financials_db import OrderFinancial
-                        
                         supplier = db.session.get(Supplier, supplier_id)
                         if supplier:
                             profile = supplier.supplier_profile
-                            pending_financials = OrderFinancial.query.filter_by(
-                                supplier_id=supplier.id, 
-                                settlement_status='pending'
-                            ).all()
-
+                            pending_financials = OrderFinancial.query.filter_by(supplier_id=supplier.id, settlement_status='pending').all()
                             supplier_context = {
                                 'current_supplier': supplier,
-                                'owner_full_name': (
-                                    supplier.owner_name or 
-                                    supplier.store_name or 
-                                    supplier.trade_name or 
-                                    supplier.username or 
-                                    ''
-                                ),
+                                'owner_full_name': (supplier.owner_name or supplier.store_name or supplier.trade_name or supplier.username or ''),
                                 'supplier_bank_name': (profile.bank_name or profile.company_name) if profile else '',
                                 'supplier_bank_account': profile.bank_account if profile else '',
                                 'supplier_wallet': supplier.wallet,
@@ -446,7 +371,6 @@ def create_app():
                             }
             except Exception as e:
                 app.logger.error(f"❌ [Context Error]: خطأ في استخراج سياق المورد: {e}")
-
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
