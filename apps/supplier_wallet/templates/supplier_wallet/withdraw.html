@@ -159,23 +159,35 @@
     <!-- جدول سجل سحوبات الأرباح السابقة مع الفلاتر والترقيم -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         
-        <!-- عنوان السجل ومعيار الفلترة -->
+        <!-- عنوان السجل ومعيار الفلترة والتصدير -->
         <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 class="text-sm font-black text-gray-800">سجل عمليات وطلبات السحب السابقة</h2>
                 <span class="text-[11px] text-gray-400 mt-0.5 block" dir="ltr">إجمالي الطلبات: {{ pagination.total_items if pagination and pagination.total_items is defined else (withdrawals|length) }}</span>
             </div>
             
-            <!-- فلتر الحالة -->
-            <form method="GET" action="{{ url_for('supplier_wallet.withdraw') }}" class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <span class="text-xs font-bold text-gray-500 whitespace-nowrap">حالة الطلب:</span>
-                <select name="status" onchange="this.form.submit()" class="text-xs py-2 px-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#4A154B] font-bold text-gray-700">
-                    <option value="all" {% if request.args.get('status') == 'all' or not request.args.get('status') %}selected{% endif %}>جميع الحالات</option>
-                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
-                    <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
-                    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
-                </select>
-            </form>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                <!-- زر تصدير PDF -->
+                <a href="{{ url_for('supplier_wallet.export_pdf', status=request.args.get('status', 'all')) }}" 
+                   class="px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm flex items-center gap-1.5"
+                   title="تصدير السجل إلى ملف PDF">
+                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>تصدير PDF</span>
+                </a>
+
+                <!-- فلتر الحالة -->
+                <form method="GET" action="{{ url_for('supplier_wallet.withdraw') }}" class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-gray-500 whitespace-nowrap">حالة الطلب:</span>
+                    <select name="status" onchange="this.form.submit()" class="text-xs py-2 px-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#4A154B] font-bold text-gray-700">
+                        <option value="all" {% if request.args.get('status') == 'all' or not request.args.get('status') %}selected{% endif %}>جميع الحالات</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
+                        <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
+                    </select>
+                </form>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -233,7 +245,7 @@
                 {% if p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
                     <a href="{{ url_for('supplier_wallet.withdraw', page=p, status=request.args.get('status', 'all')) }}" 
                        class="px-3.5 py-2 text-xs font-bold rounded-xl transition-all {% if p == pagination.page %}bg-[#4A154B] text-white shadow-sm{% else %}text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 shadow-sm{% endif %}">
-                       {{ p }}
+                        {{ p }}
                     </a>
                 {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
                     <span class="px-2 text-gray-400 font-bold">..</span>
