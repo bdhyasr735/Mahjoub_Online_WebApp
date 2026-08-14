@@ -5,10 +5,18 @@
 مشروع Mahjoub Online WebApp
 """
 
-from flask import render_template, request, abort
+from flask import Blueprint, render_template, request, abort  # <-- أضف Blueprint هنا
 from datetime import datetime, timedelta
-from apps.admin_treasury import admin_treasury_bp
 
+# 🔥 عرّف الـ Blueprint هنا في هذا الملف نفسه (ولا تستورده من الخارج)
+admin_treasury_bp = Blueprint(
+    'admin_treasury',
+    __name__,
+    template_folder='../../templates',  # المسار الصحيح لمجلد القوالب الرئيسي
+    url_prefix='/admin/treasury'
+)
+
+# ------------------ دوال الـ Routes ------------------
 @admin_treasury_bp.route('/', methods=['GET'])
 def treasury_index():
     """
