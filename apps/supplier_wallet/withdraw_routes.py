@@ -10,6 +10,7 @@ from flask_login import login_required
 from sqlalchemy.orm import lazyload
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.supplier_db import Supplier
 from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
     get_current_supplier_id, 
@@ -21,17 +22,17 @@ from apps.supplier_wallet.utils import (
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
 
 
-def generate_collision_proof_codes(supplier_id):
-    """توليد رقم مرجعي ورقم سند محكمين للغاية ومقاومين للتصادم وتحت الضغط المتزامن."""
+def generate_collision_proof_codes(sup_code):
+    """توليد رقم مرجعي ورقم سند محكمين للغاية باستخدام كود المورد الرسمية (MAH-SUP963x)."""
     now = datetime.utcnow()
     date_str = now.strftime('%Y%m%d')
-    time_ms_str = now.strftime('%H%M%S%f')[:9]  # تتضمن الميكروثانية لضمان الدقة
+    time_ms_str = now.strftime('%H%M%S%f')[:9]  # دقة الميكروثانية لضمان التحمل تحت الضغط
     
     chars = string.ascii_uppercase + string.digits
     rand_ref = ''.join(secrets.choice(chars) for _ in range(4))
     rand_vch = ''.join(secrets.choice(chars) for _ in range(8))
     
-    ref_number = f"TRX-SUPP{supplier_id}-{date_str}-{time_ms_str}-{rand_ref}"
+    ref_number = f"TRX-{sup_code}-{date_str}-{time_ms_str}-{rand_ref}"
     vch_number = f"VCH-{date_str}-{rand_vch}"
     
     return ref_number, vch_number
@@ -93,6 +94,13 @@ def withdraw():
             elif amount < MIN_WITHDRAW_AMOUNT:
                 flash(f"الحد الأدنى لطلب السحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}", "danger")
             else:
+                # 🔍 جلب supplier_code الفعلي للمورد (مثل MAH-SUP9631)
+                supplier_code_val = db.session.query(Supplier.supplier_code)\
+                    .filter(Supplier.id == supplier_id)\
+                    .scalar()
+                
+                sup_code = supplier_code_val if supplier_code_val else f"SUPP{supplier_id}"
+
                 owner_name = registered_owner or f"مورد رقم #{supplier_id}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
@@ -100,8 +108,8 @@ def withdraw():
                 # صياغة النص بحد أقصى 255 حرفاً
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # توليد أرقام الترقيم والسند الفريدة محلياً بدقة الميكروثانية لضمان التحمل الكامل للضغط
-                ref_num, vch_num = generate_collision_proof_codes(supplier_id)
+                # توليد أرقام الترقيم والسند الفريدة باستخدام supplier_code الصحيح
+                ref_num, vch_num = generate_collision_proof_codes(sup_code)
 
                 # إنشاء المعاملة بحقول جدول WalletTransaction الصحيحة
                 new_tx = WalletTransaction(
