@@ -101,9 +101,10 @@ def wallet_dashboard():
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw():
-    """معالجة تقديم طلب سحب مبيعات جديد بدون توليد أرقام مرجعية تلقائية."""
+    """معالجة عرض صفحة طلب السحب واستقبال بيانات الإرسال للمورد."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
     if request.method == 'POST':
         try:
@@ -116,11 +117,11 @@ def withdraw():
             # 1. التحقق من صحة المبلغ والمحفظة
             if amount < min_withdraw:
                 flash(f"عذراً، الحد الأدنى لطلب السحب هو {min_withdraw} ر.س.", "danger")
-                return redirect(url_for('supplier_wallet.wallet_dashboard'))
+                return redirect(url_for('supplier_wallet.withdraw'))
 
             if amount > balance_sar:
                 flash("عذراً، الرصيد المتاح لا يكفي لتغطية مبلغ السحب المطلوب.", "danger")
-                return redirect(url_for('supplier_wallet.wallet_dashboard'))
+                return redirect(url_for('supplier_wallet.withdraw'))
 
             # 2. إنشاء حركة السحب بحالة معلقة (pending)
             new_withdrawal = WalletTransaction(
@@ -146,9 +147,15 @@ def withdraw():
         except Exception as e:
             db.session.rollback()
             flash(f"حدث خطأ أثناء تقديم طلب السحب: {str(e)}", "danger")
-            return redirect(url_for('supplier_wallet.wallet_dashboard'))
+            return redirect(url_for('supplier_wallet.withdraw'))
 
-    return redirect(url_for('supplier_wallet.wallet_dashboard'))
+    # في حال كان الطلب GET، يتم عرض صفحة نموذج طلب السحب المستقلة للمورد
+    return render_template(
+        'supplier_wallet/withdraw.html',
+        wallet=wallet_obj,
+        registered_owner=registered_owner,
+        registered_details=registered_details
+    )
 
 
 @supplier_wallet_bp.route('/export-pdf', methods=['GET'], strict_slashes=False)
@@ -156,7 +163,6 @@ def withdraw():
 def export_wallet_pdf():
     """مسار تصدير كشف حساب المحفظة بصيغة PDF (معالج لتجنب خطأ BuildError)."""
     try:
-        # يمكنك لاحقاً ربط مكتبة التصدير الفعلية هنا
         flash("جاري تجهيز ملف الـ PDF الخاص بك...", "info")
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
     except Exception as e:
