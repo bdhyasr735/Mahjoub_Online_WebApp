@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/admin_treasury/__init__.py
+# 📂 apps/admin_treasury/routes/__init__.py
+"""
+حزمة المتحكمات لموديول الرقابة المالية والخزينة المركزية
+مشروع Mahjoub Online WebApp
+"""
 
-from flask import Blueprint
-
-# تعريف البلوبرنت هنا وربطه بالـ url_prefix الصحيح
-admin_treasury_bp = Blueprint(
-    'admin_treasury',
-    __name__,
-    template_folder='templates',
-    static_folder='static',
-    url_prefix='/admin/treasury'
-)
-
-# استيراد المتحكمات لترتبط بالبلوبرنت
-from apps.admin_treasury.routes import treasury_controller
+# استيراد المتحكمات هنا يضمن تسجيل المسارات داخل الـ Blueprint
+# عند بدء تشغيل التطبيق أو عند استيراد حزمة admin_treasury
+from . import treasury_controller
