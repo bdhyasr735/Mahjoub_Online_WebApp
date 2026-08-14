@@ -5,26 +5,27 @@
 مشروع Mahjoub Online WebApp
 """
 
-from flask import render_template, request
+from flask import render_template, request, abort
 from datetime import datetime, timedelta
 from apps.admin_treasury import admin_treasury_bp
 
 @admin_treasury_bp.route('/', methods=['GET'])
 def treasury_index():
     """
-    عرض لوحة الرقابة المالية والخزينة المركزية: المؤشرات المالية، أرصدة البنوك، القيود، وفلاتر التصفية
+    عرض لوحة الرقابة المالية والخزينة المركزية: المؤشرات، الأرصدة، والقيود
     """
+    # 1. التقاط ومعالجة الفلاتر
     page = request.args.get('page', 1, type=int)
-    per_page = 10  # معيار الترقيم 10 عناصر لكل صفحة
-    
     flow_type = request.args.get('flow_type', '').strip()
     category = request.args.get('category', '').strip()
     status = request.args.get('status', '').strip()
     search_q = request.args.get('q', '').strip()
-    start_date = request.args.get('start_date', '').strip()
-    end_date = request.args.get('end_date', '').strip()
+    
+    # تحديد نطاق زمني تلقائي (آخر 30 يوم) في حال لم تتوفر تواريخ
+    start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
 
-    # المؤشرات المالية الرئيسية للخزينة
+    # 2. مؤشرات الأداء الرئيسية (KPIs) - قابلة للربط بقاعدة البيانات لاحقاً
     kpis = {
         "total_treasury_balance": 1845620.50,
         "total_inflow": 2450890.00,
@@ -34,32 +35,11 @@ def treasury_index():
         "currency": "SAR"
     }
 
-    # أرصدة الحسابات البنكية المعتمدة
+    # 3. أرصدة الحسابات البنكية
     bank_accounts = [
-        {
-            "id": 1,
-            "bank_name": "مصرف الراجحي",
-            "account_number": "SA8820000001234567890123",
-            "account_type": "حساب العمليات الرئيسي",
-            "current_balance": 1120450.00,
-            "currency": "SAR"
-        },
-        {
-            "id": 2,
-            "bank_name": "البنك الأهلي السعودي (SNB)",
-            "account_number": "SA4410000009876543210987",
-            "account_type": "حساب ضمان المشتريات (Escrow)",
-            "current_balance": 530200.00,
-            "currency": "SAR"
-        },
-        {
-            "id": 3,
-            "bank_name": "بنك الرياض",
-            "account_number": "SA1230000005544332211002",
-            "account_type": "حساب الاحتياطي والتسويات",
-            "current_balance": 194970.50,
-            "currency": "SAR"
-        }
+        {"id": 1, "bank_name": "مصرف الراجحي", "account_number": "SA8820000001234567890123", "account_type": "حساب العمليات الرئيسي", "current_balance": 1120450.00, "currency": "SAR"},
+        {"id": 2, "bank_name": "البنك الأهلي السعودي (SNB)", "account_number": "SA4410000009876543210987", "account_type": "حساب ضمان المشتريات (Escrow)", "current_balance": 530200.00, "currency": "SAR"},
+        {"id": 3, "bank_name": "بنك الرياض", "account_number": "SA1230000005544332211002", "account_type": "حساب الاحتياطي والتسويات", "current_balance": 194970.50, "currency": "SAR"}
     ]
 
     return render_template(
@@ -81,9 +61,11 @@ def treasury_index():
 @admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
     """
-    استعراض تفاصيل وسند قيد محدد من قيود الخزينة المركزية والرقابة المالية
+    استعراض تفاصيل وسند قيد محدد من الخزينة المركزية
     """
-    # نموذج بيانات القيد المالي
+    # محاكاة لجلب البيانات من قاعدة البيانات بناءً على ref_code
+    # في حال عدم وجود القيد، يمكن إضافة منطق للتحقق وإرجاع 404
+    
     voucher_data = {
         "ref_code": ref_code,
         "voucher_number": "VCH-99201",
