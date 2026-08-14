@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/admin_treasury/routes/treasury_controller.py
 """
-متحكم وإدارة مسارات الخزينة المركزية وحسابات الضمان
+متحكم وإدارة مسارات الرقابة المالية (الخزينة المركزية) وحسابات الضمان
 مشروع Mahjoub Online WebApp
 """
 
@@ -12,7 +12,7 @@ from apps.admin_treasury import admin_treasury_bp
 @admin_treasury_bp.route('/', methods=['GET'])
 def treasury_index():
     """
-    عرض لوحة الخزينة المركزية: المؤشرات المالية، أرصدة البنوك، القيود، وفلاتر التصفية
+    عرض لوحة الرقابة المالية والخزينة المركزية: المؤشرات المالية، أرصدة البنوك، القيود، وفلاتر التصفية
     """
     page = request.args.get('page', 1, type=int)
     per_page = 10  # معيار الترقيم 10 عناصر لكل صفحة
@@ -81,7 +81,7 @@ def treasury_index():
 @admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
     """
-    استعراض تفاصيل وسند قيد محدد من قيود الخزينة المركزية
+    استعراض تفاصيل وسند قيد محدد من قيود الخزينة المركزية والرقابة المالية
     """
     # نموذج بيانات القيد المالي
     voucher_data = {
