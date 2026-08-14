@@ -1,12 +1,13 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/utils.py
 
+from datetime import datetime
 from typing import Optional, Tuple
 from decimal import Decimal
 from flask import session
 from flask_login import current_user
 from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
 # محاولة استيراد النماذج (Models) مع التعامل مع احتمالية عدم وجودها
 try:
@@ -29,6 +30,39 @@ def get_current_supplier_id() -> Optional[int]:
 
     # المورد المباشر أو المعرف الأساسي للمستخدم
     return getattr(current_user, 'supplier_id', getattr(current_user, 'id', None))
+
+
+def generate_transaction_ref(wallet_id: int, sup_code: str, prefix: str = 'TRX') -> Tuple[str, str]:
+    """
+    دالة موحدة لتوليد الرقم المرجعي ورقم السند لكافة العمليات المالية (رصيد افتتاحي، إيداع، سحب):
+    الصيغة القياسية: TRX-MAH-SUP9631-20260814-0001
+    """
+    now = datetime.utcnow()
+    date_str = now.strftime('%Y%m%d')
+    start_of_day = datetime(now.year, now.month, now.day)
+
+    # حساب تسلسل اليوم للحركات التابعة لهذه المحفظة
+    daily_count = db.session.query(WalletTransaction)\
+        .filter(
+            WalletTransaction.wallet_id == wallet_id,
+            WalletTransaction.created_at >= start_of_day
+        ).count() + 1
+
+    # حلقة حماية لضمان عدم وجود تكرار نهائياً في قاعدة البيانات
+    while True:
+        seq_str = f"{daily_count:04d}"
+        ref_number = f"{prefix}-{sup_code}-{date_str}-{seq_str}"
+        
+        exists = db.session.query(WalletTransaction.id)\
+            .filter(WalletTransaction.reference_number == ref_number)\
+            .first()
+        
+        if not exists:
+            break
+        daily_count += 1
+
+    vch_number = f"VCH-{sup_code}-{date_str}-{seq_str}"
+    return ref_number, vch_number
 
 
 def get_or_create_supplier_wallet(supplier_id: Optional[int]) -> Optional[SupplierWallet]:
