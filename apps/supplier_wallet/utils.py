@@ -1,6 +1,8 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/utils.py
 
+import secrets
+import string
 from datetime import datetime
 from typing import Optional, Tuple
 from decimal import Decimal
@@ -34,27 +36,18 @@ def get_current_supplier_id() -> Optional[int]:
 
 def generate_transaction_ref(wallet_id: int, sup_code: str, prefix: str = 'TRX') -> Tuple[Optional[str], Optional[str]]:
     """
-    دالة موحدة لتوليد الرقم المرجعي ورقم السند عند الحاجة فقط للعمليات المالية النظامية المباشرة.
-    تُعيد (None, None) عند الاستدعاء الخاطئ لتجنب إسناد أرقام مرجعية تلقائية غير مطابقة.
+    دالة موحدة لتوليد الرقم المرجعي ورقم السند مع 6 خانات عشوائية مخلوطة (أرقام وحروف كبيرة).
+    تُعيد (None, None) عند الاستدعاء الخاطئ لتجنب إسناد أرقام مرجعية غير مطابقة.
     """
     if not wallet_id or not sup_code:
         return None, None
 
-    now = datetime.utcnow()
-    date_str = now.strftime('%Y%m%d')
-    start_of_day = datetime(now.year, now.month, now.day)
+    characters = string.ascii_uppercase + string.digits
 
-    # حساب تسلسل اليوم للحركات التابعة لهذه المحفظة
-    daily_count = db.session.query(WalletTransaction)\
-        .filter(
-            WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.created_at >= start_of_day
-        ).count() + 1
-
-    # حلقة حماية لضمان عدم وجود تكرار نهائياً في قاعدة البيانات
+    # حلقة حماية لضمان عدم تكرار الرقم المرجعي نهائياً في قاعدة البيانات
     while True:
-        seq_str = f"{daily_count:04d}"
-        ref_number = f"{prefix}-{sup_code}-{date_str}-{seq_str}"
+        random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
+        ref_number = f"{prefix}-{sup_code}-{random_6_code}"
         
         exists = db.session.query(WalletTransaction.id)\
             .filter(WalletTransaction.reference_number == ref_number)\
@@ -62,9 +55,19 @@ def generate_transaction_ref(wallet_id: int, sup_code: str, prefix: str = 'TRX')
         
         if not exists:
             break
-        daily_count += 1
 
-    vch_number = f"VCH-{sup_code}-{date_str}-{seq_str}"
+    # حلقة حماية لضمان عدم تكرار رقم السند (Voucher) نهائياً في قاعدة البيانات
+    while True:
+        random_6_vch = ''.join(secrets.choice(characters) for _ in range(6))
+        vch_number = f"VCH-{random_6_vch}"
+        
+        exists_vch = db.session.query(WalletTransaction.id)\
+            .filter(WalletTransaction.voucher_number == vch_number)\
+            .first()
+        
+        if not exists_vch:
+            break
+
     return ref_number, vch_number
 
 
