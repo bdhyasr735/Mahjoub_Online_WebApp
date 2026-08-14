@@ -43,7 +43,7 @@ def treasury_index():
     ]
 
     return render_template(
-        'admin/admin_treasury.html',
+        'admin_treasury.html',  # اعتماد القالب المحلي داخل الموديول
         kpi=kpis,
         bank_accounts=bank_accounts,
         current_page=page,
@@ -63,9 +63,10 @@ def treasury_detail(ref_code):
     """
     استعراض تفاصيل وسند قيد محدد من الخزينة المركزية
     """
-    # محاكاة لجلب البيانات من قاعدة البيانات بناءً على ref_code
-    # في حال عدم وجود القيد، يمكن إضافة منطق للتحقق وإرجاع 404
-    
+    # التحقق من وجود الكود (كمحاكاة واقعية لمنع الأكواد الفارغة)
+    if not ref_code or len(ref_code.strip()) == 0:
+        abort(404)
+
     voucher_data = {
         "ref_code": ref_code,
         "voucher_number": "VCH-99201",
@@ -85,6 +86,6 @@ def treasury_detail(ref_code):
     }
 
     return render_template(
-        'admin/admin_treasury_detail.html',
+        'admin_treasury_detail.html',  # اعتماد القالب المحلي داخل الموديول
         voucher=voucher_data
     )
