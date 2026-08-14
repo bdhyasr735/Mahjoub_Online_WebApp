@@ -108,8 +108,8 @@ def seed_database():
                 status='completed',
                 amount=1000.00,
                 currency='SAR',
-                voucher_number=f"VOUCH-INIT-{supplier.id:04d}",  # رقم السند
-                description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"  # الوصف (سيشفر تلقائياً)
+                voucher_number=f"VOUCH-INIT-{supplier.id:04d}",
+                description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"
             )
             db.session.add(initial_transaction)
             db.session.commit()
@@ -440,4 +440,4 @@ def create_app():
             return jsonify({'success': False, 'message': 'حدث خطأ داخلي في الخادم أثناء معالجة الطلب.'}), 500
         return render_template('errors/500.html'), 500
 
-    retur
+    return app
