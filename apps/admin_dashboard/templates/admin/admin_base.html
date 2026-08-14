@@ -190,7 +190,8 @@
                             {% for endpoint, label in links_data %}
                                 <li>
                                     {% if endpoint and '.' in endpoint %}
-                                        <a href="{{ url_for(endpoint) }}" 
+                                        <!-- تم التعديل هنا لاستخدام safe_url_for لمنع انهيار النظام -->
+                                        <a href="{{ safe_url_for(endpoint) }}" 
                                            class="{{ 'active-link' if request.endpoint == endpoint }}">
                                             <i class="fas fa-angle-left me-2"></i> {{ label }}
                                         </a>
