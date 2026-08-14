@@ -20,7 +20,7 @@ from apps.supplier_wallet.utils import (
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
 
 
-@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False, endpoint='withdraw')
 @login_required
 def withdraw():
     """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب جديد للمورد بطريقة محمية تماماً ضد الضغط الموازي."""
