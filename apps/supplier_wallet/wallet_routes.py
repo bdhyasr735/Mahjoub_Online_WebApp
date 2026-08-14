@@ -35,22 +35,31 @@ def wallet_dashboard():
         'currency': curr
     }
 
-    # الفلترة والتقسيم (Pagination)
+    # 1. إعدادات التقسيم (Pagination)
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    type_filter = request.args.get('type', 'all')
-    search_query = request.args.get('q', '').strip()
+    # 2. استقبال متغيرات الفلترة من الـ UI (تطابق names في filters.html)
+    type_filter = request.args.get('type', '')
+    search_query = request.args.get('search', '').strip()
 
-    # 🛑 جلب الحركات المكتملة فقط (Completed) لضمان صحة كشف الحساب المحاسبي
+    # 3. تعريف مصفوفات أنواع الحركات للفلترة الذكية
+    credit_types = ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
+    debit_types = ['debit', 'withdrawal', 'commission_deduction', 'adjustment_debit']
+
+    # 4. بناء الاستعلام الأساسي (المكتملة فقط)
     query = WalletTransaction.query.filter_by(
         wallet_id=wallet_obj.id if wallet_obj else -1,
         status='completed'
     )
 
-    if type_filter != 'all':
-        query = query.filter(WalletTransaction.trans_type == type_filter)
+    # 5. تطبيق فلتر النوع (Type)
+    if type_filter == 'credit':
+        query = query.filter(WalletTransaction.trans_type.in_(credit_types))
+    elif type_filter == 'debit':
+        query = query.filter(WalletTransaction.trans_type.in_(debit_types))
 
+    # 6. تطبيق فلتر البحث المباشر
     if search_query:
         query = query.filter(
             db.or_(
@@ -60,6 +69,7 @@ def wallet_dashboard():
             )
         )
 
+    # 7. التنفيذ والترتيب
     pagination_obj = query.order_by(
         WalletTransaction.created_at.desc(), 
         WalletTransaction.id.desc()
