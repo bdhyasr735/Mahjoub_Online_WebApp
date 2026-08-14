@@ -1,16 +1,11 @@
-# -*- coding: utf-8 -*-
-# 📂 apps/admin_treasury/__init__.py
-
 from flask import Blueprint
 
-# تعريف البلوبرنت هنا وربطه بالـ url_prefix الصحيح
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
-    template_folder='templates',
-    static_folder='static',
+    template_folder='../templates',
     url_prefix='/admin/treasury'
 )
 
-# استيراد المتحكمات لترتبط بالبلوبرنت
+# استيراد المتحكم هنا ليتم تسجيل المسارات
 from apps.admin_treasury.routes import treasury_controller
