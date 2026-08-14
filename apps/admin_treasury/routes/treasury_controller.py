@@ -5,14 +5,20 @@
 مشروع Mahjoub Online WebApp
 """
 
-from flask import Blueprint, render_template, request, abort  # <-- أضف Blueprint هنا
+import os
+from flask import Blueprint, render_template, request, abort
 from datetime import datetime, timedelta
 
-# 🔥 عرّف الـ Blueprint هنا في هذا الملف نفسه (ولا تستورده من الخارج)
+# تحديد المسار المطلق لمجلد القوالب الرئيسي للمشروع بدقة لتجنب أخطاء المسارات النسبية
+basedir = os.path.abspath(os.path.dirname(__file__))
+# مسار الوصول لمجلد templates العام للمشروع من داخل مجلد الـ routes الحالي
+templates_path = os.path.abspath(os.path.join(basedir, '../../templates'))
+
+# 🔥 تعريف الـ Blueprint مع تمرير المسار المطلق الصحيح للقوالب
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
-    template_folder='../../templates',  # المسار الصحيح لمجلد القوالب الرئيسي
+    template_folder=templates_path,
     url_prefix='/admin/treasury'
 )
 
