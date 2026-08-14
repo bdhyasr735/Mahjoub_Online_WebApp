@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/__init__.py
+
 import os
 import importlib
 from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
@@ -75,6 +78,16 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
+        # ⚠️ [إلغاء الجدول القديم وإعادة إنشائه لتجنب مشاكل الأعمدة المفقودة مثل _description_enc]
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS wallet_transactions CASCADE;"))
+                conn.commit()
+            print("✅ [Schema Reset]: تم حذف جدول wallet_transactions القديم بنجاح ليتم إعادة بنائه بالهيكل الجديد.")
+        except Exception as e:
+            print(f"⚠️ [Schema Reset Error]: {e}")
+
         # إنشاء الجداول إن لم تكن موجودة
         db.create_all()
 
