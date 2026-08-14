@@ -12,7 +12,6 @@ VERSION = "2.4.0"
 URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 
-# عناصر القائمة الجانبية (Nav Items)
 NAV_ITEMS = [
     {
         "id": "treasury_overview",
@@ -39,10 +38,8 @@ def register_module(app):
     """
     دالة التسجيل القياسية المعتمدة في مشروع محجوب أونلاين لموديول الرقابة المالية
     """
-    # استيراد البلوبرنت داخل الدالة لتجنب الاستيراد الدائري (Circular Import)
     from apps.admin_treasury import admin_treasury_bp
     
-    # تسجيل الموديول إذا لم يكن مسجلاً مسبقاً
     if MODULE_KEY not in app.blueprints:
         try:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
