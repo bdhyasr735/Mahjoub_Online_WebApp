@@ -3,14 +3,14 @@
 
 from flask import Blueprint
 
-# 1. تعريف البلوبرنت
+# تعريف البلوبرنت هنا وربطه بالـ url_prefix الصحيح
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
     template_folder='templates',
-    static_folder='static'
+    static_folder='static',
+    url_prefix='/admin/treasury'
 )
 
-# 2. استيراد مسارات المتحكم مباشرة (بدون try...except) 
-# يجب أن يكون الاستيراد نسبياً وبدون إخفاء الأخطاء، لكي يظهر لك أي خطأ بوضوح في السجل إن وُجد.
-from .routes import treasury_controller
+# استيراد المتحكمات لترتبط بالبلوبرنت
+from apps.admin_treasury.routes import treasury_controller
