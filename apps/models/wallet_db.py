@@ -104,8 +104,8 @@ class WalletTransaction(db.Model):
     # [التشفير السيادي]: وصف الحركة مشفر بالكامل
     _description_enc = db.Column(db.String(500), nullable=True)
     
-    reference_number = db.Column(db.String(50), unique=True, nullable=True)
-    voucher_number = db.Column(db.String(30), unique=True, nullable=True)
+    reference_number = db.Column(db.String(80), unique=True, nullable=True)
+    voucher_number = db.Column(db.String(50), unique=True, nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
@@ -141,8 +141,8 @@ class WalletTransaction(db.Model):
         }
 
 
-def generate_unique_voucher_number(connection, length=8, prefix="VCH-"):
-    """توليد رقم سند فريد تلقائياً يتكون من أرقام وحروف عشوائية بدون تكرار."""
+def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
+    """توليد رقم سند فريد يتكون من أرقام وحروف عشوائية (6 خانات) مع الفحص المباشر لعدم التكرار."""
     characters = string.ascii_uppercase + string.digits  # حروف كبيرة وأرقام (A-Z, 0-9)
     
     while True:
@@ -162,7 +162,7 @@ def generate_unique_voucher_number(connection, length=8, prefix="VCH-"):
 # --- مشغل الأحداث (Engine) للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
-    """توليد الأرقام المرجعية، وأرقام السندات العشوائية الفريدة، وحساب الأرصدة لحظياً."""
+    """توليد الأرقام المرجعية، وأرقام السندات العشوائية الفريدة (6 خانات)، وحساب الأرصدة لحظياً."""
     
     wallet_table = SupplierWallet.__table__
     
@@ -171,7 +171,7 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         select(wallet_table).where(wallet_table.c.id == target.wallet_id)
     ).mappings().first()
 
-    sup_code = f"SUPP-{target.wallet_id}"  # قيمة افتراضية احتياطية
+    sup_code = f"SUPP{target.wallet_id}"  # قيمة افتراضية احتياطية
     
     if wallet_row:
         supplier_id = wallet_row.get('supplier_id')
@@ -184,23 +184,31 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             if sup_code_val:
                 sup_code = sup_code_val
 
-    # 3. إنشاء رقم المرجع المخصص (Ref) باستخدام كود المورد الفعلي
+    # 3. إنشاء رقم المرجع المخصص العشوائي والفريد (6 خانات حروف وأرقام)
     if not target.reference_number:
-        date_str = datetime.utcnow().strftime('%Y%m%d')
-        last_ref = connection.execute(
-            select(WalletTransaction.reference_number)
-            .where(WalletTransaction.wallet_id == target.wallet_id)
-            .where(WalletTransaction.reference_number.like(f"%{date_str}%"))
-            .order_by(WalletTransaction.id.desc())
-            .limit(1)
-        ).scalar()
+        now = datetime.utcnow()
+        date_str = now.strftime('%Y%m%d')
+        time_stamp = now.strftime('%H%M%S%f')[:9]  # طابع زمني دقيق
+        characters = string.ascii_uppercase + string.digits
         
-        seq = (int(last_ref.split('-')[-1]) + 1) if last_ref else 1
-        target.reference_number = f"TRX-{sup_code}-{date_str}-{seq:04d}"
+        while True:
+            # توليد رمز عشوائي مكون من 6 خانات (أرقام وحروف إنجليزية)
+            random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
+            candidate_ref = f"TRX-{sup_code}-{date_str}-{time_stamp}-{random_6_code}"
+            
+            # التحقق المباشر من قاعدة البيانات لضمان عدم التكرار نهائياً
+            existing_ref = connection.execute(
+                select(WalletTransaction.reference_number)
+                .where(WalletTransaction.reference_number == candidate_ref)
+            ).scalar()
+            
+            if not existing_ref:
+                target.reference_number = candidate_ref
+                break
 
-    # 4. توليد رقم السند العشوائي الفريد (Alphanumeric) تلقائياً إذا لم يُمرر يدوياً
+    # 4. توليد رقم السند العشوائي الفريد (6 خانات) تلقائياً إذا لم يُمرر يدوياً
     if not target.voucher_number:
-        target.voucher_number = generate_unique_voucher_number(connection, length=8, prefix="VCH-")
+        target.voucher_number = generate_unique_voucher_number(connection, length=6, prefix="VCH-")
 
     # 5. حساب الأرصدة (Balance Logic)
     if wallet_row:
