@@ -3,7 +3,10 @@
 
 import os
 import importlib
+import secrets
+import string
 import click
+from datetime import datetime
 from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
@@ -12,7 +15,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
 from werkzeug.routing import BuildError
-from sqlalchemy import text
+from sqlalchemy import text, select
 import config
 from apps.extensions import db, login_manager, migrate
 from apps.services.graphql_client import GraphQLClient
@@ -40,11 +43,11 @@ def import_all_models():
 
 
 def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي"""
+    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي وفق الترقيم العشوائي الفريد (6 خانات)"""
     from apps.models.admin_db import AdminUser
     from apps.models.admin_staff_db import AdminStaff
     from apps.models.supplier_db import Supplier
-    from apps.models.wallet_db import SupplierWallet, WalletTransaction
+    from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
 
     # 1. زراعة المالك
     try:
@@ -77,7 +80,7 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Staff]: {e}")
 
-    # 3. زراعة مورد وتوليد "سند وحركة إيداع" برصيد 1000 ر.س
+    # 3. زراعة مورد وتوليد "سند وحركة إيداع" برصيد 1000 ر.س متناسقة مع الترقيم العشوائي الفريد الجديد
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
             supplier = Supplier(
@@ -85,7 +88,8 @@ def seed_database():
                 trade_name='متجر تجريبي',
                 owner_name='المورد التجريبي',
                 phone='0500000000',
-                status='active'
+                status='active',
+                supplier_code='SUP9631'
             )
             supplier.set_password('123')
             db.session.add(supplier)
@@ -100,6 +104,27 @@ def seed_database():
             db.session.add(wallet)
             db.session.flush()
 
+            # --- 🛠️ توليد رقم مرجعي فريد متوافق مع التسلسل الجديد ---
+            now = datetime.utcnow()
+            date_str = now.strftime('%Y%m%d')
+            time_stamp = now.strftime('%H%M%S%f')[:9]
+            characters = string.ascii_uppercase + string.digits
+            
+            while True:
+                random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
+                candidate_ref = f"TRX-{supplier.supplier_code}-{date_str}-{time_stamp}-{random_6_code}"
+                
+                # فحص الفرادة لمنع التكرار
+                exists_ref = db.session.scalar(
+                    select(WalletTransaction.id).where(WalletTransaction.reference_number == candidate_ref)
+                )
+                if not exists_ref:
+                    seed_ref_number = candidate_ref
+                    break
+
+            # --- 🛠️ توليد رقم سند فريد (6 خانات) باستخدام الدالة المعتمدة ---
+            seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
+
             # 📝 إنشاء حركة مالية وسند إيداع رصيد افتتاحي
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
@@ -109,12 +134,13 @@ def seed_database():
                 status='completed',
                 amount=1000.00,
                 currency='SAR',
-                voucher_number=f"VOUCH-INIT-{supplier.id:04d}",
+                reference_number=seed_ref_number,
+                voucher_number=seed_voucher_number,
                 description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"
             )
             db.session.add(initial_transaction)
             db.session.commit()
-            print("✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع (1000 SAR) بنجاح.")
+            print(f"✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع (1000 SAR) بنجاح برقم مرجعي: {seed_ref_number} وسند: {seed_voucher_number}.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
@@ -438,14 +464,8 @@ def create_app():
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
             supplier_modules=SUPPLIER_MODULES,
-            safe_url_for=safe_url_for,
-            **supplier_context
+            supplier_context=supplier_context,
+            safe_url_for=safe_url_for
         )
-
-    @app.errorhandler(500)
-    def handle_500_error(e):
-        if request.path.startswith('/admin/orders') and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'حدث خطأ داخلي في الخادم أثناء معالجة الطلب.'}), 500
-        return render_template('errors/500.html'), 500
 
     return app
