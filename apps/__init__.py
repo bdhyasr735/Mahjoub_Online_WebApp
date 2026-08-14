@@ -3,6 +3,7 @@
 
 import os
 import importlib
+import click
 from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
@@ -22,6 +23,89 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["500 per day", "1
 
 ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
+
+
+def import_all_models():
+    """استيراد كافة النماذج لضمان التعرف عليها عند إنشاء/إعادة بناء الجداول"""
+    from apps.models.admin_db import AdminUser
+    from apps.models.supplier_db import Supplier
+    from apps.models.supplier_staff_db import SupplierStaff
+    from apps.models.product_db import Product
+    from apps.models.wallet_db import SupplierWallet, WalletTransaction
+    from apps.models.financials_db import OrderFinancial
+    from apps.models.orders_db import Order
+    from apps.models.order_items_db import OrderItem
+    from apps.models.supplier_profile_db import SupplierProfile
+    from apps.models.product_supplier_map import ProductSupplierMapping
+    from apps.models.sync_log import SyncLog
+    from apps.models.marketer_db import Marketer
+    from apps.models.admin_staff_db import AdminStaff
+
+
+def seed_database():
+    """زراعة البيانات المبدئية والافتراضية للأنظمة"""
+    from apps.models.admin_db import AdminUser
+    from apps.models.admin_staff_db import AdminStaff
+    from apps.models.supplier_db import Supplier
+    from apps.models.wallet_db import SupplierWallet
+
+    # 1. زراعة المالك
+    try:
+        if not AdminUser.query.filter_by(username='ali_mahjoub').first():
+            admin = AdminUser(username='ali_mahjoub', role='Owner')
+            admin.set_password('123')
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع المالك (ali_mahjoub) بنجاح.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ [Seed Error - Admin]: {e}")
+
+    # 2. زراعة موظف إدارة
+    try:
+        if not AdminStaff.query.filter_by(username='admin_staff_test').first():
+            staff = AdminStaff(
+                username='admin_staff_test',
+                name='موظف الإدارة التجريبي',
+                email='admin_staff@mahjoub.online',
+                role_title='مشرف عام الإدارة',
+                is_active=True,
+                permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
+            )
+            staff.set_password('123')
+            db.session.add(staff)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع موظف الإدارة التجريبي بنجاح.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ [Seed Error - Staff]: {e}")
+
+    # 3. زراعة مورد وتجهيز محفظته برصيد افتتاحي 1000 ر.س
+    try:
+        if not Supplier.query.filter_by(username='test_supplier').first():
+            supplier = Supplier(
+                username='test_supplier',
+                trade_name='متجر تجريبي',
+                owner_name='المورد التجريبي',
+                phone='0500000000',
+                status='active'
+            )
+            supplier.set_password('123')
+            db.session.add(supplier)
+            db.session.flush()
+
+            wallet = SupplierWallet(
+                supplier_id=supplier.id,
+                wallet_code=f"MAH-WEL963{supplier.id}",
+                balance_sar=1000.00
+            )
+            db.session.add(wallet)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع المورد والمحفظة برصيد افتتاحي 1000 SAR بنجاح.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ [Seed Error - Supplier]: {e}")
+
 
 def create_app():
     app = Flask(__name__, static_folder='../static')
@@ -59,88 +143,43 @@ def create_app():
     })
 
     db.init_app(app)
-    
+
     # ============================================================
-    # ✅ تهيئة الجداول وزراعة البيانات عند التشغيل الأول فقط
+    # ✅ تهيئة الجداول والتحقق من المخطط عند التشغيل العادي
     # ============================================================
     with app.app_context():
-        from apps.models.admin_db import AdminUser
-        from apps.models.supplier_db import Supplier
-        from apps.models.supplier_staff_db import SupplierStaff
-        from apps.models.product_db import Product
-        from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        from apps.models.financials_db import OrderFinancial
-        from apps.models.orders_db import Order
-        from apps.models.order_items_db import OrderItem
-        from apps.models.supplier_profile_db import SupplierProfile
-        from apps.models.product_supplier_map import ProductSupplierMapping
-        from apps.models.sync_log import SyncLog
-        from apps.models.marketer_db import Marketer
-        from apps.models.admin_staff_db import AdminStaff
-        
-        # ⚠️ [حذف جميع الجداول وإعادة إنشائها من الصفر لضمان نظافة البيانات وظهور الرصيد الافتتاحي 1000]
+        import_all_models()
+        db.create_all()  # ينشئ الجداول غير الموجودة فقط ولا يحذف أي بيانات
+
+    # ============================================================
+    # ⚙️ تسجيل أوامر CLI لإعادة بناء قاعدة البيانات عند الطلب
+    # ============================================================
+    @app.cli.command("rebuild-db")
+    def rebuild_db_command():
+        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية."""
+        click.echo("🔄 [DB Rebuild]: جاري حذف جميع الجداول...")
+        import_all_models()
         try:
             db.drop_all()
-            print("✅ [Schema Reset]: تم حذف جميع الجداول بنجاح.")
+            click.echo("✅ [Schema Reset]: تم حذف جميع الجداول بنجاح.")
         except Exception as e:
-            print(f"⚠️ [Schema Reset Error]: {e}")
+            click.echo(f"⚠️ [Schema Reset Error]: {e}")
 
-        # إنشاء الجداول بالهيكل الجديد
+        click.echo("⚙️ [DB Rebuild]: جاري إنشاء الجداول بالهيكل الجديد...")
         db.create_all()
-        print("✅ [Schema Create]: تم إنشاء جميع الجداول بنجاح.")
+        click.echo("✅ [Schema Create]: تم إنشاء جميع الجداول بنجاح.")
 
-        # ✅ 1. زراعة المالك
-        try:
-            if not AdminUser.query.filter_by(username='ali_mahjoub').first():
-                admin = AdminUser(username='ali_mahjoub', role='Owner')
-                admin.set_password('123')
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ [Seed]: تم زرع المالك بنجاح.")
-        except Exception as e:
-            db.session.rollback()
+        click.echo("🌱 [DB Rebuild]: جاري زراعة البيانات المبدئية...")
+        seed_database()
+        click.echo("🎉 [DB Rebuild]: اكتملت عملية إعادة البناء والزرع بنجاح!")
 
-        # ✅ 2. زراعة موظف إدارة
-        try:
-            if not AdminStaff.query.filter_by(username='admin_staff_test').first():
-                staff = AdminStaff(
-                    username='admin_staff_test',
-                    name='موظف الإدارة التجريبي',
-                    email='admin_staff@mahjoub.online',
-                    role_title='مشرف عام الإدارة',
-                    is_active=True,
-                    permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
-                )
-                staff.set_password('123')
-                db.session.add(staff)
-                db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-        
-        # ✅ 3. زراعة مورد وتجهيز محفظته برصيد 1000
-        try:
-            if not Supplier.query.filter_by(username='test_supplier').first():
-                supplier = Supplier(
-                    username='test_supplier',
-                    trade_name='متجر تجريبي',
-                    owner_name='المورد التجريبي',
-                    phone='0500000000',
-                    status='active'
-                )
-                supplier.set_password('123')
-                db.session.add(supplier)
-                db.session.flush()
-                    
-                wallet = SupplierWallet(
-                    supplier_id=supplier.id,
-                    wallet_code=f"MAH-WEL963{supplier.id}",
-                    balance_sar=1000.00
-                )
-                db.session.add(wallet)
-                db.session.commit()
-                print("✅ [Seed]: تم زرع المورد والمحفظة برصيد 1000 بنجاح.")
-        except Exception as e:
-            db.session.rollback()
+    @app.cli.command("init-db")
+    def init_db_command():
+        """إنشاء الجداول المفقودة وزراعة البيانات دون مسح البيانات الحالية."""
+        import_all_models()
+        db.create_all()
+        seed_database()
+        click.echo("✅ تم تهيئة الجداول وزراعة البيانات بنجاح دون حذف البيانات القديمة.")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
