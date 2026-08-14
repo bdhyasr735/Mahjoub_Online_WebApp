@@ -78,13 +78,14 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        # ⚠️ [إلغاء الجدول القديم وإعادة إنشائه لتجنب مشاكل الأعمدة المفقودة مثل _description_enc]
+        # ⚠️ [إلغاء الجداول القديمة (الموردين والحركات) وإعادة إنشائها لتجنب مشاكل الهيكل والأعمدة المفقودة]
         try:
             from sqlalchemy import text
             with db.engine.connect() as conn:
                 conn.execute(text("DROP TABLE IF EXISTS wallet_transactions CASCADE;"))
+                conn.execute(text("DROP TABLE IF EXISTS suppliers CASCADE;"))
                 conn.commit()
-            print("✅ [Schema Reset]: تم حذف جدول wallet_transactions القديم بنجاح ليتم إعادة بنائه بالهيكل الجديد.")
+            print("✅ [Schema Reset]: تم حذف جدول الموردين (suppliers) وجداول الحركات القديمة بنجاح لإعادة بنائها بالهيكل الجديد.")
         except Exception as e:
             print(f"⚠️ [Schema Reset Error]: {e}")
 
