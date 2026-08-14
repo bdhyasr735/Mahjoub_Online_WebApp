@@ -1,3 +1,4 @@
+{# 📂 apps/supplier_wallet/templates/supplier_wallet/wallet_pdf_print.html #}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -13,7 +14,6 @@
             body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .no-print { display: none !important; }
             .print-border { border: 1px solid #e5e7eb !important; }
-            /* إجبار المتصفح على طباعة الخلفيات الملونة */
             .bg-purple-print { background-color: #4A154B !important; color: white !important; }
             .bg-purple-light-print { background-color: #f8f1f9 !important; }
         }
@@ -21,7 +21,7 @@
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
 
-    <!-- أزرار التحكم -->
+    <!-- أزرار التحكم (تختفي عند الطباعة) -->
     <div class="no-print max-w-4xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <span class="text-xs font-bold text-gray-500">معاينة كشف الحساب قبل الطباعة</span>
         <div class="flex gap-2">
@@ -79,7 +79,7 @@
 
         <!-- الجدول -->
         <div class="mb-10">
-            <h3 class="text-sm font-black text-gray-800 mb-4 border-r-4 border-[#4A154B] pr-3">تفاصيل الحركات</h3>
+            <h3 class="text-sm font-black text-gray-800 mb-4 border-r-4 border-[#4A154B] pr-3">تفاصيل الحركات المكتملة</h3>
             <table class="w-full text-right border-collapse">
                 <thead>
                     <tr class="bg-gray-100 text-gray-600 text-xs font-bold uppercase">
@@ -91,9 +91,14 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    {% set status_text = {'completed': 'مكتمل', 'pending': 'قيد المراجعة', 'cancelled': 'مرفوض'} %}
+                    {% set status_text = {'completed': 'مكتمل', 'pending': 'قيد المراجعة', 'cancelled': 'مرفوض', 'rejected': 'مرفوض'} %}
+                    
+                    {# مصفوفة تحديد العمليات الدائنة (الإضافة) مقابل المدينة (الخصم/السحب) #}
+                    {% set credit_types = ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit'] %}
+                    
                     {% if transactions %}
                         {% for tx in transactions %}
+                            {% set is_credit = tx.trans_type in credit_types %}
                             <tr class="text-sm hover:bg-gray-50">
                                 <td class="p-3 font-mono font-bold text-gray-600">{{ tx.reference_number or '-' }}</td>
                                 <td class="p-3 text-gray-800">{{ tx.description or 'حركة مالية' }}</td>
@@ -103,13 +108,13 @@
                                     </span>
                                 </td>
                                 <td class="p-3 text-gray-500 text-left font-mono text-xs">{{ tx.created_at.strftime('%Y-%m-%d') if tx.created_at else '-' }}</td>
-                                <td class="p-3 font-black text-left {% if tx.amount < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
-                                    {{ "{:+,.2f}".format(tx.amount) }}
+                                <td class="p-3 font-black text-left {% if is_credit %}text-emerald-600{% else %}text-red-600{% endif %}">
+                                    {{ ("+" if is_credit else "-") ~ "{:,.2f}".format(tx.amount|abs) }}
                                 </td>
                             </tr>
                         {% endfor %}
                     {% else %}
-                        <tr><td colspan="5" class="py-10 text-center text-gray-400">لا توجد سجلات مالية</td></tr>
+                        <tr><td colspan="5" class="py-10 text-center text-gray-400">لا توجد سجلات مالية مكتملة</td></tr>
                     {% endif %}
                 </tbody>
             </table>
@@ -122,8 +127,5 @@
         </div>
     </div>
 
-    <script>
-        window.onload = function() { setTimeout(window.print, 500); };
-    </script>
 </body>
 </html>
