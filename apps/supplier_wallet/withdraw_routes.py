@@ -1,12 +1,14 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/withdraw_routes.py
 
+import secrets
+import string
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
-from apps.models.wallet_db import WalletTransaction
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
     get_current_supplier_id, 
@@ -18,10 +20,26 @@ from apps.supplier_wallet.utils import (
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
 
 
+def generate_collision_proof_codes(supplier_id):
+    """توليد رقم مرجعي ورقم سند محكمين للغاية ومقاومين للتصادم وتحت الضغط المتزامن."""
+    now = datetime.utcnow()
+    date_str = now.strftime('%Y%m%d')
+    time_ms_str = now.strftime('%H%M%S%f')[:9]  # تتضمن الميكروثانية لضمان الدقة
+    
+    chars = string.ascii_uppercase + string.digits
+    rand_ref = ''.join(secrets.choice(chars) for _ in range(4))
+    rand_vch = ''.join(secrets.choice(chars) for _ in range(8))
+    
+    ref_number = f"TRX-SUPP{supplier_id}-{date_str}-{time_ms_str}-{rand_ref}"
+    vch_number = f"VCH-{date_str}-{rand_vch}"
+    
+    return ref_number, vch_number
+
+
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw():
-    """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب جديد للمورد."""
+    """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب جديد للمورد بطريقة محمية تماماً ضد الضغط الموازي."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
@@ -47,12 +65,28 @@ def withdraw():
             amount = Decimal(str(raw_amount))
             method = request.form.get('method', 'bank')
 
-            # --- التحقق المنطقي من الرصيد والحدود الأدنى والأقصى ---
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
-            elif avail_bal <= Decimal('0.00'):
+                return redirect(url_for('supplier_wallet.withdraw'))
+
+            # =========================================================================
+            # 🔒 [Pessimistic Locking]: حجز صف المحفظة في قاعدة البيانات لمنع الخصم المزدوج
+            # =========================================================================
+            locked_wallet = db.session.query(SupplierWallet)\
+                .filter(SupplierWallet.id == wallet_obj.id)\
+                .with_for_update()\
+                .first()
+
+            if not locked_wallet:
+                flash("تعذر تأمين حساب المحفظة، يرجى المحاولة لاحقاً.", "danger")
+                return redirect(url_for('supplier_wallet.withdraw'))
+
+            # التحقق من الرصيد الحقيقي المحدث بعد القفل (Prevent Race Condition)
+            real_avail_bal = Decimal(str(getattr(locked_wallet, 'balance_sar', '0.00')))
+
+            if real_avail_bal <= Decimal('0.00'):
                 flash("رصيدك غير كافٍ، لا يوجد رصيد متاح للسحب حالياً.", "danger")
-            elif amount > avail_bal:
+            elif amount > real_avail_bal:
                 flash("رصيدك غير كافٍ لتغطية المبلغ المطلوب!", "danger")
             elif amount < MIN_WITHDRAW_AMOUNT:
                 flash(f"الحد الأدنى لطلب السحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}", "danger")
@@ -64,26 +98,31 @@ def withdraw():
                 # صياغة النص بحد أقصى 255 حرفاً (سعة العمود description)
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
+                # توليد أرقام الترقيم والسند الفريدة محلياً بدقة الميكروثانية لضمان التحمل الكامل للضغط
+                ref_num, vch_num = generate_collision_proof_codes(supplier_id)
+
                 # إنشاء المعاملة بحقول جدول WalletTransaction الصحيحة
                 new_tx = WalletTransaction(
-                    wallet_id=wallet_obj.id,
+                    wallet_id=locked_wallet.id,
                     owner_id=supplier_id,     
                     owner_type='supplier',   
                     trans_type='withdrawal',
                     status='pending',          # حالة الطلب الأولي: قيد المراجعة
                     amount=amount,
                     currency=curr,
+                    reference_number=ref_num,
+                    voucher_number=vch_num,
                     description=full_desc
                 )
 
                 db.session.add(new_tx)
                 db.session.commit()
 
-                ref_num = getattr(new_tx, 'reference_number', None) or f"#{new_tx.id}"
-                flash(f"تم تقديم طلب السحب بنجاح برقم مرجعي: {ref_num}، وهو قيد المراجعة.", "success")
+                flash(f"تم تقديم طلب السحب بنجاح برقم مرجعي: {ref_num} (سند: {vch_num})، وهو قيد المراجعة.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
                 
         except (ValueError, InvalidOperation):
+            db.session.rollback()
             flash("يرجى إدخال مبلغ مالي صحيح.", "danger")
         except Exception as e:
             db.session.rollback()
