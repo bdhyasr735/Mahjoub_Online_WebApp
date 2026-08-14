@@ -142,7 +142,7 @@ class WalletTransaction(db.Model):
 
 
 def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
-    """توليد رقم سند فريد يتكون من أرقام وحروف عشوائية (6 خانات) مع الفحص المباشر لعدم التكرار."""
+    """توليد رقم سند فريد يتكون من 6 خانات عشوائية (أرقام وحروف مخلوطة) مع الفحص المباشر لعدم التكرار."""
     characters = string.ascii_uppercase + string.digits  # حروف كبيرة وأرقام (A-Z, 0-9)
     
     while True:
@@ -162,7 +162,7 @@ def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
 # --- مشغل الأحداث (Engine) للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
-    """توليد الأرقام المرجعية، وأرقام السندات العشوائية الفريدة (6 خانات)، وحساب الأرصدة لحظياً."""
+    """توليد الأرقام المرجعية وأرقام السندات المكونة من 6 خانات عشوائية وحساب الأرصدة لحظياً."""
     
     wallet_table = SupplierWallet.__table__
     
@@ -184,17 +184,13 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             if sup_code_val:
                 sup_code = sup_code_val
 
-    # 3. إنشاء رقم المرجع المخصص العشوائي والفريد (6 خانات حروف وأرقام)
+    # 3. إنشاء رقم المرجع المخصص بحيث يحتوي على 6 خانات عشوائية مخلوطة بالأحرف والأرقام
     if not target.reference_number:
-        now = datetime.utcnow()
-        date_str = now.strftime('%Y%m%d')
-        time_stamp = now.strftime('%H%M%S%f')[:9]  # طابع زمني دقيق
         characters = string.ascii_uppercase + string.digits
         
         while True:
-            # توليد رمز عشوائي مكون من 6 خانات (أرقام وحروف إنجليزية)
             random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
-            candidate_ref = f"TRX-{sup_code}-{date_str}-{time_stamp}-{random_6_code}"
+            candidate_ref = f"TRX-{sup_code}-{random_6_code}"
             
             # التحقق المباشر من قاعدة البيانات لضمان عدم التكرار نهائياً
             existing_ref = connection.execute(
@@ -206,7 +202,7 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
                 target.reference_number = candidate_ref
                 break
 
-    # 4. توليد رقم السند العشوائي الفريد (6 خانات) تلقائياً إذا لم يُمرر يدوياً
+    # 4. توليد رقم السند العشوائي الفريد (6 خانات حروف وأرقام) تلقائياً
     if not target.voucher_number:
         target.voucher_number = generate_unique_voucher_number(connection, length=6, prefix="VCH-")
 
