@@ -12,6 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
 from werkzeug.routing import BuildError
+from sqlalchemy import text
 import config
 from apps.extensions import db, login_manager, migrate
 from apps.services.graphql_client import GraphQLClient
@@ -163,9 +164,13 @@ def create_app():
         import_all_models()
         
         try:
-            db.drop_all()
-            print("✅ [Schema Reset]: تم حذف جميع الجداول القديمة بنجاح.")
+            # إجبار PostgreSQL على حذف الـ Schema والعلاقات بالكامل لتفادي خطأ المفاتيح الأجنبية
+            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            db.session.execute(text("CREATE SCHEMA public;"))
+            db.session.commit()
+            print("✅ [Schema Reset]: تم مسح وإعادة إنشاء قاعدة البيانات بنجاح (CASCADE).")
         except Exception as e:
+            db.session.rollback()
             print(f"⚠️ [Schema Reset Error]: {e}")
 
         try:
@@ -185,9 +190,12 @@ def create_app():
         click.echo("🔄 [DB Rebuild]: جاري حذف جميع الجداول...")
         import_all_models()
         try:
-            db.drop_all()
-            click.echo("✅ [Schema Reset]: تم حذف جميع الجداول بنجاح.")
+            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            db.session.execute(text("CREATE SCHEMA public;"))
+            db.session.commit()
+            click.echo("✅ [Schema Reset]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
         except Exception as e:
+            db.session.rollback()
             click.echo(f"⚠️ [Schema Reset Error]: {e}")
 
         click.echo("⚙️ [DB Rebuild]: جاري إنشاء الجداول بالهيكل الجديد...")
