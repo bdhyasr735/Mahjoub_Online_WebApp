@@ -6,7 +6,8 @@ from flask import render_template, request
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction
-from apps.supplier_wallet import supplier_wallet_bp
+# 🛑 التصحيح الجذري هنا: الاستيراد من ملف التسجيل مباشرة لمنع الاستيراد الدائري
+from apps.supplier_wallet.registry import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
     get_current_supplier_id, 
     get_or_create_supplier_wallet
