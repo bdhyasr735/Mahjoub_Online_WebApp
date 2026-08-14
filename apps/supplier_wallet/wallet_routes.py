@@ -18,7 +18,7 @@ from apps.supplier_wallet.utils import (
 @supplier_wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
 @login_required
 def wallet_dashboard():
-    """عرض كشف الحساب المحاسبي الفعلي للمورد (الحركات المكتملة فقط)."""
+    """عرض كشف الحساب المحاسبي الفعلي للمورد (الحركات المكتملة فقط) مع الفلترة الزمنية والنوعية."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
@@ -39,9 +39,11 @@ def wallet_dashboard():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    # 2. استقبال متغيرات الفلترة من الـ UI (تطابق names في filters.html)
+    # 2. استقبال متغيرات الفلترة من الـ UI (النوع، البحث، والسنة، والشهر)
     type_filter = request.args.get('type', '')
     search_query = request.args.get('search', '').strip()
+    year_filter = request.args.get('year', type=int)
+    month_filter = request.args.get('month', type=int)
 
     # 3. تعريف مصفوفات أنواع الحركات للفلترة الذكية
     credit_types = ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
@@ -69,7 +71,13 @@ def wallet_dashboard():
             )
         )
 
-    # 7. التنفيذ والترتيب
+    # 7. تطبيق الفلاتر الزمنية (السنة والشهر) بدقة على حقل الإنشاء
+    if year_filter:
+        query = query.filter(db.extract('year', WalletTransaction.created_at) == year_filter)
+    if month_filter:
+        query = query.filter(db.extract('month', WalletTransaction.created_at) == month_filter)
+
+    # 8. التنفيذ والترتيب
     pagination_obj = query.order_by(
         WalletTransaction.created_at.desc(), 
         WalletTransaction.id.desc()
@@ -83,6 +91,8 @@ def wallet_dashboard():
         pagination=pagination_obj,
         active_type=type_filter,
         search_query=search_query,
+        active_year=year_filter,
+        active_month=month_filter,
         registered_owner=registered_owner,
         registered_details=registered_details
     )
