@@ -27,7 +27,7 @@
             --header-height: 75px;
             --flat-bg: #f8fafc;
 
-            /* متغائرات ثيم المحفظة المالي (من theme.css) */
+            /* متغييرات ثيم المحفظة المالي (من theme.css) */
             --color-primary: #4A154B;
             --color-primary-hover: #3D113E;
             --color-primary-dark: #3F0E40;
@@ -411,7 +411,13 @@
                                role="button" 
                                aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}">
                                 <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
-                                <span>{{ module.title|default(key) }}</span>
+                                <span>
+                                    {% if key == 'supplier_wallet' %}
+                                        الإدارة المالية
+                                    {% else %}
+                                        {{ module.title | default(module.DISPLAY_NAME) | default(module.NAME) | default(key) }}
+                                    {% endif %}
+                                </span>
                                 <i class="fas fa-chevron-left dropdown-arrow"></i>
                             </a>
                             <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ key }}">
