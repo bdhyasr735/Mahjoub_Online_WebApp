@@ -7,6 +7,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required
+from sqlalchemy.orm import lazyload
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
@@ -70,9 +71,10 @@ def withdraw():
                 return redirect(url_for('supplier_wallet.withdraw'))
 
             # =========================================================================
-            # 🔒 [Pessimistic Locking]: حجز صف المحفظة في قاعدة البيانات لمنع الخصم المزدوج
+            # 🔒 [Pessimistic Locking بدون OUTER JOIN]: حجز المحفظة بأمان تام في PostgreSQL
             # =========================================================================
             locked_wallet = db.session.query(SupplierWallet)\
+                .options(lazyload(SupplierWallet.supplier))\
                 .filter(SupplierWallet.id == wallet_obj.id)\
                 .with_for_update()\
                 .first()
@@ -95,7 +97,7 @@ def withdraw():
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
                 
-                # صياغة النص بحد أقصى 255 حرفاً (سعة العمود description)
+                # صياغة النص بحد أقصى 255 حرفاً
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
                 # توليد أرقام الترقيم والسند الفريدة محلياً بدقة الميكروثانية لضمان التحمل الكامل للضغط
