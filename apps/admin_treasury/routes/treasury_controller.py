@@ -14,18 +14,14 @@ def treasury_index():
     """
     عرض لوحة الرقابة المالية والخزينة المركزية: المؤشرات، الأرصدة، والقيود
     """
-    # 1. التقاط ومعالجة الفلاتر
     page = request.args.get('page', 1, type=int)
     flow_type = request.args.get('flow_type', '').strip()
     category = request.args.get('category', '').strip()
     status = request.args.get('status', '').strip()
     search_q = request.args.get('q', '').strip()
-    
-    # تحديد نطاق زمني تلقائي (آخر 30 يوم) في حال لم تتوفر تواريخ
     start_date = request.args.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m-%d'))
 
-    # 2. مؤشرات الأداء الرئيسية (KPIs) - قابلة للربط بقاعدة البيانات لاحقاً
     kpis = {
         "total_treasury_balance": 1845620.50,
         "total_inflow": 2450890.00,
@@ -35,7 +31,6 @@ def treasury_index():
         "currency": "SAR"
     }
 
-    # 3. أرصدة الحسابات البنكية
     bank_accounts = [
         {"id": 1, "bank_name": "مصرف الراجحي", "account_number": "SA8820000001234567890123", "account_type": "حساب العمليات الرئيسي", "current_balance": 1120450.00, "currency": "SAR"},
         {"id": 2, "bank_name": "البنك الأهلي السعودي (SNB)", "account_number": "SA4410000009876543210987", "account_type": "حساب ضمان المشتريات (Escrow)", "current_balance": 530200.00, "currency": "SAR"},
@@ -43,7 +38,7 @@ def treasury_index():
     ]
 
     return render_template(
-        'admin_treasury.html',  # اعتماد القالب المحلي داخل الموديول
+        'admin/admin_treasury.html',
         kpi=kpis,
         bank_accounts=bank_accounts,
         current_page=page,
@@ -63,7 +58,6 @@ def treasury_detail(ref_code):
     """
     استعراض تفاصيل وسند قيد محدد من الخزينة المركزية
     """
-    # التحقق من وجود الكود (كمحاكاة واقعية لمنع الأكواد الفارغة)
     if not ref_code or len(ref_code.strip()) == 0:
         abort(404)
 
@@ -86,6 +80,6 @@ def treasury_detail(ref_code):
     }
 
     return render_template(
-        'admin_treasury_detail.html',  # اعتماد القالب المحلي داخل الموديول
+        'admin/admin_treasury_detail.html',
         voucher=voucher_data
     )
