@@ -13,10 +13,10 @@ supplier_wallet_bp = Blueprint(
 
 logger = logging.getLogger(__name__)
 
-MODULE_NAME = "الرقابة المالية"
-TITLE = "الرقابة المالية"
-NAME = "الرقابة المالية"
-DISPLAY_NAME = "الرقابة المالية"
+MODULE_NAME = "الإدارة المالية"
+TITLE = "الإدارة المالية"
+NAME = "الإدارة المالية"
+DISPLAY_NAME = "الإدارة المالية"
 
 MODULE_ICON = "fa-wallet"
 SHOW_IN_SUPPLIER = True
@@ -48,9 +48,9 @@ def register_module(app):
                 pass
 
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-            print("✅ [Registry Wallet]: تم تسجيل موديول الرقابة المالية بنجاح.")
+            print("✅ [Registry Wallet]: تم تسجيل موديول الإدارة المالية بنجاح.")
         else:
-            print("ℹ️ [Registry Wallet]: موديول الرقابة المالية مسجل مسبقاً.")
+            print("ℹ️ [Registry Wallet]: موديول الإدارة المالية مسجل مسبقاً.")
 
         if not hasattr(app, '_supplier_wallet_context_injected'):
             @app.context_processor
