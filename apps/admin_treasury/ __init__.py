@@ -7,7 +7,6 @@
 
 from flask import Blueprint
 
-# تعريف البلوبرنت بشكل مباشر وصحيح ليتم استيراده بسلاسة
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
@@ -15,7 +14,6 @@ admin_treasury_bp = Blueprint(
     static_folder='static'
 )
 
-# استيراد المتحكمات لتفعيل المسارات
 try:
     from apps.admin_treasury.routes import treasury_controller
 except ImportError as e:
