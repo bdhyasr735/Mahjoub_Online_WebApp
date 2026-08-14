@@ -1,15 +1,15 @@
+# -*- coding: utf-8 -*-
+# 📂 apps/admin_treasury/routes/treasury_controller.py
 """
-apps/admin_treasury/routes/treasury_controller.py
 متحكم وإدارة مسارات الخزينة المركزية وحسابات الضمان
 مشروع Mahjoub Online WebApp
 """
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
+from flask import render_template, request
 from datetime import datetime, timedelta
+from apps.admin_treasury import admin_treasury_bp
 
-bp = Blueprint('treasury_controller', __name__)
-
-@bp.route('/', methods=['GET'])
+@admin_treasury_bp.route('/', methods=['GET'])
 def treasury_index():
     """
     عرض لوحة الخزينة المركزية: المؤشرات المالية، أرصدة البنوك، القيود، وفلاتر التصفية
@@ -78,7 +78,7 @@ def treasury_index():
         }
     )
 
-@bp.route('/detail/<string:ref_code>', methods=['GET'])
+@admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
     """
     استعراض تفاصيل وسند قيد محدد من قيود الخزينة المركزية
