@@ -26,20 +26,16 @@ SUPPLIER_MODULES = {}
 
 
 def import_all_models():
-    """استيراد كافة النماذج لضمان التعرف عليها عند إنشاء/إعادة بناء الجداول"""
-    from apps.models.admin_db import AdminUser
-    from apps.models.supplier_db import Supplier
-    from apps.models.supplier_staff_db import SupplierStaff
-    from apps.models.product_db import Product
-    from apps.models.wallet_db import SupplierWallet, WalletTransaction
-    from apps.models.financials_db import OrderFinancial
-    from apps.models.orders_db import Order
-    from apps.models.order_items_db import OrderItem
-    from apps.models.supplier_profile_db import SupplierProfile
-    from apps.models.product_supplier_map import ProductSupplierMapping
-    from apps.models.sync_log import SyncLog
-    from apps.models.marketer_db import Marketer
-    from apps.models.admin_staff_db import AdminStaff
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول"""
+    models_dir = os.path.join(os.path.dirname(__file__), 'models')
+    if os.path.exists(models_dir):
+        for file in os.listdir(models_dir):
+            if file.endswith('.py') and not file.startswith('__'):
+                module_name = file[:-3]
+                try:
+                    importlib.import_module(f"apps.models.{module_name}")
+                except Exception as e:
+                    print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
 
 
 def seed_database():
@@ -145,18 +141,31 @@ def create_app():
     db.init_app(app)
 
     # ============================================================
-    # ✅ تهيئة الجداول والتحقق من المخطط عند التشغيل العادي
+    # ✅ إعادة بناء كافة الجداول وزراعة البيانات تلقائياً عند الرفع / التشغيل
     # ============================================================
     with app.app_context():
         import_all_models()
-        db.create_all()  # ينشئ الجداول غير الموجودة فقط ولا يحذف أي بيانات
+        
+        try:
+            db.drop_all()
+            print("✅ [Schema Reset]: تم حذف جميع الجداول القديمة بنجاح.")
+        except Exception as e:
+            print(f"⚠️ [Schema Reset Error]: {e}")
+
+        try:
+            db.create_all()
+            print("✅ [Schema Create]: تم إعادة بناء جميع الجداول بنجاح.")
+        except Exception as e:
+            print(f"❌ [Schema Create Error]: {e}")
+
+        seed_database()
 
     # ============================================================
-    # ⚙️ تسجيل أوامر CLI لإعادة بناء قاعدة البيانات عند الطلب
+    # ⚙️ تسجيل أوامر CLI لمرونة التحكم عند الحاجة يدوياً
     # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
-        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية."""
+        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
         click.echo("🔄 [DB Rebuild]: جاري حذف جميع الجداول...")
         import_all_models()
         try:
@@ -172,14 +181,6 @@ def create_app():
         click.echo("🌱 [DB Rebuild]: جاري زراعة البيانات المبدئية...")
         seed_database()
         click.echo("🎉 [DB Rebuild]: اكتملت عملية إعادة البناء والزرع بنجاح!")
-
-    @app.cli.command("init-db")
-    def init_db_command():
-        """إنشاء الجداول المفقودة وزراعة البيانات دون مسح البيانات الحالية."""
-        import_all_models()
-        db.create_all()
-        seed_database()
-        click.echo("✅ تم تهيئة الجداول وزراعة البيانات بنجاح دون حذف البيانات القديمة.")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
