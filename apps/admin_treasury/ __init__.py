@@ -15,8 +15,8 @@ admin_treasury_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المتحكمات لتسجيل المسارات (داخل try-except لتفادي الأخطاء المبكرة)
+# 2. استيراد المتحكمات لتسجيل المسارات (داخل try-except لتفادي أي استيراد دائري مبكر)
 try:
     from apps.admin_treasury.routes import treasury_controller
 except ImportError as e:
-    pass
+    print(f"[!] Warning: Could not import treasury controllers: {e}")
