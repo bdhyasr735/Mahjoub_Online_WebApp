@@ -15,9 +15,8 @@ admin_treasury_bp = Blueprint(
     static_folder='static'
 )
 
-# استيراد المتحكمات لتسجيل المسارات المرتبطة بها داخل البلوبرنت مع معالجة الاستيراد الدائري
+# استيراد المتحكمات تلقائياً لتسجيل المسارات داخل البلوبرنت
 try:
     from apps.admin_treasury.routes import treasury_controller
 except ImportError:
-    # لتجنب أي استيراد دائري أو مبكر غير مرتب أثناء تهيئة الحزمة
     pass
