@@ -7,7 +7,7 @@
 
 from flask import Blueprint
 
-# 1. تعريف البلوبرنت أولاً وقبل كل شيء ليكون متاحاً للاستيراد
+# تعريف البلوبرنت بشكل مباشر وصحيح ليتم استيراده بسلاسة
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
@@ -15,7 +15,7 @@ admin_treasury_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المتحكمات لتسجيل المسارات (داخل try-except لتفادي أي استيراد دائري مبكر)
+# استيراد المتحكمات لتفعيل المسارات
 try:
     from apps.admin_treasury.routes import treasury_controller
 except ImportError as e:
