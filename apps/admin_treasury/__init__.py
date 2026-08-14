@@ -3,6 +3,7 @@
 
 from flask import Blueprint
 
+# 1. تعريف البلوبرنت
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
@@ -10,7 +11,6 @@ admin_treasury_bp = Blueprint(
     static_folder='static'
 )
 
-try:
-    from apps.admin_treasury.routes import treasury_controller
-except ImportError as e:
-    print(f"[!] Warning: Could not import treasury controllers: {e}")
+# 2. استيراد مسارات المتحكم مباشرة (بدون try...except) 
+# يجب أن يكون الاستيراد نسبياً وبدون إخفاء الأخطاء، لكي يظهر لك أي خطأ بوضوح في السجل إن وُجد.
+from .routes import treasury_controller
