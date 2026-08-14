@@ -1,28 +1,27 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}تفاصيل سند قيد الخزينة | {{ voucher.ref_code }} | محجوب أونلاين{% endblock %}
+{% block title %}سند قيد {{ voucher.ref_code }} | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden micro-container">
+<div class="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
     
     <!-- الهيدر الرسمي للسند المالي -->
     <div class="bg-[#4A154B] text-white p-6 sm:p-8 flex items-center justify-between">
         <div>
-            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/20 text-amber-300 font-bold">
-                سند قيد دفتري معتمد
-            </span>
+            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/20 text-amber-300 font-bold">سند قيد دفتري معتمد</span>
             <h1 class="text-2xl font-black mt-2 font-mono">{{ voucher.ref_code }}</h1>
             <div class="text-xs text-purple-200 mt-0.5">رقم السند: {{ voucher.voucher_number }}</div>
         </div>
         <div class="text-left">
             <div class="text-2xl font-black font-mono text-amber-400">
-                {{ "{:,.2f}".format(voucher.amount) }} <span class="text-sm font-sans text-white">ر.س</span>
+                {% if voucher.flow_type == 'inflow' %}+{% else %}-{% endif %}{{ "{:,.2f}".format(voucher.amount) }} 
+                <span class="text-sm font-sans text-white">{{ voucher.currency }}</span>
             </div>
-            <div class="text-xs text-emerald-300 font-bold mt-1">حالة القيد: معتمد ومطابق في الخزينة</div>
+            <div class="text-xs text-emerald-300 font-bold mt-1">حالة القيد: معتمد ومطابق</div>
         </div>
     </div>
 
-    <!-- تفاصيل القيد الدفتري -->
+    <!-- تفاصيل القيد -->
     <div class="p-6 sm:p-8 space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -31,15 +30,17 @@
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <span class="text-xs text-slate-500 block">نوع التدفق</span>
-                <span class="text-sm font-bold text-emerald-600 mt-1 block">تدفق وارد (+) إيداع بنكي</span>
+                <span class="text-sm font-bold {% if voucher.flow_type == 'inflow' %}text-emerald-600{% else %}text-rose-600{% endif %} mt-1 block">
+                    {{ 'تدفق وارد (+)' if voucher.flow_type == 'inflow' else 'تدفق صادر (-)' }}
+                </span>
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="text-xs text-slate-500 block">تاريخ ووقت التنفيذ</span>
-                <span class="text-sm font-mono font-bold text-slate-900 mt-1 block">{{ voucher.created_at }}</span>
+                <span class="text-xs text-slate-500 block">وقت التسوية البنكية</span>
+                <span class="text-sm font-mono font-bold text-slate-900 mt-1 block">{{ voucher.settled_at or 'قيد الانتظار' }}</span>
             </div>
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="text-xs text-slate-500 block">رصيد الخزينة بعد الحركة</span>
-                <span class="text-sm font-mono font-bold text-[#4A154B] mt-1 block">{{ "{:,.2f}".format(voucher.balance_after) }} ر.س</span>
+                <span class="text-xs text-slate-500 block">الرصيد بعد الحركة</span>
+                <span class="text-sm font-mono font-bold text-[#4A154B] mt-1 block">{{ "{:,.2f}".format(voucher.balance_after) }} {{ voucher.currency }}</span>
             </div>
         </div>
 
@@ -47,22 +48,16 @@
         <div class="p-5 rounded-2xl bg-purple-50/50 border border-purple-100">
             <span class="text-xs font-bold text-[#4A154B] block mb-1">البيان والشرح المحاسبي:</span>
             <p class="text-sm text-slate-800 leading-relaxed">{{ voucher.description }}</p>
-            <div class="mt-3 pt-3 border-t border-purple-100 text-xs text-slate-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <span>المدقق المالي: {{ voucher.admin_reviewer }}</span>
-                <span>طريقة السداد: {{ voucher.payment_method }}</span>
+            <div class="mt-3 pt-3 border-t border-purple-100 text-xs text-slate-500 flex justify-between">
+                <span>المسؤول المعتمد: {{ voucher.admin_reviewer }}</span>
+                <span>القناة: {{ voucher.payment_method }}</span>
             </div>
         </div>
 
-        <!-- أزرار الإجراءات والطباعة -->
         <div class="flex items-center justify-between pt-4 border-t border-slate-200">
-            <button onclick="window.print()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
-                🖨️ طباعة السند المالي
-            </button>
-            <a href="../" class="px-5 py-2.5 bg-[#4A154B] hover:bg-[#3F0E40] text-white text-xs font-bold rounded-xl transition">
-                العودة لدفتر الخزينة
-            </a>
+            <button onclick="window.print()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition">🖨️ طباعة السند</button>
+            <a href="{{ url_for('admin_treasury.treasury_index') }}" class="px-5 py-2.5 bg-[#4A154B] hover:bg-[#3F0E40] text-white text-xs font-bold rounded-xl transition">العودة للخزينة</a>
         </div>
     </div>
-
 </div>
 {% endblock %}
