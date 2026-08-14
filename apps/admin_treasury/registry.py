@@ -43,6 +43,9 @@ def register_module(app):
     from apps.admin_treasury import admin_treasury_bp
     
     # تسجيل الموديول إذا لم يكن مسجلاً مسبقاً
-    if 'admin_treasury' not in app.blueprints:
-        app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
-        print(f"[*] Module {DISPLAY_NAME} registered successfully at {URL_PREFIX}")
+    if MODULE_KEY not in app.blueprints:
+        try:
+            app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
+            print(f"[*] Module {DISPLAY_NAME} registered successfully at {URL_PREFIX}")
+        except Exception as e:
+            print(f"[!] Failed to register module {MODULE_KEY}: {e}")
