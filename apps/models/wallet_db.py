@@ -1,443 +1,194 @@
 # coding: utf-8
-# 📂 apps/__init__.py
+# 📂 apps/models/wallet_db.py
 
 import os
-import importlib
-import click
-from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
-from flask_login import current_user
-from flask_wtf.csrf import CSRFProtect, generate_csrf
-from flask_talisman import Talisman
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_cors import CORS 
-from werkzeug.routing import BuildError
-import config
-from apps.extensions import db, login_manager, migrate
-from apps.services.graphql_client import GraphQLClient
-
-# تهيئة الأدوات
-csrf = CSRFProtect()
-talisman = Talisman()
-limiter = Limiter(key_func=get_remote_address, default_limits=["500 per day", "100 per hour"], storage_uri="memory://")
-
-ADMIN_MODULES = {}
-SUPPLIER_MODULES = {}
+import base64
+from datetime import datetime
+from decimal import Decimal
+from cryptography.fernet import Fernet
+from sqlalchemy import event, select, update
+from apps.extensions import db
 
 
-def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول"""
-    models_dir = os.path.join(os.path.dirname(__file__), 'models')
-    if os.path.exists(models_dir):
-        for file in os.listdir(models_dir):
-            if file.endswith('.py') and not file.startswith('__'):
-                module_name = file[:-3]
-                try:
-                    importlib.import_module(f"apps.models.{module_name}")
-                except Exception as e:
-                    print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
+class SupplierWallet(db.Model):
+    """محفظة الموردين: الأرصدة والبيانات المشفرة بأعلى معايير الأمان."""
+    __tablename__ = 'supplier_wallets'
 
-
-def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي"""
-    from apps.models.admin_db import AdminUser
-    from apps.models.admin_staff_db import AdminStaff
-    from apps.models.supplier_db import Supplier
-    from apps.models.wallet_db import SupplierWallet, WalletTransaction
-
-    # 1. زراعة المالك
-    try:
-        if not AdminUser.query.filter_by(username='ali_mahjoub').first():
-            admin = AdminUser(username='ali_mahjoub', role='Owner')
-            admin.set_password('123')
-            db.session.add(admin)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع المالك (ali_mahjoub) بنجاح.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"⚠️ [Seed Error - Admin]: {e}")
-
-    # 2. زراعة موظف إدارة
-    try:
-        if not AdminStaff.query.filter_by(username='admin_staff_test').first():
-            staff = AdminStaff(
-                username='admin_staff_test',
-                name='موظف الإدارة التجريبي',
-                email='admin_staff@mahjoub.online',
-                role_title='مشرف عام الإدارة',
-                is_active=True,
-                permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
-            )
-            staff.set_password('123')
-            db.session.add(staff)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع موظف الإدارة التجريبي بنجاح.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"⚠️ [Seed Error - Staff]: {e}")
-
-    # 3. زراعة مورد وتوليد "سند وحركة إيداع" برصيد 1000 ر.س
-    try:
-        if not Supplier.query.filter_by(username='test_supplier').first():
-            supplier = Supplier(
-                username='test_supplier',
-                trade_name='متجر تجريبي',
-                owner_name='المورد التجريبي',
-                phone='0500000000',
-                status='active'
-            )
-            supplier.set_password('123')
-            db.session.add(supplier)
-            db.session.flush()
-
-            # إنشاء المحفظة برصيد 0
-            wallet = SupplierWallet(
-                supplier_id=supplier.id,
-                wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=0.00
-            )
-            db.session.add(wallet)
-            db.session.flush()
-
-            # 📝 إنشاء حركة مالية وسند إيداع رصيد افتتاحي
-            initial_transaction = WalletTransaction(
-                wallet_id=wallet.id,
-                owner_type='supplier',
-                owner_id=supplier.id,
-                trans_type='deposit',
-                status='completed',
-                amount=1000.00,
-                currency='SAR',
-                voucher_number=f"VOUCH-INIT-{supplier.id:04d}",  # رقم السند
-                description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"  # الوصف (سيشفر تلقائياً)
-            )
-            db.session.add(initial_transaction)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع (1000 SAR) بنجاح.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"⚠️ [Seed Error - Supplier]: {e}")
-
-
-def create_app():
-    app = Flask(__name__, static_folder='../static')
-    app.config.from_object('config.Config')
-    config.Config.validate_config()
-
-    app.config.update(
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SECURE=os.environ.get('FLASK_ENV') == 'production',
-        SESSION_COOKIE_SAMESITE='Lax',
+    __table_args__ = (
+        db.Index('idx_wall_lookup', 'supplier_id', 'wallet_code'),
+        db.Index('idx_wall_activity', 'updated_at'),
+        {'extend_existing': True}
     )
 
-    app.jinja_env.globals.update(getattr=getattr)
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_code = db.Column(db.String(50), unique=True, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
 
-    # ✅ إعدادات CORS للسماح لـ Apollo Sandbox والأدوات الخارجية
-    CORS(app, resources={
-        r"/admin/graphql*": {
-            "origins": [
-                "https://studio.apollographql.com", 
-                "https://embed.apollographql.com", 
-                "https://sandbox.embed.apollographql.com",
-                "http://localhost:5000", 
-                "https://mahjoub.online"
-            ],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": [
-                "Content-Type", 
-                "Authorization", 
-                "X-Requested-With", 
-                "Apollo-Require-Preflight",
-                "Accept"
-            ],
-            "supports_credentials": True
+    balance_yer = db.Column(db.Numeric(18, 2), default=0.00)
+    balance_usd = db.Column(db.Numeric(18, 2), default=0.00)
+    balance_sar = db.Column(db.Numeric(18, 2), default=0.00)
+    balance_pending = db.Column(db.Numeric(18, 2), default=0.00)
+    total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)
+
+    _bank_details_enc = db.Column(db.String(500), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    supplier = db.relationship('Supplier', back_populates='wallet', lazy='joined')
+    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan", lazy='selectin')
+
+    @staticmethod
+    def _get_fernet():
+        key = os.environ.get('ENCRYPTION_KEY')
+        if not key:
+            key = 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V='
+        try:
+            return Fernet(key.encode('utf-8'))
+        except Exception:
+            b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
+            return Fernet(b64_key)
+
+    @property
+    def bank_details(self):
+        if not self._bank_details_enc:
+            return None
+        try:
+            return self._get_fernet().decrypt(self._bank_details_enc.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    @bank_details.setter
+    def bank_details(self, value):
+        if value:
+            self._bank_details_enc = self._get_fernet().encrypt(str(value).encode('utf-8')).decode('utf-8')
+        else:
+            self._bank_details_enc = None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'wallet_code': self.wallet_code,
+            'supplier_id': self.supplier_id,
+            'balance_yer': float(self.balance_yer or 0.0),
+            'balance_usd': float(self.balance_usd or 0.0),
+            'balance_sar': float(self.balance_sar or 0.0),
+            'bank_details': self.bank_details,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-    })
 
-    db.init_app(app)
 
-    # ============================================================
-    # ✅ إعادة بناء كافة الجداول وزراعة البيانات والحركات عند الرفع / التشغيل
-    # ============================================================
-    with app.app_context():
-        import_all_models()
-        
-        try:
-            db.drop_all()
-            print("✅ [Schema Reset]: تم حذف جميع الجداول القديمة بنجاح.")
-        except Exception as e:
-            print(f"⚠️ [Schema Reset Error]: {e}")
+class WalletTransaction(db.Model):
+    """سجل الحركات المالية الموحد مع تشفير حقل الوصف والفهرسة الفائقة."""
+    __tablename__ = 'wallet_transactions'
 
-        try:
-            db.create_all()
-            print("✅ [Schema Create]: تم إعادة بناء جميع الجداول بنجاح.")
-        except Exception as e:
-            print(f"❌ [Schema Create Error]: {e}")
-
-        seed_database()
-
-    # ============================================================
-    # ⚙️ تسجيل أوامر CLI لمرونة التحكم عند الحاجة يدوياً
-    # ============================================================
-    @app.cli.command("rebuild-db")
-    def rebuild_db_command():
-        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
-        click.echo("🔄 [DB Rebuild]: جاري حذف جميع الجداول...")
-        import_all_models()
-        try:
-            db.drop_all()
-            click.echo("✅ [Schema Reset]: تم حذف جميع الجداول بنجاح.")
-        except Exception as e:
-            click.echo(f"⚠️ [Schema Reset Error]: {e}")
-
-        click.echo("⚙️ [DB Rebuild]: جاري إنشاء الجداول بالهيكل الجديد...")
-        db.create_all()
-        click.echo("✅ [Schema Create]: تم إنشاء جميع الجداول بنجاح.")
-
-        click.echo("🌱 [DB Rebuild]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
-        seed_database()
-        click.echo("🎉 [DB Rebuild]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
-
-    migrate.init_app(app, db)
-    login_manager.init_app(app)
-    csrf.init_app(app)
-    limiter.init_app(app)
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        from apps.models.admin_db import AdminUser
-        from apps.models.admin_staff_db import AdminStaff
-        from apps.models.supplier_db import Supplier
-        from apps.models.supplier_staff_db import SupplierStaff
-        
-        user_id_int = int(user_id)
-        user_type = session.get('user_type')
-        
-        if user_type == 'admin': 
-            return db.session.get(AdminUser, user_id_int)
-        elif user_type == 'staff': 
-            staff_admin = db.session.get(AdminStaff, user_id_int)
-            if staff_admin:
-                return staff_admin
-            return db.session.get(SupplierStaff, user_id_int)
-        elif user_type == 'supplier': 
-            return db.session.get(Supplier, user_id_int)
-        return (
-            db.session.get(Supplier, user_id_int) or
-            db.session.get(SupplierStaff, user_id_int) or
-            db.session.get(AdminUser, user_id_int) or 
-            db.session.get(AdminStaff, user_id_int)
-        )
-
-    @login_manager.unauthorized_handler
-    def unauthorized():
-        if request.path.startswith('/supplier'):
-            return redirect(url_for('suppliers_auth.login'))
-        return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
-
-    # ============================================================
-    # ✅ حماية المسارات
-    # ============================================================
-    @app.before_request
-    def protect_routes():
-        path = request.path
-        
-        if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
-            return
-
-        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection', '/admin/graphql']
-        if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
-            return
-
-        if current_user.is_authenticated:
-            user_type = session.get('user_type')
-            if path.startswith('/admin') or path.startswith('/dashboard'):
-                if user_type in ['admin', 'staff']:
-                    return  
-                else:
-                    return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
-            if path.startswith('/supplier'):
-                if user_type in ['supplier', 'staff']:
-                    return  
-                else:
-                    return redirect(url_for('suppliers_auth.login'))
-            return  
-
-        if path.startswith('/supplier'):
-            return redirect(url_for('suppliers_auth.login'))
-        if path.startswith('/admin') or path.startswith('/dashboard'):
-            admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-            return redirect(admin_login_path)
-        
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if not path.startswith(admin_login_path):
-            return redirect(admin_login_path)
-
-    # ============================================================
-    # ✅ إعدادات Talisman
-    # ============================================================
-    talisman.init_app(app, 
-        content_security_policy={
-            'default-src': ["'self'"],
-            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
-            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
-            'img-src': ["'self'", "data:", "https://*"],
-            'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com"]
-        },
-        force_https=(os.environ.get('FLASK_ENV') == 'production')
+    __table_args__ = (
+        db.Index('idx_trans_wallet_history', 'wallet_id', 'created_at'),
+        db.Index('idx_trans_lookup', 'voucher_number', 'reference_number'),
+        db.Index('idx_trans_status_type', 'status', 'trans_type'),
+        {'extend_existing': True}
     )
 
-    @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
-    @csrf.exempt
-    def graphql_proxy():
-        origin = request.headers.get('Origin', 'https://studio.apollographql.com')
-        if request.method == 'OPTIONS':
-            response = make_response('', 200)
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight, Accept'
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            return response
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
+    owner_type = db.Column(db.String(20), default='supplier')
+    owner_id = db.Column(db.Integer, nullable=False)
+
+    trans_type = db.Column(db.String(30), nullable=False)
+    status = db.Column(db.String(30), default='completed') 
+    amount = db.Column(db.Numeric(18, 2), nullable=False)
+    currency = db.Column(db.String(5), nullable=False, default='SAR')
+    balance_before = db.Column(db.Numeric(18, 2), nullable=False)
+    balance_after = db.Column(db.Numeric(18, 2), nullable=False)
+    
+    # [التشفير السيادي]: وصف الحركة مشفر بالكامل
+    _description_enc = db.Column(db.String(500), nullable=True)
+    
+    reference_number = db.Column(db.String(50), unique=True, nullable=True)
+    voucher_number = db.Column(db.String(30), unique=True, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
+
+    @property
+    def description(self):
+        if not self._description_enc:
+            return None
         try:
-            if request.method == 'GET':
-                query = request.args.get('query')
-                variables = request.args.get('variables')
-                operation_name = request.args.get('operationName')
-            else:
-                data = request.get_json(silent=True) or {}
-                query = data.get('query')
-                variables = data.get('variables')
-                operation_name = data.get('operationName')
-            client = GraphQLClient()
-            result = client.execute(query, variables, operation_name)
-            response = jsonify(result)
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            return response
-        except Exception as e:
-            response = jsonify({"error": str(e), "message": "فشل تمرير طلب GraphQL إلى الخادم"})
-            response.status_code = 500
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            return response
+            key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
+            return Fernet(key.encode('utf-8')).decrypt(self._description_enc.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
 
-    @app.route('/m7jb_test_connection')
-    def test_graphql_connection():
-        try:
-            client = GraphQLClient()
-            success = client.test_connection()
-            return jsonify({"connection_status": success, "endpoint": client.endpoint, "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"})
-        except Exception as e:
-            return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
+    @description.setter
+    def description(self, value):
+        if value:
+            key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
+            self._description_enc = Fernet(key.encode('utf-8')).encrypt(str(value).encode('utf-8')).decode('utf-8')
+        else:
+            self._description_enc = None
 
-    @app.route('/')
-    def index():
-        return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
-
-    try:
-        from apps.auth_portal.routes import auth_portal
-        app.register_blueprint(auth_portal)
-    except Exception as e:
-        print(f"❌ [Portal]: خطأ في تسجيل بوابة المصادقة الإدارية: {e}")
-
-    try:
-        from apps.suppliers_auth_portal.routes import suppliers_bp
-        app.register_blueprint(suppliers_bp, url_prefix='/supplier')
-        csrf.exempt(suppliers_bp)
-    except Exception as e:
-        print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
-
-    try:
-        from apps.admin.graphql_routes import graphql_bp 
-        app.register_blueprint(graphql_bp)
-        csrf.exempt(graphql_bp)
-    except ImportError:
-        pass
-
-    # ============================================================
-    # ✅ تسجيل الموديولات الديناميكية
-    # ============================================================
-    apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
-    if os.path.exists(apps_dir):
-        for item in os.listdir(apps_dir):
-            item_path = os.path.join(apps_dir, item)
-            if not os.path.isdir(item_path) or item in ignored_dirs:
-                continue
-            registry_file = os.path.join(item_path, 'registry.py')
-            if os.path.exists(registry_file):
-                try:
-                    module = importlib.import_module(f"apps.{item}.registry")
-                    if hasattr(module, 'register_module'):
-                        module.register_module(app)
-                    links_data = None
-                    if hasattr(module, 'LINKS'):
-                        raw_links = getattr(module, 'LINKS')
-                        if isinstance(raw_links, dict): links_data = {ep: lbl for ep, lbl in raw_links.items()}
-                        elif isinstance(raw_links, list): links_data = {ep: lbl for ep, lbl in raw_links}
-                    menu_items_func = getattr(module, 'get_menu_items', None)
-                    if not links_data and menu_items_func:
-                        res = menu_items_func()
-                        if isinstance(res, dict): links_data = res
-                        elif isinstance(res, list): links_data = {ep: lbl for ep, lbl in res}
-                    if links_data:
-                        mod_data = {
-                            "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
-                            "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
-                            "links": links_data,
-                        }
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False): SUPPLIER_MODULES[item] = mod_data
-                        else: ADMIN_MODULES[item] = mod_data
-                except Exception as e:
-                    print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
-
-    @app.context_processor
-    def inject_vars():
-        def safe_url_for(endpoint, **values):
-            try: return url_for(endpoint, **values)
-            except Exception: return '#'
-        supplier_context = {
-            'current_supplier': None, 'owner_full_name': '', 'supplier_bank_name': '',
-            'supplier_bank_account': '', 'supplier_wallet': None,
-            'pending_financials_count': 0, 'total_pending_payouts': 0.00
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'trans_type': self.trans_type,
+            'status': self.status,
+            'amount': float(self.amount or 0.0),
+            'reference_number': self.reference_number,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
-        if current_user.is_authenticated:
-            try:
-                user_type = session.get('user_type')
-                if user_type in ['supplier', 'staff']:
-                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type == 'staff' else getattr(current_user, 'id', None)
-                    if supplier_id:
-                        from apps.models.supplier_db import Supplier
-                        from apps.models.financials_db import OrderFinancial
-                        supplier = db.session.get(Supplier, supplier_id)
-                        if supplier:
-                            profile = supplier.supplier_profile
-                            pending_financials = OrderFinancial.query.filter_by(supplier_id=supplier.id, settlement_status='pending').all()
-                            supplier_context = {
-                                'current_supplier': supplier,
-                                'owner_full_name': (supplier.owner_name or supplier.store_name or supplier.trade_name or supplier.username or ''),
-                                'supplier_bank_name': (profile.bank_name or profile.company_name) if profile else '',
-                                'supplier_bank_account': profile.bank_account if profile else '',
-                                'supplier_wallet': supplier.wallet,
-                                'pending_financials_count': len(pending_financials),
-                                'total_pending_payouts': sum([f.supplier_payout for f in pending_financials])
-                            }
-            except Exception as e:
-                app.logger.error(f"❌ [Context Error]: خطأ في استخراج سياق المورد: {e}")
-        return dict(
-            csrf_token=generate_csrf,
-            registered_modules=ADMIN_MODULES,
-            supplier_modules=SUPPLIER_MODULES,
-            safe_url_for=safe_url_for,
-            **supplier_context
+
+
+# --- مشغل الأحداث (Engine) للتسوية التلقائية ---
+@event.listens_for(WalletTransaction, 'before_insert')
+def process_wallet_transaction_before_insert(mapper, connection, target):
+    """توليد الأرقام المرجعية باستخدام كود المورد الفعلي وحساب الأرصدة لحظياً."""
+    
+    wallet_table = SupplierWallet.__table__
+    
+    # 1. جلب بيانات المحفظة لمعرفة supplier_id
+    wallet_row = connection.execute(
+        select(wallet_table).where(wallet_table.c.id == target.wallet_id)
+    ).mappings().first()
+
+    sup_code = f"SUPP-{target.wallet_id}"  # قيمة افتراضية احتياطية
+    
+    if wallet_row:
+        supplier_id = wallet_row.get('supplier_id')
+        # 2. جلب كود المورد (supplier_code) من جدول suppliers مباشرة
+        supplier_table = db.metadata.tables.get('suppliers')
+        if supplier_table is not None:
+            sup_code_val = connection.execute(
+                select(supplier_table.c.supplier_code).where(supplier_table.c.id == supplier_id)
+            ).scalar()
+            if sup_code_val:
+                sup_code = sup_code_val
+
+    # 3. إنشاء رقم المرجع المخصص (Ref) باستخدام كود المورد الفعلي
+    if not target.reference_number:
+        date_str = datetime.utcnow().strftime('%Y%m%d')
+        last_ref = connection.execute(
+            select(WalletTransaction.reference_number)
+            .where(WalletTransaction.wallet_id == target.wallet_id)
+            .where(WalletTransaction.reference_number.like(f"%{date_str}%"))
+            .order_by(WalletTransaction.id.desc())
+            .limit(1)
+        ).scalar()
+        
+        seq = (int(last_ref.split('-')[-1]) + 1) if last_ref else 1
+        target.reference_number = f"TRX-{sup_code}-{date_str}-{seq:04d}"
+
+    # 4. حساب الأرصدة (Balance Logic)
+    if wallet_row:
+        attr = f'balance_{(target.currency or "sar").lower()}'
+        current_bal = Decimal(str(wallet_row.get(attr, 0)))
+        
+        target.balance_before = current_bal
+        is_credit = target.trans_type in ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
+        target.balance_after = (current_bal + Decimal(str(target.amount))) if is_credit else (current_bal - Decimal(str(target.amount)))
+
+        # تحديث المحفظة مباشرة
+        connection.execute(
+            update(wallet_table)
+            .where(wallet_table.c.id == target.wallet_id)
+            .values({attr: target.balance_after, 'updated_at': datetime.utcnow()})
         )
-
-    @app.errorhandler(500)
-    def handle_500_error(e):
-        if request.path.startswith('/admin/orders') and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'حدث خطأ داخلي في الخادم أثناء معالجة الطلب.'}), 500
-        return render_template('errors/500.html'), 500
-
-    retur
