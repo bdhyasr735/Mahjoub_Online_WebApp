@@ -15,12 +15,12 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ التصحيح هنا: جعل المدى يطابق ما يبحث عنه القالب (module.links)
+# ✅ الروابط وقوائم التنقل
 links = {
     "admin_treasury.treasury_index": "إدارة الخزينة والقيود"
 }
 
-LINKS = links # للحفاظ على توافق أي استدعاء قديم
+LINKS = links  # للحفاظ على توافق أي استدعاء قديم
 
 NAV_ITEMS = [
     {
@@ -42,18 +42,19 @@ def get_nav_metadata():
         "icon": ICON,
         "url": URL_PREFIX,
         "items": NAV_ITEMS,
-        "links": links  # ✅ إضافة الروابط هنا أيضاً لتراها لوحة التحكم الرئيسية مباشرة
+        "links": links
     }
 
 def register_module(app):
     """
     دالة التسجيل القياسية المعتمدة في مشروع محجوب أونلاين لموديول الرقابة المالية
     """
-    from apps.admin_treasury import admin_treasury_bp
-    
-    if MODULE_KEY not in app.blueprints:
-        try:
+    try:
+        # ✅ التصحيح الجذري هنا: الاستيراد المباشر من مسار الـ routes الفعلي
+        from apps.admin_treasury.routes.treasury_controller import admin_treasury_bp
+        
+        if MODULE_KEY not in app.blueprints:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
             print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
-        except Exception as e:
-            print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة: {e}")
+    except Exception as e:
+        print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة: {e}")
