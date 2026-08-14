@@ -14,10 +14,9 @@ class SupplierWallet(db.Model):
     """محفظة الموردين: الأرصدة والبيانات المشفرة بأعلى معايير الأمان."""
     __tablename__ = 'supplier_wallets'
 
-    # [فهرسة استراتيجية]: دمج الحقول الأكثر طلباً في فهارس مركبة
     __table_args__ = (
-        db.Index('idx_wall_lookup', 'supplier_id', 'wallet_code'), # بحث سريع عن المحفظة
-        db.Index('idx_wall_activity', 'updated_at'),             # تتبع آخر تحديث
+        db.Index('idx_wall_lookup', 'supplier_id', 'wallet_code'),
+        db.Index('idx_wall_activity', 'updated_at'),
         {'extend_existing': True}
     )
 
@@ -25,29 +24,23 @@ class SupplierWallet(db.Model):
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
 
-    # أرصدة العملات
     balance_yer = db.Column(db.Numeric(18, 2), default=0.00)
     balance_usd = db.Column(db.Numeric(18, 2), default=0.00)
     balance_sar = db.Column(db.Numeric(18, 2), default=0.00)
     balance_pending = db.Column(db.Numeric(18, 2), default=0.00)
     total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)
 
-    # [التشفير السيادي]: تفاصيل البنك محمية بـ Fernet
     _bank_details_enc = db.Column(db.String(500), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقات
     supplier = db.relationship('Supplier', back_populates='wallet', lazy='joined')
     transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan", lazy='selectin')
 
-    # --- نظام التشفير الموحد ---
     @staticmethod
     def _get_fernet():
-        """جلب كائن التشفير مع ضمان مفتاح Fernet صحيح (32-byte)."""
         key = os.environ.get('ENCRYPTION_KEY')
         if not key:
             key = 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V='
-        
         try:
             return Fernet(key.encode('utf-8'))
         except Exception:
@@ -56,7 +49,6 @@ class SupplierWallet(db.Model):
 
     @property
     def bank_details(self):
-        """فك تشفير تفاصيل الحساب البنكي."""
         if not self._bank_details_enc:
             return None
         try:
@@ -85,10 +77,9 @@ class SupplierWallet(db.Model):
 
 
 class WalletTransaction(db.Model):
-    """سجل الحركات المالية الموحد مع أفضل فهرسة للأداء العالي."""
+    """سجل الحركات المالية الموحد مع تشفير حقل الوصف والفهرسة الفائقة."""
     __tablename__ = 'wallet_transactions'
 
-    # [أفضل فهرسة عالمية]: الفهرس المركب (wallet_id, created_at) يجعل الاستعلام عن كشف حساب أي محفظة فورياً
     __table_args__ = (
         db.Index('idx_trans_wallet_history', 'wallet_id', 'created_at'),
         db.Index('idx_trans_lookup', 'voucher_number', 'reference_number'),
@@ -108,12 +99,32 @@ class WalletTransaction(db.Model):
     balance_before = db.Column(db.Numeric(18, 2), nullable=False)
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
     
-    description = db.Column(db.String(255))
+    # [التشفير السيادي]: وصف الحركة مشفر بالكامل
+    _description_enc = db.Column(db.String(500), nullable=True)
+    
     reference_number = db.Column(db.String(50), unique=True, nullable=True)
     voucher_number = db.Column(db.String(30), unique=True, nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
+
+    @property
+    def description(self):
+        if not self._description_enc:
+            return None
+        try:
+            key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
+            return Fernet(key.encode('utf-8')).decrypt(self._description_enc.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    @description.setter
+    def description(self, value):
+        if value:
+            key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
+            self._description_enc = Fernet(key.encode('utf-8')).encrypt(str(value).encode('utf-8')).decode('utf-8')
+        else:
+            self._description_enc = None
 
     def to_dict(self):
         return {
@@ -122,6 +133,7 @@ class WalletTransaction(db.Model):
             'status': self.status,
             'amount': float(self.amount or 0.0),
             'reference_number': self.reference_number,
+            'description': self.description,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -129,12 +141,31 @@ class WalletTransaction(db.Model):
 # --- مشغل الأحداث (Engine) للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
-    """توليد الأرقام المرجعية وحساب الأرصدة لحظياً."""
+    """توليد الأرقام المرجعية باستخدام كود المورد الفعلي وحساب الأرصدة لحظياً."""
     
-    # 1. إنشاء رقم المرجع (Ref)
+    wallet_table = SupplierWallet.__table__
+    
+    # 1. جلب بيانات المحفظة لمعرفة supplier_id
+    wallet_row = connection.execute(
+        select(wallet_table).where(wallet_table.c.id == target.wallet_id)
+    ).mappings().first()
+
+    sup_code = f"SUPP-{target.wallet_id}"  # قيمة افتراضية احتياطية
+    
+    if wallet_row:
+        supplier_id = wallet_row.get('supplier_id')
+        # 2. جلب كود المورد (supplier_code) من جدول suppliers مباشرة
+        supplier_table = db.metadata.tables.get('suppliers')
+        if supplier_table is not None:
+            sup_code_val = connection.execute(
+                select(supplier_table.c.supplier_code).where(supplier_table.c.id == supplier_id)
+            ).scalar()
+            if sup_code_val:
+                sup_code = sup_code_val
+
+    # 3. إنشاء رقم المرجع المخصص (Ref) باستخدام كود المورد الفعلي
     if not target.reference_number:
         date_str = datetime.utcnow().strftime('%Y%m%d')
-        # بحث عن آخر رقم مرجعي لهذه المحفظة في هذا اليوم
         last_ref = connection.execute(
             select(WalletTransaction.reference_number)
             .where(WalletTransaction.wallet_id == target.wallet_id)
@@ -144,14 +175,9 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         ).scalar()
         
         seq = (int(last_ref.split('-')[-1]) + 1) if last_ref else 1
-        target.reference_number = f"TRX-{target.wallet_id}-{date_str}-{seq:04d}"
+        target.reference_number = f"TRX-{sup_code}-{date_str}-{seq:04d}"
 
-    # 2. حساب الأرصدة (Balance Logic)
-    wallet_table = SupplierWallet.__table__
-    wallet_row = connection.execute(
-        select(wallet_table).where(wallet_table.c.id == target.wallet_id)
-    ).mappings().first()
-
+    # 4. حساب الأرصدة (Balance Logic)
     if wallet_row:
         attr = f'balance_{(target.currency or "sar").lower()}'
         current_bal = Decimal(str(wallet_row.get(attr, 0)))
