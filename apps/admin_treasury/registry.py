@@ -15,9 +15,12 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-LINKS = {
+# ✅ التصحيح هنا: جعل المدى يطابق ما يبحث عنه القالب (module.links)
+links = {
     "admin_treasury.treasury_index": "إدارة الخزينة والقيود"
 }
+
+LINKS = links # للحفاظ على توافق أي استدعاء قديم
 
 NAV_ITEMS = [
     {
@@ -38,7 +41,8 @@ def get_nav_metadata():
         "name": DISPLAY_NAME,
         "icon": ICON,
         "url": URL_PREFIX,
-        "items": NAV_ITEMS
+        "items": NAV_ITEMS,
+        "links": links  # ✅ إضافة الروابط هنا أيضاً لتراها لوحة التحكم الرئيسية مباشرة
     }
 
 def register_module(app):
