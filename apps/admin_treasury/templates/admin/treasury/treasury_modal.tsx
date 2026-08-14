@@ -1,3 +1,4 @@
+apps/admin_treasury/templates/admin/treasury/treasury_modal.tsx
 import React from 'react';
 import { X, FileText, CheckCircle2, ShieldCheck, Printer, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { TreasuryTransaction } from '../../../../../src/types';
