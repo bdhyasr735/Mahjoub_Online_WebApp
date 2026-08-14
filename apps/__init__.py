@@ -39,11 +39,11 @@ def import_all_models():
 
 
 def seed_database():
-    """زراعة البيانات المبدئية والافتراضية للأنظمة"""
+    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي"""
     from apps.models.admin_db import AdminUser
     from apps.models.admin_staff_db import AdminStaff
     from apps.models.supplier_db import Supplier
-    from apps.models.wallet_db import SupplierWallet
+    from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
     # 1. زراعة المالك
     try:
@@ -76,7 +76,7 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Staff]: {e}")
 
-    # 3. زراعة مورد وتجهيز محفظته برصيد افتتاحي 1000 ر.س
+    # 3. زراعة مورد وتوليد "سند وحركة إيداع" برصيد 1000 ر.س
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
             supplier = Supplier(
@@ -90,14 +90,30 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
+            # إنشاء المحفظة برصيد 0
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=1000.00
+                balance_sar=0.00
             )
             db.session.add(wallet)
+            db.session.flush()
+
+            # 📝 إنشاء حركة مالية وسند إيداع رصيد افتتاحي
+            initial_transaction = WalletTransaction(
+                wallet_id=wallet.id,
+                owner_type='supplier',
+                owner_id=supplier.id,
+                trans_type='deposit',
+                status='completed',
+                amount=1000.00,
+                currency='SAR',
+                voucher_number=f"VOUCH-INIT-{supplier.id:04d}",  # رقم السند
+                description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"  # الوصف (سيشفر تلقائياً)
+            )
+            db.session.add(initial_transaction)
             db.session.commit()
-            print("✅ [Seed]: تم زرع المورد والمحفظة برصيد افتتاحي 1000 SAR بنجاح.")
+            print("✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع (1000 SAR) بنجاح.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
@@ -141,7 +157,7 @@ def create_app():
     db.init_app(app)
 
     # ============================================================
-    # ✅ إعادة بناء كافة الجداول وزراعة البيانات تلقائياً عند الرفع / التشغيل
+    # ✅ إعادة بناء كافة الجداول وزراعة البيانات والحركات عند الرفع / التشغيل
     # ============================================================
     with app.app_context():
         import_all_models()
@@ -178,9 +194,9 @@ def create_app():
         db.create_all()
         click.echo("✅ [Schema Create]: تم إنشاء جميع الجداول بنجاح.")
 
-        click.echo("🌱 [DB Rebuild]: جاري زراعة البيانات المبدئية...")
+        click.echo("🌱 [DB Rebuild]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
         seed_database()
-        click.echo("🎉 [DB Rebuild]: اكتملت عملية إعادة البناء والزرع بنجاح!")
+        click.echo("🎉 [DB Rebuild]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -424,4 +440,4 @@ def create_app():
             return jsonify({'success': False, 'message': 'حدث خطأ داخلي في الخادم أثناء معالجة الطلب.'}), 500
         return render_template('errors/500.html'), 500
 
-    return app
+    retur
