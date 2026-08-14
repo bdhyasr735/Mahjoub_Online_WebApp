@@ -14,7 +14,7 @@
         <table class="w-full text-right border-collapse">
             <thead class="bg-gray-50 text-gray-500 text-[11px] font-black border-b border-gray-100">
                 <tr>
-                    <th class="py-3.5 px-4">رقم المرجع</th>
+                    <th class="py-3.5 px-4">رقم السند / الحوالة</th>
                     <th class="py-3.5 px-4">تفاصيل الحركة / البيان</th>
                     <th class="py-3.5 px-4">نوع الحركة</th>
                     <th class="py-3.5 px-4">المبلغ</th>
@@ -24,10 +24,19 @@
             <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
                 {% for tx in transactions %}
                 <tr class="hover:bg-gray-50/80 transition-colors">
-                    <td class="py-3.5 px-4 font-mono font-bold text-gray-900">{{ tx.reference_number or tx.voucher_number or ('#' ~ tx.id) }}</td>
+                    <td class="py-3.5 px-4 font-mono font-bold text-gray-900">
+                        {% if tx.voucher_number %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-800 border border-gray-200">
+                                <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                {{ tx.voucher_number }}
+                            </span>
+                        {% else %}
+                            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-full">قيد المراجعة والتعميد</span>
+                        {% endif %}
+                    </td>
                     <td class="py-3.5 px-4 font-medium text-gray-800">{{ tx.description or 'عملية مالية' }}</td>
                     <td class="py-3.5 px-4">
-                        {% if tx.trans_type in ['credit', 'deposit', 'sale'] %}
+                        {% if tx.trans_type in ['credit', 'deposit', 'sale', 'sale_revenue'] %}
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">إيداع / إيراد</span>
                         {% elif tx.trans_type in ['debit', 'withdrawal'] %}
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">سحب / خصم</span>
@@ -73,7 +82,7 @@
         <table class="w-full text-right border-collapse">
             <thead class="bg-gray-50 text-gray-500 text-[11px] font-black border-b border-gray-100">
                 <tr>
-                    <th class="py-3.5 px-4">رقم الطلب / المرجع</th>
+                    <th class="py-3.5 px-4">رقم السند / الطلب</th>
                     <th class="py-3.5 px-4">المبلغ المطلوب</th>
                     <th class="py-3.5 px-4">تفاصيل الحساب / الوسيلة</th>
                     <th class="py-3.5 px-4">الحالة</th>
@@ -83,7 +92,13 @@
             <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
                 {% for item in withdrawals %}
                 <tr class="hover:bg-gray-50/80 transition-colors">
-                    <td class="py-3.5 px-4 font-mono font-bold text-gray-900">{{ item.reference_number or item.id_code or ('#' ~ item.id) }}</td>
+                    <td class="py-3.5 px-4 font-mono font-bold text-gray-900">
+                        {% if item.voucher_number %}
+                            <span class="text-gray-900">{{ item.voucher_number }}</span>
+                        {% else %}
+                            <span class="text-gray-500 font-normal">#{{ item.id }}</span>
+                        {% endif %}
+                    </td>
                     <td class="py-3.5 px-4 font-mono font-black text-rose-600">
                         {{ "{:,.2f}".format(item.amount|abs) }} <span class="text-[10px] text-gray-400 font-normal">{{ item.currency or currency }}</span>
                     </td>
@@ -98,7 +113,7 @@
                         {% if status in ['completed', 'approved', 'success', 'مكتمل'] %}
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">مكتمل</span>
                         {% elif status in ['pending', 'processing', 'قيد الانتظار', 'قيد المعالجة'] %}
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">قيد الانتظار</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">قيد المراجعة</span>
                         {% elif status in ['rejected', 'cancelled', 'failed', 'مرفوض'] %}
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">مرفوض</span>
                         {% else %}
