@@ -6,11 +6,18 @@
 """
 
 MODULE_KEY = "admin_treasury"
+MODULE_NAME = "الرقابة المالية"
 DISPLAY_NAME = "الرقابة المالية"
+MODULE_ICON = "fas fa-wallet"
 ICON = "landmark"
 VERSION = "2.4.0"
 URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
+SHOW_IN_ADMIN = True
+
+LINKS = {
+    "admin_treasury.treasury_index": "إدارة الخزينة والقيود"
+}
 
 NAV_ITEMS = [
     {
@@ -43,6 +50,6 @@ def register_module(app):
     if MODULE_KEY not in app.blueprints:
         try:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
-            print(f"[*] Module {DISPLAY_NAME} registered successfully at {URL_PREFIX}")
+            print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
         except Exception as e:
-            print(f"[!] Failed to register module {MODULE_KEY}: {e}")
+            print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة: {e}")
