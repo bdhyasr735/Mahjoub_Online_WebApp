@@ -7,7 +7,7 @@
 
 from flask import Blueprint
 
-# إنشاء البلوبرنت الخاص بالخزينة المركزية والرقابة المالية مع تحديد مسار القوالب والمجلدات المشتركة
+# تعريف البلوبرنت الخاص بالخزينة المركزية والرقابة المالية
 admin_treasury_bp = Blueprint(
     'admin_treasury',
     __name__,
@@ -16,4 +16,8 @@ admin_treasury_bp = Blueprint(
 )
 
 # استيراد المتحكمات لتسجيل المسارات المرتبطة بها داخل البلوبرنت
-from apps.admin_treasury.routes import treasury_controller
+try:
+    from apps.admin_treasury.routes import treasury_controller
+except ImportError:
+    # لتجنب أي استيراد دائري أو مبكر غير مرتب
+    pass
