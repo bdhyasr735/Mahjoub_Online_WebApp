@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}الخزينة المركزية | محجوب أونلاين{% endblock %}</title>
+
+    <!-- 1. استدعاء مكتبة Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 2. استدعاء خطوط Google الرسمية (Cairo للنصوص و JetBrains Mono للأرقام) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- 3. إعدادات وتخصيص Tailwind CSS والألوان الخاصة بالهوية -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mahjoub: {
+                            primary: '#4A154B',      // اللون الأساسي للخزينة
+                            dark: '#3F0E40',         // اللون الداكن للهيدر والحدود
+                            light: '#611f64',        // لون التحويم النشط
+                            accent: '#FBBF24',       // لون التمييز الذهبي
+                            bg: '#F8FAFC'            // خلفية الصفحات المريحة
+                        },
+                        flow: {
+                            inflow: '#059669',       // أخضر التدفقات الواردة
+                            inflowBg: '#ECFDF5',
+                            inflowBorder: '#A7F3D0',
+                            outflow: '#E11D48',      // أحمر التدفقات الصادرة
+                            outflowBg: '#FFF1F2',
+                            outflowBorder: '#FECDD3',
+                            escrow: '#D97706',       // برتقالي حسابات الضمان
+                            escrowBg: '#FFFBEB',
+                            escrowBorder: '#FDE68A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- 4. كود CSS المخصص للمحرك عالي الأداء والطباعة -->
+    <style>
+        :root {
+            --color-mahjoub-primary: #4A154B;
+            --color-mahjoub-dark: #3F0E40;
+            --color-mahjoub-accent: #FBBF24;
+            --color-inflow: #059669;
+            --color-outflow: #E11D48;
+            --color-escrow: #D97706;
+            --font-arabic: 'Cairo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-numbers: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            font-family: var(--font-arabic);
+            background-color: #F1F5F9;
+            color: #1E293B;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-mono {
+            font-family: var(--font-numbers) !important;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        .micro-container {
+            contain: content;
+            content-visibility: auto;
+            contain-intrinsic-size: 0 500px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+
+        ::selection {
+            background-color: #4A154B;
+            color: #FFFFFF;
+        }
+
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .micro-container {
+                contain: none !important;
+            }
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-950 flex flex-col antialiased">
+
+    <!-- الهيكل الرئيسي للإدارة (شريط التنقل العلوي أو رأس الصفحة الموحد إن وجد) -->
+    <header class="bg-[#3F0E40] text-white border-b border-purple-950/40 no-print sticky top-0 z-40 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-lg bg-amber-400 text-[#3F0E40] flex items-center justify-center font-black text-sm">
+                    🏛️
+                </span>
+                <div>
+                    <h1 class="text-xs font-black tracking-wide text-white">محجوب أونلاين | لوحة الرقابة المالية</h1>
+                    <p class="text-[10px] text-purple-200">محرك الخزينة المركزية عالي التحمل (Enterprise Micro-Cluster)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+                <span class="hidden sm:inline-block px-3 py-1 rounded-lg bg-white/10 text-emerald-300 font-mono font-bold">
+                    ● النظام متصل ومؤمن
+                </span>
+                <a href="/admin/treasury/" class="px-3 py-1.5 rounded-lg bg-purple-900/60 hover:bg-purple-900 text-white font-bold transition">
+                    الرئيسية
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- الحاوية الأساسية لحقن محتوى الصفحات الفرعية (القائمة والتفاصيل) -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+        {% block content %}
+        <!-- يتم حقن المحتوى هنا ديناميكياً من الصفحات الأخرى -->
+        {% endblock %}
+    </main>
+
+    <!-- الفوتر العام للوحة التحكم -->
+    <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500 no-print mt-auto">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>جميع الحقوق محفوظة © 2026 - منصة محجوب أونلاين</span>
+            <span class="font-mono text-[11px] text-slate-400">Micro-Container Treasury Engine v2.4</span>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
