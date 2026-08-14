@@ -106,13 +106,24 @@ def withdraw():
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
+    # الأرصدة والملخص المالي لصفحة السحب
+    balance_sar = float(getattr(wallet_obj, 'balance_sar', 0.00)) if wallet_obj else 0.00
+    total_withdrawn = float(getattr(wallet_obj, 'total_withdrawn', 0.00)) if wallet_obj else 0.00
+    curr = getattr(wallet_obj, 'default_currency', 'SAR') if wallet_obj else 'SAR'
+
+    summary = {
+        'balance_sar': balance_sar,
+        'available_balance': balance_sar,
+        'total_withdrawn': total_withdrawn,
+        'currency': curr,
+        'min_withdraw_amount': 50.0
+    }
+
     if request.method == 'POST':
         try:
             amount = float(request.form.get('amount', 0.00))
             payout_method = request.form.get('payout_method', 'bank_transfer')
-            
-            balance_sar = float(getattr(wallet_obj, 'balance_sar', 0.00)) if wallet_obj else 0.00
-            min_withdraw = 50.0  # الحد الأدنى للسحب
+            min_withdraw = summary['min_withdraw_amount']
 
             # 1. التحقق من صحة المبلغ والمحفظة
             if amount < min_withdraw:
@@ -131,7 +142,7 @@ def withdraw():
                 trans_type='withdrawal',
                 status='pending',
                 amount=amount,
-                currency=getattr(wallet_obj, 'default_currency', 'SAR'),
+                currency=curr,
                 reference_number=None,  
                 voucher_number=None,    
                 description=f"طلب سحب مبيعات عبر ({payout_method}) - قيد المراجعة والاعتماد"
@@ -149,10 +160,20 @@ def withdraw():
             flash(f"حدث خطأ أثناء تقديم طلب السحب: {str(e)}", "danger")
             return redirect(url_for('supplier_wallet.withdraw'))
 
-    # في حال كان الطلب GET، يتم عرض صفحة نموذج طلب السحب المستقلة للمورد
+    # جلب طلبات السحب الخاصة بالصفحة لتفادي أي أخطاء في عرض الجدول أو الباجينيشن
+    page = request.args.get('page', 1, type=int)
+    pagination_obj = WalletTransaction.query.filter_by(
+        wallet_id=wallet_obj.id if wallet_obj else -1,
+        trans_type='withdrawal'
+    ).order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+
+    # في حال كان الطلب GET، يتم عرض صفحة نموذج طلب السحب مع كامل المتغيرات اللازمة
     return render_template(
         'supplier_wallet/withdraw.html',
         wallet=wallet_obj,
+        summary=summary,
+        pagination=pagination_obj,
+        transactions=pagination_obj.items,
         registered_owner=registered_owner,
         registered_details=registered_details
     )
