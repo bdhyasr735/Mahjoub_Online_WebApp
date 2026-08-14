@@ -96,3 +96,57 @@ def wallet_dashboard():
         registered_owner=registered_owner,
         registered_details=registered_details
     )
+
+
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def withdraw():
+    """معالجة تقديم طلب سحب مبيعات جديد بدون توليد أرقام مرجعية تلقائية."""
+    supplier_id = get_current_supplier_id()
+    wallet_obj = get_or_create_supplier_wallet(supplier_id)
+
+    if request.method == 'POST':
+        try:
+            amount = float(request.form.get('amount', 0.00))
+            payout_method = request.form.get('payout_method', 'bank_transfer')
+            
+            balance_sar = float(getattr(wallet_obj, 'balance_sar', 0.00)) if wallet_obj else 0.00
+            min_withdraw = 50.0  # الحد الأدنى للسحب
+
+            # 1. التحقق من صحة المبلغ والمحفظة
+            if amount < min_withdraw:
+                flash(f"عذراً، الحد الأدنى لطلب السحب هو {min_withdraw} ر.س.", "danger")
+                return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+            if amount > balance_sar:
+                flash("عذراً، الرصيد المتاح لا يكفي لتغطية مبلغ السحب المطلوب.", "danger")
+                return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+            # 2. إنشاء حركة السحب بحالة معلقة (pending)
+            # 🛑 فارغ تماماً: لا يتم توليد رقم مرجعي ولا رقم سند حتى تعتمدها الإدارة يدويًا
+            new_withdrawal = WalletTransaction(
+                wallet_id=wallet_obj.id,
+                owner_type='supplier',
+                owner_id=supplier_id,
+                trans_type='withdrawal',
+                status='pending',
+                amount=amount,
+                currency=getattr(wallet_obj, 'default_currency', 'SAR'),
+                reference_number=None,  # 👈 يترك فارغاً
+                voucher_number=None,    # 👈 يترك فارغاً لسند البنك اليدوي لاحقاً
+                description=f"طلب سحب مبيعات عبر ({payout_method}) - قيد المراجعة والاعتماد"
+            )
+
+            db.session.add(new_withdrawal)
+            db.session.commit()
+
+            # 3. إظهار التنبيه النظيف والمباشر بدون أرقام
+            flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.", "success")
+            return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"حدث خطأ أثناء تقديم طلب السحب: {str(e)}", "danger")
+            return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    return redirect(url_for('supplier_wallet.wallet_dashboard'))
