@@ -3,6 +3,8 @@
 
 import os
 import base64
+import secrets
+import string
 from datetime import datetime
 from decimal import Decimal
 from cryptography.fernet import Fernet
@@ -133,15 +135,34 @@ class WalletTransaction(db.Model):
             'status': self.status,
             'amount': float(self.amount or 0.0),
             'reference_number': self.reference_number,
+            'voucher_number': self.voucher_number,
             'description': self.description,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 
+def generate_unique_voucher_number(connection, length=8, prefix="VCH-"):
+    """توليد رقم سند فريد تلقائياً يتكون من أرقام وحروف عشوائية بدون تكرار."""
+    characters = string.ascii_uppercase + string.digits  # حروف كبيرة وأرقام (A-Z, 0-9)
+    
+    while True:
+        random_str = ''.join(secrets.choice(characters) for _ in range(length))
+        candidate_voucher = f"{prefix}{random_str}"
+        
+        # التأكد الفوري من قاعدة البيانات لعدم تكرار الرقم نهائياً
+        existing = connection.execute(
+            select(WalletTransaction.voucher_number)
+            .where(WalletTransaction.voucher_number == candidate_voucher)
+        ).scalar()
+        
+        if not existing:
+            return candidate_voucher
+
+
 # --- مشغل الأحداث (Engine) للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
-    """توليد الأرقام المرجعية باستخدام كود المورد الفعلي وحساب الأرصدة لحظياً."""
+    """توليد الأرقام المرجعية، وأرقام السندات العشوائية الفريدة، وحساب الأرصدة لحظياً."""
     
     wallet_table = SupplierWallet.__table__
     
@@ -177,7 +198,11 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         seq = (int(last_ref.split('-')[-1]) + 1) if last_ref else 1
         target.reference_number = f"TRX-{sup_code}-{date_str}-{seq:04d}"
 
-    # 4. حساب الأرصدة (Balance Logic)
+    # 4. توليد رقم السند العشوائي الفريد (Alphanumeric) تلقائياً إذا لم يُمرر يدوياً
+    if not target.voucher_number:
+        target.voucher_number = generate_unique_voucher_number(connection, length=8, prefix="VCH-")
+
+    # 5. حساب الأرصدة (Balance Logic)
     if wallet_row:
         attr = f'balance_{(target.currency or "sar").lower()}'
         current_bal = Decimal(str(wallet_row.get(attr, 0)))
