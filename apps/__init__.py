@@ -78,32 +78,16 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        # ⚠️ [إلغاء الجداول القديمة (الموردين والحركات) وإعادة إنشائها لتجنب مشاكل الهيكل والأعمدة المفقودة]
+        # ⚠️ [حذف جميع الجداول وإعادة إنشائها من الصفر لضمان نظافة البيانات وظهور الرصيد الافتتاحي 1000]
         try:
-            from sqlalchemy import text
-            with db.engine.connect() as conn:
-                conn.execute(text("DROP TABLE IF EXISTS wallet_transactions CASCADE;"))
-                conn.execute(text("DROP TABLE IF EXISTS suppliers CASCADE;"))
-                conn.commit()
-            print("✅ [Schema Reset]: تم حذف جدول الموردين (suppliers) وجداول الحركات القديمة بنجاح لإعادة بنائها بالهيكل الجديد.")
+            db.drop_all()
+            print("✅ [Schema Reset]: تم حذف جميع الجداول بنجاح.")
         except Exception as e:
             print(f"⚠️ [Schema Reset Error]: {e}")
 
-        # إنشاء الجداول إن لم تكن موجودة
+        # إنشاء الجداول بالهيكل الجديد
         db.create_all()
-
-        # ✅ PATCH: إضافة الأعمدة المفقودة في حال عدم وجودها (إصلاح مشكلة التوافق)
-        try:
-            from sqlalchemy import text
-            with db.engine.connect() as conn:
-                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'completed';"))
-                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS trans_type VARCHAR(30);"))
-                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS payout_method VARCHAR(50);"))
-                conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS account_details TEXT;"))
-                conn.commit()
-            print("✅ [Schema Patch]: تم التأكد من سلامة أعمدة جدول wallet_transactions.")
-        except Exception as e:
-            print(f"⚠️ [Schema Patch Error]: {e}")
+        print("✅ [Schema Create]: تم إنشاء جميع الجداول بنجاح.")
 
         # ✅ 1. زراعة المالك
         try:
@@ -133,7 +117,7 @@ def create_app():
         except Exception as e:
             db.session.rollback()
         
-        # ✅ 3. زراعة مورد وتجهيز محفظته
+        # ✅ 3. زراعة مورد وتجهيز محفظته برصيد 1000
         try:
             if not Supplier.query.filter_by(username='test_supplier').first():
                 supplier = Supplier(
@@ -154,6 +138,7 @@ def create_app():
                 )
                 db.session.add(wallet)
                 db.session.commit()
+                print("✅ [Seed]: تم زرع المورد والمحفظة برصيد 1000 بنجاح.")
         except Exception as e:
             db.session.rollback()
 
