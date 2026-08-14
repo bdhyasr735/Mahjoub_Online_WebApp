@@ -1,8 +1,6 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/withdraw_routes.py
 
-import secrets
-import string
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for
@@ -20,22 +18,6 @@ from apps.supplier_wallet.utils import (
 
 # الحد الأدنى المسموح به لتقديم طلب سحب رصيد
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
-
-
-def generate_collision_proof_codes(sup_code):
-    """توليد رقم مرجعي ورقم سند محكمين للغاية باستخدام كود المورد الرسمية (MAH-SUP963x)."""
-    now = datetime.utcnow()
-    date_str = now.strftime('%Y%m%d')
-    time_ms_str = now.strftime('%H%M%S%f')[:9]  # دقة الميكروثانية لضمان التحمل تحت الضغط
-    
-    chars = string.ascii_uppercase + string.digits
-    rand_ref = ''.join(secrets.choice(chars) for _ in range(4))
-    rand_vch = ''.join(secrets.choice(chars) for _ in range(8))
-    
-    ref_number = f"TRX-{sup_code}-{date_str}-{time_ms_str}-{rand_ref}"
-    vch_number = f"VCH-{date_str}-{rand_vch}"
-    
-    return ref_number, vch_number
 
 
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False)
@@ -94,13 +76,6 @@ def withdraw():
             elif amount < MIN_WITHDRAW_AMOUNT:
                 flash(f"الحد الأدنى لطلب السحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}", "danger")
             else:
-                # 🔍 جلب supplier_code الفعلي للمورد (مثل MAH-SUP9631)
-                supplier_code_val = db.session.query(Supplier.supplier_code)\
-                    .filter(Supplier.id == supplier_id)\
-                    .scalar()
-                
-                sup_code = supplier_code_val if supplier_code_val else f"SUPP{supplier_id}"
-
                 owner_name = registered_owner or f"مورد رقم #{supplier_id}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
@@ -108,10 +83,7 @@ def withdraw():
                 # صياغة النص بحد أقصى 255 حرفاً
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # توليد أرقام الترقيم والسند الفريدة باستخدام supplier_code الصحيح
-                ref_num, vch_num = generate_collision_proof_codes(sup_code)
-
-                # إنشاء المعاملة بحقول جدول WalletTransaction الصحيحة
+                # إنشاء المعاملة بحالة معلقة وبدون أرقام مرجعية تلقائية
                 new_tx = WalletTransaction(
                     wallet_id=locked_wallet.id,
                     owner_id=supplier_id,     
@@ -120,15 +92,15 @@ def withdraw():
                     status='pending',          # حالة الطلب الأولي: قيد المراجعة
                     amount=amount,
                     currency=curr,
-                    reference_number=ref_num,
-                    voucher_number=vch_num,
+                    reference_number=None,     # يترك فارغاً
+                    voucher_number=None,       # يترك فارغاً للتحويل اليدوي من الإدارة
                     description=full_desc
                 )
 
                 db.session.add(new_tx)
                 db.session.commit()
 
-                flash(f"تم تقديم طلب السحب بنجاح برقم مرجعي: {ref_num} (سند: {vch_num})، وهو قيد المراجعة.", "success")
+                flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
                 
         except (ValueError, InvalidOperation):
