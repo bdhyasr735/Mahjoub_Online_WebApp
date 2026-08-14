@@ -32,21 +32,44 @@ def export_wallet_pdf():
     is_withdraw_path = 'withdraw' in request.path
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
 
+    # تعريف مصفوفات أنواع الحركات للفلترة الذكية المتوافقة مع الواجهة
+    credit_types = ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
+    debit_types = ['debit', 'withdrawal', 'commission_deduction', 'adjustment_debit']
+
     if is_withdraw_path:
         query = query.filter(WalletTransaction.trans_type == 'withdrawal')
+        # فلترة الحالة لطلبات السحب إذا تم تمريرها
+        status = request.args.get('status', '')
+        if status:
+            query = query.filter(WalletTransaction.status == status)
     else:
-        # فلاتر المحفظة العامة
-        trx_type = request.args.get('type', 'all')
-        if trx_type != 'all':
-            query = query.filter(WalletTransaction.trans_type == trx_type)
+        # 🛑 القاعدة الصارمة: كشف حساب المحفظة العامة يعرض الحركات المكتملة فقط حصرياً
+        query = query.filter(WalletTransaction.status == 'completed')
 
-    # فلترة الحالة
-    status = request.args.get('status', 'all')
-    if status != 'all':
-        query = query.filter(WalletTransaction.status == status)
-    elif not is_withdraw_path:
-        # افتراضياً في طباعة المحفظة العامة نأخذ غير المعلقة أو المكتملة بناءً على رغبة النظام
-        query = query.filter(WalletTransaction.status != 'pending')
+        # فلاتر المحفظة العامة للنوع
+        trx_type = request.args.get('type', '')
+        if trx_type == 'credit':
+            query = query.filter(WalletTransaction.trans_type.in_(credit_types))
+        elif trx_type == 'debit':
+            query = query.filter(WalletTransaction.trans_type.in_(debit_types))
+
+    # تصفية بالتاريخ إن وجد في الـ Query Parameters
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    if start_date:
+        try:
+            parsed_start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(WalletTransaction.created_at >= parsed_start)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            parsed_end = datetime.strptime(end_date, '%Y-%m-%d')
+            query = query.filter(WalletTransaction.created_at <= parsed_end)
+        except ValueError:
+            pass
 
     transactions = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc()).all()
 
