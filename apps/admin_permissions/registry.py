@@ -5,12 +5,10 @@ MODULE_NAME = "إدارة الصلاحيات"
 MODULE_ICON = "bi-shield-lock"
 SHOW_IN_ADMIN = True
 
-# 💡 أضف هذا المتغير ليتمكن القالب من العثور على الروابط
 LINKS = {
     'admin_permissions.index': 'صلاحيات الموظفين والمتاجر'
 }
 
-# قواميس الصلاحيات
 ADMIN_PERMISSIONS_REGISTRY = {
     'manage_products': 'إدارة المنتجات وتعديلها',
     'manage_orders': 'إدارة ومتابعة الطلبات',
