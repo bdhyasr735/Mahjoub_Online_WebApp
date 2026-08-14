@@ -32,11 +32,14 @@ def get_current_supplier_id() -> Optional[int]:
     return getattr(current_user, 'supplier_id', getattr(current_user, 'id', None))
 
 
-def generate_transaction_ref(wallet_id: int, sup_code: str, prefix: str = 'TRX') -> Tuple[str, str]:
+def generate_transaction_ref(wallet_id: int, sup_code: str, prefix: str = 'TRX') -> Tuple[Optional[str], Optional[str]]:
     """
-    دالة موحدة لتوليد الرقم المرجعي ورقم السند لكافة العمليات المالية (رصيد افتتاحي، إيداع، سحب):
-    الصيغة القياسية: TRX-MAH-SUP9631-20260814-0001
+    دالة موحدة لتوليد الرقم المرجعي ورقم السند عند الحاجة فقط للعمليات المالية النظامية المباشرة.
+    تُعيد (None, None) عند الاستدعاء الخاطئ لتجنب إسناد أرقام مرجعية تلقائية غير مطابقة.
     """
+    if not wallet_id or not sup_code:
+        return None, None
+
     now = datetime.utcnow()
     date_str = now.strftime('%Y%m%d')
     start_of_day = datetime(now.year, now.month, now.day)
