@@ -28,24 +28,20 @@ def export_wallet_pdf():
         'currency': 'SAR'
     }
 
-    # تحديد الاستعلام بناءً على الرابط (محفظة عامة أم طلبات سحب)
-    is_withdraw_path = 'withdraw' in request.path
+    # بناء الاستعلام الأساسي للمحفظة
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
 
-    # تعريف مصفوفات أنواع الحركات للفلترة الذكية المتوافقة مع الواجهة
+    # 🛑 القاعدة الصارمة والموحدة: فرض إظهار الحركات المكتملة فقط حصرياً في أي ملف مطبوع
+    query = query.filter(WalletTransaction.status == 'completed')
+
+    # تحديد ما إذا كان الطلب قادماً من مسار السحب لتخصيص نوع الحركات المطلوبة
+    is_withdraw_path = 'withdraw' in request.path
     credit_types = ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
     debit_types = ['debit', 'withdrawal', 'commission_deduction', 'adjustment_debit']
 
     if is_withdraw_path:
         query = query.filter(WalletTransaction.trans_type == 'withdrawal')
-        # فلترة الحالة لطلبات السحب إذا تم تمريرها
-        status = request.args.get('status', '')
-        if status:
-            query = query.filter(WalletTransaction.status == status)
     else:
-        # 🛑 القاعدة الصارمة: كشف حساب المحفظة العامة يعرض الحركات المكتملة فقط حصرياً
-        query = query.filter(WalletTransaction.status == 'completed')
-
         # فلاتر المحفظة العامة للنوع
         trx_type = request.args.get('type', '')
         if trx_type == 'credit':
