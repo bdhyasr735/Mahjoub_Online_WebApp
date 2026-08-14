@@ -18,7 +18,7 @@ TITLE = "الإدارة المالية"
 NAME = "الإدارة المالية"
 DISPLAY_NAME = "الإدارة المالية"
 
-MODULE_ICON = "fa-wallet"
+MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
