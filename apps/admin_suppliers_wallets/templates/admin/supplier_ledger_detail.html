@@ -1,33 +1,33 @@
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
 
 {% block title %}كشف حساب محفظة {{ wallet.supplier.supplier_name if wallet.supplier else 'مورد' }} ({{ wallet.wallet_code }}){% endblock %}
 {% block breadcrumb %}كشف حساب المحفظة: {{ wallet.wallet_code }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6" dir="rtl">
+<div class="space-y-6 animate__animated animate__fadeIn" dir="rtl">
 
-    <!-- t1. ترويسة تفاصيل المحفظة والمورد -->
-    <div class="bg-[#1A102A] border border-[#362052] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <!-- t1. ترويسة تفاصيل المحفظة والمورد السيادية -->
+    <div class="bg-gradient-to-br from-[#1a0b2e] via-[#120A1F] to-[#08020d] border border-[#4B2A73] p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2">
                 <span class="font-mono font-black text-sm text-amber-400">{{ wallet.wallet_code }}</span>
-                <span class="text-xs px-2.5 py-0.5 rounded-lg font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <span class="text-xs px-2.5 py-1 rounded-lg font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                     محفظة نشطة ✓
                 </span>
             </div>
-            <h1 class="text-2xl font-black text-white mt-1">{{ wallet.supplier.supplier_name if wallet.supplier else '---' }}</h1>
-            <p class="text-xs text-slate-400 mt-1">
+            <h1 class="text-2xl font-black text-white mt-1 tracking-wide">{{ wallet.supplier.supplier_name if wallet.supplier else '---' }}</h1>
+            <p class="text-xs text-slate-300 font-medium mt-1">
                 كود المورد: <span class="font-mono text-amber-300">{{ wallet.supplier.supplier_code if wallet.supplier else '---' }}</span> • 
-                السجل التجاري: <span class="font-mono text-slate-300">{{ wallet.supplier.commercial_reg if wallet.supplier else '---' }}</span> • 
-                آخر تحديث: <span class="font-mono text-slate-300">{{ wallet.formatted_time }}</span>
+                السجل التجاري: <span class="font-mono text-slate-200">{{ wallet.supplier.commercial_reg if wallet.supplier else '---' }}</span> • 
+                آخر تحديث: <span class="font-mono text-slate-200">{{ wallet.formatted_time }}</span>
             </p>
         </div>
 
         <div class="flex items-center gap-3">
-            <button onclick="window.print()" class="px-4 py-2.5 bg-[#231538] hover:bg-[#362052] text-slate-200 text-xs font-bold rounded-xl border border-[#4B2A73]/50 transition">
+            <button onclick="printStatementAlert()" class="px-4 py-2.5 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] hover:from-[#2d124a] hover:to-[#1a0b2e] text-slate-200 text-xs font-bold rounded-xl border border-[#4B2A73]/70 transition shadow-lg flex items-center gap-2 cursor-pointer">
                 🖨️ طباعة كشف الحساب
             </button>
-            <a href="{{ url_for('suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] text-xs font-black rounded-xl transition">
+            <a href="{{ url_for('suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] hover:from-[#2d124a] hover:to-[#1a0b2e] text-amber-300 text-xs font-bold rounded-xl border border-amber-500/40 transition shadow-lg flex items-center gap-2">
                 العودة لسجل المحافظ
             </a>
         </div>
@@ -35,21 +35,21 @@
 
     <!-- t2. بطاقات الأرصدة والسيولة (متجاوبة تماماً) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="p-5 rounded-3xl bg-[#1A102A] border border-[#362052] shadow-lg">
-            <span class="text-xs text-slate-400 block font-bold">إجمالي الرصيد (SAR)</span>
+        <div class="p-5 rounded-3xl bg-gradient-to-br from-[#1a0b2e] to-[#120A1F] border border-[#362052] shadow-xl">
+            <span class="text-xs text-slate-300 block font-bold">إجمالي الرصيد (SAR)</span>
             <div class="text-2xl font-black font-mono text-white mt-2">
                 {{ "{:,.2f}".format((wallet.balance_sar + wallet.balance_pending)|float) }} <span class="text-xs text-amber-400 font-sans">ريال</span>
             </div>
         </div>
 
-        <div class="p-5 rounded-3xl bg-emerald-950/30 border border-emerald-500/30 shadow-lg">
+        <div class="p-5 rounded-3xl bg-gradient-to-br from-emerald-950/40 to-[#120A1F] border border-emerald-500/30 shadow-xl">
             <span class="text-xs text-emerald-400 block font-bold">الرصيد المتاح (SAR)</span>
             <div class="text-2xl font-black font-mono text-emerald-400 mt-2">
                 {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-emerald-300 font-sans">ريال</span>
             </div>
         </div>
 
-        <div class="p-5 rounded-3xl bg-amber-950/30 border border-amber-500/30 shadow-lg">
+        <div class="p-5 rounded-3xl bg-gradient-to-br from-amber-950/40 to-[#120A1F] border border-amber-500/30 shadow-xl">
             <span class="text-xs text-amber-400 block font-bold">الأرصدة المعلقة والضمانات (SAR)</span>
             <div class="text-2xl font-black font-mono text-amber-400 mt-2">
                 {{ "{:,.2f}".format(wallet.balance_pending|float) }} <span class="text-xs text-amber-300 font-sans">ريال</span>
@@ -57,20 +57,33 @@
         </div>
     </div>
 
+    <!-- قسم الفلاتر والبحث السريع في سجل الحركات -->
+    <div class="bg-gradient-to-r from-[#1a0b2e] to-[#120A1F] border border-[#362052] p-4 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="w-full sm:w-96 relative">
+            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-amber-400/70">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="txSearch" placeholder="بحث برقم السند، المرجع أو نوع الحركة..." 
+                   class="w-full bg-[#08020d] border border-[#4B2A73] text-white text-xs rounded-xl pr-10 pl-4 py-3 focus:outline-none focus:border-amber-400 transition placeholder-slate-400 font-medium shadow-inner">
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <span class="text-xs text-slate-200 font-bold bg-gradient-to-r from-[#1a0b2e] to-[#08020d] border border-[#4B2A73] px-4 py-2.5 rounded-xl shadow-md">
+                إجمالي الحركات: <span class="text-amber-400 font-mono">{{ wallet.transactions|length }}</span>
+            </span>
+        </div>
+    </div>
+
     <!-- t3. جدول الحركات المالية الدفترية للمحفظة -->
-    <div class="bg-[#1A102A] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
-        <div class="p-5 bg-[#160D26] border-b border-[#362052] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="bg-[#1a0b2e] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
+        <div class="p-5 bg-gradient-to-r from-[#160D26] to-[#08020d] border-b border-[#362052] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <h2 class="text-base font-black text-white flex items-center gap-2">
                 📜 سجل الحركات والقيود الدفترية
             </h2>
-            <span class="text-xs text-slate-400 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl font-mono font-bold">
-                إجمالي الحركات: {{ wallet.transactions|length }}
-            </span>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-right text-xs">
-                <thead class="bg-[#120A1F] text-slate-400 font-bold border-b border-[#362052] select-none">
+            <table class="w-full text-right text-xs" id="txTable">
+                <thead class="bg-gradient-to-r from-[#120A1F] to-[#08020d] text-slate-200 font-bold border-b border-[#362052] select-none">
                     <tr>
                         <th class="py-4 px-4">رقم السند</th>
                         <th class="py-4 px-4">رقم المرجع</th>
@@ -85,7 +98,7 @@
                 <tbody class="divide-y divide-[#231538]">
                     {% if wallet.transactions %}
                         {% for tx in wallet.transactions %}
-                        <tr class="hover:bg-purple-950/20 transition">
+                        <tr class="hover:bg-[#2d124a]/30 transition duration-200">
                             <td class="py-4 px-4 font-mono font-bold text-amber-400">
                                 {{ tx.voucher_number or '---' }}
                             </td>
@@ -104,11 +117,11 @@
                             <td class="py-4 px-4 text-left font-mono font-black text-white">
                                 {{ "{:,.2f}".format(tx.balance_after|float) }}
                             </td>
-                            <td class="py-4 px-4 font-mono text-slate-400">
+                            <td class="py-4 px-4 font-mono text-slate-300">
                                 {{ tx.formatted_time }}
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                                     {{ tx.status }}
                                 </span>
                             </td>
@@ -116,9 +129,11 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="8" class="py-12 text-center text-slate-400">
-                                <i class="fas fa-box-open text-2xl mb-2 block text-slate-500"></i>
-                                لا توجد حركات مالية مسجلة في هذه المحفظة حتى الآن.
+                            <td colspan="8" class="py-16 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center space-y-3">
+                                    <i class="fas fa-box-open text-4xl text-slate-500"></i>
+                                    <span class="font-bold text-sm text-slate-300">لا توجد حركات مالية مسجلة في هذه المحفظة حتى الآن.</span>
+                                </div>
                             </td>
                         </tr>
                     {% endif %}
@@ -128,4 +143,41 @@
     </div>
 
 </div>
+
+<!-- سكربت الفلتر والتفاعل المتقدم -->
+<script>
+    // بحث حي مباشر في سجل الحركات
+    document.getElementById('txSearch').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#txTable tbody tr');
+        
+        rows.forEach(row => {
+            let text = row.textContent.toLowerCase();
+            if(text.includes(filter)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    });
+
+    // تنبيه فخم عند الطباعة باستخدام SweetAlert2
+    function printStatementAlert() {
+        Swal.fire({
+            title: 'إعداد كشف الحساب للطباعة',
+            text: 'جاري تجهيز التقرير المالي الرسمي للمحفظة...',
+            icon: 'info',
+            background: '#1a0b2e',
+            color: '#fff',
+            confirmButtonColor: '#D4AF37',
+            timer: 1200,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        }).then(() => {
+            window.print();
+        });
+    }
+</script>
 {% endblock %}
