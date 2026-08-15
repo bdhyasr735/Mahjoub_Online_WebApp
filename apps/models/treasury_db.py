@@ -10,25 +10,30 @@ class TreasuryEntry(db.Model):
     """سجل الخزينة المركزية - سجل غير قابل للتعديل لضمان المطابقة المالية (SAR)"""
     __tablename__ = 'treasury_entries'
 
-    # [فهرسة متقدمة]: لضمان سرعة التقارير المالية والبحث عن الحركات
+    # [فهرسة متقدمة]: لضمان سرعة التقارير المالية والبحث عن الحركات والسندات
     __table_args__ = (
         db.Index('idx_treasury_type_date', 'entry_type', 'created_at'),
         db.Index('idx_treasury_owner', 'owner_type', 'owner_id'),
         db.Index('idx_treasury_ref', 'reference_number'),
+        db.Index('idx_treasury_voucher', 'voucher_number'),
         {'extend_existing': True}
     )
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # تصنيف الحركة: (revenue_net, affiliate_payout, supplier_settlement, operational_cost)
+    # تصنيف الحركة: (revenue_net, affiliate_payout, supplier_settlement, operational_cost, deposit)
     entry_type = db.Column(db.String(50), nullable=False) 
     
     # المبلغ بالريال السعودي (SAR) فقط
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     
-    # الربط المرجعي مع الطلبات والمحافظ (تم تعديله إلى String ليتطابق مع orders.id)
+    # العملة
+    currency = db.Column(db.String(10), default='SAR', nullable=False)
+
+    # الربط المرجعي مع الطلبات والمحافظ
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=True)
     reference_number = db.Column(db.String(80), nullable=True) 
+    voucher_number = db.Column(db.String(50), unique=True, nullable=True)  # ✅ حقل رقم السند المضاف حديثاً
     
     # هوية الطرف المعني
     owner_type = db.Column(db.String(20), nullable=False) # 'supplier', 'affiliate', 'platform'
@@ -67,11 +72,14 @@ class TreasuryEntry(db.Model):
             'id': self.id,
             'entry_type': self.entry_type,
             'amount': float(self.amount),
+            'currency': self.currency,
             'order_id': self.order_id,
+            'reference_number': self.reference_number,
+            'voucher_number': self.voucher_number,
             'owner': f"{self.owner_type}_{self.owner_id}",
             'description': self.description,
             'date': self.created_at.isoformat()
         }
 
     def __repr__(self):
-        return f"<Treasury {self.entry_type} | {self.amount} SAR | {self.owner_type}>"
+        return f"<Treasury {self.entry_type} | {self.amount} {self.currency} | Voucher: {self.voucher_number}>"
