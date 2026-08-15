@@ -1,5 +1,6 @@
+# coding: utf-8
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
-from apps.models import SupplierWallet, WalletLedgerEntry, db
+from apps.models import SupplierWallet, WalletTransaction, db
 from sqlalchemy import or_, func
 
 bp = Blueprint('suppliers_wallets_controller', __name__)
@@ -20,7 +21,7 @@ def index():
     # بناء الاستعلام الأساسي للمحافظ
     query = SupplierWallet.query
 
-    # تطبيق البحث النصي (اسم المورد، كود المحفظة، السجل التجاري، الآيبان، أو المدينة)
+    # تطبيق البحث النصي (تأكد من مطابقة أسماء الأعمدة الفعلية في نموذج SupplierWallet)
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
@@ -49,9 +50,9 @@ def index():
     total_suppliers_count = SupplierWallet.query.count()
     active_suppliers_count = SupplierWallet.query.filter_by(status='active').count()
     
-    # العمليات المعلقة (إن وجدت ضمن جدول الحركات الدفترية أو المحافظ)
-    pending_withdrawals_amount = db.session.query(func.sum(WalletLedgerEntry.amount)).filter_by(status='pending').scalar() or 0.00
-    pending_withdrawals_count = WalletLedgerEntry.query.filter_by(status='pending').count()
+    # العمليات المعلقة باستخدام نموذج WalletTransaction الصحيح
+    pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or 0.00
+    pending_withdrawals_count = WalletTransaction.query.filter_by(status='pending').count()
 
     kpis = {
         'total_wallets_balance': total_wallets_balance,
