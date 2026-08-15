@@ -1,4 +1,3 @@
-apps/admin_treasury/templates/admin/treasury/treasury_modal.tsx
 import React from 'react';
 import { X, FileText, CheckCircle2, ShieldCheck, Printer, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { TreasuryTransaction } from '../../../../../src/types';
@@ -10,6 +9,27 @@ interface TreasuryModalProps {
 
 export const TreasuryModalComponent: React.FC<TreasuryModalProps> = ({ transaction, onClose }) => {
   if (!transaction) return null;
+
+  // دالة ذكية لترجمة التصنيف أو نوع الحركة إلى العربية في الواجهة الأمامية
+  const getLocalizedCategory = (category: string) => {
+    if (!category) return "حركة عامة";
+    
+    const translations: Record<string, string> = {
+      'deposit': 'إيداع نقدي',
+      'revenue_net': 'صافي إيرادات مبيعات',
+      'supplier_settlement': 'تسوية مستحقات مورد',
+      'affiliate_payout': 'عمولة مسوق بالعمولة',
+      'operational_cost': 'تكلفة تشغيلية',
+      'Cash Deposit': 'إيداع نقدي',
+      'Net Sales Revenue': 'صافي إيرادات مبيعات',
+      'Supplier Settlement': 'تسوية مستحقات مورد',
+      'Affiliate Payout': 'عمولة مسوق بالعمولة',
+      'Operational Cost': 'تكلفة تشغيلية'
+    };
+
+    const cleaned = String(category).trim();
+    return translations[cleaned] || cleaned;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
@@ -66,7 +86,9 @@ export const TreasuryModalComponent: React.FC<TreasuryModalProps> = ({ transacti
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
               <span className="text-slate-500 block">التصنيف</span>
-              <span className="font-bold text-slate-900 mt-1 block">{transaction.categoryName}</span>
+              <span className="font-bold text-slate-900 mt-1 block">
+                {getLocalizedCategory(transaction.categoryName)}
+              </span>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
               <span className="text-slate-500 block">التاريخ والوقت</span>
