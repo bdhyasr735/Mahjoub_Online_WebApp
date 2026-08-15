@@ -1,36 +1,68 @@
-<!-- شبكة مؤشرات الأداء المالي للمحافظ (KPIs Cards) -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-    
-    <!-- إجمالي أرصدة المحافظ -->
-    <div style="background: #4A154B; color: #FBBF24; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #3F0E40; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-        <span style="font-size: 0.8rem; opacity: 0.9; display: block; margin-bottom: 0.5rem;">إجمالي أرصدة المحافظ</span>
-        <div style="font-size: 1.8rem; font-weight: 900; color: #ffffff;">
-            {{ "%.2f"|format(kpis.total_wallets_balance) }} <span style="font-size: 0.9rem; color: #FBBF24;">SAR</span>
+<!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- كرت 1: إجمالي أرصدة المحافظ -->
+    <div class="bg-[#1A102A] border border-[#362052] p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-purple-500/40 transition">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-bold">
+            <span>إجمالي أرصدة محافظ الموردين</span>
+            <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-300 flex items-center justify-center">
+                💳
+            </div>
+        </div>
+        <div class="text-2xl font-black font-mono text-white mt-2">
+            {{ "{:,.2f}".format(kpis.total_wallets_balance) }} <span class="text-xs text-amber-400 font-sans">ريال</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-[#362052]/60 pt-2">
+            <span>إجمالي الموردين المسجلين:</span>
+            <span class="font-mono font-bold text-slate-200">{{ "{:,}".format(kpis.total_suppliers_count) }}</span>
         </div>
     </div>
 
-    <!-- إجمالي المدفوعات المتاحة -->
-    <div style="background: #ffffff; border: 2px solid #4A154B; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <span style="font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 0.5rem;">إجمالي المدفوعات المتاحة</span>
-        <div style="font-size: 1.8rem; font-weight: 900; color: #120A1F;">
-            {{ "%.2f"|format(kpis.total_available_payouts) }} <span style="font-size: 0.9rem; color: #b45309;">SAR</span>
+    <!-- كرت 2: الرصيد المتاح للسحب الفوري -->
+    <div class="bg-[#1A102A] border border-emerald-500/30 p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-emerald-500/50 transition">
+        <div class="flex items-center justify-between text-emerald-400 text-xs font-bold">
+            <span>الرصيد المتاح للسحب الفوري</span>
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                ⚡
+            </div>
+        </div>
+        <div class="text-2xl font-black font-mono text-emerald-400 mt-2">
+            {{ "{:,.2f}".format(kpis.total_available_payouts) }} <span class="text-xs text-emerald-300 font-sans">ريال</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-[#362052]/60 pt-2">
+            <span>جاهز للتحويل الفوري عبر SAMA SARIE</span>
         </div>
     </div>
 
-    <!-- الأرصدة المعلقة (Escrow) -->
-    <div style="background: #ffffff; border: 2px solid #FBBF24; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <span style="font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 0.5rem;">الأرصدة المعلقة (Escrow)</span>
-        <div style="font-size: 1.8rem; font-weight: 900; color: #3F0E40;">
-            {{ "%.2f"|format(kpis.total_escrow_held) }} <span style="font-size: 0.9rem;">SAR</span>
+    <!-- كرت 3: أمانات الضمان المحجوزة Escrow -->
+    <div class="bg-[#1A102A] border border-amber-500/30 p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-amber-500/50 transition">
+        <div class="flex items-center justify-between text-amber-400 text-xs font-bold">
+            <span>أمانات الضمان المحجوزة (Escrow)</span>
+            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                🔒
+            </div>
+        </div>
+        <div class="text-2xl font-black font-mono text-amber-400 mt-2">
+            {{ "{:,.2f}".format(kpis.total_escrow_held) }} <span class="text-xs text-amber-300 font-sans">ريال</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-[#362052]/60 pt-2">
+            <span>حماية مبيعات قيد الشحن والتسليم</span>
         </div>
     </div>
 
-    <!-- عدد الموردين النشطين -->
-    <div style="background: #3F0E40; color: #FBBF24; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #4A154B; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-        <span style="font-size: 0.8rem; opacity: 0.9; display: block; margin-bottom: 0.5rem;">الموردين النشطين / الإجمالي</span>
-        <div style="font-size: 1.8rem; font-weight: 900; color: #ffffff;">
-            {{ kpis.active_suppliers_count }} <span style="font-size: 1rem; font-weight: normal; color: #d1d5db;">/ {{ "{:,}".format(kpis.total_suppliers_count) }}</span>
+    <!-- كرت 4: طلبات السحب قيد الانتظار -->
+    <div class="bg-[#1A102A] border border-purple-500/30 p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-purple-500/50 transition">
+        <div class="flex items-center justify-between text-purple-300 text-xs font-bold">
+            <span>طلبات السحب قيد الانتظار</span>
+            <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-300 flex items-center justify-center">
+                ⏳
+            </div>
+        </div>
+        <div class="text-2xl font-black font-mono text-purple-300 mt-2">
+            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount) }} <span class="text-xs text-purple-200 font-sans">ريال</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-400 flex items-center justify-between border-t border-[#362052]/60 pt-2">
+            <span>عدد الطلبات:</span>
+            <span class="font-mono font-bold text-amber-400">{{ kpis.pending_withdrawals_count }} طلب مفتوح</span>
         </div>
     </div>
-
 </div>
