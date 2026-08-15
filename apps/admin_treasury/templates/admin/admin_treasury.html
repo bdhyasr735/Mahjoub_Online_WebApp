@@ -45,6 +45,21 @@
         {% endfor %}
     </div>
 
+    <!-- شريط البحث السريع بالمرجع -->
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+        <form method="GET" action="{{ url_for('admin_treasury.treasury_index') }}" class="row g-2 align-items-center">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-0 bg-light" placeholder="ابحث برمز المرجع (مثال: TRZ-2026-0841) أو البيان..." value="{{ filters.q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn text-white w-100 fw-bold" style="background: var(--royal-purple);">بحث وتصفية</button>
+            </div>
+        </form>
+    </div>
+
     <!-- جدول قيود الخزينة -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden" id="ledger-micro-container">
         <div class="card-header bg-light py-3 px-4 d-flex justify-content-between align-items-center border-0">
@@ -65,22 +80,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for record in [
-                        {'ref': 'TRZ-2026-0841', 'desc': 'سداد مبيعات طلب #ORD-9928', 'amt': '+12,450.00'},
-                        {'ref': 'TRZ-2026-0840', 'desc': 'مستحقات شركة الرياض', 'amt': '-45,000.00'},
-                        {'ref': 'TRZ-2026-0839', 'desc': 'حجز ضمان #SHP-401', 'amt': '+35,800.00'}
-                    ] %}
-                    <tr class="hover-bg cursor-pointer transition" 
-                        ondblclick="handleRowDblClick('{{ record.ref }}', '{{ record.desc }}', '{{ record.amt }}')">
-                        <td class="py-3 px-4 font-monospace fw-bold">{{ record.ref }}</td>
-                        <td class="py-3 px-4 font-monospace text-muted">2026-08-14</td>
-                        <td class="py-3 px-4 fw-bold">{{ record.desc }}</td>
-                        <td class="py-3 px-4 text-start font-monospace fw-black {{ 'text-success' if '+' in record.amt else 'text-danger' }}">{{ record.amt }}</td>
-                        <td class="py-3 px-4 text-center">
-                            <a href="detail/{{ record.ref }}" class="text-decoration-none fw-bold" style="color: var(--royal-purple);">عرض</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    {% if vouchers %}
+                        {% for record in vouchers %}
+                        <tr class="hover-bg cursor-pointer transition" 
+                            ondblclick="handleRowDblClick('{{ record.ref_code }}', '{{ record.source_destination }}', '{{ record.amount }}')">
+                            <td class="py-3 px-4 font-monospace fw-bold">{{ record.ref_code }}</td>
+                            <td class="py-3 px-4 font-monospace text-muted">{{ record.created_at }}</td>
+                            <td class="py-3 px-4 fw-bold">{{ record.source_destination }}</td>
+                            <td class="py-3 px-4 text-start font-monospace fw-black {{ 'text-success' if record.flow_type == 'inflow' else 'text-danger' }}">
+                                {{ '+' if record.flow_type == 'inflow' else '-' }}{{ "{:,.2f}".format(record.amount) }}
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <a href="detail/{{ record.ref_code }}" class="text-decoration-none fw-bold" style="color: var(--royal-purple);">عرض</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">لا توجد قيود تطابق بحثك الحالي.</td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
