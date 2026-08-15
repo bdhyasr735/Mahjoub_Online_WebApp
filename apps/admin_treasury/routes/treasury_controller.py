@@ -10,6 +10,7 @@ from apps.extensions import db
 from apps.models.treasury_db import TreasuryEntry
 from apps.models.financials_db import OrderFinancial
 from apps.models.supplier_db import Supplier
+from apps.models.wallet_db import SupplierWallet
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 template_folder_path = os.path.abspath(os.path.join(basedir, '../templates'))
@@ -31,7 +32,7 @@ ENTRY_TYPE_TRANSLATIONS = {
 }
 
 def enrich_voucher_data(voucher):
-    """تحويل السجل إلى كائن مرن آمن يحمل كافة الخصائص لتجنب قيود قاعدة البيانات وصفحات الخطأ"""
+    """تحويل السجل إلى كائن مرن آمن يحمل كافة الخصائص الحقيقية للمتجر والمحفظة"""
     if not voucher:
         return None
     
@@ -48,7 +49,35 @@ def enrich_voucher_data(voucher):
         formatted_time = '-'
 
     owner_type = getattr(voucher, 'owner_type', 'عام') or 'عام'
-    owner_id = getattr(voucher, 'owner_id', 'N/A') or 'N/A'
+    owner_id = getattr(voucher, 'owner_id', None)
+
+    # جلب بيانات المورد والمحفظة الحقيقية من قاعدة البيانات لربط الأكواد والأسماء بدقة
+    store_name_val = None
+    owner_name_val = None
+    wallet_code_val = None
+    supplier_code_val = None
+
+    if owner_id and str(owner_id).isdigit():
+        supplier_obj = db.session.get(Supplier, int(owner_id))
+        if supplier_obj:
+            store_name_val = supplier_obj.store_name or supplier_obj.trade_name or supplier_obj.username
+            owner_name_val = supplier_obj.owner_name
+            supplier_code_val = supplier_obj.supplier_code or f"SUP-963{supplier_obj.id}"
+            
+            if supplier_obj.wallet:
+                wallet_code_val = supplier_obj.wallet.wallet_code
+
+        # Fallback للبحث عن المحفظة مباشرة إذا لم تكن مرتبطة عبر العلاقة العكسية
+        if not wallet_code_val:
+            wallet_obj = SupplierWallet.query.filter_by(supplier_id=int(owner_id)).first()
+            if wallet_obj:
+                wallet_code_val = wallet_obj.wallet_code
+
+    # استخدام القيم الافتراضية المنسجمة مع نظامك النمطي إذا لم توجد بيانات
+    final_store_name = store_name_val or f"متجر الطرف ({owner_type})"
+    final_owner_name = owner_name_val or f"مستخدم نظام ID: {owner_id or 'N/A'}"
+    final_wallet_code = wallet_code_val or (f"WEL-963{owner_id}" if owner_id else "WEL-963X")
+    final_supplier_code = supplier_code_val or (f"SUP-963{owner_id}" if owner_id else "SUP-963X")
 
     class VoucherWrapper:
         def __init__(self, original_obj, loc_type, fmt_time):
@@ -64,10 +93,10 @@ def enrich_voucher_data(voucher):
             self.owner_type = owner_type
             self.owner_id = owner_id
             self.owner_details = {
-                "store_name": getattr(original_obj, 'store_name', None) or f"متجر الطرف ({owner_type})",
-                "owner_name": getattr(original_obj, 'owner_name', None) or f"مستخدم نظام ID: {owner_id}",
-                "wallet_code": f"WLT-{owner_id}-SAR",
-                "supplier_code": f"SUP-{owner_id}"
+                "store_name": final_store_name,
+                "owner_name": final_owner_name,
+                "wallet_code": final_wallet_code,
+                "supplier_code": final_supplier_code
             }
 
         def __getattr__(self, name):
