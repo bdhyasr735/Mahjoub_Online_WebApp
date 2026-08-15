@@ -40,12 +40,10 @@
                 <thead class="bg-[#120A1F] text-slate-400 font-bold border-b border-[#362052] select-none">
                     <tr>
                         <th class="py-4 px-4">كود المحفظة</th>
-                        <th class="py-4 px-4">المورد والنشاط</th>
-                        <th class="py-4 px-4">السجل التجاري</th>
+                        <th class="py-4 px-4">المورد</th>
                         <th class="py-4 px-4 text-left">الرصيد المتاح (SAR)</th>
-                        <th class="py-4 px-4 text-left">الضمان المحجوز (SAR)</th>
+                        <th class="py-4 px-4 text-left">الرصيد المعلق (SAR)</th>
                         <th class="py-4 px-4 text-left">إجمالي الرصيد (SAR)</th>
-                        <th class="py-4 px-4">البنك المعتمد</th>
                         <th class="py-4 px-4 text-center">الحالة</th>
                         <th class="py-4 px-4 text-center">الإجراءات</th>
                     </tr>
@@ -53,47 +51,33 @@
                 <tbody class="divide-y divide-[#231538]">
                     {% for supplier in suppliers %}
                     <tr 
-                        ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
+                        ondblclick="window.location.href='{{ url_for('suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
                         title="انقر نقراً مزدوجاً لفتح كشف الحساب"
                         class="hover:bg-purple-950/20 cursor-pointer transition select-none group"
                     >
                         <td class="py-4 px-4 font-mono font-bold text-amber-400">
                             {{ supplier.wallet_code }}
                         </td>
-                        <td class="py-4 px-4">
-                            <div class="font-extrabold text-white">{{ supplier.supplier_name }}</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">{{ supplier.category }}</div>
-                        </td>
-                        <td class="py-4 px-4 font-mono text-slate-300">
-                            {{ supplier.commercial_reg }}
+                        <td class="py-4 px-4 font-bold text-white">
+                            {{ supplier.supplier.supplier_name if supplier.supplier else '---' }}
                         </td>
                         <td class="py-4 px-4 text-left font-mono font-black text-emerald-400">
-                            {{ "{:,.2f}".format(supplier.available_balance) }}
+                            {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                         </td>
                         <td class="py-4 px-4 text-left font-mono font-bold text-amber-400">
-                            {{ "{:,.2f}".format(supplier.pending_escrow_balance) }}
+                            {{ "{:,.2f}".format(supplier.balance_pending|float) }}
                         </td>
                         <td class="py-4 px-4 text-left font-mono font-black text-white text-sm">
-                            {{ "{:,.2f}".format(supplier.total_balance) }}
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="font-bold text-slate-200">{{ supplier.bank_name }}</div>
-                            <div class="text-[10px] font-mono text-slate-400 truncate max-w-[120px]">{{ supplier.iban }}</div>
+                            {{ "{:,.2f}".format((supplier.balance_sar + supplier.balance_pending)|float) }}
                         </td>
                         <td class="py-4 px-4 text-center">
-                            {% if supplier.status == 'active' %}
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                                 نشطة ✓
                             </span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                                مجمدة 🔒
-                            </span>
-                            {% endif %}
                         </td>
                         <td class="py-4 px-4 text-center">
                             <a 
-                                href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}"
+                                href="{{ url_for('suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}"
                                 class="inline-flex items-center px-3 py-1.5 bg-[#231538] hover:bg-[#362052] text-amber-400 hover:text-amber-300 font-bold rounded-lg border border-[#4B2A73]/40 text-xs transition"
                             >
                                 كشف الحساب
@@ -112,27 +96,17 @@
             </div>
 
             <div class="flex items-center gap-1.5 font-mono font-bold">
-                <a 
-                    href="?page={{ pagination.prev_page }}" 
-                    class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] {% if not pagination.has_prev %}opacity-40 pointer-events-none{% endif %} text-slate-200 rounded-xl border border-[#4B2A73]/40 transition"
-                >
+                <a href="?page={{ pagination.prev_page }}" class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] {% if not pagination.has_prev %}opacity-40 pointer-events-none{% endif %} text-slate-200 rounded-xl border border-[#4B2A73]/40 transition">
                     السابق
                 </a>
-
                 <span class="w-8 h-8 rounded-xl bg-amber-400 text-[#120A1F] font-black flex items-center justify-center text-xs shadow-md">
                     {{ pagination.current_page }}
                 </span>
-
-                <a 
-                    href="?page={{ pagination.next_page }}" 
-                    class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] {% if not pagination.has_next %}opacity-40 pointer-events-none{% endif %} text-slate-200 rounded-xl border border-[#4B2A73]/40 transition"
-                >
+                <a href="?page={{ pagination.next_page }}" class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] {% if not pagination.has_next %}opacity-40 pointer-events-none{% endif %} text-slate-200 rounded-xl border border-[#4B2A73]/40 transition">
                     التالي
                 </a>
             </div>
         </div>
-
     </div>
-
 </div>
 {% endblock %}
