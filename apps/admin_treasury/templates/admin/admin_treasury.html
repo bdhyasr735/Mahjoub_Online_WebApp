@@ -1,71 +1,77 @@
 {% extends "admin/admin_base.html" %}
 
 {% block extra_css %}
+<!-- تفعيل مكتبة تيلويند خصيصاً لهذه الصفحة لضمان عمل الكلاسات بكفاءة وعدم ظهور شاشة بيضاء -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    mahjoub: {
+                        purple: '#4A154B',
+                        dark: '#1a0b2e',
+                        gold: '#D4AF37'
+                    }
+                }
+            }
+        }
+    }
+</script>
 <style>
-    .gold-accent { color: #D4AF37; }
-    .gold-border { border-color: rgba(212, 175, 55, 0.3) !important; }
-    .glass-card { background: rgba(30, 27, 75, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .gold-border { border-color: rgba(212, 175, 55, 0.3); }
+    .glass-card { background: rgba(26, 11, 46, 0.85); backdrop-filter: blur(12px); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-2 py-4">
+<div class="max-w-7xl mx-auto px-4 py-8 w-full">
         
     <!-- عنوان الصفحة -->
-    <div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-            <h2 class="text-white fw-bold mb-1">إدارة الخزينة والسيولة</h2>
-            <p class="text-muted small mb-0">متابعة الحركات المالية، سندات القيد، وتسويات الموردين والمسوقين بدقة لحظية</p>
+            <h1 class="text-3xl font-black text-slate-900 dark:text-white">إدارة الخزينة والسيولة</h1>
+            <p class="text-xs text-slate-500 dark:text-purple-300 mt-1">متابعة الحركات المالية، سندات القيد، وتسويات الموردين والمسوقين بدقة لحظية</p>
         </div>
-        <div class="glass-card px-4 py-2 rounded-3 text-center border gold-border">
-            <span class="d-block text-secondary small">الرصيد الصافي للخزينة</span>
-            <span class="fs-5 fw-bold gold-accent">{{ "%.2f"|format(kpi.total_treasury_balance) }} {{ kpi.currency }}</span>
+        <div class="bg-white dark:bg-purple-950/60 border gold-border px-5 py-3 rounded-2xl text-center shadow-lg">
+            <span class="block text-xs text-slate-400 dark:text-purple-400">الرصيد الصافي للخزينة</span>
+            <span class="text-xl font-black text-amber-500 dark:text-amber-400 font-mono">{{ "%.2f"|format(kpi.total_treasury_balance) }} {{ kpi.currency }}</span>
         </div>
     </div>
 
     <!-- بطاقات المؤشرات (KPIs) -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-6 col-lg">
-            <div class="glass-card p-3 rounded-3 border-start border-4 border-success h-100">
-                <span class="text-muted small d-block">إجمالي الواردات</span>
-                <span class="fs-5 fw-bold text-success mt-1 d-block">{{ "%.2f"|format(kpi.total_inflow) }}</span>
-            </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div class="bg-white dark:bg-purple-950/40 border border-slate-200 dark:border-purple-900/50 p-4 rounded-2xl border-r-4 border-emerald-500 shadow-sm">
+            <span class="text-xs text-slate-500 dark:text-purple-300 block">إجمالي الواردات</span>
+            <span class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block font-mono">{{ "%.2f"|format(kpi.total_inflow) }}</span>
         </div>
-        <div class="col-12 col-sm-6 col-lg">
-            <div class="glass-card p-3 rounded-3 border-start border-4 border-danger h-100">
-                <span class="text-muted small d-block">إجمالي المنصرفات</span>
-                <span class="fs-5 fw-bold text-danger mt-1 d-block">{{ "%.2f"|format(kpi.total_outflow) }}</span>
-            </div>
+        <div class="bg-white dark:bg-purple-950/40 border border-slate-200 dark:border-purple-900/50 p-4 rounded-2xl border-r-4 border-rose-500 shadow-sm">
+            <span class="text-xs text-slate-500 dark:text-purple-300 block">إجمالي المنصرفات</span>
+            <span class="text-xl font-black text-rose-600 dark:text-rose-400 mt-1 block font-mono">{{ "%.2f"|format(kpi.total_outflow) }}</span>
         </div>
-        <div class="col-12 col-sm-6 col-lg">
-            <div class="glass-card p-3 rounded-3 border-start border-4 border-warning h-100">
-                <span class="text-muted small d-block">احتياطي الضمان (Escrow)</span>
-                <span class="fs-5 fw-bold gold-accent mt-1 d-block">{{ "%.2f"|format(kpi.escrow_reserve) }}</span>
-            </div>
+        <div class="bg-white dark:bg-purple-950/40 border border-slate-200 dark:border-purple-900/50 p-4 rounded-2xl border-r-4 border-amber-500 shadow-sm">
+            <span class="text-xs text-slate-500 dark:text-purple-300 block">احتياطي الضمان (Escrow)</span>
+            <span class="text-xl font-black text-amber-600 dark:text-amber-400 mt-1 block font-mono">{{ "%.2f"|format(kpi.escrow_reserve) }}</span>
         </div>
-        <div class="col-12 col-sm-6 col-lg">
-            <div class="glass-card p-3 rounded-3 border-start border-4 border-purple h-100">
-                <span class="text-muted small d-block">صافي أرباح المنصة</span>
-                <span class="fs-5 fw-bold text-light mt-1 d-block">{{ "%.2f"|format(kpi.net_platform_profit) }}</span>
-            </div>
+        <div class="bg-white dark:bg-purple-950/40 border border-slate-200 dark:border-purple-900/50 p-4 rounded-2xl border-r-4 border-purple-500 shadow-sm">
+            <span class="text-xs text-slate-500 dark:text-purple-300 block">صافي أرباح المنصة</span>
+            <span class="text-xl font-black text-purple-700 dark:text-purple-200 mt-1 block font-mono">{{ "%.2f"|format(kpi.net_platform_profit) }}</span>
         </div>
-        <div class="col-12 col-sm-6 col-lg">
-            <div class="glass-card p-3 rounded-3 border-start border-4 border-info h-100">
-                <span class="text-muted small d-block">العملة المعتمدة</span>
-                <span class="fs-5 fw-bold text-info mt-1 d-block">{{ kpi.currency }}</span>
-            </div>
+        <div class="bg-white dark:bg-purple-950/40 border border-slate-200 dark:border-purple-900/50 p-4 rounded-2xl border-r-4 border-blue-500 shadow-sm">
+            <span class="text-xs text-slate-500 dark:text-purple-300 block">العملة المعتمدة</span>
+            <span class="text-xl font-black text-blue-600 dark:text-blue-300 mt-1 block font-mono">{{ kpi.currency }}</span>
         </div>
     </div>
 
     <!-- شريط البحث والفلترة -->
-    <div class="glass-card p-3 rounded-3 mb-4 border gold-border">
-        <form method="GET" action="/admin/treasury/" class="row g-3 align-items-center justify-content-between">
-            <div class="col-12 col-md-6 d-flex gap-2">
-                <input type="text" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="form-control bg-dark text-white border-secondary">
-                <button type="submit" class="btn btn-warning fw-bold px-4">بحث</button>
+    <div class="bg-white dark:bg-purple-950/60 border border-slate-200 gold-border p-4 rounded-2xl mb-6 shadow-sm">
+        <form method="GET" action="/admin/treasury/" class="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="w-full md:w-1/2 flex gap-2">
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-purple-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-400">
+                <button type="submit" class="bg-[#4A154B] hover:bg-[#3F0E40] text-amber-300 font-bold px-6 py-2.5 rounded-xl transition text-xs shadow-sm">بحث</button>
             </div>
-            <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-                <select name="flow_type" onchange="this.form.submit()" class="form-select bg-dark text-white border-secondary">
+            <div class="w-full md:w-auto flex items-center gap-2">
+                <select name="flow_type" onchange="this.form.submit()" class="bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-purple-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-400 w-full md:w-52">
                     <option value="">جميع أنواع الحركات</option>
                     <option value="deposit" {% if filters.flow_type == 'deposit' %}selected{% endif %}>إيداع نقدي</option>
                     <option value="revenue_net" {% if filters.flow_type == 'revenue_net' %}selected{% endif %}>صافي إيرادات مبيعات</option>
@@ -74,75 +80,79 @@
                     <option value="operational_cost" {% if filters.flow_type == 'operational_cost' %}selected{% endif %}>تكلفة تشغيلية</option>
                 </select>
                 {% if filters.q or filters.flow_type %}
-                <a href="/admin/treasury/" class="btn btn-outline-danger btn-sm text-nowrap">إلغاء الفلترة</a>
+                <a href="/admin/treasury/" class="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-rose-600 dark:text-rose-400 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-500/30 transition text-nowrap">إلغاء الفلترة</a>
                 {% endif %}
             </div>
         </form>
     </div>
 
     <!-- جدول الحركات المالية -->
-    <div class="table-responsive-mahjoub shadow-lg bg-white rounded-3 overflow-hidden">
-        <table class="table table-mahjoub table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>رقم السند / المرجع</th>
-                    <th>نوع الحركة</th>
-                    <th>الطرف المعني / المتجر</th>
-                    <th>المبلغ</th>
-                    <th>التاريخ والوقت</th>
-                    <th class="text-center">الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if vouchers %}
-                    {% for v in vouchers %}
-                    <tr class="cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
-                        <td>
-                            <span class="d-block fw-bold text-dark">{{ v.voucher_number or '-' }}</span>
-                            <span class="text-muted small font-monospace">{{ v.reference_number or '-' }}</span>
-                        </td>
-                        <td>
-                            <span class="badge {% if v.entry_type in ['deposit', 'revenue_net'] %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %}">
-                                {{ v.localized_entry_type }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="d-block fw-bold text-dark">{{ v.owner_details.store_name }}</span>
-                            <span class="text-muted small">{{ v.owner_details.owner_name }}</span>
-                        </td>
-                        <td class="fw-bold {% if v.entry_type in ['deposit', 'revenue_net'] %}text-success{% else %}text-danger{% endif %}">
-                            {{ "%.2f"|format(v.amount) }} SAR
-                        </td>
-                        <td class="small text-muted font-monospace">
-                            {{ v.formatted_time }}
-                        </td>
-                        <td class="text-center">
-                            <a href="/admin/treasury/detail/{{ v.reference_number or v.voucher_number }}" class="btn btn-sm btn-outline-warning text-dark px-3">
-                                التفاصيل
-                            </a>
-                        </td>
+    <div class="bg-white dark:bg-purple-950/80 rounded-3xl overflow-hidden shadow-xl border border-slate-200 gold-border">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 dark:bg-[#4A154B] text-slate-700 dark:text-purple-200 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-purple-900">
+                        <th class="p-4 font-bold">رقم السند / المرجع</th>
+                        <th class="p-4 font-bold">نوع الحركة</th>
+                        <th class="p-4 font-bold">الطرف المعني / المتجر</th>
+                        <th class="p-4 font-bold">المبلغ</th>
+                        <th class="p-4 font-bold">التاريخ والوقت</th>
+                        <th class="p-4 font-bold text-center">الإجراءات</th>
                     </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            لا توجد سجلات مالية مطابقة للبحث أو الخزينة فارغة حالياً.
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-purple-900/30 text-xs">
+                    {% if vouchers %}
+                        {% for v in vouchers %}
+                        <tr class="hover:bg-purple-50/60 dark:hover:bg-purple-900/20 transition cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
+                            <td class="p-4 font-mono">
+                                <span class="block text-slate-900 dark:text-white font-black">{{ v.voucher_number or '-' }}</span>
+                                <span class="text-slate-400 dark:text-purple-400 text-[11px]">{{ v.reference_number or '-' }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="inline-block px-3 py-1 rounded-full font-bold
+                                    {% if v.entry_type in ['deposit', 'revenue_net'] %} bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30
+                                    {% else %} bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 {% endif %}">
+                                    {{ v.localized_entry_type }}
+                                </span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block font-bold text-slate-900 dark:text-white">{{ v.owner_details.store_name }}</span>
+                                <span class="text-[11px] text-slate-500 dark:text-purple-400">{{ v.owner_details.owner_name }}</span>
+                            </td>
+                            <td class="p-4 font-black font-mono {% if v.entry_type in ['deposit', 'revenue_net'] %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                                {{ "%.2f"|format(v.amount) }} SAR
+                            </td>
+                            <td class="p-4 text-slate-500 dark:text-purple-300 font-mono text-[11px]">
+                                {{ v.formatted_time }}
+                            </td>
+                            <td class="p-4 text-center">
+                                <a href="/admin/treasury/detail/{{ v.reference_number or v.voucher_number }}" class="inline-block bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-800 text-purple-700 dark:text-amber-300 px-3.5 py-1.5 rounded-xl border border-purple-200 dark:border-amber-500/30 transition font-bold shadow-2xs">
+                                    التفاصيل
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="p-10 text-center text-slate-400 dark:text-purple-400">
+                                لا توجد سجلات مالية مطابقة للبحث أو الخزينة فارغة حالياً.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
 
         <!-- الترقيم (Pagination) -->
         {% if total_pages > 1 %}
-        <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center small">
-            <span class="text-muted">الصفحة {{ current_page }} من {{ total_pages }}</span>
-            <div class="d-flex gap-2">
+        <div class="p-4 bg-slate-50 dark:bg-purple-950/40 border-t border-slate-200 dark:border-purple-900 flex justify-between items-center text-xs">
+            <span class="text-slate-500 dark:text-purple-300">الصفحة {{ current_page }} من {{ total_pages }}</span>
+            <div class="flex gap-2">
                 {% if current_page > 1 %}
-                <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="btn btn-sm btn-outline-dark">السابق</a>
+                <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-purple-200 px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-purple-800 shadow-2xs">السابق</a>
                 {% endif %}
                 {% if current_page < total_pages %}
-                <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="btn btn-sm btn-outline-dark">التالي</a>
+                <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-purple-200 px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-purple-800 shadow-2xs">التالي</a>
                 {% endif %}
             </div>
         </div>
@@ -154,19 +164,19 @@
 <!-- نافذة منبثقة سريعة (Modal) -->
 <div class="modal fade" id="quick-voucher-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card border gold-border p-4 rounded-4 text-white bg-dark">
-            <div class="modal-header border-bottom border-secondary pb-3 d-flex justify-content-between align-items-center">
-                <h5 class="modal-title fw-bold gold-accent">معاينة سند القيد</h5>
+        <div class="modal-content bg-slate-900 border gold-border p-4 rounded-3xl text-white shadow-2xl">
+            <div class="modal-header border-b border-purple-900 pb-3 flex justify-between items-center">
+                <h5 class="modal-title font-bold text-amber-400 text-sm">معاينة سند القيد</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body py-4 text-center">
-                <span id="modal-ref-code" class="small font-monospace text-warning d-block mb-2"></span>
-                <div id="modal-amount" class="fs-2 fw-black mb-2">0.00 SAR</div>
-                <p id="modal-owner" class="small text-light"></p>
+            <div class="modal-body py-6 text-center">
+                <span id="modal-ref-code" class="text-xs font-mono text-purple-400 block mb-2"></span>
+                <div id="modal-amount" class="text-3xl font-black font-mono mb-2">0.00 SAR</div>
+                <p id="modal-owner" class="text-xs text-purple-200"></p>
             </div>
-            <div class="modal-footer border-top border-secondary pt-3 d-flex justify-content-between">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إغلاق</button>
-                <a id="modal-detail-link" href="#" class="btn btn-warning btn-sm fw-bold">عرض التفاصيل الكاملة</a>
+            <div class="modal-footer border-t border-purple-900 pt-3 flex justify-between items-center">
+                <button type="button" class="bg-slate-800 text-purple-200 px-4 py-2 rounded-xl text-xs" data-bs-dismiss="modal">إغلاق</button>
+                <a id="modal-detail-link" href="#" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">عرض التفاصيل الكاملة</a>
             </div>
         </div>
     </div>
@@ -183,7 +193,7 @@
         let formattedAmt = (isInflow ? '+' : '-') + Number(amt).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' SAR';
         let amountEl = document.getElementById('modal-amount');
         amountEl.innerText = formattedAmt;
-        amountEl.className = "fs-2 fw-black mb-2 " + (isInflow ? 'text-success' : 'text-danger');
+        amountEl.className = "text-3xl font-black font-mono mb-2 " + (isInflow ? 'text-emerald-400' : 'text-rose-400');
         
         document.getElementById('modal-detail-link').href = 'detail/' + ref;
         
