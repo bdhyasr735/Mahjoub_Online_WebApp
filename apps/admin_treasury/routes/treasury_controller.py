@@ -5,7 +5,6 @@ import os
 from flask import Blueprint, render_template, request, abort
 from datetime import datetime
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 
 from apps.extensions import db
 from apps.models.treasury_db import TreasuryEntry
@@ -29,10 +28,8 @@ def treasury_index():
     flow_type = request.args.get('flow_type', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    # ✅ استخدام joinedload لجلب بيانات المورد والمحفظة المرتبطة دفعة واحدة لضمان ظهور رقم المحفظة
-    query = TreasuryEntry.query.options(
-        joinedload(TreasuryEntry.supplier).joinedload(Supplier.wallet)
-    )
+    # الاستعلام الأساسي بدون علاقات معقدة تسبب انهيار النظام
+    query = TreasuryEntry.query
 
     # تطبيق فلتر البحث بالمرجع أو البيان أو نوع الطرف
     if search_query:
@@ -85,10 +82,8 @@ def treasury_index():
 # ------------------ 2. مسار تفاصيل سند القيد الحقيقي ------------------
 @admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
-    # جلب السند مع ربطه بالمورد والمحفظة
-    voucher_data = TreasuryEntry.query.options(
-        joinedload(TreasuryEntry.supplier).joinedload(Supplier.wallet)
-    ).filter_by(reference_number=ref_code).first()
+    # جلب السند بشكل مباشر وآمن بدون استخدام joinedload المسببة للأخطاء
+    voucher_data = TreasuryEntry.query.filter_by(reference_number=ref_code).first()
     
     if not voucher_data:
         abort(404)
