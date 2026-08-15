@@ -129,7 +129,8 @@ def treasury_index():
         if flow_type:
             query = query.filter(TreasuryEntry.entry_type == flow_type)
 
-        pagination = query.order_by(TreasuryEntry.created_at.desc()).paginate(page=page, per_page=15, error_out=False)
+        # التعديل هنا: جعل عدد الحركات في كل صفحة 10 حركات בדיוק
+        pagination = query.order_by(TreasuryEntry.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
         
         # إثراء السجلات بالترجمة والخصائص الآمنة
         vouchers = [enrich_voucher_data(v) for v in pagination.items]
