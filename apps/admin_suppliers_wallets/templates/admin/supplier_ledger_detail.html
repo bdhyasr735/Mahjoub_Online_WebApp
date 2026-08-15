@@ -6,7 +6,7 @@
 {% block content %}
 <div class="space-y-6" dir="rtl">
 
-    <!-- ترويسة تفاصيل المحفظة والمورد -->
+    <!-- t1. ترويسة تفاصيل المحفظة والمورد -->
     <div class="bg-[#1A102A] border border-[#362052] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2">
@@ -33,23 +33,23 @@
         </div>
     </div>
 
-    <!-- بطاقات الأرصدة والسيولة -->
+    <!-- t2. بطاقات الأرصدة والسيولة (متجاوبة تماماً) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="p-5 rounded-3xl bg-[#1A102A] border border-[#362052]">
+        <div class="p-5 rounded-3xl bg-[#1A102A] border border-[#362052] shadow-lg">
             <span class="text-xs text-slate-400 block font-bold">إجمالي الرصيد (SAR)</span>
             <div class="text-2xl font-black font-mono text-white mt-2">
                 {{ "{:,.2f}".format((wallet.balance_sar + wallet.balance_pending)|float) }} <span class="text-xs text-amber-400 font-sans">ريال</span>
             </div>
         </div>
 
-        <div class="p-5 rounded-3xl bg-emerald-950/30 border border-emerald-500/30">
+        <div class="p-5 rounded-3xl bg-emerald-950/30 border border-emerald-500/30 shadow-lg">
             <span class="text-xs text-emerald-400 block font-bold">الرصيد المتاح (SAR)</span>
             <div class="text-2xl font-black font-mono text-emerald-400 mt-2">
                 {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-emerald-300 font-sans">ريال</span>
             </div>
         </div>
 
-        <div class="p-5 rounded-3xl bg-amber-950/30 border border-amber-500/30">
+        <div class="p-5 rounded-3xl bg-amber-950/30 border border-amber-500/30 shadow-lg">
             <span class="text-xs text-amber-400 block font-bold">الأرصدة المعلقة والضمانات (SAR)</span>
             <div class="text-2xl font-black font-mono text-amber-400 mt-2">
                 {{ "{:,.2f}".format(wallet.balance_pending|float) }} <span class="text-xs text-amber-300 font-sans">ريال</span>
@@ -57,9 +57,9 @@
         </div>
     </div>
 
-    <!-- جدول الحركات المالية الدفترية للمحفظة -->
-    <div class="micro-container bg-[#1A102A] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
-        <div class="p-5 bg-[#160D26] border-b border-[#362052] flex items-center justify-between">
+    <!-- t3. جدول الحركات المالية الدفترية للمحفظة -->
+    <div class="bg-[#1A102A] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
+        <div class="p-5 bg-[#160D26] border-b border-[#362052] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <h2 class="text-base font-black text-white flex items-center gap-2">
                 📜 سجل الحركات والقيود الدفترية
             </h2>
@@ -116,7 +116,8 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="8" class="py-8 text-center text-slate-400">
+                            <td colspan="8" class="py-12 text-center text-slate-400">
+                                <i class="fas fa-box-open text-2xl mb-2 block text-slate-500"></i>
                                 لا توجد حركات مالية مسجلة في هذه المحفظة حتى الآن.
                             </td>
                         </tr>
