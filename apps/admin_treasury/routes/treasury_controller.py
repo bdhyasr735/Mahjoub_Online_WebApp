@@ -31,7 +31,7 @@ ENTRY_TYPE_TRANSLATIONS = {
 }
 
 def enrich_voucher_data(voucher):
-خصائص إضافية تعرض النصوص العربية والتفاصيل بشكل آمن للمستعرض
+    """إضافة خصائص إضافية تعرض النصوص العربية والتفاصيل بشكل آمن للمستعرض"""
     if not voucher:
         return None
     
