@@ -4,33 +4,48 @@
 {% block breadcrumb %}محافظ الموردين والسيولة{% endblock %}
 
 {% block content %}
-<div class="space-y-6" dir="rtl">
+<div class="space-y-6 animate__animated animate__fadeIn" dir="rtl">
 
-    <!-- ترويسة الصفحة -->
-    <div class="bg-[#1A102A] border border-[#362052] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <!-- ترويسة الصفحة السيادية -->
+    <div class="bg-gradient-to-br from-[#1a0b2e] via-[#120A1F] to-[#08020d] border border-[#4B2A73] p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-black text-white">إدارة محافظ الموردين</h1>
-            <p class="text-xs text-slate-400 mt-1">متابعة أرصدة الموردين، الحركات المالية، والقيود الدفترية بدقة لحظية.</p>
+            <h1 class="text-2xl font-black text-white tracking-wide">إدارة محافظ الموردين</h1>
+            <p class="text-sm text-slate-300 font-medium mt-1">متابعة أرصدة الموردين، الحركات المالية، والقيود الدفترية بدقة لحظية.</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ url_for('suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-[#231538] hover:bg-[#362052] text-slate-200 text-xs font-bold rounded-xl border border-[#4B2A73]/50 transition">
-                🔄 تحديث البيانات
-            </a>
+            <button onclick="syncDataAlert()" class="px-4 py-2.5 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] hover:from-[#2d124a] hover:to-[#1a0b2e] text-amber-300 text-xs font-bold rounded-xl border border-amber-500/40 transition shadow-lg flex items-center gap-2 cursor-pointer">
+                <i class="fas fa-sync-alt"></i> تحديث البيانات
+            </button>
+        </div>
+    </div>
+
+    <!-- قسم الفلاتر والبحث السريع -->
+    <div class="bg-gradient-to-r from-[#1a0b2e] to-[#120A1F] border border-[#362052] p-4 rounded-2xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="w-full sm:w-96 relative">
+            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-amber-400/70">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="walletSearch" placeholder="بحث برقم المحفظة أو اسم المورد..." 
+                   class="w-full bg-[#08020d] border border-[#4B2A73] text-white text-xs rounded-xl pr-10 pl-4 py-3 focus:outline-none focus:border-amber-400 transition placeholder-slate-400 font-medium shadow-inner">
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <span class="text-xs text-slate-200 font-bold bg-gradient-to-r from-[#1a0b2e] to-[#08020d] border border-[#4B2A73] px-4 py-2.5 rounded-xl shadow-md">
+                إجمالي المحافظ: <span class="text-amber-400 font-mono">{{ wallets|length if wallets else 0 }}</span>
+            </span>
         </div>
     </div>
 
     <!-- جدول المحافظ -->
-    <div class="bg-[#1A102A] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
-        <div class="p-5 bg-[#160D26] border-b border-[#362052] flex items-center justify-between">
-            <h2 class="text-base font-black text-white">قائمة المحافظ النشطة</h2>
-            <span class="text-xs text-slate-400 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl font-mono font-bold">
-                الإجمالي: {{ wallets|length if wallets else 0 }}
-            </span>
+    <div class="bg-[#1a0b2e] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
+        <div class="p-5 bg-gradient-to-r from-[#160D26] to-[#08020d] border-b border-[#362052] flex items-center justify-between">
+            <h2 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fas fa-wallet text-amber-400"></i> قائمة المحافظ النشطة
+            </h2>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-right text-xs">
-                <thead class="bg-[#120A1F] text-slate-400 font-bold border-b border-[#362052] select-none">
+            <table class="w-full text-right text-xs" id="walletsTable">
+                <thead class="bg-gradient-to-r from-[#120A1F] to-[#08020d] text-slate-200 font-bold border-b border-[#362052] select-none">
                     <tr>
                         <th class="py-4 px-4">كود المحفظة</th>
                         <th class="py-4 px-4">المورد</th>
@@ -43,28 +58,28 @@
                 <tbody class="divide-y divide-[#231538]">
                     {% if wallets %}
                         {% for w in wallets %}
-                        <tr class="hover:bg-white/5 transition duration-200">
+                        <tr class="hover:bg-[#2d124a]/30 transition duration-200">
                             <td class="py-4 px-4 font-mono font-bold text-amber-400">
                                 #{{ w.wallet_code }}
                             </td>
-                            <td class="py-4 px-4 font-bold text-white">
+                            <td class="py-4 px-4 font-bold text-white text-sm">
                                 {{ w.supplier.supplier_name|default('غير محدد', True) }}
                             </td>
-                            <td class="py-4 px-4 text-left font-mono font-black text-emerald-400">
+                            <td class="py-4 px-4 text-left font-mono font-black text-emerald-400 text-sm">
                                 {{ "{:,.2f}".format(w.balance_sar|float) }} SAR
                             </td>
                             <td class="py-4 px-4 text-left font-mono text-amber-300">
                                 {{ "{:,.2f}".format(w.balance_pending|float) }} SAR
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold 
-                                    {% if w.status == 'active' or w.status == 'نشط' %} bg-emerald-500/15 text-emerald-400 border border-emerald-500/30
-                                    {% else %} bg-rose-500/15 text-rose-400 border border-rose-500/30 {% endif %}">
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold 
+                                    {% if w.status == 'active' or w.status == 'نشط' %} bg-emerald-500/20 text-emerald-300 border border-emerald-500/40
+                                    {% else %} bg-rose-500/20 text-rose-300 border border-rose-500/40 {% endif %}">
                                     {{ w.status|capitalize }}
                                 </span>
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <a href="{{ url_for('suppliers_wallets_controller.detail', wallet_id=w.id) }}" class="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] font-black rounded-xl transition inline-block transform hover:scale-105">
+                                <a href="{{ url_for('suppliers_wallets_controller.detail', wallet_id=w.id) }}" class="px-3.5 py-2 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] hover:from-[#2d124a] hover:to-[#1a0b2e] text-amber-300 border border-amber-500/40 font-bold rounded-xl transition inline-block shadow-md transform hover:scale-105">
                                     كشف الحساب 📊
                                 </a>
                             </td>
@@ -73,9 +88,9 @@
                     {% else %}
                         <tr>
                             <td colspan="6" class="py-16 text-center text-slate-400">
-                                <div class="flex flex-col items-center">
-                                    <i class="fas fa-wallet text-3xl mb-2 block text-slate-500"></i>
-                                    <span class="font-bold">لا توجد محافظ مسجلة حالياً.</span>
+                                <div class="flex flex-col items-center justify-center space-y-3">
+                                    <i class="fas fa-folder-open text-4xl text-slate-500"></i>
+                                    <span class="font-bold text-sm text-slate-300">لا توجد محافظ مسجلة حالياً.</span>
                                 </div>
                             </td>
                         </tr>
@@ -86,4 +101,41 @@
     </div>
 
 </div>
+
+<!-- سكربت التفاعل والبحث وتنبيهات SweetAlert2 المخصصة -->
+<script>
+    // البحث الحي الفوري
+    document.getElementById('walletSearch').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#walletsTable tbody tr');
+        
+        rows.forEach(row => {
+            let text = row.textContent.toLowerCase();
+            if(text.includes(filter)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    });
+
+    // دالة التنبيه الفاخرة عند التحديث
+    function syncDataAlert() {
+        Swal.fire({
+            title: 'جاري مزامنة وتحديث المحافظ',
+            text: 'يرجى الانتظار بينما يتم جلب أحدث القيود الدفترية والأرصدة...',
+            icon: 'info',
+            background: '#1a0b2e',
+            color: '#fff',
+            confirmButtonColor: '#D4AF37',
+            timer: 1500,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        }).then(() => {
+            window.location.href = "{{ url_for('suppliers_wallets_controller.index') }}";
+        });
+    }
+</script>
 {% endblock %}
