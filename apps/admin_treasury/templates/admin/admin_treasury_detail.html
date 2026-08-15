@@ -1,97 +1,187 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}سند قيد {{ voucher.reference_number }} | محجوب أونلاين{% endblock %}
-
-{% block extra_css %}
-<style>
-    .treasury-card { border: 1px solid rgba(26, 11, 46, 0.1); border-radius: 20px; box-shadow: 0 15px 35px rgba(26, 11, 46, 0.06); background: #fff; }
-    .treasury-header { background: linear-gradient(135deg, #1a0b2e, #000); color: #fff; border-radius: 20px 20px 0 0; padding: 40px; position: relative; overflow: hidden; }
-    .treasury-header::after { content: ''; position: absolute; top: 0; right: 0; width: 300px; height: 100%; background: url('/static/img/pattern.png'); opacity: 0.05; }
-    .gold-text { color: var(--mahjoub-gold, #D4AF37); }
-    .info-box { background: #fcfcfc; border-radius: 14px; padding: 20px; border: 1px solid rgba(0,0,0,0.05); height: 100%; }
-    .label-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 8px; display: block; font-weight: 600; }
-    .val-text { font-family: 'Courier New', monospace; font-weight: bold; color: #222; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="treasury-card">
-        <!-- هيدر السند المالي -->
-        <div class="treasury-header text-center text-md-start">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase gold-text fw-bold mb-2" style="letter-spacing: 2px;">سند قيد مالي رسمي (الخزينة المركزية)</div>
-                    <h1 class="h2 text-white mb-1 font-monospace">{{ voucher.voucher_number or voucher.reference_number }}</h1>
-                    <span class="badge bg-light text-dark px-3 py-1 rounded-pill small font-monospace">مرجع: {{ voucher.reference_number }}</span>
-                </div>
-                <div class="mt-3 mt-md-0 text-md-end">
-                    <div class="small text-white-50">صافي المبلغ المالي</div>
-                    <div class="fs-1 fw-bold gold-text font-monospace">
-                        {{ "{:,.2f}".format(voucher.amount) }} <span class="fs-5">SAR</span>
-                    </div>
-                </div>
+<div class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+        
+    <!-- عنوان الصفحة -->
+    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-white">إدارة الخزينة والسيولة</h1>
+            <p class="text-sm text-purple-300 mt-1">متابعة الحركات المالية، سندات القيد، وتسويات الموردين والمسوقين بدقة لحظية</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="glass-card px-4 py-2 rounded-xl text-center">
+                <span class="block text-xs text-purple-400">الرصيد الصافي للخزينة</span>
+                <span class="text-lg font-bold gold-accent">{{ "%.2f"|format(kpi.total_treasury_balance) }} {{ kpi.currency }}</span>
             </div>
         </div>
+    </div>
 
-        {% set details = voucher.owner_details %}
-        <div class="p-4 p-md-5">
-            <div class="row g-4">
-                <!-- بيانات الطرف والمحافظ -->
-                <div class="col-12 col-md-3">
-                    <div class="info-box">
-                        <span class="label-tag">اسم المتجر / المورد</span>
-                        <span class="d-block text-dark fw-bold fs-6">{{ details.store_name }}</span>
-                        <small class="text-muted">المالك: {{ details.owner_name }}</small>
-                    </div>
-                </div>
-                <div class="col-12 col-md-3">
-                    <div class="info-box">
-                        <span class="label-tag">رقم المحفظة السيادية</span>
-                        <span class="val-text gold-text fs-5">{{ details.wallet_code }}</span>
-                        <small class="d-block text-muted">كود: {{ details.supplier_code }}</small>
-                    </div>
-                </div>
-                <div class="col-12 col-md-3">
-                    <div class="info-box">
-                        <span class="label-tag">نوع الحركة المالية</span>
-                        <span class="badge text-white px-3 py-2 rounded-pill fw-bold" style="background-color: #1a0b2e;">
-                            {{ voucher.localized_entry_type }}
-                        </span>
-                    </div>
-                </div>
-                <div class="col-12 col-md-3">
-                    <div class="info-box">
-                        <span class="label-tag">توقيت العملية الموحد</span>
-                        <span class="val-text small text-dark d-block mt-1">
-                            <i class="fas fa-clock text-warning me-1"></i> {{ voucher.formatted_time }}
-                        </span>
-                    </div>
-                </div>
+    <!-- بطاقات المؤشرات (KPIs) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div class="glass-card p-4 rounded-2xl border-r-4 border-emerald-500">
+            <span class="text-xs text-purple-300 block">إجمالي الواردات</span>
+            <span class="text-xl font-bold text-emerald-400 mt-1 block">{{ "%.2f"|format(kpi.total_inflow) }}</span>
+        </div>
+        <div class="glass-card p-4 rounded-2xl border-r-4 border-rose-500">
+            <span class="text-xs text-purple-300 block">إجمالي المنصرفات</span>
+            <span class="text-xl font-bold text-rose-400 mt-1 block">{{ "%.2f"|format(kpi.total_outflow) }}</span>
+        </div>
+        <div class="glass-card p-4 rounded-2xl border-r-4 border-amber-500">
+            <span class="text-xs text-purple-300 block">احتياطي الضمان (Escrow)</span>
+            <span class="text-xl font-bold gold-accent mt-1 block">{{ "%.2f"|format(kpi.escrow_reserve) }}</span>
+        </div>
+        <div class="glass-card p-4 rounded-2xl border-r-4 border-purple-400">
+            <span class="text-xs text-purple-300 block">صافي أرباح المنصة</span>
+            <span class="text-xl font-bold text-purple-200 mt-1 block">{{ "%.2f"|format(kpi.net_platform_profit) }}</span>
+        </div>
+        <div class="glass-card p-4 rounded-2xl border-r-4 border-blue-500">
+            <span class="text-xs text-purple-300 block">العملة المعتمدة</span>
+            <span class="text-xl font-bold text-blue-300 mt-1 block">{{ kpi.currency }}</span>
+        </div>
+    </div>
+
+    <!-- شريط البحث والفلترة -->
+    <div class="glass-card p-4 rounded-2xl mb-6">
+        <form method="GET" action="/admin/treasury/" class="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="w-full md:w-1/2 flex gap-2">
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="w-full bg-slate-900/60 border gold-border rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+                <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-6 py-2 rounded-xl transition text-sm">بحث</button>
             </div>
-
-            <!-- تفاصيل إضافية والوصف المشفر -->
-            <div class="mt-4 p-4 border rounded-3 bg-light">
-                <h5 class="text-dark fw-bold mb-3"><i class="fas fa-info-circle me-2 text-warning"></i> بيان العملية والوصف</h5>
-                <p class="text-muted mb-2">
-                    {{ voucher.description or 'تم توثيق هذا القيد في الخزينة المركزية لمنصة محجوب أونلاين وتخضع لسياسات التسوية المالية الآمنة والمشفرة.' }}
-                </p>
-                <div class="small text-secondary font-monospace mt-3">
-                    <i class="fas fa-link me-1"></i> مرتبطة بالطلب رقم: <strong class="text-dark">{{ voucher.order_id or 'GENERAL_SYSTEM_FLOW' }}</strong>
-                </div>
+            <div class="w-full md:w-auto flex items-center gap-2">
+                <select name="flow_type" onchange="this.form.submit()" class="bg-slate-900/60 border gold-border rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400 w-full md:w-48">
+                    <option value="">جميع أنواع الحركات</option>
+                    <option value="deposit" {% if filters.flow_type == 'deposit' %}selected{% endif %}>إيداع نقدي</option>
+                    <option value="revenue_net" {% if filters.flow_type == 'revenue_net' %}selected{% endif %}>صافي إيرادات مبيعات</option>
+                    <option value="supplier_settlement" {% if filters.flow_type == 'supplier_settlement' %}selected{% endif %}>تسوية مستحقات مورد</option>
+                    <option value="affiliate_payout" {% if filters.flow_type == 'affiliate_payout' %}selected{% endif %}>عمولة مسوق بالعمولة</option>
+                    <option value="operational_cost" {% if filters.flow_type == 'operational_cost' %}selected{% endif %}>تكلفة تشغيلية</option>
+                </select>
+                {% if filters.q or filters.flow_type %}
+                <a href="/admin/treasury/" class="text-xs bg-slate-800 hover:bg-slate-700 text-rose-400 px-3 py-2 rounded-xl border border-rose-500/30 transition">إلغاء الفلترة</a>
+                {% endif %}
             </div>
+        </form>
+    </div>
 
-            <!-- التذييل الرسمي -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-5 gap-3">
-                <button onclick="window.print()" class="btn btn-dark px-4 py-2 rounded-pill shadow-sm">
-                    <i class="fas fa-print me-2"></i> تصدير/طباعة السند
-                </button>
-                <div class="text-center text-md-end">
-                    <small class="d-block text-muted">حالة الأرشيف المالي</small>
-                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-shield-alt me-1"></i> معتمد ومؤرشف رقمياً (مطابق 100%)</span>
-                </div>
+    <!-- جدول الحركات المالية -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-xl border gold-border">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-purple-950/60 border-b gold-border text-purple-300 text-xs uppercase tracking-wider">
+                        <th class="p-4">رقم السند / المرجع</th>
+                        <th class="p-4">نوع الحركة</th>
+                        <th class="p-4">الطرف المعني / المتجر</th>
+                        <th class="p-4">المبلغ</th>
+                        <th class="p-4">التاريخ والوقت</th>
+                        <th class="p-4 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-purple-900/30 text-sm">
+                    {% if vouchers %}
+                        {% for v in vouchers %}
+                        <tr class="hover:bg-purple-900/20 transition cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
+                            <td class="p-4 font-mono text-xs">
+                                <span class="block text-white font-bold">{{ v.voucher_number or '-' }}</span>
+                                <span class="text-purple-400">{{ v.reference_number or '-' }}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
+                                    {% if v.entry_type in ['deposit', 'revenue_net'] %} bg-emerald-950 text-emerald-300 border border-emerald-500/30
+                                    {% else %} bg-rose-950 text-rose-300 border border-rose-500/30 {% endif %}">
+                                    {{ v.localized_entry_type }}
+                                </span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block font-bold text-white">{{ v.owner_details.store_name }}</span>
+                                <span class="text-xs text-purple-400">{{ v.owner_details.owner_name }}</span>
+                            </td>
+                            <td class="p-4 font-bold {% if v.entry_type in ['deposit', 'revenue_net'] %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                {{ "%.2f"|format(v.amount) }} SAR
+                            </td>
+                            <td class="p-4 text-xs text-purple-300 font-mono">
+                                {{ v.formatted_time }}
+                            </td>
+                            <td class="p-4 text-center">
+                                <a href="/admin/treasury/detail/{{ v.reference_number or v.voucher_number }}" class="inline-block bg-purple-900/50 hover:bg-purple-800 text-amber-300 px-3 py-1.5 rounded-xl text-xs border border-amber-500/30 transition">
+                                    التفاصيل
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-purple-400">
+                                لا توجد سجلات مالية مطابقة للبحث أو الخزينة فارغة حالياً.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- الترقيم (Pagination) -->
+        {% if total_pages > 1 %}
+        <div class="p-4 bg-purple-950/40 border-t gold-border flex justify-between items-center text-xs">
+            <span class="text-purple-300">الصفحة {{ current_page }} من {{ total_pages }}</span>
+            <div class="flex gap-2">
+                {% if current_page > 1 %}
+                <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-slate-800 hover:bg-slate-700 text-purple-200 px-3 py-1.5 rounded-lg border gold-border">السابق</a>
+                {% endif %}
+                {% if current_page < total_pages %}
+                <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-slate-800 hover:bg-slate-700 text-purple-200 px-3 py-1.5 rounded-lg border gold-border">التالي</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- نافذة منبثقة سريعة (Modal) -->
+<div class="modal fade" id="quick-voucher-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border gold-border p-4 rounded-2xl text-white">
+            <div class="modal-header border-b gold-border pb-3 flex justify-between items-center">
+                <h5 class="modal-title font-bold text-amber-400">معاينة سند القيد</h5>
+                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <span id="modal-ref-code" class="text-xs font-mono text-purple-400 block mb-2"></span>
+                <div id="modal-amount" class="text-2xl font-black mb-2">0.00 SAR</div>
+                <p id="modal-owner" class="text-sm text-purple-200"></p>
+            </div>
+            <div class="modal-footer border-t gold-border pt-3 flex justify-between">
+                <button type="button" class="bg-slate-800 text-purple-200 px-4 py-2 rounded-xl text-xs" data-bs-dismiss="modal">إغلاق</button>
+                <a id="modal-detail-link" href="#" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">عرض التفاصيل الكاملة</a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function handleRowDblClick(ref, owner, amt, entryType, localizedType) {
+        document.getElementById('modal-ref-code').innerText = ref;
+        document.getElementById('modal-owner').innerText = "الطرف المقابل: " + owner + " | النوع: " + localizedType;
+        
+        let isInflow = ['revenue_net', 'deposit'].includes(entryType);
+        let formattedAmt = (isInflow ? '+' : '-') + Number(amt).toLocaleString(undefined, {minimumFractionDigits: 2}) + ' SAR';
+        let amountEl = document.getElementById('modal-amount');
+        amountEl.innerText = formattedAmt;
+        amountEl.className = "text-2xl font-black mb-2 " + (isInflow ? 'text-emerald-400' : 'text-rose-400');
+        
+        document.getElementById('modal-detail-link').href = 'detail/' + ref;
+        
+        var modalElement = document.getElementById('quick-voucher-modal');
+        if (modalElement && typeof bootstrap !== 'undefined') {
+            var myModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+            myModal.show();
+        } else {
+            window.location.href = 'detail/' + ref;
+        }
+    }
+</script>
 {% endblock %}
