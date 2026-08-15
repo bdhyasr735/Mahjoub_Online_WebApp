@@ -68,6 +68,7 @@ def treasury_index():
         kpi=kpis,
         transactions=transactions,
         pagination=pagination,
+        current_page=page,  # <-- تمرير رقم الصفحة الحالية لتجنب خطأ القالب
         filters={
             "q": search_query,
             "trans_type": trans_type_filter
