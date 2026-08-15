@@ -20,20 +20,26 @@
             --deep-black: #08020d; 
             --mahjoub-gold: #D4AF37; 
             --sidebar-width: 280px; 
+            /* تخصيص ألوان لوحة التحكم لتكون بيضاء تميل للرمادي الفاتح */
+            --dashboard-bg: #f4f6f9;
+            --dashboard-card-bg: #ffffff;
+            --dashboard-border: #dee2e6;
+            --dashboard-text: #212529;
+            --dashboard-text-muted: #6c757d;
         }
         
         html { height: 100%; }
         body { 
             font-family: 'Tajawal', 'Cairo', sans-serif !important; 
-            background: var(--bg-base, #120A1F); 
-            color: var(--text-primary, #fff);
+            background: var(--dashboard-bg) !important; 
+            color: var(--dashboard-text) !important;
             margin: 0; 
             padding: 0;
             overflow-x: hidden;
             min-height: 100vh;
         }
         
-        /* Sidebar */
+        /* Sidebar (بقي كما هو بلونه الملكي الداكن) */
         .sidebar { 
             width: var(--sidebar-width); 
             height: 100vh; 
@@ -44,7 +50,7 @@
             z-index: 1050; 
             overflow-y: auto; 
             transition: 0.3s; 
-            box-shadow: -2px 0 20px rgba(0,0,0,0.4); 
+            box-shadow: -2px 0 20px rgba(0,0,0,0.15); 
             border-left: 1px solid rgba(212, 175, 55, 0.15);
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
@@ -55,46 +61,66 @@
         .brand-text { color: var(--mahjoub-gold); font-size: 0.85rem; margin-top: 8px; display: block; }
         
         .nav-menu { padding: 15px 12px; }
-        .nav-link-custom { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
+        .nav-link-custom { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
         .nav-link-custom:hover, .nav-link-custom.active { background: rgba(212, 175, 55, 0.15); color: var(--mahjoub-gold); }
         .nav-link-custom i { width: 20px; text-align: center; }
         
         .dropdown-content { display: none; list-style: none; padding-right: 30px; margin: 5px 0; }
-        .dropdown-content a { display: block; padding: 8px 12px; color: rgba(255,255,255,0.6); text-decoration: none; border-radius: 6px; font-size: 0.9rem; transition: 0.2s; }
+        .dropdown-content a { display: block; padding: 8px 12px; color: #94a3b8; text-decoration: none; border-radius: 6px; font-size: 0.9rem; transition: 0.2s; }
         .dropdown-content a:hover, .dropdown-content a.active-link { color: var(--mahjoub-gold); background: rgba(255,255,255,0.05); }
         .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: 0.3s; }
         .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
         
-        /* Main Layout */
+        /* Main Layout (مساحة العمل بيضاء تميل للرمادي) */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             margin-left: 0;
             min-height: 100vh; 
-            background: var(--bg-base, #120A1F);
+            background: var(--dashboard-bg) !important;
             transition: 0.3s; 
             overflow-y: auto;
         }
-        .top-navbar { background: var(--bg-card, #1A102A); border-bottom: 1px solid var(--border-color, #362052); padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1040; }
-        .admin-badge { background: linear-gradient(135deg, var(--royal-purple), var(--deep-black)); color: var(--mahjoub-gold); padding: 5px 14px; border-radius: 50px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(212, 175, 55, 0.2); }
+        .top-navbar { 
+            background: var(--dashboard-card-bg) !important; 
+            border-bottom: 1px solid var(--dashboard-border) !important; 
+            padding: 12px 25px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 1040; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .admin-badge { 
+            background: linear-gradient(135deg, var(--royal-purple), var(--deep-black)); 
+            color: var(--mahjoub-gold); 
+            padding: 5px 14px; 
+            border-radius: 50px; 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            border: 1px solid rgba(212, 175, 55, 0.2); 
+        }
         
-        /* Unified Table Style - التنسيق الداكن المحسن للجداول */
+        /* Unified Table Style - تنسيق الجداول للوضع الفاتح */
         .table-responsive-mahjoub { 
             overflow-x: auto; 
-            background: var(--bg-card, #1A102A) !important; 
+            background: var(--dashboard-card-bg) !important; 
             border-radius: 12px; 
-            border: 1px solid var(--border-color, #362052) !important; 
+            border: 1px solid var(--dashboard-border) !important; 
             margin-bottom: 1.5rem; 
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.04);
         }
         .table-mahjoub { 
             width: 100%; 
             margin-bottom: 0; 
             font-size: 0.9rem; 
-            color: var(--text-primary, #fff) !important; 
+            color: var(--dashboard-text) !important; 
             background-color: transparent !important;
         }
         .table-mahjoub thead { 
-            background: var(--bg-surface, #231538) !important; 
-            color: var(--mahjoub-gold) !important; 
+            background: #e9ecef !important; 
+            color: #495057 !important; 
             text-transform: uppercase; 
             font-size: 0.75rem; 
             letter-spacing: 0.5px; 
@@ -103,14 +129,14 @@
             padding: 14px 15px !important; 
             vertical-align: middle; 
             white-space: nowrap; 
-            border-bottom: 1px solid var(--border-color, #362052) !important;
-            color: var(--text-primary, #fff) !important;
+            border-bottom: 1px solid var(--dashboard-border) !important;
+            color: var(--dashboard-text) !important;
         }
         .table-mahjoub tbody tr {
             background-color: transparent !important;
         }
         .table-mahjoub tbody tr:hover {
-            background-color: rgba(212, 175, 55, 0.05) !important;
+            background-color: rgba(0, 0, 0, 0.02) !important;
         }
         
         @media (max-width: 992px) {
@@ -189,7 +215,7 @@
     
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
-            <button class="btn btn-outline-light d-lg-none" onclick="toggleSidebar()">
+            <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
             <div class="admin-badge">
@@ -219,7 +245,7 @@
         
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.btn-outline-light');
+            const toggleBtn = document.querySelector('.btn-outline-dark');
             if (window.innerWidth < 992 && sidebar && toggleBtn && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
                 sidebar.classList.remove('active');
             }
