@@ -14,8 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
-    <!-- المكتبات الخارجية المحسنة للمظهر والتفاعل السيادي -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css">
+    <!-- المكتبات الخارجية المحسنة للتفاعل والتنبيهات الفاخرة -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
@@ -25,11 +25,11 @@
             --deep-black: #08020d; 
             --mahjoub-gold: #D4AF37; 
             --sidebar-width: 280px; 
-            --dashboard-bg: #08020d;
-            --dashboard-card-bg: #1a0b2e;
-            --dashboard-border: #362052;
-            --dashboard-text: #ffffff;
-            --dashboard-text-muted: #94a3b8;
+            --dashboard-bg: #F9F8F6; /* أبيض ناصع يميل للبيج المريح للعين */
+            --dashboard-card-bg: #FFFFFF; /* أبيض ناصع للبطاقات والجداول */
+            --dashboard-border: #E5E2DC; /* حدود ناعمة ومريحة */
+            --dashboard-text: #1E1B18; /* نص داكن وواضح جداً للقراءة */
+            --dashboard-text-muted: #6C757D;
         }
         
         html { height: 100%; }
@@ -43,7 +43,7 @@
             min-height: 100vh;
         }
         
-        /* Sidebar */
+        /* Sidebar السيادي الداكن (لخلق تباين عالمي راقٍ مع الخلفية الفاتحة) */
         .sidebar { 
             width: var(--sidebar-width); 
             height: 100vh; 
@@ -54,24 +54,24 @@
             z-index: 1050; 
             overflow-y: auto; 
             transition: 0.3s; 
-            box-shadow: -2px 0 20px rgba(0,0,0,0.3); 
-            border-left: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15); 
+            border-left: 1px solid rgba(212, 175, 55, 0.25);
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
-        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); }
+        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); background: rgba(0,0,0,0.2); }
         .sidebar-logo { width: 65px; height: 65px; object-fit: contain; filter: brightness(0) invert(1); }
-        .brand-text { color: var(--mahjoub-gold); font-size: 0.85rem; margin-top: 8px; display: block; }
+        .brand-text { color: var(--mahjoub-gold); font-size: 0.85rem; margin-top: 8px; display: block; font-weight: bold; }
         
         .nav-menu { padding: 15px 12px; }
-        .nav-link-custom { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
-        .nav-link-custom:hover, .nav-link-custom.active { background: rgba(212, 175, 55, 0.15); color: var(--mahjoub-gold); border: 1px solid rgba(212, 175, 55, 0.3); }
+        .nav-link-custom { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 12px; transition: 0.3s; cursor: pointer; margin-bottom: 4px; }
+        .nav-link-custom:hover, .nav-link-custom.active { background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9)); color: var(--mahjoub-gold); border: 1px solid rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .nav-link-custom i { width: 20px; text-align: center; }
         
         .dropdown-content { display: none; list-style: none; padding-right: 30px; margin: 5px 0; }
-        .dropdown-content a { display: block; padding: 8px 12px; color: #94a3b8; text-decoration: none; border-radius: 6px; font-size: 0.9rem; transition: 0.2s; }
-        .dropdown-content a:hover, .dropdown-content a.active-link { color: var(--mahjoub-gold); background: rgba(255,255,255,0.05); }
+        .dropdown-content a { display: block; padding: 8px 12px; color: #94a3b8; text-decoration: none; border-radius: 8px; font-size: 0.9rem; transition: 0.2s; }
+        .dropdown-content a:hover, .dropdown-content a.active-link { color: var(--mahjoub-gold); background: rgba(212, 175, 55, 0.1); }
         .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: 0.3s; }
         .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
         
@@ -85,36 +85,36 @@
             overflow-y: auto;
         }
         .top-navbar { 
-            background: linear-gradient(to right, var(--royal-purple), var(--deep-black)) !important; 
+            background: #FFFFFF !important; 
             border-bottom: 1px solid var(--dashboard-border) !important; 
-            padding: 12px 25px; 
+            padding: 15px 25px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             position: sticky; 
             top: 0; 
             z-index: 1040; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
         }
         .admin-badge { 
-            background: linear-gradient(135deg, var(--royal-purple), var(--deep-black)); 
+            background: linear-gradient(135deg, #1a0b2e, #08020d); 
             color: var(--mahjoub-gold); 
-            padding: 6px 16px; 
+            padding: 7px 18px; 
             border-radius: 50px; 
-            font-size: 0.75rem; 
-            font-weight: 700; 
-            border: 1px solid rgba(212, 175, 55, 0.4); 
-            box-shadow: inset 0 1px 3px rgba(255,255,255,0.1);
+            font-size: 0.8rem; 
+            font-weight: 800; 
+            border: 1px solid rgba(212, 175, 55, 0.5); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         
-        /* Unified Table Style */
+        /* Unified Table Style المريحة للعين */
         .table-responsive-mahjoub { 
             overflow-x: auto; 
             background: var(--dashboard-card-bg) !important; 
-            border-radius: 16px; 
+            border-radius: 20px; 
             border: 1px solid var(--dashboard-border) !important; 
             margin-bottom: 1.5rem; 
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
         .table-mahjoub { 
             width: 100%; 
@@ -124,14 +124,17 @@
             background-color: transparent !important;
         }
         .table-mahjoub thead { 
-            background: linear-gradient(to right, #120A1F, #08020d) !important; 
+            background: linear-gradient(to right, #1a0b2e, #08020d) !important; 
             color: var(--mahjoub-gold) !important; 
             text-transform: uppercase; 
             font-size: 0.75rem; 
             letter-spacing: 0.5px; 
         }
+        .table-mahjoub thead th {
+            color: var(--mahjoub-gold) !important;
+        }
         .table-mahjoub th, .table-mahjoub td { 
-            padding: 14px 15px !important; 
+            padding: 16px 18px !important; 
             vertical-align: middle; 
             white-space: nowrap; 
             border-bottom: 1px solid var(--dashboard-border) !important;
@@ -141,14 +144,14 @@
             background-color: transparent !important;
         }
         .table-mahjoub tbody tr:hover {
-            background-color: rgba(212, 175, 55, 0.05) !important;
+            background-color: rgba(26, 11, 46, 0.03) !important;
         }
         
         @media (max-width: 992px) {
             .sidebar { right: -280px; }
             .sidebar.active { right: 0; }
             .main-wrapper { margin-right: 0; }
-            .top-navbar { padding: 10px 15px; }
+            .top-navbar { padding: 12px 15px; }
         }
         @media (max-width: 576px) {
             .sidebar { width: 260px; }
@@ -212,7 +215,7 @@
             {% endif %}
             
             <hr class="text-white my-3 opacity-25">
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link-custom text-danger">
+            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link-custom text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
                 <i class="fas fa-sign-out-alt"></i> <span>خروج آمن</span>
             </a>
         </nav>
@@ -220,16 +223,16 @@
     
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
-            <button class="btn btn-outline-light d-lg-none" onclick="toggleSidebar()">
+            <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
             <div class="admin-badge">
-                <i class="fas fa-crown me-1"></i>
+                <i class="fas fa-crown me-1 text-amber-400"></i>
                 <span>بيئة التحكم السيادية</span>
             </div>
         </header>
         
-        <section class="p-3 p-md-4 animate__animated animate__fadeIn">
+        <section class="p-4 p-md-5 animate__animated animate__fadeIn">
             {% block content %}{% endblock %}
         </section>
     </main>
@@ -250,7 +253,7 @@
         
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.btn-outline-light');
+            const toggleBtn = document.querySelector('.btn-outline-dark');
             if (window.innerWidth < 992 && sidebar && toggleBtn && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
                 sidebar.classList.remove('active');
             }
