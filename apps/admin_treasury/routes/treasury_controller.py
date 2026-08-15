@@ -4,7 +4,7 @@
 import os
 from flask import Blueprint, render_template, request, abort
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from apps.extensions import db
 from apps.models.treasury_db import TreasuryEntry
@@ -34,8 +34,11 @@ def treasury_index():
     # تطبيق فلتر البحث بالمرجع أو البيان أو نوع الطرف
     if search_query:
         query = query.filter(
-            (TreasuryEntry.reference_number.ilike(f"%{search_query}%")) | 
-            (TreasuryEntry.owner_type.ilike(f"%{search_query}%"))
+            or_(
+                TreasuryEntry.reference_number.ilike(f"%{search_query}%"),
+                TreasuryEntry.voucher_number.ilike(f"%{search_query}%"),
+                TreasuryEntry.owner_type.ilike(f"%{search_query}%")
+            )
         )
     
     if flow_type:
@@ -82,8 +85,13 @@ def treasury_index():
 # ------------------ 2. مسار تفاصيل سند القيد الحقيقي ------------------
 @admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
-    # جلب السند بشكل مباشر وآمن بدون استخدام joinedload المسببة للأخطاء
-    voucher_data = TreasuryEntry.query.filter_by(reference_number=ref_code).first()
+    # جلب السند إما برقم المرجع (reference_number) أو برقم السند (voucher_number)
+    voucher_data = TreasuryEntry.query.filter(
+        or_(
+            TreasuryEntry.reference_number == ref_code,
+            TreasuryEntry.voucher_number == ref_code
+        )
+    ).first()
     
     if not voucher_data:
         abort(404)
