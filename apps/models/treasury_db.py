@@ -33,7 +33,7 @@ class TreasuryEntry(db.Model):
     # الربط المرجعي مع الطلبات والمحافظ
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=True)
     reference_number = db.Column(db.String(80), nullable=True) 
-    voucher_number = db.Column(db.String(50), unique=True, nullable=True)  # ✅ حقل رقم السند المضاف حديثاً
+    voucher_number = db.Column(db.String(50), unique=True, nullable=True)  # ✅ حقل رقم السند
     
     # هوية الطرف المعني
     owner_type = db.Column(db.String(20), nullable=False) # 'supplier', 'affiliate', 'platform'
@@ -66,6 +66,36 @@ class TreasuryEntry(db.Model):
         else:
             self._description_enc = None
 
+    @property
+    def owner_details(self):
+        """جلب تفاصيل الطرف المقابل بالكامل (اسم المالك، اسم المتجر، رقم المحفظة، كود المورد)"""
+        if self.owner_type == 'supplier':
+            from apps.models.supplier_db import Supplier
+            from apps.models.wallet_db import SupplierWallet
+            
+            supplier = db.session.get(Supplier, self.owner_id)
+            wallet = SupplierWallet.query.filter_by(supplier_id=self.owner_id).first()
+            
+            return {
+                "owner_name": supplier.owner_name if supplier else "مورد غير معروف",
+                "store_name": supplier.store_name or supplier.trade_name if supplier else "متجر غير معروف",
+                "supplier_code": supplier.supplier_code if supplier else f"SUP-{self.owner_id}",
+                "wallet_code": wallet.wallet_code if wallet else f"WEL-{self.owner_id}"
+            }
+        return {
+            "owner_name": f"طرف آخر ({self.owner_type})",
+            "store_name": "-",
+            "supplier_code": "-",
+            "wallet_code": "-"
+        }
+
+    @property
+    def formatted_time(self):
+        """تنسيق التاريخ والوقت بدقة (الساعة، الدقيقة، الثانية) مع نظام (صباحاً / مساءً)"""
+        if self.created_at:
+            return self.created_at.strftime('%Y-%m-%d | %I:%M:%S %p')
+        return "-"
+
     def to_dict(self):
         """عرض بيانات الخزينة بتنسيق آمن للمطابقة"""
         return {
@@ -77,8 +107,10 @@ class TreasuryEntry(db.Model):
             'reference_number': self.reference_number,
             'voucher_number': self.voucher_number,
             'owner': f"{self.owner_type}_{self.owner_id}",
+            'owner_details': self.owner_details,
             'description': self.description,
-            'date': self.created_at.isoformat()
+            'formatted_time': self.formatted_time,
+            'date': self.created_at.isoformat() if self.created_at else None
         }
 
     def __repr__(self):
