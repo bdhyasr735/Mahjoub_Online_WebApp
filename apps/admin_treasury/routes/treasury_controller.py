@@ -21,6 +21,40 @@ admin_treasury_bp = Blueprint(
     url_prefix='/admin/treasury'
 )
 
+# قاموس موحد لترجمة أنواع الحركات المالية إلى العربية
+ENTRY_TYPE_TRANSLATIONS = {
+    'deposit': 'إيداع نقدي',
+    'revenue_net': 'صافي إيرادات مبيعات',
+    'supplier_settlement': 'تسوية مستحقات مورد',
+    'affiliate_payout': 'عمولة مسوق بالعمولة',
+    'operational_cost': 'تكلفة تشغيلية'
+}
+
+def enrich_voucher_data(voucher):
+خصائص إضافية تعرض النصوص العربية والتفاصيل بشكل آمن للمستعرض
+    if not voucher:
+        return None
+    
+    # ترجمة نوع الحركة
+    raw_type = str(voucher.entry_type).strip()
+    voucher.localized_entry_type = ENTRY_TYPE_TRANSLATIONS.get(raw_type, raw_type)
+    
+    # تنسيق الوقت
+    if hasattr(voucher, 'created_at') and voucher.created_at:
+        voucher.formatted_time = voucher.created_at.strftime('%Y-%m-%d %H:%M')
+    else:
+        voucher.formatted_time = '-'
+
+    # محاكاة أو جلب تفاصيل الطرف المقابل والمحفظة السيادية
+    voucher.owner_details = {
+        "store_name": getattr(voucher, 'store_name', None) or f"متجر الطرف ({voucher.owner_type or 'عام'})",
+        "owner_name": getattr(voucher, 'owner_name', None) or f"مستخدم نظام ID: {getattr(voucher, 'owner_id', 'N/A')}",
+        "wallet_code": f"WLT-{getattr(voucher, 'owner_id', '000')}-SAR",
+        "supplier_code": f"SUP-{getattr(voucher, 'owner_id', '735')}"
+    }
+    
+    return voucher
+
 # ------------------ 1. مسار القائمة الرئيسية (الخزينة والقيود الحقيقية) ------------------
 @admin_treasury_bp.route('/', methods=['GET'])
 def treasury_index():
@@ -28,10 +62,8 @@ def treasury_index():
     flow_type = request.args.get('flow_type', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    # الاستعلام الأساسي بدون علاقات معقدة تسبب انهيار النظام
     query = TreasuryEntry.query
 
-    # تطبيق فلتر البحث بالمرجع أو رقم السند أو نوع الطرف
     if search_query:
         query = query.filter(
             or_(
@@ -44,15 +76,14 @@ def treasury_index():
     if flow_type:
         query = query.filter(TreasuryEntry.entry_type == flow_type)
 
-    # الجلب مع الترقيم (Pagination)
     pagination = query.order_by(TreasuryEntry.created_at.desc()).paginate(page=page, per_page=15, error_out=False)
-    vouchers = pagination.items
+    
+    # إثراء السجلات بالترجمة والخصائص العربية
+    vouchers = [enrich_voucher_data(v) for v in pagination.items]
 
-    # حساب مؤشرات الأداء الحقيقية والمطابقة محاسبياً (SAR)
     total_suppliers_cost = db.session.query(func.sum(OrderFinancial.supplier_cost_raw)).scalar() or 0.0
     total_platform_profit = db.session.query(func.sum(OrderFinancial.mahjoub_commission_raw)).scalar() or 0.0
     
-    # إجمالي حركات الخزينة المسجلة (الواردات والصادرات)
     total_inflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['revenue_net', 'deposit'])).scalar() or 0.0
     total_outflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['supplier_settlement', 'affiliate_payout', 'operational_cost'])).scalar() or 0.0
     
@@ -85,7 +116,6 @@ def treasury_index():
 # ------------------ 2. مسار تفاصيل سند القيد الحقيقي ------------------
 @admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
-    # جلب السند إما برقم المرجع (reference_number) أو برقم السند (voucher_number)
     voucher_data = TreasuryEntry.query.filter(
         or_(
             TreasuryEntry.reference_number == ref_code,
@@ -96,7 +126,10 @@ def treasury_detail(ref_code):
     if not voucher_data:
         abort(404)
 
+    # إثراء السند المنفرد بالبيانات المترجمة
+    enriched_voucher = enrich_voucher_data(voucher_data)
+
     return render_template(
         'admin/admin_treasury_detail.html',
-        voucher=voucher_data
+        voucher=enriched_voucher
     )
