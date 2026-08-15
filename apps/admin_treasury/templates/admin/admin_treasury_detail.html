@@ -8,76 +8,87 @@
     .treasury-header { background: linear-gradient(135deg, #1a0b2e, #000); color: #fff; border-radius: 20px 20px 0 0; padding: 40px; position: relative; overflow: hidden; }
     .treasury-header::after { content: ''; position: absolute; top: 0; right: 0; width: 300px; height: 100%; background: url('/static/img/pattern.png'); opacity: 0.05; }
     .gold-text { color: var(--mahjoub-gold, #D4AF37); }
-    .info-box { background: #fcfcfc; border-radius: 14px; padding: 20px; border: 1px solid rgba(0,0,0,0.05); }
-    .label-tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 5px; display: block; }
+    .info-box { background: #fcfcfc; border-radius: 14px; padding: 20px; border: 1px solid rgba(0,0,0,0.05); height: 100%; }
+    .label-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 8px; display: block; font-weight: 600; }
     .val-text { font-family: 'Courier New', monospace; font-weight: bold; color: #222; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid py-4">
     <div class="treasury-card">
         <!-- هيدر السند المالي -->
         <div class="treasury-header text-center text-md-start">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
                 <div>
-                    <div class="text-uppercase gold-text fw-bold mb-2" style="letter-spacing: 2px;">سند قيد مالي رسمي</div>
-                    <h1 class="h2 text-white mb-0 font-monospace">{{ voucher.reference_number }}</h1>
+                    <div class="text-uppercase gold-text fw-bold mb-2" style="letter-spacing: 2px;">سند قيد مالي رسمي (الخزينة المركزية)</div>
+                    <h1 class="h2 text-white mb-1 font-monospace">{{ voucher.voucher_number or voucher.reference_number }}</h1>
+                    <span class="badge bg-light text-dark px-3 py-1 rounded-pill small font-monospace">مرجع: {{ voucher.reference_number }}</span>
                 </div>
                 <div class="mt-3 mt-md-0 text-md-end">
-                    <div class="small text-white-50">صافي المبلغ المحول</div>
-                    <div class="fs-1 fw-black gold-text font-monospace">
+                    <div class="small text-white-50">صافي المبلغ المالي</div>
+                    <div class="fs-1 fw-bold gold-text font-monospace">
                         {{ "{:,.2f}".format(voucher.amount) }} <span class="fs-5">SAR</span>
                     </div>
                 </div>
             </div>
         </div>
 
+        {% set details = voucher.owner_details %}
         <div class="p-4 p-md-5">
             <div class="row g-4">
-                <!-- بيانات الطرف والمحفظة -->
-                <div class="col-12 col-md-4">
+                <!-- بيانات الطرف والمحافظ -->
+                <div class="col-12 col-md-3">
                     <div class="info-box">
-                        <span class="label-tag">الطرف المقابل</span>
-                        <span class="val-text">{{ voucher.owner_type }}</span>
+                        <span class="label-tag">اسم المتجر / المورد</span>
+                        <span class="d-block text-dark fw-bold fs-6">{{ details.store_name }}</span>
+                        <small class="text-muted">المالك: {{ details.owner_name }}</small>
                     </div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <div class="info-box">
                         <span class="label-tag">رقم المحفظة السيادية</span>
-                        <span class="val-text gold-text">
-                            {% if voucher.owner_type == 'supplier' and voucher.supplier %}
-                                WEL-963{{ voucher.supplier.id }}
-                            {% else %}
-                                N/A
-                            {% endif %}
+                        <span class="val-text gold-text fs-5">{{ details.wallet_code }}</span>
+                        <small class="d-block text-muted">كود: {{ details.supplier_code }}</small>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="info-box">
+                        <span class="label-tag">نوع الحركة المالية</span>
+                        <span class="badge bg-purple text-white px-3 py-2 rounded-pill font-monospace" style="background-color: #1a0b2e;">
+                            {{ voucher.entry_type }}
                         </span>
                     </div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <div class="info-box">
-                        <span class="label-tag">توقيت العملية</span>
-                        <span class="val-text">{{ voucher.created_at.strftime('%Y-%m-%d | %H:%M') }}</span>
+                        <span class="label-tag">توقيت العملية الموحد</span>
+                        <span class="val-text small text-dark d-block mt-1">
+                            <i class="fas fa-clock text-warning me-1"></i> {{ voucher.formatted_time }}
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <!-- تفاصيل إضافية -->
+            <!-- تفاصيل إضافية والوصف المشفر -->
             <div class="mt-4 p-4 border rounded-3 bg-light">
-                <h5 class="text-dark fw-bold mb-3"><i class="fas fa-info-circle me-2"></i> بيان العملية</h5>
-                <p class="text-muted">
-                    تم توثيق هذا القيد في الخزينة المركزية لمنصة <strong>محجوب أونلاين</strong>. العملية مرتبطة بالطلب رقم <span class="font-monospace fw-bold text-dark">{{ voucher.order_id or 'GENERAL_FLOW' }}</span>، وتخضع لسياسات التسوية المالية الآمنة.
+                <h5 class="text-dark fw-bold mb-3"><i class="fas fa-info-circle me-2 text-warning"></i> بيان العملية والوصف</h5>
+                <p class="text-muted mb-2">
+                    {{ voucher.description or 'تم توثيق هذا القيد في الخزينة المركزية لمنصة محجوب أونلاين وتخضع لسياسات التسوية المالية الآمنة والمشفرة.' }}
                 </p>
+                <div class="small text-secondary font-monospace mt-3">
+                    <i class="fas fa-link me-1"></i> مرتبطة بالطلب رقم: <strong class="text-dark">{{ voucher.order_id or 'GENERAL_SYSTEM_FLOW' }}</strong>
+                </div>
             </div>
 
             <!-- التذييل الرسمي -->
-            <div class="d-flex justify-content-between align-items-center mt-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-5 gap-3">
                 <button onclick="window.print()" class="btn btn-dark px-4 py-2 rounded-pill shadow-sm">
                     <i class="fas fa-print me-2"></i> تصدير/طباعة السند
                 </button>
-                <div class="text-end">
-                    <small class="d-block text-muted">حالة السند</small>
-                    <span class="badge bg-success rounded-pill px-3">معتمد ومؤرشف رقمياً</span>
+                <div class="text-center text-md-end">
+                    <small class="d-block text-muted">حالة الأرشيف المالي</small>
+                    <span class="badge bg-success rounded-pill px-3 py-2"><i class="fas fa-shield-alt me-1"></i> معتمد ومؤرشف رقمياً (مطابق 100%)</span>
                 </div>
             </div>
         </div>
