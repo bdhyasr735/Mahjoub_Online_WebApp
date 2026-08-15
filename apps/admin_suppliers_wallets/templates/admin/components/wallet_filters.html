@@ -1,23 +1,25 @@
-<!-- شريط البحث والفلترة المتقدمة -->
-<form method="GET" action="" class="bg-[#1A102A] border border-[#362052] p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3" dir="rtl">
+<!-- شريط البحث والفلترة المتقدمة السيادي -->
+<form method="GET" action="" class="bg-gradient-to-r from-[#1a0b2e] to-[#120A1F] border border-[#362052] p-4 rounded-2xl shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3" dir="rtl">
     <!-- حقل البحث النصي -->
     <div class="relative flex-1">
-        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-400/70 text-sm">
+            <i class="fas fa-search"></i>
+        </span>
         <input 
             type="text" 
             name="q" 
             value="{{ search_query or '' }}" 
             placeholder="بحث باسم المورد، كود المحفظة، السجل التجاري..." 
-            class="w-full pl-4 pr-10 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition"
+            class="w-full pl-4 pr-10 py-3 bg-[#08020d] border border-[#4B2A73] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition shadow-inner font-medium"
         >
     </div>
 
-    <!-- القوائم المنسدلة للفلترة -->
+    <!-- القوائم المنسدلة للفلترة والأزرار -->
     <div class="flex flex-wrap items-center gap-2">
         <select 
             name="status" 
             onchange="this.form.submit()" 
-            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer"
+            class="px-3.5 py-3 bg-[#08020d] border border-[#4B2A73] rounded-xl text-xs font-bold text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
         >
             <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
             <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
@@ -27,9 +29,9 @@
 
         <button 
             type="submit" 
-            class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm"
+            class="px-5 py-3 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] hover:from-[#2d124a] hover:to-[#1a0b2e] text-amber-300 border border-amber-500/40 rounded-xl text-xs font-black transition shadow-md flex items-center justify-center gap-2 transform hover:scale-105"
         >
-            تطبيق الفلترة
+            <i class="fas fa-filter text-[10px]"></i> تطبيق الفلترة
         </button>
     </div>
 </form>
