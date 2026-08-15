@@ -121,9 +121,11 @@
                 <label class="form-label fw-bold text-secondary fs-7">نوع الحركة</label>
                 <select name="flow_type" class="form-select bg-light border-0 py-2 fs-7">
                     <option value="" {% if not filters.flow_type %}selected{% endif %}>جميع الحركات</option>
-                    <option value="revenue_net" {% if filters.flow_type == 'revenue_net' %}selected{% endif %}>إيراد / وارد (+)</option>
-                    <option value="supplier_settlement" {% if filters.flow_type == 'supplier_settlement' %}selected{% endif %}>تسوية مورد (-)</option>
-                    <option value="affiliate_payout" {% if filters.flow_type == 'affiliate_payout' %}selected{% endif %}>صرف مسوق (-)</option>
+                    <option value="deposit" {% if filters.flow_type == 'deposit' %}selected{% endif %}>إيداع نقدي (+)</option>
+                    <option value="revenue_net" {% if filters.flow_type == 'revenue_net' %}selected{% endif %}>صافي إيرادات مبيعات (+)</option>
+                    <option value="supplier_settlement" {% if filters.flow_type == 'supplier_settlement' %}selected{% endif %}>تسوية مستحقات مورد (-)</option>
+                    <option value="affiliate_payout" {% if filters.flow_type == 'affiliate_payout' %}selected{% endif %}>عمولة مسوق بالعمولة (-)</option>
+                    <option value="operational_cost" {% if filters.flow_type == 'operational_cost' %}selected{% endif %}>تكلفة تشغيلية (-)</option>
                 </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-2 d-flex gap-2">
@@ -168,7 +170,7 @@
                     {% if vouchers %}
                         {% for record in vouchers %}
                         <tr class="hover-bg cursor-pointer transition" 
-                            ondblclick="handleRowDblClick('{{ record.reference_number }}', '{{ record.owner_type }}', '{{ record.amount }}', '{{ record.entry_type }}')"
+                            ondblclick="handleRowDblClick('{{ record.reference_number }}', '{{ record.owner_type }}', '{{ record.amount }}', '{{ record.localized_entry_type }}')"
                             title="انقر نقراً مزدوجاً لعرض السند">
                             <td class="py-3 px-4 font-monospace fw-bold text-dark">
                                 {{ record.reference_number }}
@@ -177,8 +179,8 @@
                                 {{ record.order_id if record.order_id else 'حركة عامة للخزينة' }}
                             </td>
                             <td class="py-3 px-4">
-                                <span class="badge bg-light text-dark border px-2 py-1 font-monospace">
-                                    {{ record.entry_type }}
+                                <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
+                                    {{ record.localized_entry_type }}
                                 </span>
                             </td>
                             <td class="py-3 px-4 fw-bold text-dark">
@@ -251,11 +253,11 @@
 
 {% block extra_js %}
 <script>
-    function handleRowDblClick(ref, owner, amt, entryType) {
+    function handleRowDblClick(ref, owner, amt, localizedType) {
         document.getElementById('modal-ref-code').innerText = ref;
-        document.getElementById('modal-owner').innerText = "الطرف المقابل: " + owner + " | النوع: " + entryType;
+        document.getElementById('modal-owner').innerText = "الطرف المقابل: " + owner + " | النوع: " + localizedType;
         
-        let isInflow = ['revenue_net', 'deposit'].includes(entryType);
+        let isInflow = ['إيداع نقدي', 'صافي إيرادات مبيعات'].includes(localizedType);
         let formattedAmt = (isInflow ? '+' : '-') + Number(amt).toLocaleString() + ' SAR';
         let amountEl = document.getElementById('modal-amount');
         amountEl.innerText = formattedAmt;
