@@ -1,5 +1,5 @@
 <!-- شريط البحث والفلترة المتقدمة -->
-<form method="GET" action="" class="bg-[#1A102A] border border-[#362052] p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+<form method="GET" action="" class="bg-[#1A102A] border border-[#362052] p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3" dir="rtl">
     <!-- حقل البحث النصي -->
     <div class="relative flex-1">
         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
@@ -7,8 +7,8 @@
             type="text" 
             name="q" 
             value="{{ search_query or '' }}" 
-            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
-            class="w-full pl-4 pr-10 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-hidden focus:border-amber-400 transition"
+            placeholder="بحث باسم المورد، كود المحفظة، السجل التجاري..." 
+            class="w-full pl-4 pr-10 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition"
         >
     </div>
 
@@ -17,25 +17,12 @@
         <select 
             name="status" 
             onchange="this.form.submit()" 
-            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-hidden focus:border-amber-400 cursor-pointer"
+            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer"
         >
             <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
             <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
             <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
             <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
-        </select>
-
-        <select 
-            name="bank" 
-            onchange="this.form.submit()" 
-            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-hidden focus:border-amber-400 cursor-pointer"
-        >
-            <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
-            <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
-            <option value="الأهلي" {% if bank_filter == 'الأهلي' %}selected{% endif %}>البنك الأهلي (SNB)</option>
-            <option value="الإنماء" {% if bank_filter == 'الإنماء' %}selected{% endif %}>مصرف الإنماء</option>
-            <option value="الرياض" {% if bank_filter == 'الرياض' %}selected{% endif %}>بنك الرياض</option>
-            <option value="البلاد" {% if bank_filter == 'البلاد' %}selected{% endif %}>بنك البلاد</option>
         </select>
 
         <button 
