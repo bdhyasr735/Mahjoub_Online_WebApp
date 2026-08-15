@@ -95,7 +95,9 @@
                     <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
+            
             <nav class="p-4 space-y-2 flex-grow overflow-y-auto text-sm">
+                <!-- الروابط الأساسية للخزينة -->
                 <a href="/admin/treasury/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-purple-950/50 text-amber-400 font-bold">
                     <i class="fas fa-wallet w-5"></i> نظرة عامة للخزينة
                 </a>
@@ -105,6 +107,33 @@
                 <a href="/admin/treasury/reports" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-purple-900/40 text-purple-100 transition">
                     <i class="fas fa-chart-pie w-5"></i> التقارير والتدفقات
                 </a>
+
+                <hr class="border-purple-900/60 my-3">
+                <span class="text-[11px] text-amber-300 font-bold px-3 block mb-1">النوافذ والأقسام الأخرى</span>
+
+                <!-- حقن الوحدات والنوافذ الأخرى ديناميكياً -->
+                {% if registered_modules %}
+                    {% for mod_name, module in registered_modules.items() %}
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-purple-900/40 text-purple-100 cursor-pointer transition" onclick="toggleSubMenu(this)">
+                                <div class="flex items-center gap-3">
+                                    <i class="{{ module.icon|default('fas fa-folder') }} w-5 text-purple-300"></i>
+                                    <span>{{ module.display_name }}</span>
+                                </div>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i>
+                            </div>
+                            <div class="hidden pr-6 space-y-1 my-1">
+                                {% set links_data = module.links.items() if module.links is mapping else module.links %}
+                                {% for endpoint, label in links_data %}
+                                    <a href="{{ safe_url_for(endpoint) if safe_url_for is defined else '#' }}" class="block px-3 py-2 rounded-lg text-xs text-purple-300 hover:text-amber-400 hover:bg-purple-900/30 transition">
+                                        <i class="fas fa-angle-left me-1"></i> {{ label }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
                 <hr class="border-purple-900/60 my-3">
                 <a href="/admin/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-purple-900/40 text-purple-300 transition">
                     <i class="fas fa-arrow-right w-5"></i> العودة للقيادة المركزية
@@ -131,7 +160,7 @@
         </div>
     </footer>
 
-    <!-- سكريبت تشغيل القائمة الجانبية المتجاوبة -->
+    <!-- سكريبت تشغيل القائمة الجانبية والقوائم الفرعية -->
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('app-sidebar');
@@ -145,6 +174,17 @@
                 sidebar.classList.add('translate-x-full');
                 sidebar.classList.remove('translate-x-0');
                 backdrop.classList.add('hidden');
+            }
+        }
+
+        function toggleSubMenu(el) {
+            const subMenu = el.nextElementSibling;
+            const chevron = el.querySelector('.fa-chevron-down');
+            if (subMenu) {
+                subMenu.classList.toggle('hidden');
+                if (chevron) {
+                    chevron.classList.toggle('rotate-180');
+                }
             }
         }
     </script>
