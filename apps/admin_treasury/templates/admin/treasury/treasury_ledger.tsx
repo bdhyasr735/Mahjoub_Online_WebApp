@@ -17,6 +17,27 @@ export const TreasuryLedgerComponent: React.FC<TreasuryLedgerProps> = ({
   totalPages,
   onPageChange
 }) => {
+  // دالة ذكية لترجمة التصنيف أو نوع الحركة إلى العربية في الواجهة الأمامية
+  const getLocalizedCategory = (category: string) => {
+    if (!category) return "حركة عامة";
+    
+    const translations: Record<string, string> = {
+      'deposit': 'إيداع نقدي',
+      'revenue_net': 'صافي إيرادات مبيعات',
+      'supplier_settlement': 'تسوية مستحقات مورد',
+      'affiliate_payout': 'عمولة مسوق بالعمولة',
+      'operational_cost': 'تكلفة تشغيلية',
+      'Cash Deposit': 'إيداع نقدي',
+      'Net Sales Revenue': 'صافي إيرادات مبيعات',
+      'Supplier Settlement': 'تسوية مستحقات مورد',
+      'Affiliate Payout': 'عمولة مسوق بالعمولة',
+      'Operational Cost': 'تكلفة تشغيلية'
+    };
+
+    const cleaned = String(category).trim();
+    return translations[cleaned] || cleaned;
+  };
+
   // منع النقرات المزدوجة المتكررة وحفظ الاستقرار (Double-Click Optimization)
   const handleRowDoubleClick = (trx: TreasuryTransaction) => {
     onSelectTransaction(trx);
@@ -75,7 +96,9 @@ export const TreasuryLedgerComponent: React.FC<TreasuryLedgerProps> = ({
                   <span className="block text-[10px] text-slate-400 font-normal">{trx.voucherNumber}</span>
                 </td>
                 <td className="py-3.5 px-4 font-mono text-slate-600">{trx.createdAt}</td>
-                <td className="py-3.5 px-4 font-bold text-slate-800">{trx.categoryName}</td>
+                <td className="py-3.5 px-4 font-bold text-slate-800">
+                  {getLocalizedCategory(trx.categoryName)}
+                </td>
                 <td className="py-3.5 px-4">
                   <div className="font-bold text-slate-900">{trx.description}</div>
                   <div className="text-[11px] text-slate-500">{trx.sourceDestination}</div>
