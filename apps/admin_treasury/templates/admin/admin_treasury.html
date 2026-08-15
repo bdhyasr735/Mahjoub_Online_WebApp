@@ -1,12 +1,9 @@
 {% extends "admin/admin_base.html" %}
 
 {% block extra_css %}
-<!-- إضافة مكتبة تيلويند لضمان عدم ظهور الشاشة البيضاء بسبب الكلاسات المستخدمة -->
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
-    .royal-gradient { background: linear-gradient(135deg, #2e1065 0%, #3b0764 50%, #1e1b4b 100%); }
     .gold-accent { color: #D4AF37; }
-    .gold-border { border-color: rgba(212, 175, 55, 0.3); }
+    .gold-border { border-color: rgba(212, 175, 55, 0.3) !important; }
     .glass-card { background: rgba(30, 27, 75, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
 </style>
 {% endblock %}
@@ -28,31 +25,31 @@
 
     <!-- بطاقات المؤشرات (KPIs) -->
     <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-6 col-lg-2.4 flex-fill">
+        <div class="col-12 col-sm-6 col-lg">
             <div class="glass-card p-3 rounded-3 border-start border-4 border-success h-100">
                 <span class="text-muted small d-block">إجمالي الواردات</span>
                 <span class="fs-5 fw-bold text-success mt-1 d-block">{{ "%.2f"|format(kpi.total_inflow) }}</span>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-2.4 flex-fill">
+        <div class="col-12 col-sm-6 col-lg">
             <div class="glass-card p-3 rounded-3 border-start border-4 border-danger h-100">
                 <span class="text-muted small d-block">إجمالي المنصرفات</span>
                 <span class="fs-5 fw-bold text-danger mt-1 d-block">{{ "%.2f"|format(kpi.total_outflow) }}</span>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-2.4 flex-fill">
+        <div class="col-12 col-sm-6 col-lg">
             <div class="glass-card p-3 rounded-3 border-start border-4 border-warning h-100">
                 <span class="text-muted small d-block">احتياطي الضمان (Escrow)</span>
                 <span class="fs-5 fw-bold gold-accent mt-1 d-block">{{ "%.2f"|format(kpi.escrow_reserve) }}</span>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-2.4 flex-fill">
+        <div class="col-12 col-sm-6 col-lg">
             <div class="glass-card p-3 rounded-3 border-start border-4 border-purple h-100">
                 <span class="text-muted small d-block">صافي أرباح المنصة</span>
                 <span class="fs-5 fw-bold text-light mt-1 d-block">{{ "%.2f"|format(kpi.net_platform_profit) }}</span>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-2.4 flex-fill">
+        <div class="col-12 col-sm-6 col-lg">
             <div class="glass-card p-3 rounded-3 border-start border-4 border-info h-100">
                 <span class="text-muted small d-block">العملة المعتمدة</span>
                 <span class="fs-5 fw-bold text-info mt-1 d-block">{{ kpi.currency }}</span>
@@ -84,9 +81,9 @@
     </div>
 
     <!-- جدول الحركات المالية -->
-    <div class="table-responsive-mahjoub shadow-lg">
-        <table class="table table-mahjoub table-hover align-middle">
-            <thead>
+    <div class="table-responsive-mahjoub shadow-lg bg-white rounded-3 overflow-hidden">
+        <table class="table table-mahjoub table-hover align-middle mb-0">
+            <thead class="table-light">
                 <tr>
                     <th>رقم السند / المرجع</th>
                     <th>نوع الحركة</th>
