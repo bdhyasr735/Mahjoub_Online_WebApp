@@ -42,11 +42,12 @@ def import_all_models():
                     print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
 
 def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي وفق الترقيم العشوائي الفريد (6 خانات)"""
+    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي في المحفظة والخزينة العامة (1000 ر.س)"""
     from apps.models.admin_db import AdminUser
     from apps.models.admin_staff_db import AdminStaff
     from apps.models.supplier_db import Supplier
     from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
+    from apps.models.treasury_db import TreasuryEntry
 
     # 1. زراعة المالك
     try:
@@ -79,7 +80,7 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Staff]: {e}")
 
-    # 3. زراعة مورد وتوليد "سند وحركة إيداع" برصيد 1000 ر.س متناسقة مع الترقيم العشوائي الفريد الجديد
+    # 3. زراعة مورد، محفظته، حركة الإيداع، وقيد الخزينة العامة برصيد 1000 ر.س متناسقة بالكامل
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
             supplier = Supplier(
@@ -94,7 +95,7 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 1000.00 لكي تظهر مباشرة في الخزنة والمحفظة
+            # إنشاء المحفظة برصيد 1000.00
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
@@ -124,7 +125,7 @@ def seed_database():
             # --- 🛠️ توليد رقم سند فريد (6 خانات) باستخدام الدالة المعتمدة ---
             seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
 
-            # 📝 إنشاء حركة مالية وسند إيداع رصيد افتتاحي
+            # 📝 إنشاء حركة مالية للمحفظة
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
                 owner_type='supplier',
@@ -138,8 +139,22 @@ def seed_database():
                 description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"
             )
             db.session.add(initial_transaction)
+
+            # 📝 🌟 إنشاء قيد مطابق في الخزينة العامة لكي تظهر تلقائياً في صفحة Treasury
+            treasury_entry = TreasuryEntry(
+                reference_number=seed_ref_number,
+                voucher_number=seed_voucher_number,
+                entry_type='deposit',
+                amount=1000.00,
+                currency='SAR',
+                owner_type='supplier',
+                owner_id=supplier.id,
+                description="سند إيداع رصيد افتتاحي للمورد التجريبي (الخزينة العامة)"
+            )
+            db.session.add(treasury_entry)
+
             db.session.commit()
-            print(f"✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع (1000 SAR) بنجاح برقم مرجعي: {seed_ref_number} وسند: {seed_voucher_number}.")
+            print(f"✅ [Seed]: تم زرع المورد، المحفظة، وحركة الخزينة (1000 SAR) بنجاح برقم: {seed_ref_number}.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
