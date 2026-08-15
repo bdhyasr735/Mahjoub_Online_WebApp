@@ -5,7 +5,7 @@ import os
 import base64
 import secrets
 import string
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from cryptography.fernet import Fernet
 from sqlalchemy import event, select, update
@@ -65,6 +65,14 @@ class SupplierWallet(db.Model):
         else:
             self._bank_details_enc = None
 
+    @property
+    def formatted_time(self):
+        """تنسيق وقت التحديث بدقة (الساعة، الدقيقة، الثانية) بتوقيت اليمن/مكة (+3)"""
+        if self.updated_at:
+            local_time = self.updated_at + timedelta(hours=3)
+            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
+        return "-"
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -74,6 +82,7 @@ class SupplierWallet(db.Model):
             'balance_usd': float(self.balance_usd or 0.0),
             'balance_sar': float(self.balance_sar or 0.0),
             'bank_details': self.bank_details,
+            'formatted_time': self.formatted_time,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
@@ -128,6 +137,14 @@ class WalletTransaction(db.Model):
         else:
             self._description_enc = None
 
+    @property
+    def formatted_time(self):
+        """تنسيق وقت الحركة المالية بدقة (الساعة، الدقيقة، الثانية) بتوقيت اليمن/مكة (+3)"""
+        if self.created_at:
+            local_time = self.created_at + timedelta(hours=3)
+            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
+        return "-"
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -137,6 +154,7 @@ class WalletTransaction(db.Model):
             'reference_number': self.reference_number,
             'voucher_number': self.voucher_number,
             'description': self.description,
+            'formatted_time': self.formatted_time,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
