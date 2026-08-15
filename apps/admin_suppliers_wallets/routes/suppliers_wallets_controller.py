@@ -16,12 +16,11 @@ def index():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     status_filter = request.args.get('status', 'all', type=str)
-    bank_filter = request.args.get('bank', 'all', type=str)
     
     # بناء الاستعلام الأساسي للمحافظ
     query = SupplierWallet.query
 
-    # تطبيق البحث النصي (تأكد من مطابقة أسماء الأعمدة الفعلية في نموذج SupplierWallet)
+    # تطبيق البحث النصي
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
@@ -38,44 +37,27 @@ def index():
     if status_filter and status_filter != 'all':
         query = query.filter(SupplierWallet.status == status_filter)
 
-    # فلترة حسب البنك المعتمد
-    if bank_filter and bank_filter != 'all':
-        query = query.filter(SupplierWallet.bank_name == bank_filter)
-
     # حساب المؤشرات المالية الحقيقية (KPIs) من قاعدة البيانات
-    total_wallets_balance = db.session.query(func.sum(SupplierWallet.balance)).scalar() or 0.00
-    total_available_payouts = db.session.query(func.sum(SupplierWallet.available_balance)).scalar() or 0.00
-    total_escrow_held = db.session.query(func.sum(SupplierWallet.escrow_balance)).scalar() or 0.00
-    
-    total_suppliers_count = SupplierWallet.query.count()
-    active_suppliers_count = SupplierWallet.query.filter_by(status='active').count()
-    
-    # العمليات المعلقة باستخدام نموذج WalletTransaction الصحيح
-    pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or 0.00
-    pending_withdrawals_count = WalletTransaction.query.filter_by(status='pending').count()
-
+    # ملاحظة: يتم حساب الإجماليات على مستوى الجدول بالكامل لتعكس الوضع المالي للمنصة
     kpis = {
-        'total_wallets_balance': total_wallets_balance,
-        'total_available_payouts': total_available_payouts,
-        'total_escrow_held': total_escrow_held,
-        'total_suppliers_count': total_suppliers_count,
-        'active_suppliers_count': active_suppliers_count,
-        'pending_withdrawals_amount': pending_withdrawals_amount,
-        'pending_withdrawals_count': pending_withdrawals_count
+        'total_wallets_balance': db.session.query(func.sum(SupplierWallet.balance)).scalar() or 0.00,
+        'total_available_payouts': db.session.query(func.sum(SupplierWallet.available_balance)).scalar() or 0.00,
+        'total_escrow_held': db.session.query(func.sum(SupplierWallet.escrow_balance)).scalar() or 0.00,
+        'total_suppliers_count': SupplierWallet.query.count(),
+        'active_suppliers_count': SupplierWallet.query.filter_by(status='active').count(),
+        'pending_withdrawals_amount': db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or 0.00,
+        'pending_withdrawals_count': WalletTransaction.query.filter_by(status='pending').count()
     }
 
-    # تنفيذ الترقيم (Pagination) باستخدام SQLAlchemy Paginate
+    # تنفيذ الترقيم (Pagination)
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
     suppliers = pagination_obj.items
 
     pagination = {
         'current_page': pagination_obj.page,
         'total_pages': pagination_obj.pages,
-        'prev_page': pagination_obj.prev_num,
-        'next_page': pagination_obj.next_num,
         'has_prev': pagination_obj.has_prev,
         'has_next': pagination_obj.has_next,
-        'per_page': PER_PAGE,
         'total_count': pagination_obj.total
     }
 
@@ -85,8 +67,7 @@ def index():
         pagination=pagination,
         suppliers=suppliers,
         search_query=search_query,
-        status_filter=status_filter,
-        bank_filter=bank_filter
+        status_filter=status_filter
     )
 
 @bp.route('/<int:supplier_id>', methods=['GET'])
