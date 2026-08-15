@@ -18,11 +18,31 @@
             --sidebar-width: 280px; 
         }
         
-        html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; }
-        body { font-family: 'Cairo', sans-serif !important; background: #f0f2f5; }
+        html { height: 100%; }
+        body { 
+            font-family: 'Cairo', sans-serif !important; 
+            background: #120A1F; 
+            color: #fff;
+            margin: 0; 
+            padding: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
         
         /* Sidebar */
-        .sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; right: 0; top: 0; background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); z-index: 1050; overflow-y: auto; transition: 0.3s; box-shadow: 2px 0 20px rgba(0,0,0,0.2); }
+        .sidebar { 
+            width: var(--sidebar-width); 
+            height: 100vh; 
+            position: fixed; 
+            right: 0; 
+            top: 0; 
+            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); 
+            z-index: 1050; 
+            overflow-y: auto; 
+            transition: 0.3s; 
+            box-shadow: -2px 0 20px rgba(0,0,0,0.4); 
+            border-left: 1px solid rgba(212, 175, 55, 0.15);
+        }
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
@@ -38,19 +58,26 @@
         .dropdown-content { display: none; list-style: none; padding-right: 30px; margin: 5px 0; }
         .dropdown-content a { display: block; padding: 8px 12px; color: rgba(255,255,255,0.6); text-decoration: none; border-radius: 6px; font-size: 0.9rem; transition: 0.2s; }
         .dropdown-content a:hover, .dropdown-content a.active-link { color: var(--mahjoub-gold); background: rgba(255,255,255,0.05); }
-        .nav-link-custom .fa-chevron-down { margin-right: auto; transition: 0.3s; }
+        .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: 0.3s; }
         .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
         
         /* Main Layout */
-        .main-wrapper { margin-right: var(--sidebar-width); height: 100vh; overflow-y: auto; transition: 0.3s; }
-        .top-navbar { background: #fff; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1040; }
+        .main-wrapper { 
+            margin-right: var(--sidebar-width); 
+            margin-left: 0;
+            min-height: 100vh; 
+            background: #120A1F;
+            transition: 0.3s; 
+            overflow-y: auto;
+        }
+        .top-navbar { background: #1A102A; border-bottom: 1px solid #362052; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1040; }
         .admin-badge { background: linear-gradient(135deg, var(--royal-purple), var(--deep-black)); color: var(--mahjoub-gold); padding: 5px 14px; border-radius: 50px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(212, 175, 55, 0.2); }
         
         /* Unified Table Style */
-        .table-responsive-mahjoub { overflow-x: auto; background: #fff; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
-        .table-mahjoub { width: 100%; margin-bottom: 0; font-size: 0.9rem; }
-        .table-mahjoub thead { background: #f8f9fa; color: #4a154b; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-        .table-mahjoub th, .table-mahjoub td { padding: 12px 15px; vertical-align: middle; white-space: nowrap; }
+        .table-responsive-mahjoub { overflow-x: auto; background: #1A102A; border-radius: 12px; border: 1px solid #362052; margin-bottom: 1.5rem; }
+        .table-mahjoub { width: 100%; margin-bottom: 0; font-size: 0.9rem; color: #fff; }
+        .table-mahjoub thead { background: #231538; color: var(--mahjoub-gold); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+        .table-mahjoub th, .table-mahjoub td { padding: 12px 15px; vertical-align: middle; white-space: nowrap; border-bottom-color: #362052; }
         
         @media (max-width: 992px) {
             .sidebar { right: -280px; }
@@ -129,7 +156,7 @@
     
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
-            <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
+            <button class="btn btn-outline-light d-lg-none" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
             <div class="admin-badge">
@@ -159,7 +186,7 @@
         
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.btn-outline-dark');
+            const toggleBtn = document.querySelector('.btn-outline-light');
             if (window.innerWidth < 992 && sidebar && toggleBtn && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
                 sidebar.classList.remove('active');
             }
