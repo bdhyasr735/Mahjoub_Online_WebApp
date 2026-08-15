@@ -391,10 +391,11 @@ def create_app():
         pass
 
     # ============================================================
-    # ✅ تسجيل الموديولات الديناميكية والنوافذ الشريطية
+    # ✅ تسجيل الموديولات الديناميكية والنوافذ الشريطية (شامل لـ NAV_ITEMS و LINKS)
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
+    
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -404,26 +405,48 @@ def create_app():
             if os.path.exists(registry_file):
                 try:
                     module = importlib.import_module(f"apps.{item}.registry")
+                    
+                    # 1. تسجيل الـ Blueprint الخاص بالموديول
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
-                    links_data = None
-                    if hasattr(module, 'LINKS'):
+                    
+                    # 2. استخراج الروابط بذكاء ومرونة تامة (يدعم NAV_ITEMS, LINKS, أو get_menu_items)
+                    links_data = {}
+                    
+                    if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
+                        for nav in module.NAV_ITEMS:
+                            ep = nav.get('endpoint')
+                            title = nav.get('title')
+                            if ep and title:
+                                links_data[ep] = title
+                    
+                    if not links_data and hasattr(module, 'LINKS'):
                         raw_links = getattr(module, 'LINKS')
-                        if isinstance(raw_links, dict): links_data = {ep: lbl for ep, lbl in raw_links.items()}
-                        elif isinstance(raw_links, list): links_data = {ep: lbl for ep, lbl in raw_links}
+                        if isinstance(raw_links, dict):
+                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
+                        elif isinstance(raw_links, list):
+                            links_data = {ep: lbl for ep, lbl in raw_links}
+                    
                     menu_items_func = getattr(module, 'get_menu_items', None)
                     if not links_data and menu_items_func:
                         res = menu_items_func()
-                        if isinstance(res, dict): links_data = res
-                        elif isinstance(res, list): links_data = {ep: lbl for ep, lbl in res}
+                        if isinstance(res, dict):
+                            links_data = res
+                        elif isinstance(res, list):
+                            links_data = {ep: lbl for ep, lbl in res}
+                    
+                    # 3. إدراج الموديول في القوائم العامة حسب تصنيفه
                     if links_data:
                         mod_data = {
-                            "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
-                            "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
+                            "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
+                            "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
                             "links": links_data,
                         }
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False): SUPPLIER_MODULES[item] = mod_data
-                        else: ADMIN_MODULES[item] = mod_data
+                        if getattr(module, 'SHOW_IN_SUPPLIER', False): 
+                            SUPPLIER_MODULES[item] = mod_data
+                        else: 
+                            ADMIN_MODULES[item] = mod_data
+                            
                 except Exception as e:
                     print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
 
