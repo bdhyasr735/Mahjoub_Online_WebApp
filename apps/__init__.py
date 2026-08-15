@@ -41,7 +41,6 @@ def import_all_models():
                 except Exception as e:
                     print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
 
-
 def seed_database():
     """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي وفق الترقيم العشوائي الفريد (6 خانات)"""
     from apps.models.admin_db import AdminUser
@@ -95,11 +94,11 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 0
+            # إنشاء المحفظة برصيد 1000.00 لكي تظهر مباشرة في الخزنة والمحفظة
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=0.00
+                balance_sar=1000.00
             )
             db.session.add(wallet)
             db.session.flush()
@@ -144,6 +143,7 @@ def seed_database():
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
+
 
 
 def create_app():
