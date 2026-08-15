@@ -2,61 +2,166 @@
 
 {% block title %}سند قيد {{ voucher.ref_code }} | محجوب أونلاين{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* تنسيقات إضافية خاصة بصفحة تفاصيل السند المالي السيادي */
+    .treasury-card {
+        border: 1px solid rgba(26, 11, 46, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(26, 11, 46, 0.04);
+        background: #fff;
+    }
+    .treasury-header {
+        background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));
+        color: #fff;
+        border-radius: 16px 16px 0 0;
+        padding: 30px;
+    }
+    .treasury-badge-gold {
+        background: rgba(212, 175, 55, 0.15);
+        color: var(--mahjoub-gold);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        font-family: monospace;
+        font-size: 0.75rem;
+        padding: 6px 12px;
+        border-radius: 50px;
+    }
+    .info-box {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid rgba(0,0,0,0.03);
+        transition: 0.2s;
+    }
+    .info-box:hover {
+        background: #fff;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        border-color: rgba(212, 175, 55, 0.2);
+    }
+    .accounting-statement-box {
+        background: rgba(26, 11, 46, 0.02);
+        border: 1px solid rgba(26, 11, 46, 0.06);
+        border-radius: 12px;
+        padding: 20px;
+    }
+    .btn-royal {
+        background: var(--royal-purple);
+        color: #fff;
+        border: none;
+        transition: 0.2s;
+    }
+    .btn-royal:hover {
+        background: #281145;
+        color: var(--mahjoub-gold);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
+<div class="container-fluid px-0">
     
-    <!-- الهيدر الرسمي للسند المالي -->
-    <div class="bg-[#4A154B] text-white p-6 sm:p-8 flex items-center justify-between">
-        <div>
-            <span class="text-xs font-mono px-2.5 py-1 rounded bg-white/20 text-amber-300 font-bold">سند قيد دفتري معتمد</span>
-            <h1 class="text-2xl font-black mt-2 font-mono">{{ voucher.ref_code }}</h1>
-            <div class="text-xs text-purple-200 mt-0.5">رقم السند: {{ voucher.voucher_number }}</div>
-        </div>
-        <div class="text-left">
-            <div class="text-2xl font-black font-mono text-amber-400">
-                {% if voucher.flow_type == 'inflow' %}+{% else %}-{% endif %}{{ "{:,.2f}".format(voucher.amount) }} 
-                <span class="text-sm font-sans text-white">{{ voucher.currency }}</span>
-            </div>
-            <div class="text-xs text-emerald-300 font-bold mt-1">حالة القيد: معتمد ومطابق</div>
-        </div>
+    <!-- مسار التنقل البسيط (Breadcrumb) -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 fs-7">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="text-decoration-none" style="color: var(--royal-purple);">القيادة المركزية</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_treasury.treasury_index') }}" class="text-decoration-none" style="color: var(--royal-purple);">الخزينة المركزية</a></li>
+                <li class="breadcrumb-item active text-muted" aria-current="page">سند {{ voucher.ref_code }}</li>
+            </ol>
+        </nav>
+        <a href="{{ url_for('admin_treasury.treasury_index') }}" class="btn btn-sm btn-outline-dark fw-bold">
+            <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
+        </a>
     </div>
 
-    <!-- تفاصيل القيد -->
-    <div class="p-6 sm:p-8 space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="text-xs text-slate-500 block">التصنيف المحاسبي</span>
-                <span class="text-sm font-bold text-slate-900 mt-1 block">{{ voucher.category_label }}</span>
+    <!-- البطاقة الرئيسية للسند -->
+    <div class="treasury-card overflow-hidden">
+        
+        <!-- هيدر السند المالي -->
+        <div class="treasury-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="treasury-badge-gold d-inline-block mb-2">سند قيد دفتري سيادي معتمد</span>
+                <h1 class="h3 fw-black mb-1 font-monospace text-white tracking-wide">{{ voucher.ref_code }}</h1>
+                <div class="text-white-50 small">رقم السند المرجعي الداخلي: <span class="font-monospace text-light">{{ voucher.voucher_number }}</span></div>
             </div>
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="text-xs text-slate-500 block">نوع التدفق</span>
-                <span class="text-sm font-bold {% if voucher.flow_type == 'inflow' %}text-emerald-600{% else %}text-rose-600{% endif %} mt-1 block">
-                    {{ 'تدفق وارد (+)' if voucher.flow_type == 'inflow' else 'تدفق صادر (-)' }}
-                </span>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="text-xs text-slate-500 block">وقت التسوية البنكية</span>
-                <span class="text-sm font-mono font-bold text-slate-900 mt-1 block">{{ voucher.settled_at or 'قيد الانتظار' }}</span>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="text-xs text-slate-500 block">الرصيد بعد الحركة</span>
-                <span class="text-sm font-mono font-bold text-[#4A154B] mt-1 block">{{ "{:,.2f}".format(voucher.balance_after) }} {{ voucher.currency }}</span>
+            <div class="text-md-end">
+                <div class="fs-2 fw-black font-monospace" style="color: var(--mahjoub-gold);">
+                    {% if voucher.flow_type == 'inflow' %}+{% else %}-{% endif %}{{ "{:,.2f}".format(voucher.amount) }} 
+                    <span class="fs-6 text-white font-sans">{{ voucher.currency }}</span>
+                </div>
+                <div class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 mt-2 px-3 py-1 fw-bold">
+                    <i class="fas fa-check-circle me-1"></i> حالة القيد: معتمد ومطابق دفترياً
+                </div>
             </div>
         </div>
 
-        <!-- البيان المحاسبي -->
-        <div class="p-5 rounded-2xl bg-purple-50/50 border border-purple-100">
-            <span class="text-xs font-bold text-[#4A154B] block mb-1">البيان والشرح المحاسبي:</span>
-            <p class="text-sm text-slate-800 leading-relaxed">{{ voucher.description }}</p>
-            <div class="mt-3 pt-3 border-t border-purple-100 text-xs text-slate-500 flex justify-between">
-                <span>المسؤول المعتمد: {{ voucher.admin_reviewer }}</span>
-                <span>القناة: {{ voucher.payment_method }}</span>
-            </div>
-        </div>
+        <!-- محتوى تفاصيل القيد -->
+        <div class="p-4 p-md-5">
+            <div class="row g-3 mb-4">
+                
+                <!-- التصنيف المحاسبي -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="info-box h-100">
+                        <span class="text-muted small d-block mb-1">التصنيف المحاسبي</span>
+                        <span class="fw-bold text-dark fs-7">{{ voucher.category_label }}</span>
+                    </div>
+                </div>
 
-        <div class="flex items-center justify-between pt-4 border-t border-slate-200">
-            <button onclick="window.print()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition">🖨️ طباعة السند</button>
-            <a href="{{ url_for('admin_treasury.treasury_index') }}" class="px-5 py-2.5 bg-[#4A154B] hover:bg-[#3F0E40] text-white text-xs font-bold rounded-xl transition">العودة للخزينة</a>
+                <!-- نوع التدفق -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="info-box h-100">
+                        <span class="text-muted small d-block mb-1">اتجاه التدفق المالي</span>
+                        <span class="fw-bold fs-7 {{ 'text-success' if voucher.flow_type == 'inflow' else 'text-danger' }}">
+                            <i class="fas {{ 'fa-arrow-down' if voucher.flow_type == 'inflow' else 'fa-arrow-up' }} me-1"></i>
+                            {{ 'تدفق وارد (+)' if voucher.flow_type == 'inflow' else 'تدفق صادر (-)' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- وقت التسوية -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="info-box h-100">
+                        <span class="text-muted small d-block mb-1">وقت التسوية البنكية</span>
+                        <span class="font-monospace fw-bold text-dark fs-7">{{ voucher.settled_at or 'قيد الانتظار الآلي' }}</span>
+                    </div>
+                </div>
+
+                <!-- الرصيد بعد الحركة -->
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="info-box h-100">
+                        <span class="text-muted small d-block mb-1">الرصيد بعد التعديل</span>
+                        <span class="font-monospace fw-bold fs-7" style="color: var(--royal-purple);">
+                            {{ "{:,.2f}".format(voucher.balance_after) }} <span class="small">{{ voucher.currency }}</span>
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- صندوق البيان والشرح المحاسبي -->
+            <div class="accounting-statement-box mb-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="fas fa-file-invoice-dollar" style="color: var(--royal-purple);"></i>
+                    <span class="fw-bold" style="color: var(--royal-purple);">البيان التفصيلي والشرح المحاسبي:</span>
+                </div>
+                <p class="text-secondary small mb-3 leading-relaxed ps-4">{{ voucher.description }}</p>
+                
+                <div class="pt-3 border-top border-secondary border-opacity-10 text-muted small d-flex flex-column flex-sm-row justify-content-between gap-2 ps-4">
+                    <span>المسؤول المعتمد: <strong class="text-dark">{{ voucher.admin_reviewer }}</strong></span>
+                    <span>قناة التنفيذ والدفع: <strong class="text-dark">{{ voucher.payment_method }}</strong></span>
+                </div>
+            </div>
+
+            <!-- أزرار الإجراءات والتحكم -->
+            <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+                <button onclick="window.print()" class="btn btn-light px-4 py-2 fw-bold text-secondary rounded-3 shadow-sm">
+                    <i class="fas fa-print me-1"></i> طباعة السند المالي
+                </button>
+                <a href="{{ url_for('admin_treasury.treasury_index') }}" class="btn btn-royal px-4 py-2 fw-bold rounded-3 shadow-sm">
+                    <i class="fas fa-arrow-right me-1"></i> العودة لدفتر الأستاذ
+                </a>
+            </div>
+
         </div>
     </div>
 </div>
