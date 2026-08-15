@@ -1,11 +1,5 @@
-// -*- coding: utf-8 -*-
-// 📂 apps/admin_treasury/templates/admin/treasury/treasury_ledger.tsx
-"""
-مكون دفتر أستاذ قيود الخزينة وحركات التدفق - محجوب أونلاين
-"""
-
 import React from 'react';
-import { FileText, ArrowUpRight, ArrowDownLeft, Eye, Printer } from 'lucide-react';
+import { FileText, ArrowUpRight, ArrowDownLeft, Eye, Printer, Zap } from 'lucide-react';
 import { TreasuryTransaction } from '../../../../../src/types';
 
 interface TreasuryLedgerProps {
