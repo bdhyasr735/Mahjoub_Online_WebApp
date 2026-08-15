@@ -90,16 +90,16 @@ def seed_database():
                 owner_name='المورد التجريبي',
                 phone='0500000000',
                 status='active',
-                supplier_code='SUP9631'
+                supplier_code='SUP-9631'
             )
             supplier.set_password('123')
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 1000
+            # إنشاء المحفظة برصيد 1000 مع كود متطابق WEL-963X
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
-                wallet_code=f"MAH-WEL963{supplier.id}",
+                wallet_code=f"WEL-963{supplier.id}",
                 balance_sar=1000.00
             )
             db.session.add(wallet)
@@ -141,7 +141,7 @@ def seed_database():
             )
             db.session.add(initial_transaction)
 
-            # --- 📝 [إضافة هامة]: قيد مطابق في الخزينة المركزية ليظهر في الواجهة المحاسبية ---
+            # --- 📝 قيد مطابق في الخزينة المركزية ليظهر في الواجهة المحاسبية ---
             treasury_entry = TreasuryEntry(
                 entry_type='supplier_settlement',
                 amount=1000.00,
@@ -204,7 +204,6 @@ def create_app():
         import_all_models()
         
         try:
-            # إجبار PostgreSQL على حذف الـ Schema والعلاقات بالكامل لتفادي خطأ المفاتيح الأجنبية
             db.session.execute(text("DROP SCHEMA public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
@@ -448,33 +447,25 @@ def create_app():
             except Exception: return '#'
         supplier_context = {
             'current_supplier': None, 'owner_full_name': '', 'supplier_bank_name': '',
-            'supplier_bank_account': '', 'supplier_wallet': None,
-            'pending_financials_count': 0, 'total_pending_payouts': 0.00
+            'supplier_bank_account': '', 'supplier_wallet_balance': 0.0, 'supplier_wallet_code': ''
         }
-        if current_user.is_authenticated:
-            try:
-                user_type = session.get('user_type')
-                if user_type in ['supplier', 'staff']:
-                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type == 'staff' else getattr(current_user, 'id', None)
-                    if supplier_id:
-                        from apps.models.supplier_db import Supplier
-                        from apps.models.wallet_db import SupplierWallet
-                        supplier = db.session.get(Supplier, supplier_id)
-                        if supplier:
-                            supplier_context['current_supplier'] = supplier
-                            supplier_context['owner_full_name'] = getattr(supplier, 'owner_name', '')
-                            supplier_context['supplier_bank_name'] = getattr(supplier, 'bank_name', '')
-                            supplier_context['supplier_bank_account'] = getattr(supplier, 'bank_account', '')
-                            wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
-                            if wallet:
-                                supplier_context['supplier_wallet'] = wallet
-            except Exception as e:
-                print(f"⚠️ [Context Error]: {e}")
-        return {
-            'admin_modules': ADMIN_MODULES,
-            'supplier_modules': SUPPLIER_MODULES,
-            'safe_url_for': safe_url_for,
+        if current_user.is_authenticated and session.get('user_type') == 'supplier':
+            sup = getattr(current_user, 'supplier', current_user)
+            if hasattr(sup, 'id') and sup.supplier_code and sup.supplier_code.startswith('SUP-'):
+                wallet = getattr(sup, 'wallet', None)
+                supplier_context = {
+                    'current_supplier': sup,
+                    'owner_full_name': getattr(sup, 'owner_name', ''),
+                    'supplier_bank_name': getattr(sup, 'trade_name', ''),
+                    'supplier_bank_account': getattr(sup, 'supplier_code', ''),
+                    'supplier_wallet_balance': getattr(wallet, 'balance_sar', 0.0) if wallet else 0.0,
+                    'supplier_wallet_code': getattr(wallet, 'wallet_code', f"WEL-963{sup.id}") if wallet else f"WEL-963{sup.id}"
+                }
+        return dict(
+            admin_modules=ADMIN_MODULES,
+            supplier_modules=SUPPLIER_MODULES,
+            safe_url_for=safe_url_for,
             **supplier_context
-        }
+        )
 
     return app
