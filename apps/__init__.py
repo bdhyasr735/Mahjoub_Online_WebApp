@@ -483,6 +483,7 @@ def create_app():
                 print(f"⚠️ [Context Processor Error]: {e}")
 
         return {
+            'registered_modules': ADMIN_MODULES,
             'admin_modules': ADMIN_MODULES,
             'supplier_modules': SUPPLIER_MODULES,
             'safe_url_for': safe_url_for,
