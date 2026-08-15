@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from apps.admin_suppliers_wallets.models.wallet_model import SupplierWallet, WalletLedgerEntry, db
+from sqlalchemy import or_, func
 
 bp = Blueprint('suppliers_wallets_controller', __name__)
 
@@ -8,38 +10,73 @@ PER_PAGE = 10
 def index():
     """
     الصفحة الرئيسية للوحة تحكم محافظ الموردين
-    عرض المؤشرات المالية، البحث، وجدول المحافظ مع الترقيم
+    عرض المؤشرات المالية الحقيقية، البحث، وجدول المحافظ مع الترقيم القائم على قاعدة البيانات
     """
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     status_filter = request.args.get('status', 'all', type=str)
     bank_filter = request.args.get('bank', 'all', type=str)
     
-    kpis = {
-        'total_wallets_balance': 3828900.50,
-        'total_available_payouts': 3012000.00,
-        'total_escrow_held': 816900.50,
-        'total_suppliers_count': 1420850,
-        'active_suppliers_count': 10,
-        'pending_withdrawals_amount': 345800.00,
-        'pending_withdrawals_count': 28
-    }
+    # بناء الاستعلام الأساسي للمحافظ
+    query = SupplierWallet.query
 
-    total_records = 10
-    total_pages = max(1, (total_records + PER_PAGE - 1) // PER_PAGE)
+    # تطبيق البحث النصي (اسم المورد، كود المحفظة، السجل التجاري، الآيبان، أو المدينة)
+    if search_query:
+        search_term = f"%{search_query}%"
+        query = query.filter(
+            or_(
+                SupplierWallet.supplier_name.ilike(search_term),
+                SupplierWallet.wallet_code.ilike(search_term),
+                SupplierWallet.commercial_register.ilike(search_term),
+                SupplierWallet.iban.ilike(search_term),
+                SupplierWallet.city.ilike(search_term)
+            )
+        )
+
+    # فلترة حسب الحالة
+    if status_filter and status_filter != 'all':
+        query = query.filter(SupplierWallet.status == status_filter)
+
+    # فلترة حسب البنك المعتمد
+    if bank_filter and bank_filter != 'all':
+        query = query.filter(SupplierWallet.bank_name == bank_filter)
+
+    # حساب المؤشرات المالية الحقيقية (KPIs) من قاعدة البيانات
+    total_wallets_balance = db.session.query(func.sum(SupplierWallet.balance)).scalar() or 0.00
+    total_available_payouts = db.session.query(func.sum(SupplierWallet.available_balance)).scalar() or 0.00
+    total_escrow_held = db.session.query(func.sum(SupplierWallet.escrow_balance)).scalar() or 0.00
     
-    pagination = {
-        'current_page': page,
-        'total_pages': total_pages,
-        'prev_page': max(1, page - 1),
-        'next_page': min(total_pages, page + 1),
-        'has_prev': page > 1,
-        'has_next': page < total_pages,
-        'per_page': PER_PAGE,
-        'total_count': total_records
+    total_suppliers_count = SupplierWallet.query.count()
+    active_suppliers_count = SupplierWallet.query.filter_by(status='active').count()
+    
+    # العمليات المعلقة (إن وجدت ضمن جدول الحركات الدفترية أو المحافظ)
+    pending_withdrawals_amount = db.session.query(func.sum(WalletLedgerEntry.amount)).filter_by(status='pending').scalar() or 0.00
+    pending_withdrawals_count = WalletLedgerEntry.query.filter_by(status='pending').count()
+
+    kpis = {
+        'total_wallets_balance': total_wallets_balance,
+        'total_available_payouts': total_available_payouts,
+        'total_escrow_held': total_escrow_held,
+        'total_suppliers_count': total_suppliers_count,
+        'active_suppliers_count': active_suppliers_count,
+        'pending_withdrawals_amount': pending_withdrawals_amount,
+        'pending_withdrawals_count': pending_withdrawals_count
     }
 
-    suppliers = get_suppliers_list(search=search_query, status=status_filter, bank=bank_filter, page=page, per_page=PER_PAGE)
+    # تنفيذ الترقيم (Pagination) باستخدام SQLAlchemy Paginate
+    pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
+    suppliers = pagination_obj.items
+
+    pagination = {
+        'current_page': pagination_obj.page,
+        'total_pages': pagination_obj.pages,
+        'prev_page': pagination_obj.prev_num,
+        'next_page': pagination_obj.next_num,
+        'has_prev': pagination_obj.has_prev,
+        'has_next': pagination_obj.has_next,
+        'per_page': PER_PAGE,
+        'total_count': pagination_obj.total
+    }
 
     return render_template(
         'admin/suppliers_wallets.html',
@@ -51,22 +88,14 @@ def index():
         bank_filter=bank_filter
     )
 
-@bp.route('/<supplier_id>', methods=['GET'])
+@bp.route('/<int:supplier_id>', methods=['GET'])
 def supplier_ledger_detail(supplier_id):
     """
-    صفحة كشف الحساب والعمليات الدفترية الفردية للمورد
+    صفحة كشف الحساب والعمليات الدفترية الفردية للمورد من قاعدة البيانات
     """
-    wallet = get_supplier_wallet_by_id(supplier_id)
-    if not wallet:
-        return render_template('admin/404.html'), 404
+    wallet = SupplierWallet.query.get_or_404(supplier_id)
         
     return render_template(
         'admin/supplier_ledger_detail.html',
         wallet=wallet
     )
-
-def get_suppliers_list(search='', status='all', bank='all', page=1, per_page=10):
-    return []
-
-def get_supplier_wallet_by_id(supplier_id):
-    return {}
