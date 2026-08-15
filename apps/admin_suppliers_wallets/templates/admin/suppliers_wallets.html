@@ -1,185 +1,84 @@
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
 
-{% block title %}إدارة محافظ الموردين | القيادة المركزية{% endblock %}
+{% block title %}إدارة محافظ الموردين{% endblock %}
+{% block breadcrumb %}محافظ الموردين والسيولة{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-2 px-md-4 py-3">
+<div class="space-y-6" dir="rtl">
 
-    <!-- العنوان العلوي -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- ترويسة الصفحة -->
+    <div class="bg-[#1A102A] border border-[#362052] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-            <h4 class="fw-bold text-dark mb-1"><i class="fas fa-wallet text-warning me-2"></i>إدارة محافظ الموردين</h4>
-            <p class="text-muted small mb-0">مراقبة الأرصدة، السيولة الجاهزة، وأمانات الضمان بدقة متناهية</p>
+            <h1 class="text-2xl font-black text-white">إدارة محافظ الموردين</h1>
+            <p class="text-xs text-slate-400 mt-1">متابعة أرصدة الموردين، الحركات المالية، والقيود الدفترية بدقة لحظية.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-[#231538] hover:bg-[#362052] text-slate-200 text-xs font-bold rounded-xl border border-[#4B2A73]/50 transition">
+                🔄 تحديث البيانات
+            </a>
         </div>
     </div>
 
-    <!-- بطاقات المؤشرات المالية (KPIs) - منظمة بشبكة متجاوبة -->
-    <div class="row g-3 mb-4">
-        <!-- إجمالي أرصدة المحافظ -->
-        <div class="col-xl-4 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-4 border-primary">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted d-block small mb-1">إجمالي أرصدة المحافظ</span>
-                            <h4 class="fw-bold text-dark mb-0">SAR {{ "{:,.2f}".format(kpis.total_wallets_balance) }}</h4>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                            <i class="fas fa-credit-card fa-lg"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-muted small">
-                        <i class="fas fa-users me-1 text-primary"></i> عدد الموردين: <span class="fw-bold text-dark">{{ kpis.total_suppliers_count }}</span>
-                    </div>
-                </div>
-            </div>
+    <!-- جدول المحافظ -->
+    <div class="bg-[#1A102A] border border-[#362052] rounded-3xl shadow-xl overflow-hidden">
+        <div class="p-5 bg-[#160D26] border-b border-[#362052] flex items-center justify-between">
+            <h2 class="text-base font-black text-white">قائمة المحافظ النشطة</h2>
+            <span class="text-xs text-slate-400 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl font-mono font-bold">
+                الإجمالي: {{ wallets|length if wallets else 0 }}
+            </span>
         </div>
 
-        <!-- الرصيد المتاح للسحب -->
-        <div class="col-xl-4 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-4 border-success">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted d-block small mb-1">الرصيد المتاح للسحب</span>
-                            <h4 class="fw-bold text-success mb-0">SAR {{ "{:,.2f}".format(kpis.total_available_payouts) }}</h4>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                            <i class="fas fa-bolt fa-lg"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-muted small">
-                        <i class="fas fa-check-circle me-1 text-success"></i> سيولة جاهزة للتحويل الفوري
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- أمانات الضمان (Escrow) -->
-        <div class="col-xl-4 col-md-12">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-4 border-warning">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted d-block small mb-1">أمانات الضمان (Escrow)</span>
-                            <h4 class="fw-bold text-warning mb-0">SAR {{ "{:,.2f}".format(kpis.total_escrow_held) }}</h4>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
-                            <i class="fas fa-lock fa-lg"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-muted small">
-                        <i class="fas fa-clock me-1 text-warning"></i> إجمالي الطلبات المعلقة: <span class="fw-bold text-dark">{{ kpis.pending_withdrawals_count }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- قسم البحث والفلترة -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
-        <div class="card-body p-3">
-            <form method="GET" action="" class="row g-2 align-items-center">
-                <div class="col-md-5">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="q" value="{{ search_query }}" class="form-control bg-light border-0" placeholder="بحث باسم المورد، كود المحفظة، أو السجل التجاري...">
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <select name="status" class="form-select bg-light border-0">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
-                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>نشط</option>
-                        <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>موقوف</option>
-                    </select>
-                </div>
-                <div class="col-md-4 text-end">
-                    <button type="submit" class="btn btn-dark px-4 fw-bold rounded-3"><i class="fas fa-filter me-1"></i> تطبيق الفلترة</button>
-                    <a href="{{ url_for('suppliers_wallets_controller.index') }}" class="btn btn-outline-secondary px-3 rounded-3"><i class="fas fa-redo"></i></a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- جدول عرض المحافظ -->
-    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold text-dark mb-0"><i class="fas fa-folder-open text-warning me-2"></i>سجل وحسابات محافظ الموردين</h5>
-            <span class="text-muted small">انقر نقراً مزدوجاً (Double Click) لفتح كشف الحساب فوراً</span>
-        </div>
-        
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light text-secondary text-uppercase small">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead class="bg-[#120A1F] text-slate-400 font-bold border-b border-[#362052] select-none">
                     <tr>
-                        <th class="py-3 px-3">كود المحفظة</th>
-                        <th class="py-3">المورد</th>
-                        <th class="py-3">الرصيد المتاح (SAR)</th>
-                        <th class="py-3">الرصيد المعلق (SAR)</th>
-                        <th class="py-3">إجمالي الرصيد (SAR)</th>
-                        <th class="py-3">الحالة</th>
-                        <th class="py-3 text-center">الإجراءات</th>
+                        <th class="py-4 px-4">كود المحفظة</th>
+                        <th class="py-4 px-4">المورد</th>
+                        <th class="py-4 px-4 text-left">الرصيد المتاح (SAR)</th>
+                        <th class="py-4 px-4 text-left">الرصيد المعلق</th>
+                        <th class="py-4 px-4 text-center">الحالة</th>
+                        <th class="py-4 px-4 text-center">الإجراءات</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% if suppliers %}
-                        {% for wallet in suppliers %}
-                        <tr ondblclick="window.location='{{ url_for('suppliers_wallets_controller.supplier_ledger_detail', supplier_id=wallet.id) }}'" style="cursor: pointer;" title="انقر نقراً مزدوجاً لعرض كشف الحساب">
-                            <td class="fw-bold text-primary px-3">
-                                <i class="fas fa-wallet me-1 text-muted"></i> {{ wallet.wallet_code }}
+                <tbody class="divide-y divide-[#231538]">
+                    {% if wallets %}
+                        {% for w in wallets %}
+                        <tr class="hover:bg-purple-950/20 transition">
+                            <td class="py-4 px-4 font-mono font-bold text-amber-400">
+                                {{ w.wallet_code }}
                             </td>
-                            <td>
-                                <div class="fw-bold text-dark">{{ wallet.supplier.supplier_name if wallet.supplier else 'مورد غير محدد' }}</div>
-                                <small class="text-muted">ID: {{ wallet.supplier_id }}</small>
+                            <td class="py-4 px-4 font-bold text-white">
+                                {{ w.supplier.supplier_name if w.supplier else '---' }}
                             </td>
-                            <td class="fw-bold text-success">SAR {{ "{:,.2f}".format(wallet.balance_sar or 0) }}</td>
-                            <td class="fw-bold text-warning">SAR {{ "{:,.2f}".format(wallet.balance_pending or 0) }}</td>
-                            <td class="fw-bold text-dark">SAR {{ "{:,.2f}".format((wallet.balance_sar or 0) + (wallet.balance_pending or 0)) }}</td>
-                            <td>
-                                {% if wallet.status == 'active' %}
-                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-pill">نشط</span>
-                                {% else %}
-                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill">موقوف</span>
-                                {% endif %}
+                            <td class="py-4 px-4 text-left font-mono font-black text-emerald-400">
+                                {{ "{:,.2f}".format(w.balance_sar|float) }} SAR
                             </td>
-                            <td class="text-center">
-                                <a href="{{ url_for('suppliers_wallets_controller.supplier_ledger_detail', supplier_id=wallet.id) }}" class="btn btn-sm btn-outline-primary rounded-3 px-3" title="كشف الحساب">
-                                    <i class="fas fa-file-invoice-dollar me-1"></i> كشف الحساب
+                            <td class="py-4 px-4 text-left font-mono text-amber-300">
+                                {{ "{:,.2f}".format(w.balance_pending|float) }} SAR
+                            </td>
+                            <td class="py-4 px-4 text-center">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    {{ w.status }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-4 text-center">
+                                <a href="{{ url_for('suppliers_wallets_controller.detail', wallet_id=w.id) }}" class="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] font-black rounded-xl transition inline-block">
+                                    كشف الحساب 📊
                                 </a>
                             </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="fas fa-box-open fa-2x mb-2 d-block text-secondary"></i>
-                                لا توجد محافظ مطابقة للبحث أو البيانات فارغة حالياً.
+                            <td colspan="6" class="py-12 text-center text-slate-400">
+                                <i class="fas fa-wallet text-2xl mb-2 block text-slate-500"></i>
+                                لا توجد محافظ مسجلة حالياً.
                             </td>
                         </tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
-
-        <!-- الترقيم (Pagination) -->
-        {% if pagination.total_pages > 1 %}
-        <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center border-top">
-            <span class="text-muted small">عرض المحافظ (صفحة {{ pagination.current_page }} من {{ pagination.total_pages }}) - الإجمالي: {{ pagination.total_count }}</span>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
-                        <a class="page-link" href="{{ url_for('suppliers_wallets_controller.index', page=pagination.current_page - 1, q=search_query, status=status_filter) }}">السابق</a>
-                    </li>
-                    <li class="page-item active">
-                        <span class="page-link">{{ pagination.current_page }}</span>
-                    </li>
-                    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
-                        <a class="page-link" href="{{ url_for('suppliers_wallets_controller.index', page=pagination.current_page + 1, q=search_query, status=status_filter) }}">التالي</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
     </div>
 
 </div>
