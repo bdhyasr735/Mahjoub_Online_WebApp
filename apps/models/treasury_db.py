@@ -26,8 +26,8 @@ class TreasuryEntry(db.Model):
     # المبلغ بالريال السعودي (SAR) فقط
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     
-    # الربط المرجعي مع الطلبات والمحافظ
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=True)
+    # الربط المرجعي مع الطلبات والمحافظ (تم تعديله إلى String ليتطابق مع orders.id)
+    order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=True)
     reference_number = db.Column(db.String(80), nullable=True) 
     
     # هوية الطرف المعني
@@ -67,6 +67,7 @@ class TreasuryEntry(db.Model):
             'id': self.id,
             'entry_type': self.entry_type,
             'amount': float(self.amount),
+            'order_id': self.order_id,
             'owner': f"{self.owner_type}_{self.owner_id}",
             'description': self.description,
             'date': self.created_at.isoformat()
