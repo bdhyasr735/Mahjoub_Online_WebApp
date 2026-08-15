@@ -2,7 +2,7 @@
 # 📂 apps/models/supplier_staff_db.py
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -129,6 +129,26 @@ class SupplierStaff(db.Model, UserMixin):
         self._address_enc = self._encrypt(value)
 
     # ============================================================
+    # ✅ التوقيت الموحد الدقيق (+3)
+    # ============================================================
+
+    @property
+    def formatted_time(self):
+        """تنسيق تاريخ الإنشاء بدقة (الساعة، الدقيقة، الثانية) بتوقيت اليمن/مكة (+3)"""
+        if self.created_at:
+            local_time = self.created_at + timedelta(hours=3)
+            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
+        return "-"
+
+    @property
+    def formatted_last_login(self):
+        """تنسيق وقت آخر تسجيل دخول بدقة (الساعة، الدقيقة، الثانية) بتوقيت اليمن/مكة (+3)"""
+        if self.last_login:
+            local_time = self.last_login + timedelta(hours=3)
+            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
+        return "لم يسجل دخول بعد"
+
+    # ============================================================
     # ✅ نظام كلمة المرور (باستخدام werkzeug)
     # ============================================================
 
@@ -154,6 +174,8 @@ class SupplierStaff(db.Model, UserMixin):
             'position': self.position,
             'role': self.role,
             'status': self.status,
+            'formatted_time': self.formatted_time,
+            'formatted_last_login': self.formatted_last_login,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
         }
