@@ -11,16 +11,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     
-    <!-- ملف التنسيقات المركزي السيادي -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mahjoub_theme.css') }}">
-    
     <style>
         :root { 
             --royal-purple: #1a0b2e; 
             --deep-black: #08020d; 
             --mahjoub-gold: #D4AF37; 
             --sidebar-width: 280px; 
-            /* تخصيص ألوان لوحة التحكم لتكون بيضاء تميل للرمادي الفاتح */
             --dashboard-bg: #f4f6f9;
             --dashboard-card-bg: #ffffff;
             --dashboard-border: #dee2e6;
@@ -39,7 +35,7 @@
             min-height: 100vh;
         }
         
-        /* Sidebar (بقي كما هو بلونه الملكي الداكن) */
+        /* Sidebar */
         .sidebar { 
             width: var(--sidebar-width); 
             height: 100vh; 
@@ -71,7 +67,7 @@
         .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: 0.3s; }
         .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
         
-        /* Main Layout (مساحة العمل بيضاء تميل للرمادي) */
+        /* Main Layout */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             margin-left: 0;
@@ -102,7 +98,7 @@
             border: 1px solid rgba(212, 175, 55, 0.2); 
         }
         
-        /* Unified Table Style - تنسيق الجداول للوضع الفاتح */
+        /* Unified Table Style */
         .table-responsive-mahjoub { 
             overflow-x: auto; 
             background: var(--dashboard-card-bg) !important; 
