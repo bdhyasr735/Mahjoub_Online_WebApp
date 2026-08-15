@@ -105,8 +105,6 @@ class WalletTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
     
-    # تمت إزالة owner_type و owner_id لمنع خطأ الـ keyword argument وتم توحيد الربط مع المحفظة والمورد مباشرة
-
     trans_type = db.Column(db.String(30), nullable=False)
     status = db.Column(db.String(30), default='completed') 
     amount = db.Column(db.Numeric(18, 2), nullable=False)
