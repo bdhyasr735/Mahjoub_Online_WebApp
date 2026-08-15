@@ -2,7 +2,7 @@
 # 📂 apps/models/treasury_db.py
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
 from apps.extensions import db
 
@@ -91,9 +91,10 @@ class TreasuryEntry(db.Model):
 
     @property
     def formatted_time(self):
-        """تنسيق التاريخ والوقت بدقة (الساعة، الدقيقة، الثانية) مع نظام (صباحاً / مساءً)"""
+        """تنسيق التاريخ والوقت بدقة (الساعة، الدقيقة، الثانية) مع نظام (صباحاً / مساءً) بتوقيت (+3)"""
         if self.created_at:
-            return self.created_at.strftime('%Y-%m-%d | %I:%M:%S %p')
+            local_time = self.created_at + timedelta(hours=3)
+            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
         return "-"
 
     def to_dict(self):
