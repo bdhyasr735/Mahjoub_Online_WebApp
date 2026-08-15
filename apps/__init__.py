@@ -95,11 +95,11 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 1000 لتحديث الخزنة وإظهار الرصيد الافتتاحي بشكل صحيح
+            # إنشاء المحفظة برصيد 0
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=1000.00
+                balance_sar=0.00
             )
             db.session.add(wallet)
             db.session.flush()
@@ -483,6 +483,7 @@ def create_app():
                 print(f"⚠️ [Context Processor Error]: {e}")
 
         return {
+            'registered_modules': ADMIN_MODULES,
             'admin_modules': ADMIN_MODULES,
             'supplier_modules': SUPPLIER_MODULES,
             'safe_url_for': safe_url_for,
