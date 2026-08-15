@@ -1,103 +1,112 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
+<div style="max-width: 50rem; margin: 0 auto; padding: 2rem 1rem; width: 100%; font-family: Tahoma, Arial, sans-serif;" dir="rtl">
     
-    <!-- رأس صفحة التفاصيل وأزرار التحكم -->
-    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-            <a href="/admin/treasury/" class="inline-flex items-center text-xs text-amber-400 hover:text-amber-300 mb-2 transition">
-                <i class="fas fa-arrow-right ml-1"></i> العودة إلى إدارة الخزينة
-            </a>
-            <h1 class="text-2xl font-extrabold text-white">تفاصيل سند القيد المالي</h1>
-            <p class="text-xs text-purple-300 mt-1">عرض تفصيلي للحركة المالية والطرف المرتبط والمحفظة الإلكترونية</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-purple-200 px-4 py-2 rounded-xl text-xs border gold-border transition flex items-center gap-1">
-                <i class="fas fa-print"></i> طباعة السند
-            </button>
-        </div>
+    <!-- زر التحكم بالطباعة والعودة (تختفي عند الطباعة الفعّالة) -->
+    <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;" class="print:hidden">
+        <a href="/admin/treasury/" style="font-size: 0.8rem; color: #4c1d95; text-decoration: none; font-weight: bold;">
+            ← العودة لقائمة الخزينة
+        </a>
+        <button onclick="window.print()" style="background-color: #4c1d95; color: #fbbf24; padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-size: 0.8rem; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            🖨️ طباعة السند الرسمي
+        </button>
     </div>
 
     {% if voucher %}
-    <!-- بطاقة تفاصيل السند الرئيسية -->
-    <div class="glass-card rounded-2xl overflow-hidden shadow-xl border gold-border p-6 md:p-8">
+    <!-- ورقة السند الرسمية (إكليشه أبيض فاخر مع لمسات الهوية) -->
+    <div style="background: #ffffff; border: 2px solid #4c1d95; border-radius: 0.75rem; padding: 2.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); position: relative; overflow: hidden;">
         
-        <!-- القسم العلوي: نوع الحركة ورقم السند -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-purple-900/50 gap-4">
+        <!-- شريط علوي بلون الهوية -->
+        <div style="position: absolute; top: 0; right: 0; left: 0; height: 6px; background: linear-gradient(90deg, #4c1d95, #d97706, #4c1d95);"></div>
+
+        <!-- ترويسة السند (الإكليشه الرسمي) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
             <div>
-                <span class="text-xs text-purple-400 block mb-1">نوع الحركة المالية</span>
-                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
-                    {% if voucher.entry_type in ['deposit', 'revenue_net'] %} bg-emerald-950 text-emerald-300 border border-emerald-500/30
-                    {% else %} bg-rose-950 text-rose-300 border border-rose-500/30 {% endif %}">
-                    {{ voucher.localized_entry_type }}
-                </span>
+                <h2 style="font-size: 1.4rem; font-weight: 900; color: #4c1d95; margin: 0;">محجوب أونلاين</h2>
+                <p style="font-size: 0.75rem; color: #6b7280; margin: 0.2rem 0 0 0;">منصة التجارة الذكية | إدارة الخزينة والرقابة المالية</p>
             </div>
-            <div class="text-left md:text-right">
-                <span class="text-xs text-purple-400 block mb-1">رقم السند / المرجع</span>
-                <span class="text-lg font-mono font-bold text-white block">{{ voucher.voucher_number or '-' }}</span>
-                <span class="text-xs font-mono text-amber-400">{{ voucher.reference_number or '-' }}</span>
+            <div style="text-align: left; background: #faf5ff; border: 1px solid #d8b4fe; padding: 0.5rem 1rem; border-radius: 0.5rem;">
+                <span style="font-size: 0.7rem; color: #6b7280; display: block;">نوع السند المالي</span>
+                <span style="font-size: 0.95rem; font-weight: bold; color: #4c1d95; display: block;">{{ voucher.localized_entry_type }}</span>
             </div>
         </div>
 
-        <!-- القسم الأوسط: تفاصيل المبلغ والطرف والمحفظة -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-purple-900/50">
-            
-            <!-- معلومات المبلغ -->
-            <div class="bg-slate-900/50 p-5 rounded-2xl border gold-border flex flex-col justify-center">
-                <span class="text-xs text-purple-300 mb-1">المبلغ الإجمالي للحركة</span>
-                <div class="text-3xl font-black {% if voucher.entry_type in ['deposit', 'revenue_net'] %}text-emerald-400{% else %}text-rose-400{% endif %}">
-                    {{ "%.2f"|format(voucher.amount) }} <span class="text-sm font-normal text-white">SAR</span>
+        <!-- معلومات أرقام السند والتاريخ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; background: #f9fafb; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
+            <div>
+                <span style="color: #6b7280; display: block; font-size: 0.75rem;">رقم السند الأساسي:</span>
+                <span style="font-family: monospace; font-weight: bold; color: #111827; font-size: 1rem;">{{ voucher.voucher_number or '---' }}</span>
+            </div>
+            <div>
+                <span style="color: #6b7280; display: block; font-size: 0.75rem;">المرجع المالي (Reference):</span>
+                <span style="font-family: monospace; font-weight: bold; color: #b45309; font-size: 0.85rem;">{{ voucher.reference_number or '---' }}</span>
+            </div>
+            <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 0.5rem; margin-top: 0.5rem;">
+                <span style="color: #6b7280; font-size: 0.75rem;">تاريخ ورقة القيد والتنفيذ:</span>
+                <span style="font-family: monospace; color: #374151; font-weight: bold; margin-right: 0.5rem;">{{ voucher.formatted_time }}</span>
+            </div>
+        </div>
+
+        <!-- تفاصيل المبلغ المالي -->
+        <div style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border: 1px solid #c084fc; border-radius: 0.75rem; padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;">
+            <span style="font-size: 0.75rem; color: #581c87; display: block; margin-bottom: 0.25rem;">المبلغ الإجمالي للحركة</span>
+            <div style="font-size: 2rem; font-weight: 900; color: #4c1d95;">
+                {{ "%.2f"|format(voucher.amount) }} <span style="font-size: 1rem; font-weight: normal; color: #b45309;">SAR</span>
+            </div>
+        </div>
+
+        <!-- بيانات الطرف المرتبط والجهة -->
+        <div style="margin-bottom: 1.5rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
+            <div style="background: #4c1d95; color: #ffffff; padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: bold;">
+                بيانات الطرف المعني (المتجر / المستفيد)
+            </div>
+            <div style="padding: 1rem; background: #ffffff; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+                <div>
+                    <span style="color: #6b7280; display: block; font-size: 0.75rem;">اسم المتجر:</span>
+                    <span style="font-weight: bold; color: #111827;">{{ voucher.owner_details.store_name }}</span>
                 </div>
-                <span class="text-xs text-purple-400 mt-2 font-mono">تاريخ التنفيذ: {{ voucher.formatted_time }}</span>
-            </div>
-
-            <!-- معلومات الطرف المعني والمحفظة -->
-            <div class="bg-slate-900/50 p-5 rounded-2xl border gold-border flex flex-col justify-center">
-                <span class="text-xs text-purple-300 mb-1">الطرف المرتبط (المتجر / المستخدم)</span>
-                <h3 class="text-base font-bold text-white">{{ voucher.owner_details.store_name }}</h3>
-                <p class="text-xs text-purple-200 mt-1">المالك: {{ voucher.owner_details.owner_name }}</p>
-                <div class="flex gap-2 mt-3">
-                    <span class="bg-purple-950 text-purple-300 border border-purple-500/30 px-2.5 py-1 rounded-lg text-xs font-mono">
-                        المحفظة: {{ voucher.owner_details.wallet_code }}
-                    </span>
-                    <span class="bg-slate-950 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg text-xs font-mono">
-                        المورد: {{ voucher.owner_details.supplier_code }}
-                    </span>
+                <div>
+                    <span style="color: #6b7280; display: block; font-size: 0.75rem;">اسم المالك:</span>
+                    <span style="font-weight: bold; color: #111827;">{{ voucher.owner_details.owner_name }}</span>
+                </div>
+                <div>
+                    <span style="color: #6b7280; display: block; font-size: 0.75rem;">كود المحفظة:</span>
+                    <span style="font-family: monospace; color: #4c1d95; font-weight: bold;">{{ voucher.owner_details.wallet_code }}</span>
+                </div>
+                <div>
+                    <span style="color: #6b7280; display: block; font-size: 0.75rem;">كود المورد:</span>
+                    <span style="font-family: monospace; color: #b45309; font-weight: bold;">{{ voucher.owner_details.supplier_code }}</span>
                 </div>
             </div>
-
         </div>
 
-        <!-- تفاصيل إضافية أو رقم الطلب المرتبط إن وجد -->
-        <div class="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div class="flex justify-between p-3 bg-purple-950/30 rounded-xl border border-purple-900/40">
-                <span class="text-purple-400">معرف الطلب المرتبط (Order ID):</span>
-                <span class="font-mono text-white font-bold">{{ voucher.order_id or 'غير مرتبط بطلب مباشر' }}</span>
+        <!-- تفاصيل إضافية (معرف الطلب ونوع الملكية) -->
+        <div style="display: flex; justify-content: space-between; background: #f9fafb; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.75rem; border: 1px solid #e5e7eb; margin-bottom: 2rem;">
+            <div>
+                <span style="color: #6b7280;">معرف الطلب المرتبط:</span> 
+                <strong style="font-family: monospace; color: #111827;">{{ voucher.order_id or 'غير مرتبط بطلب مباشر' }}</strong>
             </div>
-            <div class="flex justify-between p-3 bg-purple-950/30 rounded-xl border border-purple-900/40">
-                <span class="text-purple-400">نوع جهة الملكية (Owner Type):</span>
-                <span class="font-mono text-white font-bold">{{ voucher.owner_type }}</span>
+            <div>
+                <span style="color: #6b7280;">نوع جهة الملكية:</span> 
+                <strong style="font-family: monospace; color: #111827;">{{ voucher.owner_type }}</strong>
             </div>
         </div>
 
-        <!-- زر العودة السريع -->
-        <div class="mt-8 text-center">
-            <a href="/admin/treasury/" class="inline-block bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-8 py-3 rounded-xl transition text-sm shadow-lg">
-                العودة إلى قائمة الخزينة والسيولة
-            </a>
+        <!-- ملاحظة الاعتماد الإلكتروني (بدون ختم أو توقيع) -->
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 1.25rem; text-align: center;">
+            <p style="font-size: 0.75rem; color: #6b7280; background: #f9fafb; padding: 0.75rem; border-radius: 0.5rem; border: 1px dashed #d1d5db; margin: 0; display: inline-block;">
+                📄 هذا السند صادر آلياً من النظام المالي لمنصة <strong>محجوب أونلاين</strong> ولا يحتاج إلى ختم أو توقيع يدوي.
+            </p>
         </div>
 
     </div>
     {% else %}
     <!-- حالة عدم العثور على السند -->
-    <div class="glass-card rounded-2xl p-12 text-center border gold-border">
-        <i class="fas fa-exclamation-triangle text-4xl text-amber-400 mb-3"></i>
-        <h3 class="text-lg font-bold text-white mb-1">عذراً، لم يتم العثور على السند المطلوبة</h3>
-        <p class="text-xs text-purple-300 mb-6">قد يكون رقم المرجع غير صحيح أو تم حذف السجل من قاعدة البيانات.</p>
-        <a href="/admin/treasury/" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-6 py-2 rounded-xl text-xs transition">
-            العودة للرئيسية
-        </a>
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 3rem; text-align: center;">
+        <h3 style="font-size: 1.1rem; font-weight: bold; color: #111827; margin-bottom: 0.5rem;">عذراً، لم يتم العثور على السند المطلوب</h3>
+        <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1.5rem;">رقم المرجع غير صحيح أو تم مسح السجل.</p>
+        <a href="/admin/treasury/" style="background: #4c1d95; color: #ffffff; padding: 0.5rem 1.5rem; border-radius: 0.5rem; text-decoration: none; font-size: 0.8rem;">العودة للخزينة</a>
     </div>
     {% endif %}
 
