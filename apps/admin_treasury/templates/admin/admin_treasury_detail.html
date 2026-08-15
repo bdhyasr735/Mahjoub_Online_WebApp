@@ -1,6 +1,6 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}سند قيد {{ voucher.ref_code }} | محجوب أونلاين{% endblock %}
+{% block title %}سند قيد {{ voucher.reference_number }} | محجوب أونلاين{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -66,7 +66,7 @@
             <ol class="breadcrumb mb-0 fs-7">
                 <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="text-decoration-none" style="color: var(--royal-purple);">القيادة المركزية</a></li>
                 <li class="breadcrumb-item"><a href="{{ url_for('admin_treasury.treasury_index') }}" class="text-decoration-none" style="color: var(--royal-purple);">الخزينة المركزية</a></li>
-                <li class="breadcrumb-item active text-muted" aria-current="page">سند {{ voucher.ref_code }}</li>
+                <li class="breadcrumb-item active text-muted" aria-current="page">سند {{ voucher.reference_number }}</li>
             </ol>
         </nav>
         <a href="{{ url_for('admin_treasury.treasury_index') }}" class="btn btn-sm btn-outline-dark fw-bold">
@@ -81,13 +81,14 @@
         <div class="treasury-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div>
                 <span class="treasury-badge-gold d-inline-block mb-2">سند قيد دفتري سيادي معتمد</span>
-                <h1 class="h3 fw-black mb-1 font-monospace text-white tracking-wide">{{ voucher.ref_code }}</h1>
-                <div class="text-white-50 small">رقم السند المرجعي الداخلي: <span class="font-monospace text-light">{{ voucher.voucher_number }}</span></div>
+                <h1 class="h3 fw-black mb-1 font-monospace text-white tracking-wide">{{ voucher.reference_number }}</h1>
+                <div class="text-white-50 small">رقم القيد في قاعدة البيانات (ID): <span class="font-monospace text-light">{{ voucher.id }}</span></div>
             </div>
             <div class="text-md-end">
+                {% set isInflow = voucher.entry_type in ['revenue_net', 'deposit'] %}
                 <div class="fs-2 fw-black font-monospace" style="color: var(--mahjoub-gold);">
-                    {% if voucher.flow_type == 'inflow' %}+{% else %}-{% endif %}{{ "{:,.2f}".format(voucher.amount) }} 
-                    <span class="fs-6 text-white font-sans">{{ voucher.currency }}</span>
+                    {{ '+' if isInflow else '-' }}{{ "{:,.2f}".format(voucher.amount) }} 
+                    <span class="fs-6 text-white font-sans">SAR</span>
                 </div>
                 <div class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 mt-2 px-3 py-1 fw-bold">
                     <i class="fas fa-check-circle me-1"></i> حالة القيد: معتمد ومطابق دفترياً
@@ -99,39 +100,36 @@
         <div class="p-4 p-md-5">
             <div class="row g-3 mb-4">
                 
-                <!-- التصنيف المحاسبي -->
+                <!-- نوع القيد (Entry Type) -->
                 <div class="col-12 col-sm-6 col-xl-3">
                     <div class="info-box h-100">
-                        <span class="text-muted small d-block mb-1">التصنيف المحاسبي</span>
-                        <span class="fw-bold text-dark fs-7">{{ voucher.category_label }}</span>
+                        <span class="text-muted small d-block mb-1">نوع الحركة (Entry Type)</span>
+                        <span class="fw-bold text-dark fs-7 font-monospace">{{ voucher.entry_type }}</span>
                     </div>
                 </div>
 
-                <!-- نوع التدفق -->
+                <!-- الطرف المقابل (Owner Type & ID) -->
                 <div class="col-12 col-sm-6 col-xl-3">
                     <div class="info-box h-100">
-                        <span class="text-muted small d-block mb-1">اتجاه التدفق المالي</span>
-                        <span class="fw-bold fs-7 {{ 'text-success' if voucher.flow_type == 'inflow' else 'text-danger' }}">
-                            <i class="fas {{ 'fa-arrow-down' if voucher.flow_type == 'inflow' else 'fa-arrow-up' }} me-1"></i>
-                            {{ 'تدفق وارد (+)' if voucher.flow_type == 'inflow' else 'تدفق صادر (-)' }}
-                        </span>
+                        <span class="text-muted small d-block mb-1">الطرف المقابل (Owner)</span>
+                        <span class="fw-bold text-dark fs-7">{{ voucher.owner_type }} <span class="text-muted fw-normal fs-8">(ID: {{ voucher.owner_id }})</span></span>
                     </div>
                 </div>
 
-                <!-- وقت التسوية -->
+                <!-- وقت التسوية والإنشاء -->
                 <div class="col-12 col-sm-6 col-xl-3">
                     <div class="info-box h-100">
-                        <span class="text-muted small d-block mb-1">وقت التسوية البنكية</span>
-                        <span class="font-monospace fw-bold text-dark fs-7">{{ voucher.settled_at or 'قيد الانتظار الآلي' }}</span>
+                        <span class="text-muted small d-block mb-1">تاريخ ووقت الإنشاء</span>
+                        <span class="font-monospace fw-bold text-dark fs-7">{{ voucher.created_at.strftime('%Y-%m-%d %H:%M:%S') if voucher.created_at else '-' }}</span>
                     </div>
                 </div>
 
-                <!-- الرصيد بعد الحركة -->
+                <!-- رقم الطلب المرتبط (Order ID) -->
                 <div class="col-12 col-sm-6 col-xl-3">
                     <div class="info-box h-100">
-                        <span class="text-muted small d-block mb-1">الرصيد بعد التعديل</span>
+                        <span class="text-muted small d-block mb-1">الطلب المرتبط بالنظام</span>
                         <span class="font-monospace fw-bold fs-7" style="color: var(--royal-purple);">
-                            {{ "{:,.2f}".format(voucher.balance_after) }} <span class="small">{{ voucher.currency }}</span>
+                            {{ voucher.order_id if voucher.order_id else 'لا يوجد طلب (حركة عامة)' }}
                         </span>
                     </div>
                 </div>
@@ -142,13 +140,15 @@
             <div class="accounting-statement-box mb-4">
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <i class="fas fa-file-invoice-dollar" style="color: var(--royal-purple);"></i>
-                    <span class="fw-bold" style="color: var(--royal-purple);">البيان التفصيلي والشرح المحاسبي:</span>
+                    <span class="fw-bold" style="color: var(--royal-purple);">البيانات التفصيلية للقيد المالي:</span>
                 </div>
-                <p class="text-secondary small mb-3 leading-relaxed ps-4">{{ voucher.description }}</p>
+                <p class="text-secondary small mb-3 leading-relaxed ps-4">
+                    هذا القيد مسجل رسمياً في دفتر أستاذ الخزينة المركزية لنظام محجوب أونلاين برقم مرجعي <span class="font-monospace fw-bold text-dark">{{ voucher.reference_number }}</span>، ومخصص لتسوية العمليات المالية الخاصة بـ <span class="fw-bold text-dark">{{ voucher.owner_type }}</span>.
+                </p>
                 
                 <div class="pt-3 border-top border-secondary border-opacity-10 text-muted small d-flex flex-column flex-sm-row justify-content-between gap-2 ps-4">
-                    <span>المسؤول المعتمد: <strong class="text-dark">{{ voucher.admin_reviewer }}</strong></span>
-                    <span>قناة التنفيذ والدفع: <strong class="text-dark">{{ voucher.payment_method }}</strong></span>
+                    <span>مُعرف السجل المالي (ID): <strong class="text-dark font-monospace">#{{ voucher.id }}</strong></span>
+                    <span>معرّف المالك (Owner ID): <strong class="text-dark font-monospace">{{ voucher.owner_id }}</strong></span>
                 </div>
             </div>
 
