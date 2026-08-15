@@ -6,12 +6,12 @@ from datetime import datetime
 from cryptography.fernet import Fernet
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, update
+from sqlalchemy import event, update, select
 from apps.extensions import db
 
 
 class Supplier(db.Model, UserMixin):
-    """نموذج المورد - يدعم التشفير والعلاقات"""
+    """نموذج المورد - يدعم التشفير والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X"""
     __tablename__ = 'suppliers'
     
     # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
@@ -107,11 +107,21 @@ class Supplier(db.Model, UserMixin):
         return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
 
 
-# --- المحرك التلقائي لضبط الأكواد الفريدة ---
+# --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    """تحديث الكود البصري للمورد بعد الحصول على الـ ID تلقائياً."""
-    new_code = f"MAH-SUP963{target.id}"
+    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً."""
+    from apps.models.wallet_db import SupplierWallet
+    
+    new_supplier_code = f"SUP-963{target.id}"
+    new_wallet_code = f"WEL-963{target.id}"
+    
+    # 1. تحديث كود المورد
     connection.execute(
-        update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_code)
+        update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_supplier_code)
+    )
+    
+    # 2. تحديث كود المحفظة المرتبطة به ليكون مطابقاً تماماً في الرقم ومتبيناً في البادئة
+    connection.execute(
+        update(SupplierWallet).where(SupplierWallet.supplier_id == target.id).values(wallet_code=new_wallet_code)
     )
