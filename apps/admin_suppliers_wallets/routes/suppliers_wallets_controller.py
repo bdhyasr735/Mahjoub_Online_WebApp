@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
-from apps.admin_suppliers_wallets.models.wallet_model import SupplierWallet, WalletLedgerEntry, db
+from apps.models import SupplierWallet, WalletLedgerEntry, db
 from sqlalchemy import or_, func
 
 bp = Blueprint('suppliers_wallets_controller', __name__)
