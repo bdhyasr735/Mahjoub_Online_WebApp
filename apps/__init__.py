@@ -48,6 +48,7 @@ def seed_database():
     from apps.models.admin_staff_db import AdminStaff
     from apps.models.supplier_db import Supplier
     from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
+    from apps.models.treasury_db import TreasuryEntry
 
     # 1. زراعة المالك
     try:
@@ -95,11 +96,11 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 0
+            # إنشاء المحفظة برصيد 1000
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=0.00
+                balance_sar=1000.00
             )
             db.session.add(wallet)
             db.session.flush()
@@ -125,7 +126,7 @@ def seed_database():
             # --- 🛠️ توليد رقم سند فريد (6 خانات) باستخدام الدالة المعتمدة ---
             seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
 
-            # 📝 إنشاء حركة مالية وسند إيداع رصيد افتتاحي
+            # 📝 إنشاء حركة مالية وسند إيداع رصيد افتتاحي في المحفظة
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
                 owner_type='supplier',
@@ -139,8 +140,21 @@ def seed_database():
                 description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"
             )
             db.session.add(initial_transaction)
+
+            # --- 📝 [إضافة هامة]: قيد مطابق في الخزينة المركزية ليظهر في الواجهة المحاسبية ---
+            treasury_entry = TreasuryEntry(
+                entry_type='supplier_settlement',
+                amount=1000.00,
+                order_id=None,
+                reference_number=seed_voucher_number,
+                owner_type='supplier',
+                owner_id=supplier.id,
+            )
+            treasury_entry.description = "سند قيد رصيد افتتاحي للمورد التجريبي بالخزينة المركزية"
+            db.session.add(treasury_entry)
+
             db.session.commit()
-            print(f"✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع (1000 SAR) بنجاح برقم مرجعي: {seed_ref_number} وسند: {seed_voucher_number}.")
+            print(f"✅ [Seed]: تم زرع المورد والمحفظة وتسجيل سند حركة الإيداع والقيد المالي (1000 SAR) بنجاح.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
@@ -444,28 +458,23 @@ def create_app():
                     supplier_id = getattr(current_user, 'supplier_id', None) if user_type == 'staff' else getattr(current_user, 'id', None)
                     if supplier_id:
                         from apps.models.supplier_db import Supplier
-                        from apps.models.financials_db import OrderFinancial
+                        from apps.models.wallet_db import SupplierWallet
                         supplier = db.session.get(Supplier, supplier_id)
                         if supplier:
-                            profile = supplier.supplier_profile
-                            pending_financials = OrderFinancial.query.filter_by(supplier_id=supplier.id, settlement_status='pending').all()
-                            supplier_context = {
-                                'current_supplier': supplier,
-                                'owner_full_name': (supplier.owner_name or supplier.store_name or supplier.trade_name or supplier.username or ''),
-                                'supplier_bank_name': (profile.bank_name or profile.company_name) if profile else '',
-                                'supplier_bank_account': profile.bank_account if profile else '',
-                                'supplier_wallet': supplier.wallet,
-                                'pending_financials_count': len(pending_financials),
-                                'total_pending_payouts': sum([f.supplier_payout for f in pending_financials])
-                            }
+                            supplier_context['current_supplier'] = supplier
+                            supplier_context['owner_full_name'] = getattr(supplier, 'owner_name', '')
+                            supplier_context['supplier_bank_name'] = getattr(supplier, 'bank_name', '')
+                            supplier_context['supplier_bank_account'] = getattr(supplier, 'bank_account', '')
+                            wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+                            if wallet:
+                                supplier_context['supplier_wallet'] = wallet
             except Exception as e:
-                app.logger.error(f"❌ [Context Error]: خطأ في استخراج سياق المورد: {e}")
-        return dict(
-            csrf_token=generate_csrf,
-            registered_modules=ADMIN_MODULES,
-            supplier_modules=SUPPLIER_MODULES,
-            supplier_context=supplier_context,
-            safe_url_for=safe_url_for
-        )
+                print(f"⚠️ [Context Error]: {e}")
+        return {
+            'admin_modules': ADMIN_MODULES,
+            'supplier_modules': SUPPLIER_MODULES,
+            'safe_url_for': safe_url_for,
+            **supplier_context
+        }
 
     return app
