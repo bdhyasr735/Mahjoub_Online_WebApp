@@ -5,10 +5,12 @@ import os
 from flask import Blueprint, render_template, request, abort
 from datetime import datetime
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from apps.extensions import db
 from apps.models.treasury_db import TreasuryEntry
 from apps.models.financials_db import OrderFinancial
+from apps.models.supplier_db import Supplier
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 template_folder_path = os.path.abspath(os.path.join(basedir, '../templates'))
@@ -27,10 +29,12 @@ def treasury_index():
     flow_type = request.args.get('flow_type', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    # استعلام قاعدة البيانات الحقيقي باستخدام TreasuryEntry وجداول المالية
-    query = TreasuryEntry.query
+    # ✅ استخدام joinedload لجلب بيانات المورد والمحفظة المرتبطة دفعة واحدة لضمان ظهور رقم المحفظة
+    query = TreasuryEntry.query.options(
+        joinedload(TreasuryEntry.supplier).joinedload(Supplier.wallet)
+    )
 
-    # تطبيق فلتر البحث بالمرجع أو البيان
+    # تطبيق فلتر البحث بالمرجع أو البيان أو نوع الطرف
     if search_query:
         query = query.filter(
             (TreasuryEntry.reference_number.ilike(f"%{search_query}%")) | 
@@ -58,8 +62,8 @@ def treasury_index():
         "total_treasury_balance": float(total_treasury_balance),
         "total_inflow": float(total_inflow),
         "total_outflow": float(total_outflow),
-        "escrow_reserve": float(total_suppliers_cost), # التزامات الموردين بسعر التكلفة فقط
-        "net_platform_profit": float(total_platform_profit), # أرباح المنصة الحقيقية من العمولات
+        "escrow_reserve": float(total_suppliers_cost), 
+        "net_platform_profit": float(total_platform_profit), 
         "currency": "SAR"
     }
 
@@ -81,8 +85,10 @@ def treasury_index():
 # ------------------ 2. مسار تفاصيل سند القيد الحقيقي ------------------
 @admin_treasury_bp.route('/detail/<string:ref_code>', methods=['GET'])
 def treasury_detail(ref_code):
-    # جلب السند الحقيقي من جدول TreasuryEntry بناءً على الرمز المرجعي
-    voucher_data = TreasuryEntry.query.filter_by(reference_number=ref_code).first()
+    # جلب السند مع ربطه بالمورد والمحفظة
+    voucher_data = TreasuryEntry.query.options(
+        joinedload(TreasuryEntry.supplier).joinedload(Supplier.wallet)
+    ).filter_by(reference_number=ref_code).first()
     
     if not voucher_data:
         abort(404)
