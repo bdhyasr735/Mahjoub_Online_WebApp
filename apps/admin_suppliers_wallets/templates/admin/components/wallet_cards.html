@@ -1,61 +1,68 @@
-<!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) السيادية -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" dir="rtl">
-    
+<!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- كرت 1: إجمالي أرصدة المحافظ -->
-    <div class="bg-gradient-to-br from-[#1a0b2e] via-[#120A1F] to-[#08020d] border border-[#4B2A73] p-5 rounded-3xl shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition duration-300">
-        <div class="flex items-center justify-between text-slate-300 text-xs font-bold">
-            <span>إجمالي أرصدة المحافظ</span>
-            <div class="w-8 h-8 rounded-xl bg-[#2d124a] border border-[#4B2A73] text-amber-300 flex items-center justify-center shadow-inner">💳</div>
+    <div class="bg-white border border-[#E5E2DC] p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-[#5A195E]/40 transition">
+        <div class="flex items-center justify-between text-[#6C757D] text-xs font-bold">
+            <span>إجمالي أرصدة محافظ الموردين</span>
+            <div class="w-8 h-8 rounded-xl bg-[#5A195E]/10 text-[#5A195E] flex items-center justify-center">
+                💳
+            </div>
         </div>
-        <div class="text-2xl font-black font-mono text-white mt-2">
-            {{ "{:,.2f}".format(kpis.total_wallets_balance|float) }} <span class="text-xs text-amber-400 font-sans">SAR</span>
+        <div class="text-2xl font-black font-mono text-[#1E1B18] mt-2">
+            {{ "{:,.2f}".format(kpis.total_wallets_balance) }} <span class="text-xs text-[#5A195E] font-sans">ريال</span>
         </div>
-        <div class="mt-3 text-[11px] text-slate-300 flex items-center justify-between border-t border-[#362052] pt-2 font-medium">
-            <span>عدد الموردين:</span>
-            <span class="font-mono font-bold text-amber-400">{{ kpis.total_suppliers_count }}</span>
+        <div class="mt-2 text-[11px] text-[#6C757D] flex items-center justify-between border-t border-[#E5E2DC] pt-2">
+            <span>إجمالي الموردين المسجلين:</span>
+            <span class="font-mono font-bold text-[#1E1B18]">{{ "{:,}".format(kpis.total_suppliers_count) }}</span>
         </div>
     </div>
 
     <!-- كرت 2: الرصيد المتاح للسحب الفوري -->
-    <div class="bg-gradient-to-br from-[#1a0b2e] via-[#120A1F] to-[#08020d] border border-emerald-500/40 p-5 rounded-3xl shadow-xl relative overflow-hidden group hover:border-emerald-500/70 transition duration-300">
-        <div class="flex items-center justify-between text-emerald-300 text-xs font-bold">
-            <span>الرصيد المتاح للسحب</span>
-            <div class="w-8 h-8 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shadow-inner">⚡</div>
+    <div class="bg-white border border-emerald-300 p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-emerald-500 transition">
+        <div class="flex items-center justify-between text-emerald-700 text-xs font-bold">
+            <span>الرصيد المتاح للسحب الفوري</span>
+            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                ⚡
+            </div>
         </div>
-        <div class="text-2xl font-black font-mono text-emerald-400 mt-2">
-            {{ "{:,.2f}".format(kpis.total_available_payouts|float) }} <span class="text-xs text-emerald-300 font-sans">SAR</span>
+        <div class="text-2xl font-black font-mono text-emerald-700 mt-2">
+            {{ "{:,.2f}".format(kpis.total_available_payouts) }} <span class="text-xs text-emerald-600 font-sans">ريال</span>
         </div>
-        <div class="mt-3 text-[11px] text-slate-300 flex items-center justify-between border-t border-[#362052] pt-2 font-medium">
-            <span>سيولة جاهزة للتحويل الفوري</span>
+        <div class="mt-2 text-[11px] text-[#6C757D] flex items-center justify-between border-t border-[#E5E2DC] pt-2">
+            <span>جاهز للتحويل الفوري عبر SAMA SARIE</span>
         </div>
     </div>
 
-    <!-- كرت 3: أمانات الضمان المحجوزة (Escrow) -->
-    <div class="bg-gradient-to-br from-[#1a0b2e] via-[#120A1F] to-[#08020d] border border-amber-500/40 p-5 rounded-3xl shadow-xl relative overflow-hidden group hover:border-amber-500/70 transition duration-300">
-        <div class="flex items-center justify-between text-amber-300 text-xs font-bold">
-            <span>أمانات الضمان (Escrow)</span>
-            <div class="w-8 h-8 rounded-xl bg-amber-950/50 border border-amber-500/40 text-amber-400 flex items-center justify-center shadow-inner">🔒</div>
+    <!-- كرت 3: أمانات الضمان المحجوزة Escrow -->
+    <div class="bg-white border border-amber-300 p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-amber-500 transition">
+        <div class="flex items-center justify-between text-amber-800 text-xs font-bold">
+            <span>أمانات الضمان المحجوزة (Escrow)</span>
+            <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                🔒
+            </div>
         </div>
-        <div class="text-2xl font-black font-mono text-amber-400 mt-2">
-            {{ "{:,.2f}".format(kpis.total_escrow_held|float) }} <span class="text-xs text-amber-300 font-sans">SAR</span>
+        <div class="text-2xl font-black font-mono text-amber-800 mt-2">
+            {{ "{:,.2f}".format(kpis.total_escrow_held) }} <span class="text-xs text-amber-700 font-sans">ريال</span>
         </div>
-        <div class="mt-3 text-[11px] text-slate-300 flex items-center justify-between border-t border-[#362052] pt-2 font-medium">
-            <span>مبالغ محجوزة لعمليات قيد التنفيذ</span>
+        <div class="mt-2 text-[11px] text-[#6C757D] flex items-center justify-between border-t border-[#E5E2DC] pt-2">
+            <span>حماية مبيعات قيد الشحن والتسليم</span>
         </div>
     </div>
 
     <!-- كرت 4: طلبات السحب قيد الانتظار -->
-    <div class="bg-gradient-to-br from-[#1a0b2e] via-[#120A1F] to-[#08020d] border border-purple-500/40 p-5 rounded-3xl shadow-xl relative overflow-hidden group hover:border-purple-500/70 transition duration-300">
-        <div class="flex items-center justify-between text-purple-300 text-xs font-bold">
-            <span>طلبات السحب المعلقة</span>
-            <div class="w-8 h-8 rounded-xl bg-purple-950/50 border border-purple-500/40 text-purple-300 flex items-center justify-center shadow-inner">⏳</div>
+    <div class="bg-white border border-purple-300 p-5 rounded-3xl shadow-lg relative overflow-hidden group hover:border-purple-500 transition">
+        <div class="flex items-center justify-between text-[#5A195E] text-xs font-bold">
+            <span>طلبات السحب قيد الانتظار</span>
+            <div class="w-8 h-8 rounded-xl bg-[#5A195E]/10 text-[#5A195E] flex items-center justify-center">
+                ⏳
+            </div>
         </div>
-        <div class="text-2xl font-black font-mono text-purple-200 mt-2">
-            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount|float) }} <span class="text-xs text-purple-300 font-sans">SAR</span>
+        <div class="text-2xl font-black font-mono text-[#5A195E] mt-2">
+            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount) }} <span class="text-xs text-[#4A134E] font-sans">ريال</span>
         </div>
-        <div class="mt-3 text-[11px] text-slate-300 flex items-center justify-between border-t border-[#362052] pt-2 font-medium">
-            <span>إجمالي الطلبات:</span>
-            <span class="font-mono font-bold text-amber-400">{{ kpis.pending_withdrawals_count }} طلب</span>
+        <div class="mt-2 text-[11px] text-[#6C757D] flex items-center justify-between border-t border-[#E5E2DC] pt-2">
+            <span>عدد الطلبات:</span>
+            <span class="font-mono font-bold text-amber-700">{{ kpis.pending_withdrawals_count }} طلب مفتوح</span>
         </div>
     </div>
 </div>
