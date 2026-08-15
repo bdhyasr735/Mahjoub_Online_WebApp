@@ -3,7 +3,7 @@
 
 import os
 from flask import Blueprint, render_template, request, abort
-from datetime import datetime
+from decimal import Decimal
 
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction, SupplierWallet
@@ -43,19 +43,23 @@ def treasury_index():
     pagination = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=15, error_out=False)
     transactions = pagination.items
 
-    # حساب المؤشرات المالية لإجمالي الدخول والخروج والتوزيع من قاعدة البيانات
-    total_inflow = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
+    # حساب الإجماليات بدقة تامة باستخدام Decimal لحساب كل هللة
+    raw_inflow = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
         WalletTransaction.trans_type.in_(['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit'])
-    ).scalar() or 0.0
+    ).scalar()
+    total_inflow = Decimal(str(raw_inflow)) if raw_inflow is not None else Decimal('0.00')
 
-    total_outflow = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
+    raw_outflow = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
         ~WalletTransaction.trans_type.in_(['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit'])
-    ).scalar() or 0.0
+    ).scalar()
+    total_outflow = Decimal(str(raw_outflow)) if raw_outflow is not None else Decimal('0.00')
+
+    net_balance = total_inflow - total_outflow
 
     kpis = {
-        "total_treasury_balance": float(total_inflow - total_outflow),
-        "total_inflow": float(total_inflow),
-        "total_outflow": float(total_outflow),
+        "total_treasury_balance": net_balance,
+        "total_inflow": total_inflow,
+        "total_outflow": total_outflow,
         "currency": "SAR"
     }
 
