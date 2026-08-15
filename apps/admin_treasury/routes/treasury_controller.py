@@ -31,7 +31,7 @@ def treasury_index():
     # الاستعلام الأساسي بدون علاقات معقدة تسبب انهيار النظام
     query = TreasuryEntry.query
 
-    # تطبيق فلتر البحث بالمرجع أو البيان أو نوع الطرف
+    # تطبيق فلتر البحث بالمرجع أو رقم السند أو نوع الطرف
     if search_query:
         query = query.filter(
             or_(
@@ -52,7 +52,7 @@ def treasury_index():
     total_suppliers_cost = db.session.query(func.sum(OrderFinancial.supplier_cost_raw)).scalar() or 0.0
     total_platform_profit = db.session.query(func.sum(OrderFinancial.mahjoub_commission_raw)).scalar() or 0.0
     
-    # إجمالي حركات الخزينة المسجلة
+    # إجمالي حركات الخزينة المسجلة (الواردات والصادرات)
     total_inflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['revenue_net', 'deposit'])).scalar() or 0.0
     total_outflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['supplier_settlement', 'affiliate_payout', 'operational_cost'])).scalar() or 0.0
     
