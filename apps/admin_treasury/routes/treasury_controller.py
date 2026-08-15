@@ -31,29 +31,38 @@ ENTRY_TYPE_TRANSLATIONS = {
 }
 
 def enrich_voucher_data(voucher):
-    """تحويل السجل إلى كائن مرن أو إضافته بطريقة آمنة لتجنب قيود SQLAlchemy Setter"""
+    """تحويل السجل إلى كائن مرن آمن يحمل كافة الخصائص لتجنب قيود قاعدة البيانات وصفحات الخطأ"""
     if not voucher:
         return None
     
-    # استخراج القيم الأساسية بلجوء آمن
-    raw_type = str(getattr(voucher, 'entry_type', '')).strip()
+    raw_type = str(getattr(voucher, 'entry_type', '') or '').strip()
     localized_type = ENTRY_TYPE_TRANSLATIONS.get(raw_type, raw_type)
     
     created_at = getattr(voucher, 'created_at', None)
-    if created_at:
-        formatted_time = created_at.strftime('%Y-%m-%d %H:%M')
-    else:
+    try:
+        if created_at and hasattr(created_at, 'strftime'):
+            formatted_time = created_at.strftime('%Y-%m-%d %H:%M')
+        else:
+            formatted_time = str(created_at) if created_at else '-'
+    except Exception:
         formatted_time = '-'
 
-    owner_type = getattr(voucher, 'owner_type', 'عام')
-    owner_id = getattr(voucher, 'owner_id', 'N/A')
+    owner_type = getattr(voucher, 'owner_type', 'عام') or 'عام'
+    owner_id = getattr(voucher, 'owner_id', 'N/A') or 'N/A'
 
-    # إنشاء كائن وسيط (Wrapper) يحمل الخصائص الجديدة دون تعديل نموذج قاعدة البيانات مباشرة
     class VoucherWrapper:
         def __init__(self, original_obj, loc_type, fmt_time):
             self._original = original_obj
             self.localized_entry_type = loc_type
             self.formatted_time = fmt_time
+            self.created_at = created_at
+            self.reference_number = getattr(original_obj, 'reference_number', '-')
+            self.voucher_number = getattr(original_obj, 'voucher_number', '-')
+            self.order_id = getattr(original_obj, 'order_id', None)
+            self.amount = getattr(original_obj, 'amount', 0.0)
+            self.entry_type = raw_type
+            self.owner_type = owner_type
+            self.owner_id = owner_id
             self.owner_details = {
                 "store_name": getattr(original_obj, 'store_name', None) or f"متجر الطرف ({owner_type})",
                 "owner_name": getattr(original_obj, 'owner_name', None) or f"مستخدم نظام ID: {owner_id}",
@@ -62,8 +71,10 @@ def enrich_voucher_data(voucher):
             }
 
         def __getattr__(self, name):
-            # تمرير أي طلب خاصية أخرى للكائن الأصلي في قاعدة البيانات
-            return getattr(self._original, name)
+            try:
+                return getattr(self._original, name)
+            except Exception:
+                return None
 
     return VoucherWrapper(voucher, localized_type, formatted_time)
 
@@ -91,7 +102,7 @@ def treasury_index():
 
         pagination = query.order_by(TreasuryEntry.created_at.desc()).paginate(page=page, per_page=15, error_out=False)
         
-        # إثراء السجلات بالترجمة والخصائص العربية عبر الـ Wrapper الآمن
+        # إثراء السجلات بالترجمة والخصائص الآمنة
         vouchers = [enrich_voucher_data(v) for v in pagination.items]
 
         try:
