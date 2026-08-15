@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}القيادة المركزية | MAHJOUB{% endblock %}</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- خطوط المنصة السيادية -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    
+    <!-- ملف التنسيقات المركزي السيادي -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mahjoub_theme.css') }}">
     
     <style>
         :root { 
@@ -20,9 +24,9 @@
         
         html { height: 100%; }
         body { 
-            font-family: 'Cairo', sans-serif !important; 
-            background: #120A1F; 
-            color: #fff;
+            font-family: 'Tajawal', 'Cairo', sans-serif !important; 
+            background: var(--bg-base, #120A1F); 
+            color: var(--text-primary, #fff);
             margin: 0; 
             padding: 0;
             overflow-x: hidden;
@@ -66,18 +70,48 @@
             margin-right: var(--sidebar-width); 
             margin-left: 0;
             min-height: 100vh; 
-            background: #120A1F;
+            background: var(--bg-base, #120A1F);
             transition: 0.3s; 
             overflow-y: auto;
         }
-        .top-navbar { background: #1A102A; border-bottom: 1px solid #362052; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1040; }
+        .top-navbar { background: var(--bg-card, #1A102A); border-bottom: 1px solid var(--border-color, #362052); padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1040; }
         .admin-badge { background: linear-gradient(135deg, var(--royal-purple), var(--deep-black)); color: var(--mahjoub-gold); padding: 5px 14px; border-radius: 50px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(212, 175, 55, 0.2); }
         
-        /* Unified Table Style */
-        .table-responsive-mahjoub { overflow-x: auto; background: #1A102A; border-radius: 12px; border: 1px solid #362052; margin-bottom: 1.5rem; }
-        .table-mahjoub { width: 100%; margin-bottom: 0; font-size: 0.9rem; color: #fff; }
-        .table-mahjoub thead { background: #231538; color: var(--mahjoub-gold); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-        .table-mahjoub th, .table-mahjoub td { padding: 12px 15px; vertical-align: middle; white-space: nowrap; border-bottom-color: #362052; }
+        /* Unified Table Style - التنسيق الداكن المحسن للجداول */
+        .table-responsive-mahjoub { 
+            overflow-x: auto; 
+            background: var(--bg-card, #1A102A) !important; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color, #362052) !important; 
+            margin-bottom: 1.5rem; 
+        }
+        .table-mahjoub { 
+            width: 100%; 
+            margin-bottom: 0; 
+            font-size: 0.9rem; 
+            color: var(--text-primary, #fff) !important; 
+            background-color: transparent !important;
+        }
+        .table-mahjoub thead { 
+            background: var(--bg-surface, #231538) !important; 
+            color: var(--mahjoub-gold) !important; 
+            text-transform: uppercase; 
+            font-size: 0.75rem; 
+            letter-spacing: 0.5px; 
+        }
+        .table-mahjoub th, .table-mahjoub td { 
+            padding: 14px 15px !important; 
+            vertical-align: middle; 
+            white-space: nowrap; 
+            border-bottom: 1px solid var(--border-color, #362052) !important;
+            color: var(--text-primary, #fff) !important;
+        }
+        .table-mahjoub tbody tr {
+            background-color: transparent !important;
+        }
+        .table-mahjoub tbody tr:hover {
+            background-color: rgba(212, 175, 55, 0.05) !important;
+        }
         
         @media (max-width: 992px) {
             .sidebar { right: -280px; }
@@ -120,7 +154,6 @@
                         <ul class="dropdown-content">
                             {% set links_data = module.links %}
                             
-                            {# دعم مرن لمختلف أنواع البيانات القادمة (Dictionary أو List) #}
                             {% if links_data is mapping %}
                                 {% for endpoint, label in links_data.items() %}
                                     <li>
