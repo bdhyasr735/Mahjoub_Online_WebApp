@@ -17,19 +17,17 @@ def index():
     search_query = request.args.get('q', '', type=str)
     status_filter = request.args.get('status', 'all', type=str)
     
-    # بناء الاستعلام الأساسي للمحافظ
+    # بناء الاستعلام الأساسي للمحافظ مع ربط جدول الموردين للبحث في أسمائهم
     query = SupplierWallet.query
 
-    # تطبيق البحث النصي
+    # تطبيق البحث النصي باستخدام الأعمدة الحقيقية
     if search_query:
         search_term = f"%{search_query}%"
-        query = query.filter(
+        query = query.join(SupplierWallet.supplier).filter(
             or_(
-                SupplierWallet.supplier_name.ilike(search_term),
                 SupplierWallet.wallet_code.ilike(search_term),
-                SupplierWallet.commercial_register.ilike(search_term),
-                SupplierWallet.iban.ilike(search_term),
-                SupplierWallet.city.ilike(search_term)
+                Supplier.supplier_name.ilike(search_term),
+                Supplier.commercial_reg.ilike(search_term)
             )
         )
 
@@ -37,12 +35,14 @@ def index():
     if status_filter and status_filter != 'all':
         query = query.filter(SupplierWallet.status == status_filter)
 
-    # حساب المؤشرات المالية الحقيقية (KPIs) من قاعدة البيانات
-    # ملاحظة: يتم حساب الإجماليات على مستوى الجدول بالكامل لتعكس الوضع المالي للمنصة
+    # حساب المؤشرات المالية الحقيقية (KPIs) بالاعتماد على الأعمدة الفعلية (balance_sar و balance_pending)
+    total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0.00
+    total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or 0.00
+
     kpis = {
-        'total_wallets_balance': db.session.query(func.sum(SupplierWallet.balance)).scalar() or 0.00,
-        'total_available_payouts': db.session.query(func.sum(SupplierWallet.available_balance)).scalar() or 0.00,
-        'total_escrow_held': db.session.query(func.sum(SupplierWallet.escrow_balance)).scalar() or 0.00,
+        'total_wallets_balance': total_sar_balance + total_pending_balance,
+        'total_available_payouts': total_sar_balance,
+        'total_escrow_held': total_pending_balance,
         'total_suppliers_count': SupplierWallet.query.count(),
         'active_suppliers_count': SupplierWallet.query.filter_by(status='active').count(),
         'pending_withdrawals_amount': db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or 0.00,
@@ -58,7 +58,8 @@ def index():
         'total_pages': pagination_obj.pages,
         'has_prev': pagination_obj.has_prev,
         'has_next': pagination_obj.has_next,
-        'total_count': pagination_obj.total
+        'total_count': pagination_obj.total,
+        'per_page': PER_PAGE
     }
 
     return render_template(
