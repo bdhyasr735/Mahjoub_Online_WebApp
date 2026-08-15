@@ -170,7 +170,7 @@
                     {% if vouchers %}
                         {% for record in vouchers %}
                         <tr class="hover-bg cursor-pointer transition" 
-                            ondblclick="handleRowDblClick('{{ record.reference_number }}', '{{ record.owner_type }}', '{{ record.amount }}', '{{ record.localized_entry_type }}')"
+                            ondblclick="handleRowDblClick('{{ record.reference_number }}', '{{ record.owner_type }}', '{{ record.amount }}', '{{ record.entry_type }}', '{{ record.localized_entry_type }}')"
                             title="انقر نقراً مزدوجاً لعرض السند">
                             <td class="py-3 px-4 font-monospace fw-bold text-dark">
                                 {{ record.reference_number }}
@@ -253,11 +253,11 @@
 
 {% block extra_js %}
 <script>
-    function handleRowDblClick(ref, owner, amt, localizedType) {
+    function handleRowDblClick(ref, owner, amt, entryType, localizedType) {
         document.getElementById('modal-ref-code').innerText = ref;
         document.getElementById('modal-owner').innerText = "الطرف المقابل: " + owner + " | النوع: " + localizedType;
         
-        let isInflow = ['إيداع نقدي', 'صافي إيرادات مبيعات'].includes(localizedType);
+        let isInflow = ['revenue_net', 'deposit'].includes(entryType);
         let formattedAmt = (isInflow ? '+' : '-') + Number(amt).toLocaleString() + ' SAR';
         let amountEl = document.getElementById('modal-amount');
         amountEl.innerText = formattedAmt;
