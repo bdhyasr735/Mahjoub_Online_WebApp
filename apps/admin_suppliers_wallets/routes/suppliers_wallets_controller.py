@@ -1,5 +1,5 @@
 # coding: utf-8
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, url_for
 from apps.models import SupplierWallet, WalletTransaction, Supplier, db
 from sqlalchemy import or_, func
 from decimal import Decimal
@@ -78,7 +78,6 @@ def index():
         bank_filter=bank_filter
     )
 
-
 @bp.route('/<int:supplier_id>', methods=['GET'])
 def supplier_ledger_detail(supplier_id):
     wallet = SupplierWallet.query.get_or_404(supplier_id)
@@ -89,104 +88,70 @@ def supplier_ledger_detail(supplier_id):
         transactions=transactions
     )
 
-
-# ==========================================================
-# ✅ 1. مسار POST: تجميد محفظة المورد
-# ==========================================================
-@bp.route('/<int:supplier_id>/freeze', methods=['POST'])
-def freeze_supplier_wallet(supplier_id):
-    try:
-        # جلب البيانات المرسلة من المودال (JSON)
-        data = request.get_json()
-        reason = data.get('reason', 'تم التجميد بواسطة المسؤول')
-
-        # البحث عن المحفظة
-        wallet = SupplierWallet.query.get_or_404(supplier_id)
-
-        # التحقق من أنها ليست مجمدة بالفعل
-        if wallet.status == 'frozen':
-            return jsonify({'success': False, 'message': 'هذه المحفظة مجمدة بالفعل.'})
-
-        # تنفيذ التجميد
-        wallet.status = 'frozen'
-        wallet.updated_at = datetime.utcnow()
-
-        # حفظ التغيير
-        db.session.commit()
-
-        return jsonify({
-            'success': True, 
-            'message': f'تم تجميد محفظة المورد بنجاح.',
-            'new_status': 'frozen'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'حدث خطأ أثناء التجميد: {str(e)}'})
-
-
-# ==========================================================
-# ✅ 2. مسار POST: تغذية محفظة المورد (إيداع/خصم مالي)
-# ==========================================================
-@bp.route('/<int:supplier_id>/fund', methods=['POST'])
-def fund_supplier_wallet(supplier_id):
+@bp.route('/<int:supplier_id>/adjust', methods=['POST'])
+def adjust_wallet_balance(supplier_id):
     try:
         data = request.get_json()
-        trans_type = data.get('trans_type') # 'deposit' أو 'withdraw'
+        trans_type = 'deposit' if data.get('type') == 'credit' else 'withdraw'
         amount = Decimal(str(data.get('amount', 0)))
-        currency = data.get('currency', 'SAR')
-        description = data.get('reason', 'تغذية محفظة يدوية')
+        description = data.get('description', 'تسوية يدوية')
 
-        # التحقق من صحة المبلغ
         if amount <= 0:
-            return jsonify({'success': False, 'message': 'يجب أن يكون المبلغ أكبر من 0.'})
+            return jsonify({'status': 'error', 'message': 'يجب أن يكون المبلغ أكبر من 0.'})
 
-        # البحث عن المحفظة
         wallet = SupplierWallet.query.get_or_404(supplier_id)
 
-        # التأكد من أن المحفظة نشطة (لا يمكن إيداعها إذا كانت مجمدة)
         if wallet.status == 'frozen':
-            return jsonify({'success': False, 'message': 'لا يمكن إجراء حركات مالية على محفظة مجمدة.'})
+            return jsonify({'status': 'error', 'message': 'لا يمكن إجراء حركات مالية على محفظة مجمدة.'})
 
         current_balance = Decimal(str(wallet.balance_sar))
-        
-        # حساب الرصيد الجديد
-        if trans_type == 'deposit':
-            new_balance = current_balance + amount
-        elif trans_type == 'withdraw':
-            if amount > current_balance:
-                return jsonify({'success': False, 'message': 'الرصيد غير كافٍ لإجراء هذا الخصم.'})
-            new_balance = current_balance - amount
-        else:
-            return jsonify({'success': False, 'message': 'نوع القيد غير معروف.'})
+        new_balance = current_balance + amount if trans_type == 'deposit' else current_balance - amount
 
-        # إنشاء سجل حركة مالية (WalletTransaction) في قاعدة البيانات
         new_transaction = WalletTransaction(
             wallet_id=wallet.id,
             trans_type=trans_type,
             status='completed',
             amount=amount,
-            currency=currency,
+            currency='SAR',
             balance_before=current_balance,
             balance_after=new_balance
         )
-        # استخدام التشفير الموجود في الموديل الخاص بك (description)
-        new_transaction.description = description 
-        
+        new_transaction.description = description
         db.session.add(new_transaction)
 
-        # تحديث رصيد المحفظة
         wallet.balance_sar = new_balance
         wallet.updated_at = datetime.utcnow()
-
         db.session.commit()
 
         return jsonify({
-            'success': True,
-            'message': 'تم تنفيذ القيد المالي بنجاح.',
+            'status': 'success',
+            'message': 'تم قيد الحركة المالية بنجاح.',
+            'voucher_code': f"VCH-{datetime.utcnow().strftime('%Y%m%d%H%M')}",
+            'ref_code': f"REF-{wallet.id}-{datetime.utcnow().strftime('%H%M')}",
             'new_balance': float(new_balance)
         })
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'حدث خطأ أثناء التغذية: {str(e)}'})
+        return jsonify({'status': 'error', 'message': f'حدث خطأ: {str(e)}'})
+
+@bp.route('/<int:supplier_id>/toggle_freeze', methods=['POST'])
+def toggle_wallet_freeze(supplier_id):
+    try:
+        data = request.get_json()
+        reason = data.get('reason', 'إجراء إداري')
+        wallet = SupplierWallet.query.get_or_404(supplier_id)
+        
+        new_status = 'frozen' if wallet.status == 'active' else 'active'
+        wallet.status = new_status
+        wallet.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'status': 'success',
+            'message': f'تم تغيير حالة المحفظة إلى {"مجمدة" if new_status == "frozen" else "نشطة"} بنجاح.',
+            'new_status': new_status
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'حدث خطأ: {str(e)}'})
