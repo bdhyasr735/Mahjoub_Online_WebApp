@@ -21,19 +21,18 @@ def index():
     # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # ✅ إصلاح خطأ AttributeError: البحث في الحقول الصحيحة
+    # ✅ تم إصلاح البحث: إزالة commercial_reg وحل مشكلة AttributeError
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
                 SupplierWallet.wallet_code.ilike(search_term),
-                # تم إصلاح اسم الحقل من supplier_name إلى trade_name / store_name / username
-                Supplier.trade_name.ilike(search_term),
-                Supplier.store_name.ilike(search_term),
-                Supplier.username.ilike(search_term),
-                Supplier.commercial_reg.ilike(search_term),
-                Supplier.iban.ilike(search_term),
-                Supplier.city.ilike(search_term)
+                Supplier.trade_name.ilike(search_term),  # الاسم التجاري
+                Supplier.store_name.ilike(search_term),   # اسم المتجر
+                Supplier.username.ilike(search_term),     # اسم المستخدم
+                Supplier.supplier_code.ilike(search_term), # كود المورد (بديل للسجل التجاري إن وجد)
+                Supplier.iban.ilike(search_term),         # الآيبان
+                Supplier.city.ilike(search_term)          # المدينة
             )
         )
 
