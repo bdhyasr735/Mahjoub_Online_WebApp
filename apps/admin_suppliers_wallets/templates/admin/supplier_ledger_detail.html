@@ -1,75 +1,38 @@
 {% extends "admin/admin_base.html" %}
-{% import "supplier_wallet/components/tables.html" as tables %}
-{% import "supplier_wallet/components/pagination.html" as pag %}
 
-{% block title %}كشف حساب محفظة {{ wallet.supplier.supplier_name }} ({{ wallet.wallet_code }}){% endblock %}
+{% block title %}كشف حساب محفظة {{ wallet.supplier_name }} ({{ wallet.wallet_code }}){% endblock %}
 {% block breadcrumb %}كشف حساب المحفظة: {{ wallet.wallet_code }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
-
-    <!-- ترويسة تفاصيل المحفظة والمورد (خلفية بيضاء ووضع فاتح) -->
     <div class="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <span class="font-mono font-black text-sm text-gray-700">{{ wallet.wallet_code }}</span>
-                <!-- شارة الحالة (نشطة / مجمدة) -->
-                <span class="text-xs px-2.5 py-0.5 rounded-lg font-bold {% if wallet.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-400{% else %}bg-rose-50 text-rose-700 border border-rose-400{% endif %}">
-                    {{ 'محفظة نشطة' if wallet.status == 'active' else 'محفظة مجمدة' }}
-                </span>
+                <span class="font-mono font-black text-sm text-amber-600">{{ wallet.wallet_code }}</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-lg font-bold {% if wallet.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-400{% else %}bg-rose-50 text-rose-700 border border-rose-400{% endif %}">{{ 'محفظة نشطة' if wallet.status == 'active' else 'محفظة مجمدة' }}</span>
             </div>
-            <h1 class="text-2xl font-black text-gray-900 mt-1">{{ wallet.supplier.supplier_name }}</h1>
-            <p class="text-xs text-gray-500 mt-1">السجل التجاري: {{ wallet.supplier.commercial_reg }} • الرقم الضريبي: {{ wallet.supplier.tax_number }} • المدينة: {{ wallet.supplier.city }}</p>
+            <h1 class="text-2xl font-black text-gray-900 mt-1">{{ wallet.supplier_name }}</h1>
+            <p class="text-xs text-gray-500 mt-1">السجل التجاري: {{ wallet.commercial_reg }} • الرقم الضريبي: {{ wallet.tax_number }} • المدينة: {{ wallet.city }}</p>
         </div>
-
         <div class="flex items-center gap-3">
-            <button onclick="window.print()" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition shadow-sm">
-                🖨️ طباعة كشف الحساب
-            </button>
-            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] text-xs font-black rounded-xl transition shadow-sm shadow-amber-400/30">
-                العودة لسجل المحافظ
-            </a>
+            <button onclick="window.print()" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition shadow-sm">🖨️ طباعة كشف الحساب</button>
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] text-xs font-black rounded-xl transition">العودة لسجل المحافظ</a>
         </div>
     </div>
 
-    <!-- بطاقات الأرصدة والسيولة (خلفية بيضاء وألوان مميزة للحدود) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <!-- البطاقة 1 -->
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <span class="text-xs text-gray-500 block font-bold">إجمالي الرصيد الدفتري</span>
-            <div class="text-2xl font-black font-mono text-gray-900 mt-2">
-                {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-gray-400 font-sans">ريال</span>
-            </div>
+            <div class="text-2xl font-black font-mono text-gray-900 mt-2">{{ "{:,.2f}".format(wallet.total_balance) }} <span class="text-xs text-gray-400 font-sans">ريال</span></div>
         </div>
-
-        <!-- البطاقة 2 -->
         <div class="bg-white border border-emerald-400 rounded-2xl p-5 shadow-sm">
             <span class="text-xs text-emerald-600 block font-bold">الرصيد المتاح للسحب الفوري</span>
-            <div class="text-2xl font-black font-mono text-emerald-600 mt-2">
-                {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-emerald-500 font-sans">ريال</span>
-            </div>
+            <div class="text-2xl font-black font-mono text-emerald-600 mt-2">{{ "{:,.2f}".format(wallet.available_balance) }} <span class="text-xs text-emerald-500 font-sans">ريال</span></div>
         </div>
-
-        <!-- البطاقة 3 -->
         <div class="bg-white border border-amber-400 rounded-2xl p-5 shadow-sm">
             <span class="text-xs text-amber-600 block font-bold">أمانات الضمان المحجوزة (Escrow)</span>
-            <div class="text-2xl font-black font-mono text-amber-600 mt-2">
-                {{ "0.00" }} <span class="text-xs text-amber-500 font-sans">ريال</span>
-            </div>
+            <div class="text-2xl font-black font-mono text-amber-600 mt-2">{{ "{:,.2f}".format(wallet.pending_escrow_balance) }} <span class="text-xs text-amber-500 font-sans">ريال</span></div>
         </div>
     </div>
-
-    <!-- جدول المعاملات - مدمج -->
-    <!-- ملاحظة هامة: لضمان تطابق الألوان، تأكد من أن ملف tables.html يتبع نفس نظام الألوان الفاتحة (أبيض/رمادي) -->
-    <div class="mt-6">
-        {{ tables.render_transactions_table(transactions) }}
-    </div>
-
-    <!-- نظام الصفحات -->
-    <!-- ملاحظة هامة: تأكد من أن ملف pagination.html يطابق أزرار الترقيم ذات الخلفية البنفسجية/الرمادية كما في الصور السابقة -->
-    <div class="mt-4">
-        {{ pag.render_pagination(pagination) }}
-    </div>
-
 </div>
 {% endblock %}
