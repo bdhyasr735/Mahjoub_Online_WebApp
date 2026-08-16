@@ -83,11 +83,9 @@ def submit_withdrawal():
                 # صياغة النص بحد أقصى 255 حرفاً
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # إنشاء المعاملة بحالة معلقة وبدون أرقام مرجعية تلقائية
+                # ✅ تم حذف owner_id و owner_type لأنهما غير موجودين في موديل قاعدة البيانات
                 new_tx = WalletTransaction(
                     wallet_id=locked_wallet.id,
-                    owner_id=supplier_id,     
-                    owner_type='supplier',   
                     trans_type='withdrawal',
                     status='pending',          # حالة الطلب الأولي: قيد المراجعة
                     amount=amount,
