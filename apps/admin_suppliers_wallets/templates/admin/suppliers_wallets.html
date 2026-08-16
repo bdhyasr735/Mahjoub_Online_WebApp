@@ -50,7 +50,9 @@
                         <th class="py-3 px-4 text-center">الإجراءات</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                
+                <!-- ✅ تم إضافة "id" هنا لكي يتمكن الـ Javascript من تحديث الجدول دون إعادة تحميل الصفحة -->
+                <tbody id="suppliers-table-body" class="divide-y divide-gray-100">
                     {% if suppliers %}
                         {% for supplier in suppliers %}
                         <tr 
@@ -62,13 +64,13 @@
                                 {{ supplier.wallet_code }}
                             </td>
                             
-                            <!-- ✅ تم إصلاح ظهور "None" باستخدام دالة "or" لإضافة بدائل جميلة -->
+                            <!-- ✅ عمود المورد والنشاط المحدث -->
                             <td class="py-4 px-4">
-                                <!-- السطر الأول: اسم المتجر (أو الاسم التجاري، أو اسم المستخدم كخطة احتياطية) -->
+                                <!-- السطر الأول: اسم المتجر -->
                                 <div class="font-bold text-gray-800">
                                     {{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username or 'اسم المتجر' }}
                                 </div>
-                                <!-- السطر الثاني: المالك (أو تعبير بديل إذا كان فارغاً) -->
+                                <!-- السطر الثاني: المالك -->
                                 <div class="text-[11px] text-gray-400 mt-0.5">
                                     المالك: {{ supplier.supplier.owner_name or 'غير محدد' }}
                                 </div>
