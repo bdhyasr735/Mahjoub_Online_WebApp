@@ -10,48 +10,38 @@ PER_PAGE = 10
 
 @bp.route('/', methods=['GET'])
 def index():
-    """
-    الصفحة الرئيسية لوحة تحكم محافظ الموردين مع حساب دقيق للأهلّة
-    """
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     status_filter = request.args.get('status', 'all', type=str)
     bank_filter = request.args.get('bank', 'all', type=str)
 
-    # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # ✅ التصفية والبحث المحدث (لقد تم حذف supplier_name و commercial_reg)
+    # ✅ تم حذف "iban" نهائياً لتجنب الخطأ 500. بحث فقط في الحقول الصحيحة:
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
                 SupplierWallet.wallet_code.ilike(search_term),
-                Supplier.trade_name.ilike(search_term),   # الاسم التجاري
-                Supplier.store_name.ilike(search_term),    # اسم المتجر
-                Supplier.username.ilike(search_term),      # اسم المستخدم
-                Supplier.supplier_code.ilike(search_term), # كود المورد (كبديل عن السجل التجاري إن وجد)
-                Supplier.iban.ilike(search_term),          # الآيبان
-                Supplier.city.ilike(search_term)           # المدينة
+                Supplier.trade_name.ilike(search_term),
+                Supplier.store_name.ilike(search_term),
+                Supplier.username.ilike(search_term),
+                Supplier.supplier_code.ilike(search_term),
+                Supplier.city.ilike(search_term)
             )
         )
 
-    # فلتر الحالة (نشطة / مجمدة)
     if status_filter and status_filter != 'all':
         query = query.filter(SupplierWallet.status == status_filter)
 
-    # فلتر البنك
     if bank_filter and bank_filter != 'all':
         query = query.filter(Supplier.bank_name.ilike(f"%{bank_filter}%"))
 
-    # ترتيب النتائج (الأحدث أولاً)
     query = query.order_by(SupplierWallet.id.desc())
 
-    # حساب مؤشرات الأداء الرئيسية (KPIs)
     total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
     total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
     pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
-
     total_wallets_balance = Decimal(str(total_sar_balance)) + Decimal(str(total_pending_balance))
 
     kpis = {
@@ -64,7 +54,6 @@ def index():
         'pending_withdrawals_count': WalletTransaction.query.filter_by(status='pending').count()
     }
 
-    # تنفيذ الترقيم (Pagination)
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
     suppliers = pagination_obj.items
 
