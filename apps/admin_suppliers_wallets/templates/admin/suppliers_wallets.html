@@ -6,15 +6,10 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. كروت المؤشرات -->
     {% include "admin/components/wallet_cards.html" %}
-
-    <!-- 2. شريط الفلترة المميز -->
     {% include "admin/components/wallet_filters.html" %}
 
-    <!-- 3. جدول المحافظ -->
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-        
         <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
                 <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2">
@@ -24,14 +19,9 @@
                     دفتر أرصدة المتاجر والموردين • <span class="text-orange-500 font-bold">انقر نقراً مزدوجاً لفتح كشف الحساب فوراً</span>
                 </p>
             </div>
-
             <div class="flex items-center gap-2">
-                <button onclick="window.print()" class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl border border-blue-200 transition shadow-sm">
-                    🖨️ طباعة الكشف
-                </button>
-                <span class="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl font-mono font-bold">
-                    {{ pagination.per_page|default(10) }} موردين / صفحة
-                </span>
+                <button onclick="window.print()" class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl border border-blue-200 transition shadow-sm">🖨️ طباعة الكشف</button>
+                <span class="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl font-mono font-bold">{{ pagination.per_page }} موردين / صفحة</span>
             </div>
         </div>
 
@@ -51,129 +41,61 @@
                     </tr>
                 </thead>
                 
-                <!-- ✅ تم إضافة "id" هنا لكي يتمكن الـ Javascript من تحديث الجدول دون إعادة تحميل الصفحة -->
                 <tbody id="suppliers-table-body" class="divide-y divide-gray-100">
                     {% if suppliers %}
                         {% for supplier in suppliers %}
-                        <tr 
-                            ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
-                            title="انقر نقراً مزدوجاً لفتح كشف الحساب"
-                            class="hover:bg-gray-50 cursor-pointer transition select-none group"
-                        >
-                            <td class="py-4 px-4 font-mono font-bold text-gray-800 tracking-wider">
-                                {{ supplier.wallet_code }}
-                            </td>
-                            
-                            <!-- ✅ عمود المورد والنشاط المحدث -->
+                        <tr ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'" title="انقر نقراً مزدوجاً لفتح كشف الحساب" class="hover:bg-gray-50 cursor-pointer transition select-none group">
+                            <td class="py-4 px-4 font-mono font-bold text-amber-600">{{ supplier.wallet_code }}</td>
                             <td class="py-4 px-4">
-                                <!-- السطر الأول: اسم المتجر -->
-                                <div class="font-bold text-gray-800">
-                                    {{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username or 'اسم المتجر' }}
-                                </div>
-                                <!-- السطر الثاني: المالك -->
-                                <div class="text-[11px] text-gray-400 mt-0.5">
-                                    المالك: {{ supplier.supplier.owner_name or 'غير محدد' }}
-                                </div>
+                                <div class="font-bold text-gray-800">{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username or supplier.supplier_name }}</div>
+                                <div class="text-[11px] text-gray-400 mt-0.5">المالك: {{ supplier.supplier.owner_name or 'غير محدد' }}</div>
                             </td>
-                            
-                            <td class="py-4 px-4 font-mono text-gray-500">
-                                {{ supplier.supplier.commercial_reg|default('-') }}
-                            </td>
-                            <!-- ألوان الأرصدة -->
-                            <td class="py-4 px-4 text-left font-mono font-bold text-gray-800">
-                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
-                            </td>
-                            <td class="py-4 px-4 text-left font-mono font-bold text-amber-600">
-                                {{ "0.00" }}
-                            </td>
-                            <td class="py-4 px-4 text-left font-mono font-black text-green-600 text-sm">
-                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
-                            </td>
+                            <td class="py-4 px-4 font-mono text-gray-500">{{ supplier.supplier.commercial_reg|default('-') }}</td>
+                            <td class="py-4 px-4 text-left font-mono font-black text-emerald-600">{{ "{:,.2f}".format(supplier.balance_sar|float) }}</td>
+                            <td class="py-4 px-4 text-left font-mono font-bold text-amber-600">{{ "0.00" }}</td>
+                            <td class="py-4 px-4 text-left font-mono font-black text-gray-900 text-sm">{{ "{:,.2f}".format(supplier.balance_sar|float) }}</td>
                             <td class="py-4 px-4">
                                 <div class="font-bold text-gray-700">{{ supplier.supplier.bank_name|default('-') }}</div>
                                 <div class="text-[10px] font-mono text-gray-400 truncate max-w-[120px]">{{ supplier.supplier.iban|default('-') }}</div>
                             </td>
                             <td class="py-4 px-4 text-center">
                                 {% if supplier.status == 'active' %}
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-400 text-emerald-700 rounded-full text-[10px] font-bold">
-                                    <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-emerald-500">✓</span>
-                                    نشطة
-                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-400 text-emerald-700 rounded-full text-[10px] font-bold"><span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-emerald-500">✓</span> نشطة</span>
                                 {% else %}
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-400 text-rose-700 rounded-full text-[10px] font-bold">
-                                    <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-rose-500">🔒</span>
-                                    مجمدة
-                                </span>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-400 text-rose-700 rounded-full text-[10px] font-bold"><span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-rose-500">🔒</span> مجمدة</span>
                                 {% endif %}
                             </td>
-                            
-                            <!-- ✅ تم توحيد الأيقونات: جميع الأزرار الآن بنفس الحجم (w-9 h-9) ونفس الشكل (rounded-xl) -->
                             <td class="py-4 px-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    <!-- زر العرض (عين) - أصبح مربع بحواف دائرية مثل زر التسوية -->
-                                    <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
-                                       class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">
-                                        👁️
-                                    </a>
+                                    <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">👁️</a>
                                     
-                                    <!-- زر التسوية (+) -->
-                                    <button 
-                                        onclick="openFundModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
-                                        class="w-9 h-9 rounded-xl bg-[#FFF8E7] border-2 border-amber-400 flex items-center justify-center text-amber-700 hover:bg-[#FFEEC3] transition cursor-pointer font-bold text-lg" 
-                                        title="تغذية / تسوية الرصيد"
-                                    >
-                                        +
-                                    </button>
+                                    <button onclick="openWalletAdjustmentModal('{{ supplier.id }}', '{{ supplier.wallet_code }}', '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username or supplier.supplier_name }}', {{ supplier.balance_sar }})" class="w-9 h-9 rounded-xl bg-[#FFF8E7] border-2 border-amber-400 flex items-center justify-center text-amber-700 hover:bg-[#FFEEC3] transition cursor-pointer font-bold text-lg" title="تغذية / تسوية الرصيد">+</button>
 
-                                    <!-- زر التجميد (قفل) - أصبح مربع بحواف دائرية -->
-                                    <button 
-                                        onclick="openFreezeModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
-                                        class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
-                                        title="تجميد المحفظة"
-                                    >
-                                        🔒
-                                    </button>
+                                    <button onclick="confirmWalletStatusToggle('{{ supplier.id }}', '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username or supplier.supplier_name }}', '{{ supplier.status }}', '{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.toggle_wallet_freeze', supplier_id=supplier.id) }}')" class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" title="تجميد المحفظة">🔒</button>
                                 </div>
                             </td>
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr>
-                            <td colspan="9" class="py-12 text-center text-gray-400">
-                                لا توجد محافظ مورّدين مطابقة لمعايير البحث الحالية.
-                            </td>
-                        </tr>
+                        <tr><td colspan="9" class="py-12 text-center text-gray-400">لا توجد محافظ مورّدين مطابقة لمعايير البحث الحالية.</td></tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
 
-        <!-- شريط الترقيم -->
         {% if pagination and pagination.total_pages > 1 %}
-        {% set current_args = request.args.to_dict() %}
-        {% set _ = current_args.pop('page', None) %}
         <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-            <div>
-                عرض <span class="font-bold text-gray-700 font-mono">{{ pagination.per_page|default(10) }}</span> من إجمالي <span class="font-bold text-gray-700 font-mono">{{ pagination.total }}</span> مورد
-                <span class="text-gray-400 mx-1">|</span> <span class="font-bold text-gray-700 font-mono">{{ pagination.total|default(0) }}</span> محفظة
-            </div>
-
+            <div>عرض <span class="font-bold text-gray-700 font-mono">{{ pagination.per_page }}</span> من إجمالي <span class="font-bold text-gray-700 font-mono">{{ pagination.total_count }}</span> مورد</div>
             <div class="flex items-center gap-1.5 font-mono font-bold">
-                <a href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **current_args) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition">السابق</a>
+                <a href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **request.args.to_dict()) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition">السابق</a>
                 <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2B1B4E] text-white font-black text-xs">{{ pagination.current_page }}</span>
-                <a href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **current_args) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition">التالي</a>
+                <a href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **request.args.to_dict()) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition">التالي</a>
             </div>
         </div>
         {% endif %}
-
     </div>
-
 </div>
 
-<!-- ✅ تمت إضافة المودالات هنا قبل إغلاق القالب -->
 {% include "admin/components/wallet_modals.html" %}
-
-<!-- ✅ تم تصحيح مسار ملف الـ JavaScript ليكون متوافقاً مع الـ Blueprint الأبوي -->
 <script src="{{ url_for('admin_suppliers_wallets.static', filename='js/wallet_modals.js') }}"></script>
-
 {% endblock %}
