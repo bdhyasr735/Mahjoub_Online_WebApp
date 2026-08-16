@@ -69,13 +69,13 @@
                                 {{ supplier.commercial_reg|default('-') }}
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-black text-emerald-400">
-                                {{ "{:,.2f}".format(supplier.available_balance|float) }}
+                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-bold text-amber-400">
-                                {{ "{:,.2f}".format(supplier.pending_escrow_balance|float) }}
+                                {{ "0.00" }}  <!-- تم التعديل: لا يوجد حقل للضمان، وضعنا صفر -->
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-black text-white text-sm">
-                                {{ "{:,.2f}".format(supplier.total_balance|float) }}
+                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                             </td>
                             <td class="py-4 px-4">
                                 <div class="font-bold text-slate-200">{{ supplier.bank_name|default('-') }}</div>
