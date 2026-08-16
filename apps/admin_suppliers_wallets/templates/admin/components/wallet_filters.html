@@ -1,150 +1,48 @@
-{% extends "admin/admin_base.html" %}
-
-{% block title %}إدارة محافظ الموردين المركزية{% endblock %}
-{% block breadcrumb %}سجل محافظ الموردين والتسويات{% endblock %}
-
-{% block content %}
-<div class="space-y-6">
-
-    <!-- 1. استدعاء مكون كروت إجمالي المحافظ والعدادات -->
-    {% include "admin/components/wallet_cards.html" %}
-
-    <!-- 2. استدعاء مكون شريط البحث والفلترة -->
-    {% include "admin/components/wallet_filters.html" %}
-
-    <!-- 3. جدول المحافظ الدفتري - نسخة بيضاء -->
-    <div class="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
-        
-        <div class="p-5 bg-gray-50/80 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-                <h2 class="text-base font-black text-gray-800 flex items-center gap-2">
-                    📁 سجل وحسابات محافظ الموردين
-                </h2>
-                <p class="text-xs text-gray-500 mt-0.5">
-                    سجل الأرصدة المعتمدة • <span class="text-blue-600 font-bold">انقر نقراً مزدوجاً (Double Click) لفتح كشف الحساب فوراً</span>
-                </p>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <button onclick="window.print()" class="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl border border-gray-300 transition">
-                    🖨️ طباعة الكشف
-                </button>
-                <span class="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl font-mono font-bold">
-                    {{ pagination.per_page|default(10) }} موردين / صفحة
-                </span>
-            </div>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-right text-xs">
-                <thead class="bg-gray-100 text-gray-600 font-bold border-b border-gray-200 select-none">
-                    <tr>
-                        <th class="py-4 px-4">كود المحفظة</th>
-                        <th class="py-4 px-4">المورد والنشاط</th>
-                        <th class="py-4 px-4">السجل التجاري</th>
-                        <th class="py-4 px-4 text-left">الرصيد المتاح (SAR)</th>
-                        <th class="py-4 px-4 text-left">الضمان المحجوز (SAR)</th>
-                        <th class="py-4 px-4 text-left">إجمالي الرصيد (SAR)</th>
-                        <th class="py-4 px-4">البنك المعتمد</th>
-                        <th class="py-4 px-4 text-center">الحالة</th>
-                        <th class="py-4 px-4 text-center">الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% if suppliers %}
-                        {% for supplier in suppliers %}
-                        <tr 
-                            ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
-                            title="انقر نقراً مزدوجاً لفتح كشف الحساب"
-                            class="hover:bg-blue-50/60 cursor-pointer transition select-none group"
-                        >
-                            <td class="py-4 px-4 font-mono font-bold text-blue-600">
-                                {{ supplier.wallet_code }}
-                            </td>
-                            <td class="py-4 px-4">
-                                <div class="font-extrabold text-gray-800">{{ supplier.supplier.supplier_name }}</div>
-                                <div class="text-[11px] text-gray-400 mt-0.5">{{ supplier.supplier.category|default('مورد معتمد') }}</div>
-                            </td>
-                            <td class="py-4 px-4 font-mono text-gray-600">
-                                {{ supplier.supplier.commercial_reg|default('-') }}
-                            </td>
-                            <td class="py-4 px-4 text-left font-mono font-black text-emerald-600">
-                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
-                            </td>
-                            <td class="py-4 px-4 text-left font-mono font-bold text-amber-600">
-                                {{ "0.00" }}
-                            </td>
-                            <td class="py-4 px-4 text-left font-mono font-black text-gray-800 text-sm">
-                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
-                            </td>
-                            <td class="py-4 px-4">
-                                <div class="font-bold text-gray-700">{{ supplier.supplier.bank_name|default('-') }}</div>
-                                <div class="text-[10px] font-mono text-gray-400 truncate max-w-[120px]">{{ supplier.supplier.iban|default('-') }}</div>
-                            </td>
-                            <td class="py-4 px-4 text-center">
-                                {% if supplier.status == 'active' %}
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                    نشطة ✓
-                                </span>
-                                {% else %}
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                                    مجمدة 🔒
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="py-4 px-4 text-center">
-                                <a 
-                                    href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}"
-                                    class="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 font-bold rounded-lg border border-blue-200 text-xs transition"
-                                >
-                                    كشف الحساب
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="9" class="py-12 text-center text-gray-400">
-                                لا توجد محافظ مورّدين مطابقة لمعايير البحث الحالية.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- شريط الترقيم والتنقل -->
-        {% if pagination and pagination.total_pages > 1 %}
-        {% set current_args = request.args.to_dict() %}
-        {% set _ = current_args.pop('page', None) %}
-        <div class="px-6 py-4 bg-gray-50/80 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-            <div>
-                عرض الصفحة <span class="font-bold text-gray-700 font-mono">{{ pagination.current_page }}</span> من إجمالي <span class="font-bold text-gray-700 font-mono">{{ pagination.total_pages }}</span> صفحات
-            </div>
-
-            <div class="flex items-center gap-1.5 font-mono font-bold">
-                <a 
-                    href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **current_args) }}" 
-                    class="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 {% if not pagination.has_prev %}opacity-40 pointer-events-none{% endif %} text-gray-700 rounded-xl border border-gray-300 transition"
-                >
-                    السابق
-                </a>
-
-                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center text-xs shadow-sm">
-                    {{ pagination.current_page }}
-                </span>
-
-                <a 
-                    href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **current_args) }}" 
-                    class="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 {% if not pagination.has_next %}opacity-40 pointer-events-none{% endif %} text-gray-700 rounded-xl border border-gray-300 transition"
-                >
-                    التالي
-                </a>
-            </div>
-        </div>
-        {% endif %}
-
+<!-- شريط البحث والفلترة المتقدمة - نسخة بيضاء -->
+<form method="GET" action="" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+    <!-- حقل البحث النصي -->
+    <div class="relative flex-1">
+        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <input 
+            type="text" 
+            name="q" 
+            value="{{ search_query or '' }}" 
+            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
+            class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 placeholder-gray-400 focus:outline-hidden focus:border-blue-500 transition"
+        >
     </div>
 
-</div>
-{% endblock %}
+    <!-- القوائم المنسدلة للفلترة -->
+    <div class="flex flex-wrap items-center gap-2">
+        <select 
+            name="status" 
+            onchange="this.form.submit()" 
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+        >
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
+            <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
+            <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
+        </select>
+
+        <select 
+            name="bank" 
+            onchange="this.form.submit()" 
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+        >
+            <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
+            <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
+            <option value="الأهلي" {% if bank_filter == 'الأهلي' %}selected{% endif %}>البنك الأهلي (SNB)</option>
+            <option value="الإنماء" {% if bank_filter == 'الإنماء' %}selected{% endif %}>مصرف الإنماء</option>
+            <option value="الرياض" {% if bank_filter == 'الرياض' %}selected{% endif %}>بنك الرياض</option>
+            <option value="البلاد" {% if bank_filter == 'البلاد' %}selected{% endif %}>بنك البلاد</option>
+        </select>
+
+        <button 
+            type="submit" 
+            class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition shadow-sm"
+        >
+            تطبيق الفلترة
+        </button>
+    </div>
+</form>
