@@ -1,65 +1,35 @@
-<!-- 1. أزرار تصفية الحالة (Status Chips) والعداد -->
-<div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+<!-- 1. أزرار تصفية الحالة -->
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-amber-400 text-xs font-bold ml-2">🔽 تصفية الحالة</span>
-        
+        <span class="text-amber-500 text-xs font-bold ml-2">🔽 تصفية الحالة</span>
         <!-- زر الكل -->
-        <a href="{{ request.path }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'all' or not status_filter %}bg-[#2B1B4E] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            الكل <span class="text-[10px] opacity-70">10</span>
-        </a>
-
+        <a href="{{ request.path }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'all' or not status_filter %}bg-[#2B1B4E] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">الكل</a>
         <!-- زر نشطة -->
-        <a href="{{ request.path }}?status=active" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'active' %}bg-emerald-100 text-emerald-700 border-emerald-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            ✅ نشطة <span class="text-[10px] opacity-70">8</span>
-        </a>
-
+        <a href="{{ request.path }}?status=active" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'active' %}bg-emerald-100 text-emerald-700 border-emerald-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">✅ نشطة</a>
         <!-- زر مجمدة -->
-        <a href="{{ request.path }}?status=frozen" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'frozen' %}bg-rose-100 text-rose-700 border-rose-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            🔒 مجمدة <span class="text-[10px] opacity-70">1</span>
-        </a>
-
+        <a href="{{ request.path }}?status=frozen" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'frozen' %}bg-rose-100 text-rose-700 border-rose-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">🔒 مجمدة</a>
         <!-- زر تحت المراجعة -->
-        <a href="{{ request.path }}?status=under_review" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'under_review' %}bg-purple-100 text-purple-700 border-purple-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            🛡️ تحت المراجعة <span class="text-[10px] opacity-70">1</span>
-        </a>
+        <a href="{{ request.path }}?status=under_review" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'under_review' %}bg-purple-100 text-purple-700 border-purple-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">🛡️ تحت المراجعة</a>
     </div>
-    <span class="text-[11px] text-gray-400 font-medium" id="pagination_count_text">عرض 10 من 10 محفظة</span>
+    <span class="text-[11px] text-gray-400 font-medium" id="pagination_count_text">عرض {{ pagination.per_page }} من {{ pagination.total_count }} محفظة</span>
 </div>
 
-<!-- 2. شريط البحث والفلترة المتقدمة -->
+<!-- 2. حقل البحث والقوائم المنسدلة -->
 <form id="searchFilterForm" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-    <!-- حقل البحث النصي -->
     <div class="relative flex-1">
         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-        <input 
-            id="liveSearchInput"
-            type="text" 
-            name="q" 
-            value="{{ search_query or '' }}" 
-            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
-            class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden focus:border-amber-400 transition"
-            autocomplete="off"
-        >
+        <input id="liveSearchInput" type="text" name="q" value="{{ search_query or '' }}" placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري..." class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden focus:border-amber-400 transition" autocomplete="off">
     </div>
 
-    <!-- القوائم المنسدلة للفلترة -->
     <div class="flex flex-wrap items-center gap-2">
-        <select 
-            id="statusSelect"
-            name="status" 
-            class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer"
-        >
+        <select id="statusSelect" name="status" class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer">
             <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
             <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
             <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
             <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
         </select>
 
-        <select 
-            id="bankSelect"
-            name="bank" 
-            class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer"
-        >
+        <select id="bankSelect" name="bank" class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer">
             <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
             <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
             <option value="الأهلي" {% if bank_filter == 'الأهلي' %}selected{% endif %}>البنك الأهلي (SNB)</option>
@@ -67,71 +37,8 @@
             <option value="الرياض" {% if bank_filter == 'الرياض' %}selected{% endif %}>بنك الرياض</option>
             <option value="البلاد" {% if bank_filter == 'البلاد' %}selected{% endif %}>بنك البلاد</option>
         </select>
-
-        <button 
-            type="button" 
-            id="applyFilterBtn"
-            class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm"
-        >
-            تطبيق الفلترة
-        </button>
-
-        <!-- زر إعادة الضبط (Reset) -->
-        <a href="{{ request.path }}" 
-           class="px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition">
-            إعادة
-        </a>
+        
+        <button type="button" id="applyFilterBtn" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm">تطبيق الفلترة</button>
+        <a href="{{ request.path }}" class="px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition">إعادة</a>
     </div>
 </form>
-
-<!-- 🟢 سكربت البحث اللحظي النهائي (تم إزالة تغيير الرابط نهائياً) -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('liveSearchInput');
-    const statusSelect = document.getElementById('statusSelect');
-    const bankSelect = document.getElementById('bankSelect');
-    const applyBtn = document.getElementById('applyFilterBtn');
-    
-    let timeoutId;
-
-    function fetchFilteredData() {
-        const params = new URLSearchParams({
-            q: searchInput.value,
-            status: statusSelect.value,
-            bank: bankSelect.value
-        });
-
-        // ✅ تم حذف history.replaceState، الرابط لن يتغير نهائياً
-
-        fetch(`{{ request.path }}?${params.toString()}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newTableBody = doc.getElementById('suppliers-table-body');
-            const newPaginationText = doc.getElementById('pagination_count_text');
-            
-            const currentTableBody = document.getElementById('suppliers-table-body');
-            if(currentTableBody && newTableBody) {
-                currentTableBody.innerHTML = newTableBody.innerHTML;
-            }
-
-            if(newPaginationText) {
-                document.getElementById('pagination_count_text').innerText = newPaginationText.innerText;
-            }
-        })
-        .catch(error => console.error('خطأ في البحث:', error));
-    }
-
-    searchInput.addEventListener('input', function() {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(fetchFilteredData, 500);
-    });
-
-    statusSelect.addEventListener('change', fetchFilteredData);
-    bankSelect.addEventListener('change', fetchFilteredData);
-    applyBtn.addEventListener('click', fetchFilteredData);
-});
-</script>
