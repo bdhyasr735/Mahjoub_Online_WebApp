@@ -112,10 +112,22 @@
                                        class="w-7 h-7 rounded-full bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">
                                         👁️
                                     </a>
-                                    <button class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition" title="تدوير">
+                                    
+                                    <!-- ✅ تم تحديث زر التدوير (التغذية) لربطه بمودال fund -->
+                                    <button 
+                                        onclick="openFundModal({{ supplier.id }})"
+                                        class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition cursor-pointer" 
+                                        title="تغذية / تسوية الرصيد"
+                                    >
                                         🔄
                                     </button>
-                                    <button class="w-7 h-7 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition" title="تجميد">
+
+                                    <!-- ✅ تم تحديث زر التجميد لربطه بمودال freeze -->
+                                    <button 
+                                        onclick="openFreezeModal({{ supplier.id }})"
+                                        class="w-7 h-7 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
+                                        title="تجميد المحفظة"
+                                    >
                                         🔒
                                     </button>
                                 </div>
@@ -154,4 +166,8 @@
     </div>
 
 </div>
+
+<!-- ✅ تمت إضافة المودالات هنا قبل إغلاق القالب -->
+{% include "admin/components/wallet_modals.html" %}
+
 {% endblock %}
