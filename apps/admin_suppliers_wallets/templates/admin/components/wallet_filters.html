@@ -1,68 +1,48 @@
-<!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) - التصميم الفاتح فقط -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    
-    <!-- كرت 1: إجمالي أرصدة المحافظ -->
-    <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-gray-700">إجمالي أرصدة المحافظ</span>
-            <div class="w-9 h-9 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-            </div>
-        </div>
-        <div class="text-3xl font-black font-mono text-gray-900">
-            {{ "{:,.2f}".format(kpis.total_wallets_balance) }} <span class="text-xs font-sans text-gray-500">ريال</span>
-        </div>
-        <div class="mt-1 text-xs text-gray-500">
-            إجمالي الموردين المسجلين: <span class="font-bold text-gray-700 font-mono">{{ "{:,}".format(kpis.total_suppliers_count) }}</span>
-        </div>
+<!-- شريط البحث والفلترة المتقدمة -->
+<form method="GET" action="" class="bg-[#1A102A] border border-[#362052] p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+    <!-- حقل البحث النصي -->
+    <div class="relative flex-1">
+        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+        <input 
+            type="text" 
+            name="q" 
+            value="{{ search_query or '' }}" 
+            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
+            class="w-full pl-4 pr-10 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-hidden focus:border-amber-400 transition"
+        >
     </div>
 
-    <!-- كرت 2: الرصيد المتاح للسحب الفوري -->
-    <div class="bg-white border border-emerald-400 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-gray-700">الرصيد المتاح للسحب الفوري</span>
-            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M8 8h8"></path><path d="M8 12h5"></path><path d="M8 16h3"></path></svg>
-            </div>
-        </div>
-        <div class="text-3xl font-black font-mono text-emerald-600">
-            {{ "{:,.2f}".format(kpis.total_available_payouts) }} <span class="text-xs font-sans text-gray-500">ريال</span>
-        </div>
-        <div class="mt-1 text-xs text-gray-500">
-            محافظ نشطة جاهزة للتحويل: <span class="font-bold text-gray-700 font-mono">{{ kpis.active_suppliers_count or 8 }}</span> مورد
-        </div>
-    </div>
+    <!-- القوائم المنسدلة للفلترة -->
+    <div class="flex flex-wrap items-center gap-2">
+        <select 
+            name="status" 
+            onchange="this.form.submit()" 
+            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-hidden focus:border-amber-400 cursor-pointer"
+        >
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
+            <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
+            <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
+        </select>
 
-    <!-- كرت 3: أمانات الضمان المحجوزة (Escrow) -->
-    <div class="bg-white border border-amber-400 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-gray-700">أمانات الضمان المحجوزة (Escrow)</span>
-            <div class="w-9 h-9 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            </div>
-        </div>
-        <div class="text-3xl font-black font-mono text-amber-600">
-            {{ "{:,.2f}".format(kpis.total_escrow_held) }} <span class="text-xs font-sans text-gray-500">ريال</span>
-        </div>
-        <div class="mt-1 text-xs text-gray-500">
-            حماية مشتريات قيد التوصيل
-        </div>
-    </div>
+        <select 
+            name="bank" 
+            onchange="this.form.submit()" 
+            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-hidden focus:border-amber-400 cursor-pointer"
+        >
+            <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
+            <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
+            <option value="الأهلي" {% if bank_filter == 'الأهلي' %}selected{% endif %}>البنك الأهلي (SNB)</option>
+            <option value="الإنماء" {% if bank_filter == 'الإنماء' %}selected{% endif %}>مصرف الإنماء</option>
+            <option value="الرياض" {% if bank_filter == 'الرياض' %}selected{% endif %}>بنك الرياض</option>
+            <option value="البلاد" {% if bank_filter == 'البلاد' %}selected{% endif %}>بنك البلاد</option>
+        </select>
 
-    <!-- كرت 4: طلبات السحب قيد الانتظار -->
-    <div class="bg-white border border-purple-400 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-gray-700">طلبات السحب قيد الانتظار</span>
-            <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-            </div>
-        </div>
-        <div class="text-3xl font-black font-mono text-purple-600">
-            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount) }} <span class="text-xs font-sans text-gray-500">ريال</span>
-        </div>
-        <div class="mt-1 text-xs text-gray-500">
-            عدد الطلبات المفتوحة: <span class="font-bold text-gray-700 font-mono">{{ kpis.pending_withdrawals_count or 28 }}</span> طلب سحب
-        </div>
+        <button 
+            type="submit" 
+            class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm"
+        >
+            تطبيق الفلترة
+        </button>
     </div>
-    
-</div>
+</form>
