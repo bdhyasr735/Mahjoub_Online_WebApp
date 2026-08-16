@@ -187,3 +187,35 @@ def logout():
     session.clear()
     logout_user()
     return redirect(url_for('suppliers_auth.login'))
+
+
+# ============================================================
+# ⚡ نافذة اختبار معمارية الحالة الصفرية المستقلة (ZSA Engine Window)
+# ============================================================
+from apps.zsa_engine.engine import zsa_core
+
+def fallback_standard_method(supplier_id):
+    return {"status": "fallback", "data": [0.0]}
+
+@suppliers_bp.route('/supplier/zsa-window/<int:supplier_id>', methods=['GET'])
+@login_required
+def supplier_zsa_window(supplier_id):
+    sample_raw_data = [[10.0, 20.0], [30.0, 40.0], [50.0, 60.0]]
+    
+    try:
+        processed_results = zsa_core.process_window_data(sample_raw_data)
+        
+        return jsonify({
+            "status": "success",
+            "engine": "ZSA-State-Zero",
+            "supplier_id": supplier_id,
+            "results": processed_results
+        }), 200
+        
+    except Exception as e:
+        fallback_data = fallback_standard_method(supplier_id)
+        return jsonify({
+            "status": "recovered_via_fallback",
+            "error": str(e),
+            "data": fallback_data
+        }), 200
