@@ -26,7 +26,7 @@ function openFundModal(supplierId, supplierName, walletCode, balance) {
     openModal('fundModal');
 }
 
-// إرسال طلب التجميد (Freeze)
+// ✅ إرسال طلب التجميد (Freeze)
 function submitFreezeWallet() {
     const modal = document.getElementById('freezeModal');
     const supplierId = modal.getAttribute('data-supplier-id');
@@ -40,9 +40,9 @@ function submitFreezeWallet() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // تحديث أكثر أناقة (إزالة alert والـ reload)
+            alert(data.message);
             closeModal('freezeModal');
-            window.location.reload(); 
+            window.location.reload(); // تحديث الجدول
         } else {
             alert('خطأ: ' + data.message);
         }
@@ -50,7 +50,7 @@ function submitFreezeWallet() {
     .catch(error => alert('تعذر الاتصال بالخادم: ' + error));
 }
 
-// إرسال طلب التغذية (Fund)
+// ✅ إرسال طلب التغذية (Fund)
 function submitFundWallet() {
     const modal = document.getElementById('fundModal');
     const supplierId = modal.getAttribute('data-supplier-id');
@@ -77,8 +77,9 @@ function submitFundWallet() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            alert(data.message);
             closeModal('fundModal');
-            window.location.reload(); 
+            window.location.reload(); // تحديث الرصيد
         } else {
             alert('خطأ: ' + data.message);
         }
