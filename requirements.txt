@@ -21,3 +21,4 @@ limits==3.10.0
 flask-paginate==2024.4.12
 deep-translator==1.11.4
 numpy
+scipy
