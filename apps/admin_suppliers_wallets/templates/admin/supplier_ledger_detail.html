@@ -1,66 +1,168 @@
-{% extends "admin/admin_base.html" %}
+<!-- 📂 apps/admin_suppliers_wallets/templates/admin/components/wallet_modals.html -->
+<!-- النوافذ المنبثقة التفاعلية لإدارة المحافظ (سندات القبض/الصرف، التسويات، تجميد/تنشيط، تأكيد التحويل) -->
 
-{% block title %}كشف حساب محفظة {{ wallet.wallet_code }}{% endblock %}
-{% block breadcrumb %}كشف حساب المحفظة: {{ wallet.wallet_code }}{% endblock %}
+<!-- 1. نافذة قيد حركة مالية / تسوية رصيد (تغذية أو خصم) -->
+<div id="walletAdjustmentModal" class="hidden fixed inset-0 z-50 bg-[#0A0512]/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1A102A] border border-[#362052] w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate__animated animate__zoomIn">
+        <!-- ترويسة النافذة -->
+        <div class="bg-[#120A1F] p-5 border-b border-[#362052] flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-amber-400 flex items-center justify-center">
+                    <i class="fa-solid fa-scale-balanced text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-white">قيد حركة مالية وتسوية رصيد</h3>
+                    <p class="text-xs font-mono text-slate-400" id="adjModalWalletCode">WAL-SA-XXXX</p>
+                </div>
+            </div>
+            <button onclick="closeModal('walletAdjustmentModal')" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
 
-{% block content %}
-<div class="space-y-6">
+        <!-- نموذج القيد -->
+        <form id="walletAdjustmentForm" onsubmit="handleWalletAdjustmentSubmit(event)" class="p-6 space-y-4 text-xs">
+            <input type="hidden" id="adjWalletId" name="wallet_id" value="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <!-- ترويسة تفاصيل المحفظة والمورد (نسخة فاتحة نهائية) -->
-    <div class="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2">
-                <span class="font-mono font-black text-sm text-amber-600">{{ wallet.wallet_code }}</span>
-                <span class="text-xs px-2.5 py-0.5 rounded-lg font-bold {% if wallet.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-400{% else %}bg-rose-50 text-rose-700 border border-rose-400{% endif %}">
-                    {{ 'محفظة نشطة' if wallet.status == 'active' else 'محفظة مجمدة' }}
+            <!-- تفاصيل المورد والمحفظة -->
+            <div class="p-3 bg-[#120A1F] rounded-2xl border border-[#362052] flex items-center justify-between">
+                <div>
+                    <span class="text-slate-400 text-[10px] block">المورد المستفيد:</span>
+                    <span class="font-bold text-white text-xs" id="adjSupplierName">-</span>
+                </div>
+                <div class="text-left">
+                    <span class="text-slate-400 text-[10px] block">الرصيد المتاح الحالي:</span>
+                    <span class="font-mono font-bold text-emerald-400" id="adjCurrentBalance">0.00 SAR</span>
+                </div>
+            </div>
+
+            <!-- نوع العملية (إيداع/تغذية أو خصم/تسوية عكسية) -->
+            <div>
+                <label class="block text-slate-300 font-bold mb-1.5">نوع القيد المحاسبي:</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="p-3 rounded-xl border border-[#362052] bg-[#120A1F] flex items-center gap-2 cursor-pointer hover:border-emerald-500/50 has-checked:border-emerald-500 has-checked:bg-emerald-950/20 transition">
+                        <input type="radio" name="entry_type" value="credit" checked class="accent-emerald-500">
+                        <div>
+                            <span class="font-bold text-emerald-400 block">إيداع / تغذية دائنة (+)</span>
+                            <span class="text-[10px] text-slate-400">إضافة أرباح، تسوية مستحقات</span>
+                        </div>
+                    </label>
+                    <label class="p-3 rounded-xl border border-[#362052] bg-[#120A1F] flex items-center gap-2 cursor-pointer hover:border-rose-500/50 has-checked:border-rose-500 has-checked:bg-rose-950/20 transition">
+                        <input type="radio" name="entry_type" value="debit" class="accent-rose-500">
+                        <div>
+                            <span class="font-bold text-rose-400 block">خصم / تسوية مدينة (-)</span>
+                            <span class="text-[10px] text-slate-400">رسوم منصة، مرتجعات مبيعات</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- المبلغ والعملة -->
+            <div>
+                <label class="block text-slate-300 font-bold mb-1">المبلغ المراد قيده (SAR):</label>
+                <div class="relative">
+                    <input 
+                        type="number" 
+                        step="0.01" 
+                        min="1" 
+                        required 
+                        id="adjAmount" 
+                        name="amount" 
+                        placeholder="0.00" 
+                        class="w-full px-4 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-white font-mono font-black text-base focus:border-amber-400 focus:outline-none"
+                    >
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-400">SAR</span>
+                </div>
+            </div>
+
+            <!-- سبب القيد والبيان المحاسبي -->
+            <div>
+                <label class="block text-slate-300 font-bold mb-1">البيان المحاسبي ورقم المرجع:</label>
+                <textarea 
+                    required 
+                    id="adjDescription" 
+                    name="description" 
+                    rows="2" 
+                    placeholder="اكتب سبب التسوية بالتفصيل ورقم المرجع المحاسبي لتوثيق القيد..."
+                    class="w-full px-3 py-2 bg-[#120A1F] border border-[#362052] rounded-xl text-white text-xs focus:border-amber-400 focus:outline-none leading-relaxed"
+                ></textarea>
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div class="pt-2 flex items-center gap-2">
+                <button 
+                    type="submit" 
+                    id="adjSubmitBtn"
+                    class="flex-1 py-2.5 bg-gradient-to-r from-[#5A195E] via-[#4A134E] to-[#380D3C] hover:from-[#6B1E70] hover:to-[#440F48] text-white font-black rounded-xl transition shadow-xs flex items-center justify-center gap-2 text-xs border border-[#6F2374]/40 cursor-pointer"
+                >
+                    <i class="fa-solid fa-paper-plane"></i>
+                    اعتماد وقيد السند فورياً
+                </button>
+                <button 
+                    type="button" 
+                    onclick="closeModal('walletAdjustmentModal')"
+                    class="px-4 py-2.5 bg-[#231538] hover:bg-[#362052] text-slate-300 font-bold rounded-xl transition border border-[#362052] text-xs cursor-pointer"
+                >
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. نافذة عرض السند المحاسبي المعتمد (Electronic Voucher Modal) -->
+<div id="voucherDetailModal" class="hidden fixed inset-0 z-50 bg-[#0A0512]/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1A102A] border border-[#362052] w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate__animated animate__zoomIn">
+        <div class="bg-[#120A1F] p-5 border-b border-[#362052] flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-amber-400 flex items-center justify-center">
+                    <i class="fa-solid fa-receipt text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-white">سند حركة مالية معتمد</h3>
+                    <p class="text-xs font-mono text-slate-400" id="modalVoucherNumber">VCH-XXXXXX</p>
+                </div>
+            </div>
+            <button onclick="closeModal('voucherDetailModal')" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4 text-xs">
+            <div class="bg-[#231538] p-4 rounded-2xl border border-[#362052] flex items-center justify-between">
+                <div>
+                    <span class="text-slate-400 text-[11px] block">المبلغ الصافي للسند:</span>
+                    <span class="text-xl font-black font-mono text-emerald-400" id="modalVoucherAmount">0.00 SAR</span>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
+                    معتمد وموثق دفترياً ✓
                 </span>
             </div>
-            
-            <!-- ✅ تم الوصول إلى اسم المتجر عبر علاقة supplier -->
-            <h1 class="text-2xl font-black text-gray-900 mt-1">
-                {{ wallet.supplier.store_name or wallet.supplier.trade_name or wallet.supplier.username or 'اسم المتجر' }}
-            </h1>
-            <p class="text-xs text-gray-500 mt-1">
-                كود المورد: {{ wallet.supplier.supplier_code|default('-') }} • 
-                المالك: {{ wallet.supplier.owner_name|default('غير محدد') }}
-            </p>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="p-2.5 bg-[#120A1F] rounded-xl border border-[#362052]">
+                    <span class="text-slate-400 text-[10px] block">تاريخ الإصدار:</span>
+                    <span class="font-mono text-white font-bold" id="modalVoucherDate">-</span>
+                </div>
+                <div class="p-2.5 bg-[#120A1F] rounded-xl border border-[#362052]">
+                    <span class="text-slate-400 text-[10px] block">نوع الحركة:</span>
+                    <span class="text-amber-400 font-bold" id="modalVoucherType">-</span>
+                </div>
+            </div>
+            <div class="p-3 bg-[#120A1F] rounded-xl border border-[#362052]">
+                <span class="text-slate-400 text-[10px] block mb-1">البيان والشرح المحاسبي:</span>
+                <p class="text-slate-200 leading-relaxed" id="modalDescription">-</p>
+            </div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <button onclick="window.print()" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition shadow-sm">🖨️ طباعة كشف الحساب</button>
-            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] text-xs font-black rounded-xl transition shadow-sm">العودة لسجل المحافظ</a>
+        <div class="p-4 bg-[#120A1F] border-t border-[#362052] flex items-center justify-between">
+            <button onclick="window.print()" class="px-4 py-2 bg-[#231538] hover:bg-[#362052] text-slate-200 rounded-xl font-bold flex items-center gap-2 border border-[#362052] transition cursor-pointer">
+                <i class="fa-solid fa-print text-amber-400"></i>
+                طباعة السند
+            </button>
+            <button onclick="closeModal('voucherDetailModal')" class="px-6 py-2 bg-gradient-to-r from-[#5A195E] via-[#4A134E] to-[#380D3C] hover:from-[#6B1E70] hover:to-[#440F48] text-white font-black rounded-xl text-xs shadow-xs border border-[#6F2374]/40 cursor-pointer">
+                إغلاق
+            </button>
         </div>
     </div>
-
-    <!-- بطاقات الأرصدة والسيولة -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <!-- البطاقة 1: إجمالي الرصيد -->
-        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <span class="text-xs text-gray-500 block font-bold">إجمالي الرصيد الدفتري</span>
-            <!-- ✅ تم إصلاح الخطأ: استخدام balance_sar -->
-            <div class="text-2xl font-black font-mono text-gray-900 mt-2">
-                {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-gray-400 font-sans">ريال</span>
-            </div>
-        </div>
-        
-        <!-- البطاقة 2: الرصيد المتاح -->
-        <div class="bg-white border border-emerald-400 rounded-2xl p-5 shadow-sm">
-            <span class="text-xs text-emerald-600 block font-bold">الرصيد المتاح للسحب الفوري</span>
-            <!-- ✅ في الموديل، الرصيد المتاح هو balance_sar -->
-            <div class="text-2xl font-black font-mono text-emerald-600 mt-2">
-                {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-emerald-500 font-sans">ريال</span>
-            </div>
-        </div>
-        
-        <!-- البطاقة 3: الضمان المحجوز -->
-        <div class="bg-white border border-amber-400 rounded-2xl p-5 shadow-sm">
-            <span class="text-xs text-amber-600 block font-bold">أمانات الضمان المحجوزة (Escrow)</span>
-            <!-- ✅ في الموديل، الرصيد المعلق هو balance_pending -->
-            <div class="text-2xl font-black font-mono text-amber-600 mt-2">
-                {{ "{:,.2f}".format(wallet.balance_pending|float) }} <span class="text-xs text-amber-500 font-sans">ريال</span>
-            </div>
-        </div>
-    </div>
-
 </div>
-{% endblock %}
