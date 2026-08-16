@@ -1,1 +1,119 @@
+<!-- wallet_modals.html -->
+<!-- مودال: تأكيد تجميد محفظة المورد -->
+<div id="freezeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative animate-fade-in-up transform transition-all">
+        <!-- زر الإغلاق -->
+        <button onclick="closeModal('freezeModal')" class="absolute left-4 top-4 text-gray-400 hover:text-gray-700 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
 
+        <!-- رأس المودال -->
+        <div class="flex flex-col items-center text-center mt-2">
+            <div class="w-14 h-14 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-500 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">تأكيد تجميد محفظة المورد</h3>
+        </div>
+
+        <!-- معلومات المورد (صندوق رمادي) -->
+        <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 mt-4 flex flex-col gap-2 text-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-gray-500 font-medium">المورد:</span>
+                <span id="freeze_supplier_name" class="font-bold text-gray-800">---</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-500 font-medium">رمز المحفظة:</span>
+                <span id="freeze_wallet_code" class="font-mono font-bold text-gray-800">---</span>
+            </div>
+            <div class="flex items-center justify-between border-t border-gray-200 pt-2 mt-1">
+                <span class="text-gray-500 font-medium">الرصيد الكلي:</span>
+                <span id="freeze_balance" class="font-mono font-bold text-green-600">0.00 ريال</span>
+            </div>
+        </div>
+
+        <!-- رسالة تحذيرية -->
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 mt-4 flex items-start gap-2 text-xs">
+            <span class="text-rose-500 mt-0.5">⚠️</span>
+            <div>
+                <span class="text-rose-700 font-bold block">تجميد المحفظة سيمنع أي مبالغ للمورد عبر نظام سداد وسريع.</span>
+                <span class="text-rose-500 mt-0.5 block">لحين فك الحظر.</span>
+            </div>
+        </div>
+
+        <!-- حقل سبب الإجراء -->
+        <div class="mt-4">
+            <label for="freeze_reason" class="block text-xs font-bold text-gray-700 mb-1.5">سبب الإجراء (سجل التدقيق الإداري المشفر)</label>
+            <textarea id="freeze_reason" rows="2" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 transition resize-none" placeholder="اكتب ملاحظة أو سبب التعديل (اختياري)..."></textarea>
+        </div>
+
+        <!-- أزرار التحكم -->
+        <div class="flex flex-col-reverse sm:flex-row gap-2 mt-6">
+            <button onclick="closeModal('freezeModal')" class="flex-1 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-bold transition">إلغاء</button>
+            <button onclick="submitFreezeWallet()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition shadow-sm shadow-rose-600/30 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                نعم، جمّد المحفظة
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- مودال: تغذية محفظة المورد / إضافة رصيد -->
+<div id="fundModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative animate-fade-in-up transform transition-all">
+        <!-- زر الإغلاق -->
+        <button onclick="closeModal('fundModal')" class="absolute left-4 top-4 text-gray-400 hover:text-gray-700 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+
+        <!-- رأس المودال -->
+        <div class="flex flex-col items-center text-center mt-2">
+            <div class="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">تغذية / قيد تسوية رصيد</h3>
+            <p id="fund_supplier_name" class="text-xs text-gray-400 font-medium mt-1">مؤسسة الأفق التجارية للمستلزمات الطبية</p>
+        </div>
+
+        <!-- حقول التحكم -->
+        <div class="mt-4 grid grid-cols-2 gap-3">
+            <div>
+                <label for="fund_trans_type" class="block text-xs font-bold text-gray-700 mb-1.5">نوع القيد</label>
+                <select id="fund_trans_type" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition">
+                    <option value="deposit">تغذية / إيداع (+)</option>
+                    <option value="withdraw">خصم / سحب (-)</option>
+                </select>
+            </div>
+            <div>
+                <label for="fund_currency" class="block text-xs font-bold text-gray-700 mb-1.5">العملة</label>
+                <select id="fund_currency" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition">
+                    <option value="SAR">ريال سعودي (SAR)</option>
+                    <option value="USD">دولار أمريكي (USD)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- حقل المبلغ -->
+        <div class="mt-4">
+            <label for="fund_amount" class="block text-xs font-bold text-gray-700 mb-1.5">المبلغ المالي</label>
+            <div class="relative">
+                <input id="fund_amount" type="number" step="0.01" min="0" value="0.00" class="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-gray-900 placeholder-gray-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" placeholder="0.00">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">ريال</span>
+            </div>
+        </div>
+
+        <!-- حقل البيان المحاسبي -->
+        <div class="mt-4">
+            <label for="fund_reason" class="block text-xs font-bold text-gray-700 mb-1.5">البيان المحاسبي المشفر</label>
+            <textarea id="fund_reason" rows="2" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition resize-none" placeholder="اكتب سبب القيد ورقم المرجع المحاسبي..."></textarea>
+        </div>
+
+        <!-- أزرار التحكم -->
+        <div class="flex flex-col-reverse sm:flex-row gap-2 mt-6">
+            <button onclick="closeModal('fundModal')" class="flex-1 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-bold transition">إلغاء</button>
+            <button onclick="submitFundWallet()" class="flex-1 py-2.5 bg-[#4C1D95] hover:bg-[#3B167A] text-white rounded-xl text-sm font-bold transition shadow-sm shadow-[#4C1D95]/30 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                اعتماد قيد التسوية فوراً
+            </button>
+        </div>
+    </div>
+</div>
