@@ -18,22 +18,22 @@ def index():
     status_filter = request.args.get('status', 'all', type=str)
     bank_filter = request.args.get('bank', 'all', type=str)
 
-    # ✅ 1. اكتشاف ما إذا كان الطلب قادماً من AJAX (البحث اللحظي)
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
     # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # تطبيق البحث النصي (يشمل الحقول المطلوبة)
+    # ✅ إصلاح خطأ AttributeError: البحث في الحقول الصحيحة
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
                 SupplierWallet.wallet_code.ilike(search_term),
-                Supplier.supplier_name.ilike(search_term),
+                # تم إصلاح اسم الحقل من supplier_name إلى trade_name / store_name / username
+                Supplier.trade_name.ilike(search_term),
+                Supplier.store_name.ilike(search_term),
+                Supplier.username.ilike(search_term),
                 Supplier.commercial_reg.ilike(search_term),
-                Supplier.iban.ilike(search_term),      # ✅ إضافة الآيبان
-                Supplier.city.ilike(search_term)       # ✅ إضافة المدينة
+                Supplier.iban.ilike(search_term),
+                Supplier.city.ilike(search_term)
             )
         )
 
@@ -48,7 +48,7 @@ def index():
     # ترتيب النتائج (الأحدث أولاً)
     query = query.order_by(SupplierWallet.id.desc())
 
-    # حساب مؤشرات الأداء الرئيسية (KPIs) باستخدام Decimal لتجنب فقدان الدقة
+    # حساب مؤشرات الأداء الرئيسية (KPIs)
     total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
     total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
     pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
@@ -80,22 +80,6 @@ def index():
         'next_num': pagination_obj.next_num,
     }
 
-    # ✅ 2. توجيه الإرجاع بناءً على نوع الطلب (AJAX أو طلب عادي)
-    if is_ajax:
-        # إذا كان الطلب AJAX، نعيد الملف الذي يحتوي على الجدول فقط (نفس المكان الذي يحتوي على tbody والترقيم)
-        # ملاحظة: هذا الملف يجب أن يكون مجرد `extends` أبسط، لكن حاليًا سنعيد نفس الصفحة، 
-        # وسيتعامل معه الـ Javascript بشكل ممتاز عبر استخراج `tbody`.
-        return render_template(
-            'admin/suppliers_wallets.html',
-            kpis=kpis,
-            pagination=pagination,
-            suppliers=suppliers,
-            search_query=search_query,
-            status_filter=status_filter,
-            bank_filter=bank_filter
-        )
-
-    # ✅ 3. الطلب العادي: نعيد الصفحة كاملة (لأول مرة تفتح فيها الصفحة)
     return render_template(
         'admin/suppliers_wallets.html',
         kpis=kpis,
