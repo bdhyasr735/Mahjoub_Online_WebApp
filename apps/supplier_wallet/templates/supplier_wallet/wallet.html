@@ -37,13 +37,13 @@
         <!-- حاوية الأزرار المتجاوبة لمنع القص على الجوال -->
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 relative z-10">
             
-            <!-- ✅ تم إصلاح زر تصدير PDF: يشير الآن إلى 'export_wallet_pdf' ويمرر فلاتر البحث الحالية -->
-            <a href="{{ url_for('supplier_wallet.export_wallet_pdf', **request.args) }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-all shadow-xs">
+            <!-- ✅ تم تعديل الرابط ليشير إلى الـ endpoint الجديد: supplier_wallet_export_statement -->
+            <a href="{{ url_for('supplier_wallet.supplier_wallet_export_statement', **request.args) }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-all shadow-xs">
                 <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <span>تصدير PDF</span>
             </a>
 
-            <!-- ✅ تم إصلاح زر طلب سحب: يشير الآن إلى 'submit_withdrawal' (الـ endpoint الجديد) -->
+            <!-- ✅ زر السحب: يشير إلى submit_withdrawal وهو صحيح -->
             <a href="{{ url_for('supplier_wallet.submit_withdrawal') }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#4A154B] hover:bg-[#3B113F] text-white font-black text-xs shadow-md transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 <span>طلب سحب مبيعات جديد</span>
