@@ -61,7 +61,6 @@
             <span class="text-xs text-gray-500" id="transactions_count">({{ transactions|length }} حركة)</span>
         </div>
         
-        <!-- ✅ تم إضافة id للجدول لربطه بالـ JavaScript -->
         <div class="overflow-x-auto">
             <table id="transactionsTable" class="w-full text-right text-xs">
                 <thead class="bg-[#F8F9FA] text-gray-500 font-bold border-b-2 border-gray-200">
@@ -73,10 +72,10 @@
                         <th class="py-3 px-4 text-left">الرصيد بعد</th>
                     </tr>
                 </thead>
-                <!-- ✅ تم إضافة id للـ tbody لتحديثه ديناميكياً -->
-                <tbody id="transactionsTableBody" class="divide-y divide-gray-200">
+                <!-- ✅ تم إضافة border-b لكل صف لضمان ظهور الخطوط -->
+                <tbody id="transactionsTableBody">
                     {% for tx in transactions %}
-                    <tr class="hover:bg-gray-50 transition transaction-row">
+                    <tr class="hover:bg-gray-50 transition border-b border-gray-200 last:border-b-0 transaction-row">
                         <td class="py-3 px-4 font-mono text-gray-600">{{ tx.reference_number or '---' }}</td>
                         <td class="py-3 px-4 text-gray-600">{{ tx.formatted_time }}</td>
                         <td class="py-3 px-4 text-gray-800">{{ tx.description or '---' }}</td>
@@ -94,8 +93,8 @@
             </table>
         </div>
 
-        <!-- ✅ أزرار تقليب الصفحات (Pagination) -->
-        <div id="transactionsPagination" class="p-4 border-t border-gray-100 flex items-center justify-center gap-2 bg-gray-50/50">
+        <!-- ✅ أزرار تقليب الصفحات - ستختفي تلقائياً إذا كانت الصفحة واحدة -->
+        <div id="transactionsPagination" class="p-4 border-t border-gray-100 flex items-center justify-center gap-2 bg-gray-50/50 hidden">
             <button id="prevPageBtn" onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
                 السابق
             </button>
@@ -108,10 +107,11 @@
 
 </div>
 
-<!-- ✅ كود JavaScript الخاص بتقليب الصفحات -->
+<!-- ✅ كود JavaScript المحسّن لإخفاء الترقيم إذا كان أقل من 10 حركات -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const rows = document.querySelectorAll('#transactionsTableBody .transaction-row');
+    const paginationWrapper = document.getElementById('transactionsPagination');
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
     const pageDisplay = document.getElementById('currentPageDisplay');
@@ -144,12 +144,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // تشغيل الترقيم عند تحميل الصفحة
+    // تشغيل الترقيم وإخفاء الأزرار إذا كانت الصفحة واحدة
     if (rows.length > 0) {
         showPage(1);
+        if (totalPages > 1) {
+            paginationWrapper.classList.remove('hidden');
+        }
     } else {
-        // إذا كان الجدول فارغاً، نخفي أزرار الترقيم
-        document.getElementById('transactionsPagination').style.display = 'none';
+        paginationWrapper.style.display = 'none';
     }
 });
 </script>
