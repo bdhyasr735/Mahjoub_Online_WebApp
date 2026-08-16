@@ -1,37 +1,51 @@
-<!-- شريط البحث والفلترة المتقدمة السيادي -->
-<form method="GET" action="" class="bg-gradient-to-r from-[#1a0b2e] to-[#120A1F] border border-[#362052] p-4 rounded-2xl shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3" dir="rtl">
-    <!-- حقل البحث النصي -->
-    <div class="relative flex-1">
-        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-400/70 text-sm">
-            <i class="fas fa-search"></i>
-        </span>
-        <input 
-            type="text" 
-            name="q" 
-            value="{{ search_query or '' }}" 
-            placeholder="بحث باسم المورد، كود المحفظة، السجل التجاري..." 
-            class="w-full pl-4 pr-10 py-3 bg-[#08020d] border border-[#4B2A73] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition shadow-inner font-medium"
-        >
-    </div>
-
-    <!-- القوائم المنسدلة للفلترة والأزرار -->
+<div class="bg-white p-5 rounded-3xl shadow-xl border border-[#E5E2DC] space-y-4">
+    <!-- أزرار تصفية الحالة السريعة -->
     <div class="flex flex-wrap items-center gap-2">
-        <select 
-            name="status" 
-            onchange="this.form.submit()" 
-            class="px-3.5 py-3 bg-[#08020d] border border-[#4B2A73] rounded-xl text-xs font-bold text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
-        >
-            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
-            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
-            <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
-            <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
-        </select>
-
-        <button 
-            type="submit" 
-            class="px-5 py-3 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] hover:from-[#2d124a] hover:to-[#1a0b2e] text-amber-300 border border-amber-500/40 rounded-xl text-xs font-black transition shadow-md flex items-center justify-center gap-2 transform hover:scale-105"
-        >
-            <i class="fas fa-filter text-[10px]"></i> تطبيق الفلترة
-        </button>
+        <a href="?status=all" class="px-4 py-2 rounded-xl text-xs font-bold transition {% if status_filter == 'all' %}bg-[#1a0b2e] text-amber-300 shadow-md{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+            🏆 تصفية الحالة: الكل
+        </a>
+        <a href="?status=active" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if status_filter == 'active' %}bg-emerald-600 text-white shadow-md{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">
+            <span>✓</span> نشطة (10)
+        </a>
+        <a href="?status=review" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if status_filter == 'review' %}bg-amber-500 text-white shadow-md{% else %}bg-amber-50 text-amber-800 hover:bg-amber-100{% endif %}">
+            <span>⏳</span> تحت المراجعة (1)
+        </a>
+        <a href="?status=frozen" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if status_filter == 'frozen' %}bg-rose-600 text-white shadow-md{% else %}bg-rose-50 text-rose-700 hover:bg-rose-100{% endif %}">
+            <span>🔒</span> مجمدة (1)
+        </a>
     </div>
-</form>
+
+    <!-- حقول البحث والفلترة المتقدمة -->
+    <form method="GET" action="" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="relative">
+            <input 
+                type="text" 
+                name="q" 
+                value="{{ search_query }}"
+                placeholder="... السجل التجاري، الـIban، أو المدينة (WEL) بحث باسم المورد، كود المحفظة" 
+                class="w-full pl-4 pr-10 py-2.5 bg-[#F4F1EA] border border-[#E5E2DC] rounded-xl text-xs font-medium text-[#1E1B18] focus:outline-none focus:border-[#1a0b2e] transition"
+            >
+            <span class="absolute right-3.5 top-3 text-slate-400">🔍</span>
+        </div>
+
+        <div>
+            <select name="bank" class="w-full px-3 py-2.5 bg-[#F4F1EA] border border-[#E5E2DC] rounded-xl text-xs font-medium text-[#1E1B18] focus:outline-none focus:border-[#1a0b2e]">
+                <option value="">🏦 كل البنوك المعتمدة</option>
+                <option value="Al Rajhi">مصرف الراجحي</option>
+                <option value="SNB">البنك الأهلي السعودي (SNB)</option>
+                <option value="Riyad">بنك الرياض</option>
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <select name="category" class="w-full px-3 py-2.5 bg-[#F4F1EA] border border-[#E5E2DC] rounded-xl text-xs font-medium text-[#1E1B18] focus:outline-none focus:border-[#1a0b2e]">
+                <option value="">🏷️ كل الأنشطة التجارية</option>
+                <option value="electronics">إلكترونيات وأجهزة</option>
+                <option value="fashion">أزياء ومستلزمات</option>
+            </select>
+            <button type="submit" class="px-5 py-2.5 bg-[#1a0b2e] hover:bg-[#2d124a] text-amber-300 font-bold text-xs rounded-xl shadow transition whitespace-nowrap">
+                بحث
+            </button>
+        </div>
+    </form>
+</div>
