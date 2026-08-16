@@ -84,7 +84,7 @@
     </div>
 </form>
 
-<!-- 🟢 سكربت البحث اللحظي المحسّن (AJAX) -->
+<!-- 🟢 سكربت البحث اللحظي النهائي (تم إزالة تغيير الرابط نهائياً) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('liveSearchInput');
@@ -94,7 +94,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let timeoutId;
 
-    // دالة لجلب البيانات وتحديث الجدول
     function fetchFilteredData() {
         const params = new URLSearchParams({
             q: searchInput.value,
@@ -102,10 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
             bank: bankSelect.value
         });
 
-        // ✅ تحديث الرابط في المتصفح دون إعادة تحميل الصفحة
-        history.replaceState({}, '', `{{ request.path }}?${params.toString()}`);
+        // ✅ تم حذف history.replaceState، الرابط لن يتغير نهائياً
 
-        // إرسال الطلب إلى الخادم في الخلفية
         fetch(`{{ request.path }}?${params.toString()}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
@@ -113,14 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(html => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            
-            // ✅ استخدام getElementById لضمان العثور على الجدول بدقة
             const newTableBody = doc.getElementById('suppliers-table-body');
             const newPaginationText = doc.getElementById('pagination_count_text');
             
             const currentTableBody = document.getElementById('suppliers-table-body');
-            
-            // ✅ استخدام innerHTML بدلاً من outerHTML (أهم تعديل لجعل التحديث يظهر)
             if(currentTableBody && newTableBody) {
                 currentTableBody.innerHTML = newTableBody.innerHTML;
             }
@@ -132,17 +125,13 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('خطأ في البحث:', error));
     }
 
-    // البحث التلقائي عند الكتابة (مع تأخير 500ms للحفاظ على أداء الخادم)
     searchInput.addEventListener('input', function() {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(fetchFilteredData, 500);
     });
 
-    // البحث عند تغيير القوائم المنسدلة
     statusSelect.addEventListener('change', fetchFilteredData);
     bankSelect.addEventListener('change', fetchFilteredData);
-
-    // البحث عند الضغط على زر "تطبيق الفلترة"
     applyBtn.addEventListener('click', fetchFilteredData);
 });
 </script>
