@@ -1,6 +1,3 @@
-// wallet_modals.js
-
-// دوال فتح وإغلاق المودالات
 function openModal(id) {
     document.getElementById(id).classList.remove('hidden');
 }
@@ -8,7 +5,6 @@ function closeModal(id) {
     document.getElementById(id).classList.add('hidden');
 }
 
-// دالة فتح مودال التجميد
 function openFreezeModal(supplierId, supplierName, walletCode, balance) {
     document.getElementById('freeze_supplier_name').innerText = supplierName || '---';
     document.getElementById('freeze_wallet_code').innerText = walletCode || '---';
@@ -17,7 +13,6 @@ function openFreezeModal(supplierId, supplierName, walletCode, balance) {
     openModal('freezeModal');
 }
 
-// دالة فتح مودال التغذية (إضافة رصيد)
 function openFundModal(supplierId, supplierName, walletCode, balance) {
     document.getElementById('fund_supplier_name').innerText = supplierName || '---';
     document.getElementById('fund_wallet_code').innerText = walletCode || '---';
@@ -26,7 +21,6 @@ function openFundModal(supplierId, supplierName, walletCode, balance) {
     openModal('fundModal');
 }
 
-// ✅ إرسال طلب التجميد (Freeze)
 function submitFreezeWallet() {
     const modal = document.getElementById('freezeModal');
     const supplierId = modal.getAttribute('data-supplier-id');
@@ -42,7 +36,7 @@ function submitFreezeWallet() {
         if (data.success) {
             alert(data.message);
             closeModal('freezeModal');
-            window.location.reload(); // تحديث الجدول
+            window.location.reload();
         } else {
             alert('خطأ: ' + data.message);
         }
@@ -50,7 +44,6 @@ function submitFreezeWallet() {
     .catch(error => alert('تعذر الاتصال بالخادم: ' + error));
 }
 
-// ✅ إرسال طلب التغذية (Fund)
 function submitFundWallet() {
     const modal = document.getElementById('fundModal');
     const supplierId = modal.getAttribute('data-supplier-id');
@@ -79,7 +72,7 @@ function submitFundWallet() {
         if (data.success) {
             alert(data.message);
             closeModal('fundModal');
-            window.location.reload(); // تحديث الرصيد
+            window.location.reload();
         } else {
             alert('خطأ: ' + data.message);
         }
