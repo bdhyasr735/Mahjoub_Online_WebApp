@@ -14,7 +14,7 @@ from apps.supplier_wallet.utils import (
 )
 
 @supplier_wallet_bp.route('/wallet/export-pdf', methods=['GET'], strict_slashes=False, endpoint='export_wallet_pdf')
-@supplier_wallet_bp.route('/withdraw/export-pdf', methods=['GET'], strict_slashes=False, endpoint='export_wallet_pdf')
+@supplier_wallet_bp.route('/withdraw/export-pdf', methods=['GET'], strict_slashes=False, endpoint='export_withdraw_pdf')
 @login_required
 def export_wallet_pdf():
     supplier_id = get_current_supplier_id()
