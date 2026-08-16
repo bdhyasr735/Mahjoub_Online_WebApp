@@ -17,17 +17,17 @@ def index():
 
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # ✅ تم حذف جميع الحقول غير المؤكدة (city, iban, commercial_reg)
-    # البحث يعمل الآن فقط عبر الحقول الموجودة في جدول suppliers لديك
+    # ✅ تم إضافة owner_name (اسم المالك) وأيضاً store_name و supplier_code
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
-                SupplierWallet.wallet_code.ilike(search_term),
-                Supplier.trade_name.ilike(search_term),      # الاسم التجاري
-                Supplier.store_name.ilike(search_term),       # اسم المتجر
-                Supplier.username.ilike(search_term),         # اسم المستخدم
-                Supplier.supplier_code.ilike(search_term)     # كود المورد
+                SupplierWallet.wallet_code.ilike(search_term),  # كود المحفظة
+                Supplier.supplier_code.ilike(search_term),      # كود المورد
+                Supplier.store_name.ilike(search_term),         # اسم المتجر
+                Supplier.trade_name.ilike(search_term),         # الاسم التجاري
+                Supplier.owner_name.ilike(search_term),         # ✅ اسم المالك (المفقود سابقاً)
+                Supplier.username.ilike(search_term)            # اسم المستخدم
             )
         )
 
