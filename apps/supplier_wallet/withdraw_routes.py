@@ -13,8 +13,7 @@ from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
     get_current_supplier_id, 
     get_or_create_supplier_wallet, 
-    get_registered_supplier_payout_info,
-    generate_transaction_ref  # تم استيراد دالة التوليد المجهزة
+    get_registered_supplier_payout_info
 )
 
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
@@ -86,22 +85,13 @@ def submit_withdrawal():
                 details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # جلب كود المورد لتوليد رقم مرجعي فريد وآمن عبر الدالة المجهزة
-                sup_code = f"SUP{supplier_id}"
-                if locked_wallet.supplier and hasattr(locked_wallet.supplier, 'supplier_code'):
-                    sup_code = locked_wallet.supplier.supplier_code or sup_code
-
-                ref_num, vch_num = generate_transaction_ref(locked_wallet.id, sup_code, prefix='WTH')
-
-                # ✅ إنشاء الحركة بالرقم المرجعي ورقم السند المولدان تلقائياً
+                # ✅ إنشاء الحركة وترك مشغل الأحداث (before_insert) يتكفل بتوليد المراجع والأرصدة تلقائياً
                 new_tx = WalletTransaction(
                     wallet_id=locked_wallet.id,
                     trans_type='withdrawal',
                     status='pending',
                     amount=amount,
                     currency=curr,
-                    reference_number=ref_num,
-                    voucher_number=vch_num,
                     description=full_desc
                 )
 
@@ -113,9 +103,7 @@ def submit_withdrawal():
                     return jsonify({
                         "status": "success",
                         "message": "تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.",
-                        "new_balance": float(real_avail_bal),
-                        "reference_number": ref_num,
-                        "voucher_number": vch_num
+                        "new_balance": float(real_avail_bal)
                     })
 
                 flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.", "success")
