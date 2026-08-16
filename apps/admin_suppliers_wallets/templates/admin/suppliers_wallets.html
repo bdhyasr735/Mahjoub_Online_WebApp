@@ -103,13 +103,13 @@
                             </td>
                             <td class="py-4 px-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    <!-- زر العرض (عين) - سيستخدم مودال العرض الجديد إن وجد -->
-                                    <button 
-                                        onclick="openWalletAdjustmentModal({{ supplier.id }}, '{{ supplier.wallet_code }}', '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', {{ supplier.balance_sar }})"
-                                        class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" 
-                                        title="عرض كشف الحساب الكامل">
+                                    
+                                    <!-- ✅ زر العرض (عين) - رابط بسيط يفتح صفحة كشف الحساب -->
+                                    <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
+                                       class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" 
+                                       title="عرض كشف الحساب">
                                         👁️
-                                    </button>
+                                    </a>
                                     
                                     <!-- زر التسوية (+) -->
                                     <button 
