@@ -98,11 +98,22 @@ def index():
 @bp.route('/<int:supplier_id>', methods=['GET'])
 def supplier_ledger_detail(supplier_id):
     wallet = SupplierWallet.query.get_or_404(supplier_id)
-    transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
+    
+    # ✅ جلب رقم الصفحة من الرابط
+    page = request.args.get('page', 1, type=int)
+    
+    # ✅ استعلام الحركات المكتملة فقط مع الترقيم (10 لكل صفحة)
+    transactions_pagination = WalletTransaction.query.filter_by(
+        wallet_id=wallet.id,
+        status='completed'
+    ).order_by(WalletTransaction.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False
+    )
+    
     return render_template(
         'admin/supplier_ledger_detail.html',
         wallet=wallet,
-        transactions=transactions
+        transactions_pagination=transactions_pagination
     )
 
 @bp.route('/<int:supplier_id>/adjust', methods=['POST'])
