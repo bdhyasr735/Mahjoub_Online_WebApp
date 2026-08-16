@@ -12,24 +12,24 @@
     <!-- 2. شريط الفلترة المميز -->
     {% include "admin/components/wallet_filters.html" %}
 
-    <!-- 3. جدول المحافظ - خلفية بيضاء مع أزرار مميزة -->
-    <div class="bg-white border-2 border-blue-200 rounded-3xl shadow-xl overflow-hidden">
+    <!-- 3. جدول المحافظ - خلفية بيضاء بتصميم مطابق للصور -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         
-        <div class="p-5 bg-gradient-to-r from-blue-50 to-indigo-50/50 border-b border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-                <h2 class="text-base font-black text-gray-800 flex items-center gap-2">
-                    📁 سجل وحسابات محافظ الموردين
+                <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2">
+                    <span class="text-orange-500">📁</span> سجل محافظ الموردين وحسابات التسوية
                 </h2>
                 <p class="text-xs text-gray-500 mt-0.5">
-                    سجل الأرصدة المعتمدة • <span class="text-blue-600 font-bold">انقر نقراً مزدوجاً لفتح كشف الحساب فوراً</span>
+                    دفتر أرصدة المتاجر والموردين • <span class="text-orange-500 font-bold">انقر نقراً مزدوجاً لفتح كشف الحساب فوراً</span>
                 </p>
             </div>
 
             <div class="flex items-center gap-2">
-                <button onclick="window.print()" class="px-3.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold rounded-xl border border-blue-300 transition shadow-sm">
+                <button onclick="window.print()" class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl border border-blue-200 transition shadow-sm">
                     🖨️ طباعة الكشف
                 </button>
-                <span class="text-xs text-gray-600 bg-gray-100 border border-gray-300 px-3 py-1.5 rounded-xl font-mono font-bold">
+                <span class="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl font-mono font-bold">
                     {{ pagination.per_page|default(10) }} موردين / صفحة
                 </span>
             </div>
@@ -37,44 +37,47 @@
 
         <div class="overflow-x-auto">
             <table class="w-full text-right text-xs">
-                <thead class="bg-gray-100 text-gray-600 font-bold border-b-2 border-blue-200 select-none">
+                <!-- رأس الجدول مطابق للألوان في الصور -->
+                <thead class="bg-[#F8F9FA] text-gray-500 font-bold border-b border-gray-200 select-none">
                     <tr>
-                        <th class="py-4 px-4">كود المحفظة</th>
-                        <th class="py-4 px-4">المورد والنشاط</th>
-                        <th class="py-4 px-4">السجل التجاري</th>
-                        <th class="py-4 px-4 text-left">الرصيد المتاح (SAR)</th>
-                        <th class="py-4 px-4 text-left">الضمان المحجوز (SAR)</th>
-                        <th class="py-4 px-4 text-left">إجمالي الرصيد (SAR)</th>
-                        <th class="py-4 px-4">البنك المعتمد</th>
-                        <th class="py-4 px-4 text-center">الحالة</th>
-                        <th class="py-4 px-4 text-center">الإجراءات</th>
+                        <th class="py-3 px-4">كود المحفظة</th>
+                        <th class="py-3 px-4">المورد والنشاط</th>
+                        <th class="py-3 px-4">السجل التجاري</th>
+                        <th class="py-3 px-4 text-left">الرصيد المتاح (SAR)</th>
+                        <th class="py-3 px-4 text-left">الضمان المحجوز (SAR)</th>
+                        <th class="py-3 px-4 text-left">إجمالي الرصيد (SAR)</th>
+                        <th class="py-3 px-4">البنك المعتمد</th>
+                        <th class="py-3 px-4 text-center">الحالة</th>
+                        <th class="py-3 px-4 text-center">الإجراءات</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
+                <tbody class="divide-y divide-gray-100">
                     {% if suppliers %}
                         {% for supplier in suppliers %}
+                        <!-- صف المورد، يتحول للرمادي الفاتح عند التمرير -->
                         <tr 
                             ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
                             title="انقر نقراً مزدوجاً لفتح كشف الحساب"
-                            class="hover:bg-blue-50/70 cursor-pointer transition select-none group"
+                            class="hover:bg-gray-50 cursor-pointer transition select-none group"
                         >
-                            <td class="py-4 px-4 font-mono font-bold text-blue-600">
+                            <td class="py-4 px-4 font-mono font-bold text-gray-800 tracking-wider">
                                 {{ supplier.wallet_code }}
                             </td>
                             <td class="py-4 px-4">
-                                <div class="font-extrabold text-gray-800">{{ supplier.supplier.supplier_name }}</div>
+                                <div class="font-bold text-gray-800">{{ supplier.supplier.supplier_name }}</div>
                                 <div class="text-[11px] text-gray-400 mt-0.5">{{ supplier.supplier.category|default('مورد معتمد') }}</div>
                             </td>
-                            <td class="py-4 px-4 font-mono text-gray-600">
+                            <td class="py-4 px-4 font-mono text-gray-500">
                                 {{ supplier.supplier.commercial_reg|default('-') }}
                             </td>
-                            <td class="py-4 px-4 text-left font-mono font-black text-emerald-600">
+                            <!-- ألوان الأرصدة -->
+                            <td class="py-4 px-4 text-left font-mono font-bold text-gray-800">
                                 {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-bold text-amber-600">
                                 {{ "0.00" }}
                             </td>
-                            <td class="py-4 px-4 text-left font-mono font-black text-gray-800 text-sm">
+                            <td class="py-4 px-4 text-left font-mono font-black text-green-600 text-sm">
                                 {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                             </td>
                             <td class="py-4 px-4">
@@ -82,23 +85,33 @@
                                 <div class="text-[10px] font-mono text-gray-400 truncate max-w-[120px]">{{ supplier.supplier.iban|default('-') }}</div>
                             </td>
                             <td class="py-4 px-4 text-center">
+                                <!-- أزرار الحالة (نشطة / مجمدة) -->
                                 {% if supplier.status == 'active' %}
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
-                                    نشطة ✓
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-400 text-emerald-700 rounded-full text-[10px] font-bold">
+                                    <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-emerald-500">✓</span>
+                                    نشطة
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
-                                    مجمدة 🔒
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-400 text-rose-700 rounded-full text-[10px] font-bold">
+                                    <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-rose-500">🔒</span>
+                                    مجمدة
                                 </span>
                                 {% endif %}
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <a 
-                                    href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}"
-                                    class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-lg border border-blue-400 text-xs transition shadow-md shadow-blue-500/30"
-                                >
-                                    كشف الحساب 📄
-                                </a>
+                                <!-- أزرار الإجراءات الدائرية (كما في الصور تماماً) -->
+                                <div class="flex items-center justify-center gap-2">
+                                    <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
+                                       class="w-7 h-7 rounded-full bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">
+                                        👁️
+                                    </a>
+                                    <button class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition" title="تدوير">
+                                        🔄
+                                    </button>
+                                    <button class="w-7 h-7 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition" title="تجميد">
+                                        🔒
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -113,30 +126,32 @@
             </table>
         </div>
 
-        <!-- شريط الترقيم -->
+        <!-- شريط الترقيم (Pagination) بتصميم مطابق للصورة -->
         {% if pagination and pagination.total_pages > 1 %}
         {% set current_args = request.args.to_dict() %}
         {% set _ = current_args.pop('page', None) %}
-        <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 border-t-2 border-blue-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+        <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
             <div>
-                عرض الصفحة <span class="font-bold text-gray-800 font-mono">{{ pagination.current_page }}</span> من إجمالي <span class="font-bold text-gray-800 font-mono">{{ pagination.total_pages }}</span> صفحات
+                عرض <span class="font-bold text-gray-700 font-mono">{{ pagination.per_page|default(10) }}</span> من إجمالي <span class="font-bold text-gray-700 font-mono">{{ pagination.total }}</span> مورد
+                <span class="text-gray-400 mx-1">|</span> <span class="font-bold text-gray-700 font-mono">{{ pagination.total|default(0) }}</span> محفظة
             </div>
 
             <div class="flex items-center gap-1.5 font-mono font-bold">
                 <a 
                     href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **current_args) }}" 
-                    class="px-3.5 py-1.5 bg-white border-2 border-blue-300 hover:bg-blue-100 {% if not pagination.has_prev %}opacity-40 pointer-events-none{% endif %} text-blue-700 rounded-xl transition shadow-sm"
+                    class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition"
                 >
                     السابق
                 </a>
 
-                <span class="w-8 h-8 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-black flex items-center justify-center text-xs shadow-md shadow-blue-500/30">
+                <!-- الصفحة النشطة بلون بنفسجي داكن كما في الصور -->
+                <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2B1B4E] text-white font-black text-xs">
                     {{ pagination.current_page }}
                 </span>
 
                 <a 
                     href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **current_args) }}" 
-                    class="px-3.5 py-1.5 bg-white border-2 border-blue-300 hover:bg-blue-100 {% if not pagination.has_next %}opacity-40 pointer-events-none{% endif %} text-blue-700 rounded-xl transition shadow-sm"
+                    class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition"
                 >
                     التالي
                 </a>
