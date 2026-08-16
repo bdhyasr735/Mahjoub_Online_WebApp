@@ -42,3 +42,67 @@
         <a href="{{ request.path }}" class="px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition">إعادة</a>
     </div>
 </form>
+
+<!-- ✅ كود البحث اللحظي (AJAX) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('liveSearchInput');
+    const statusSelect = document.getElementById('statusSelect');
+    const bankSelect = document.getElementById('bankSelect');
+    const applyBtn = document.getElementById('applyFilterBtn');
+    
+    let timeoutId;
+
+    function fetchFilteredData() {
+        const params = new URLSearchParams({
+            q: searchInput.value,
+            status: statusSelect.value,
+            bank: bankSelect.value
+        });
+
+        // إرسال الطلب للخادم في الخلفية
+        fetch(`{{ request.path }}?${params.toString()}`, {
+            method: 'GET',
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache' 
+            },
+            cache: 'no-cache'
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // استخراج الجدول وعداد الصفحات الجديد
+            const newTableBody = doc.getElementById('suppliers-table-body');
+            const newPaginationText = doc.getElementById('pagination_count_text');
+            
+            // تحديث الجدول فقط
+            const currentTableBody = document.getElementById('suppliers-table-body');
+            if(currentTableBody && newTableBody) {
+                currentTableBody.innerHTML = newTableBody.innerHTML;
+            }
+
+            // تحديث العداد
+            if(newPaginationText) {
+                document.getElementById('pagination_count_text').innerText = newPaginationText.innerText;
+            }
+        })
+        .catch(error => console.error('خطأ في البحث:', error));
+    }
+
+    // البحث التلقائي عند الكتابة (مع تأخير 500ms للحفاظ على أداء الخادم)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(fetchFilteredData, 500);
+    });
+
+    // البحث عند تغيير القوائم المنسدلة
+    statusSelect.addEventListener('change', fetchFilteredData);
+    bankSelect.addEventListener('change', fetchFilteredData);
+
+    // البحث عند الضغط على زر "تطبيق الفلترة"
+    applyBtn.addEventListener('click', fetchFilteredData);
+});
+</script>
