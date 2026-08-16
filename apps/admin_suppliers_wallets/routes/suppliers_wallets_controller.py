@@ -18,6 +18,9 @@ def index():
     status_filter = request.args.get('status', 'all', type=str)
     bank_filter = request.args.get('bank', 'all', type=str)
 
+    # ✅ 1. اكتشاف ما إذا كان الطلب قادماً من AJAX (البحث اللحظي)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
@@ -52,7 +55,6 @@ def index():
 
     total_wallets_balance = Decimal(str(total_sar_balance)) + Decimal(str(total_pending_balance))
 
-    # ✅ تم تجهيز قاموس kpis لعرضه في الكروت العلوية
     kpis = {
         'total_wallets_balance': total_wallets_balance,
         'total_available_payouts': total_sar_balance,
@@ -67,7 +69,6 @@ def index():
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
     suppliers = pagination_obj.items
 
-    # ✅ تجهيز بيانات الترقيم لاستخدامها في القالب HTML
     pagination = {
         'current_page': pagination_obj.page,
         'total_pages': pagination_obj.pages,
@@ -79,7 +80,22 @@ def index():
         'next_num': pagination_obj.next_num,
     }
 
-    # ✅ تمرير كل المتغيرات الضرورية للقالب
+    # ✅ 2. توجيه الإرجاع بناءً على نوع الطلب (AJAX أو طلب عادي)
+    if is_ajax:
+        # إذا كان الطلب AJAX، نعيد الملف الذي يحتوي على الجدول فقط (نفس المكان الذي يحتوي على tbody والترقيم)
+        # ملاحظة: هذا الملف يجب أن يكون مجرد `extends` أبسط، لكن حاليًا سنعيد نفس الصفحة، 
+        # وسيتعامل معه الـ Javascript بشكل ممتاز عبر استخراج `tbody`.
+        return render_template(
+            'admin/suppliers_wallets.html',
+            kpis=kpis,
+            pagination=pagination,
+            suppliers=suppliers,
+            search_query=search_query,
+            status_filter=status_filter,
+            bank_filter=bank_filter
+        )
+
+    # ✅ 3. الطلب العادي: نعيد الصفحة كاملة (لأول مرة تفتح فيها الصفحة)
     return render_template(
         'admin/suppliers_wallets.html',
         kpis=kpis,
@@ -98,7 +114,6 @@ def supplier_ledger_detail(supplier_id):
     """
     wallet = SupplierWallet.query.get_or_404(supplier_id)
     
-    # جلب حركات المحفظة (المعاملات) مرتبة تنازلياً حسب التاريخ
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
     
     return render_template(
