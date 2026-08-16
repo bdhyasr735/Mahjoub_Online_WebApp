@@ -113,18 +113,18 @@
                                         👁️
                                     </a>
                                     
-                                    <!-- ✅ تم تحديث زر التدوير (التغذية) لربطه بمودال fund -->
+                                    <!-- ✅ زر التدوير (التغذية) الآن ينقل جميع البيانات للمودال -->
                                     <button 
-                                        onclick="openFundModal({{ supplier.id }})"
+                                        onclick="openFundModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
                                         class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition cursor-pointer" 
                                         title="تغذية / تسوية الرصيد"
                                     >
                                         🔄
                                     </button>
 
-                                    <!-- ✅ تم تحديث زر التجميد لربطه بمودال freeze -->
+                                    <!-- ✅ زر التجميد الآن ينقل جميع البيانات للمودال -->
                                     <button 
-                                        onclick="openFreezeModal({{ supplier.id }})"
+                                        onclick="openFreezeModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
                                         class="w-7 h-7 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
                                         title="تجميد المحفظة"
                                     >
@@ -169,5 +169,42 @@
 
 <!-- ✅ تمت إضافة المودالات هنا قبل إغلاق القالب -->
 {% include "admin/components/wallet_modals.html" %}
+
+<!-- ✅ تم إضافة كود الـ JavaScript هنا لتشغيل الأزرار -->
+<script>
+// دوال فتح وإغلاق المودالات
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+// دالة فتح مودال التجميد
+function openFreezeModal(supplierId, supplierName, walletCode, balance) {
+    // تعبئة البيانات في حقول المودال
+    document.getElementById('freeze_supplier_name').innerText = supplierName || '---';
+    document.getElementById('freeze_wallet_code').innerText = walletCode || '---';
+    document.getElementById('freeze_balance').innerText = Number(balance).toLocaleString() + ' ريال';
+    
+    // تخزين الـ ID للاستخدام عند الضغط على زر الحفظ
+    document.getElementById('freezeModal').setAttribute('data-supplier-id', supplierId);
+    // فتح المودال
+    openModal('freezeModal');
+}
+
+// دالة فتح مودال التغذية (إضافة رصيد)
+function openFundModal(supplierId, supplierName, walletCode, balance) {
+    // تعبئة البيانات
+    document.getElementById('fund_supplier_name').innerText = supplierName || '---';
+    document.getElementById('fund_wallet_code').innerText = walletCode || '---';
+    document.getElementById('fund_balance').innerText = Number(balance).toLocaleString() + ' ريال';
+    
+    // تخزين الـ ID
+    document.getElementById('fundModal').setAttribute('data-supplier-id', supplierId);
+    // فتح المودال
+    openModal('fundModal');
+}
+</script>
 
 {% endblock %}
