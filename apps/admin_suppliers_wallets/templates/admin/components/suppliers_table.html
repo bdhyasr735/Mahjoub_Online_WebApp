@@ -1,0 +1,177 @@
+<!-- جدول سجل محافظ الموردين وحسابات التسوية -->
+<div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm mt-6">
+    
+    <!-- رأس الجدول والعنوان -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 border-b border-gray-100 pb-3">
+        <div class="flex flex-col gap-1">
+            <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2">
+                <span class="text-orange-500">📋</span> سجل محافظ الموردين وحسابات التسوية
+            </h3>
+            <p class="text-xs text-gray-500 font-medium">
+                على أي مورد لفتح تفاصيل المحفظة فوراً <span class="text-orange-500 font-bold">(Double Click)</span>
+                <span class="text-gray-400 text-[11px]">• دفتر أرصدة المتاجر والموردين • انقر نقراً مزدوجاً</span>
+            </p>
+        </div>
+        <div class="mt-2 md:mt-0 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 flex items-center gap-1">
+            <span>موردين / صفحة</span>
+            <span class="bg-white px-2 py-0.5 rounded border border-gray-200">10</span>
+        </div>
+    </div>
+
+    <!-- الجدول -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+            <!-- رأس الجدول -->
+            <thead class="bg-[#F8F9FA] border-b border-gray-200">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">كود المحفظة</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">المورد والنشاط</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">السجل التجاري والمدينة</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">الرصيد المتاح (SAR)</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">الضمان المحجوز (SAR)</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">إجمالي الرصيد (SAR)</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">البنك المعتمد</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-center">الحالة</th>
+                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            
+            <!-- جسم الجدول -->
+            <tbody class="divide-y divide-gray-100">
+                
+                <!-- مثال صف مورد 1 -->
+                <tr class="hover:bg-gray-50 transition group">
+                    <!-- كود المحفظة -->
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-xs text-gray-800 font-mono tracking-wider">WAL-<br>SA-<br>9011</span>
+                            <button class="text-gray-400 hover:text-gray-600 transition" title="نسخ الكود">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                        <div class="mt-1 text-[10px] text-gray-400 font-medium">منذ 03-2025</div>
+                    </td>
+
+                    <!-- المورد والنشاط -->
+                    <td class="px-4 py-4 align-top">
+                        <div class="font-bold text-xs text-gray-800">شركة الرياض للتنقية والإلكترونيات المحدودة</div>
+                        <div class="mt-1 w-fit bg-gray-50 px-2 py-1 rounded text-[10px] text-gray-500 border border-gray-100 inline-block">
+                            الإلكترونيات وأجهزة ذكية
+                        </div>
+                    </td>
+
+                    <!-- السجل التجاري والمدينة -->
+                    <td class="px-4 py-4 align-top">
+                        <div class="text-xs font-mono text-gray-500">CR: <span class="text-gray-800 font-bold">1010892341</span></div>
+                        <div class="mt-1 text-[10px] text-gray-400 font-medium">الرياض</div>
+                    </td>
+
+                    <!-- الرصيد المتاح -->
+                    <td class="px-4 py-4 align-top text-xs font-mono text-gray-800 font-bold">395,000.00</td>
+
+                    <!-- الضمان المحجوز -->
+                    <td class="px-4 py-4 align-top text-xs font-mono text-amber-600 font-bold">90,200.50</td>
+
+                    <!-- إجمالي الرصيد -->
+                    <td class="px-4 py-4 align-top text-xs font-mono text-green-600 font-bold">485,200.50</td>
+
+                    <!-- البنك المعتمد -->
+                    <td class="px-4 py-4 align-top">
+                        <div class="text-xs font-bold text-gray-800">مصرف الراجحي</div>
+                        <div class="mt-1 text-[9px] text-gray-400 font-mono">SA4480000201608010099221</div>
+                    </td>
+
+                    <!-- الحالة -->
+                    <td class="px-4 py-4 align-top text-center">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-400 text-emerald-700 rounded-full text-[10px] font-bold">
+                            <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-emerald-500">✓</span>
+                            نشطة
+                        </span>
+                    </td>
+
+                    <!-- الإجراءات -->
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex items-center justify-end gap-2">
+                            <!-- زر عرض -->
+                            <button class="w-7 h-7 rounded-full bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
+                                👁️
+                            </button>
+                            <!-- زر تدوير (أصفر) -->
+                            <button class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition">
+                                🔄
+                            </button>
+                            <!-- زر تجميد / قفل (وردي) -->
+                            <button class="w-7 h-7 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition">
+                                🔒
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- مثال صف مورد 2 -->
+                <tr class="hover:bg-gray-50 transition group">
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-xs text-gray-800 font-mono tracking-wider">WAL-<br>SA-<br>9012</span>
+                            <button class="text-gray-400 hover:text-gray-600 transition" title="نسخ الكود"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                        </div>
+                        <div class="mt-1 text-[10px] text-gray-400 font-medium">منذ 05-2025</div>
+                    </td>
+                    <td class="px-4 py-4 align-top">
+                        <div class="font-bold text-xs text-gray-800">مؤسسة الأفق التجارية للمستلزمات الطبية</div>
+                        <div class="mt-1 w-fit bg-gray-50 px-2 py-1 rounded text-[10px] text-gray-500 border border-gray-100 inline-block">مستلزمات طبية وصيدلانية</div>
+                    </td>
+                    <td class="px-4 py-4 align-top">
+                        <div class="text-xs font-mono text-gray-500">CR: <span class="text-gray-800 font-bold">4030198271</span></div>
+                        <div class="mt-1 text-[10px] text-gray-400 font-medium">جدة</div>
+                    </td>
+                    <td class="px-4 py-4 align-top text-xs font-mono text-gray-800 font-bold">280,000.00</td>
+                    <td class="px-4 py-4 align-top text-xs font-mono text-amber-600 font-bold">32,450.00</td>
+                    <td class="px-4 py-4 align-top text-xs font-mono text-green-600 font-bold">312,450.00</td>
+                    <td class="px-4 py-4 align-top">
+                        <div class="text-xs font-bold text-gray-800">البنك الأهلي السعودي (SNB)</div>
+                        <div class="mt-1 text-[9px] text-gray-400 font-mono">SA031000001239847291002</div>
+                    </td>
+                    <td class="px-4 py-4 align-top text-center">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-400 text-emerald-700 rounded-full text-[10px] font-bold">
+                            <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-emerald-500">✓</span>
+                            نشطة
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex items-center justify-end gap-2">
+                            <button class="w-7 h-7 rounded-full bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">👁️</button>
+                            <button class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition">🔄</button>
+                            <button class="w-7 h-7 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition">🔒</button>
+                        </div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <!-- تذييل الجدول (إحصائيات وترقيم الصفحات) -->
+    <div class="flex flex-col md:flex-row items-center justify-between pt-4 mt-4 border-t border-gray-200 gap-3">
+        <div class="text-[11px] text-gray-500 font-medium">
+            عرض <span class="font-bold text-gray-700">10</span> من إجمالي <span class="font-bold text-gray-700">10</span> مورد في هذه الشاشة 
+            <span class="text-gray-400 mx-1">|</span> <span class="font-bold text-gray-700">1,420,850</span> محفظة معتمدة
+        </div>
+        
+        <!-- أزرار التنقل بين الصفحات (Pagination) -->
+        <div class="flex items-center gap-1">
+            <button class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 disabled:opacity-50" disabled>
+                السابق
+            </button>
+            <button class="px-3 py-1 bg-[#4C1D95] border border-[#4C1D95] rounded-lg text-xs text-white font-bold">
+                1
+            </button>
+            <button class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-500 hover:bg-gray-50">
+                2
+            </button>
+            <button class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50">
+                التالي
+            </button>
+        </div>
+    </div>
+</div>
