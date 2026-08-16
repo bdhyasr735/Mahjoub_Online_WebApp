@@ -1,65 +1,80 @@
-{% extends "admin/admin_base.html" %}
-{% import "supplier_wallet/components/tables.html" as tables %}
-{% import "supplier_wallet/components/pagination.html" as pag %}
+# coding: utf-8
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from apps.models import SupplierWallet, WalletTransaction, db
+from sqlalchemy import or_, func
+from decimal import Decimal
 
-{% block title %}كشف حساب محفظة {{ wallet.supplier.supplier_name }} ({{ wallet.wallet_code }}){% endblock %}
-{% block breadcrumb %}كشف حساب المحفظة: {{ wallet.wallet_code }}{% endblock %}
+bp = Blueprint('suppliers_wallets_controller', __name__)
 
-{% block content %}
-<div class="space-y-6">
+PER_PAGE = 10
 
-    <!-- ترويسة تفاصيل المحفظة والمورد -->
-    <div class="bg-[#1A102A] border border-[#362052] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2">
-                <span class="font-mono font-black text-sm text-amber-400">{{ wallet.wallet_code }}</span>
-                <span class="text-xs px-2.5 py-0.5 rounded-lg font-bold {% if wallet.status == 'active' %}bg-emerald-500/15 text-emerald-400 border border-emerald-500/30{% else %}bg-rose-500/15 text-rose-400 border border-rose-500/30{% endif %}">
-                    {{ 'محفظة نشطة' if wallet.status == 'active' else 'محفظة مجمدة' }}
-                </span>
-            </div>
-            <h1 class="text-2xl font-black text-white mt-1">{{ wallet.supplier.supplier_name }}</h1>
-            <p class="text-xs text-slate-400 mt-1">السجل التجاري: {{ wallet.supplier.commercial_reg }} • الرقم الضريبي: {{ wallet.supplier.tax_number }} • المدينة: {{ wallet.supplier.city }}</p>
-        </div>
+@bp.route('/', methods=['GET'])
+def index():
+    """
+    الصفحة الرئيسية لوحة تحكم محافظ الموردين مع حساب دقيق للأهلّة
+    """
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
+    status_filter = request.args.get('status', 'all', type=str)
+    
+    query = SupplierWallet.query
 
-        <div class="flex items-center gap-3">
-            <button onclick="window.print()" class="px-4 py-2.5 bg-[#231538] hover:bg-[#362052] text-slate-200 text-xs font-bold rounded-xl border border-[#4B2A73]/50 transition">
-                🖨️ طباعة كشف الحساب
-            </button>
-            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.index') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] text-xs font-black rounded-xl transition">
-                العودة لسجل المحافظ
-            </a>
-        </div>
-    </div>
+    if search_query:
+        search_term = f"%{search_query}%"
+        query = query.join(SupplierWallet.supplier).filter(
+            or_(
+                SupplierWallet.wallet_code.ilike(search_term),
+                Supplier.supplier_name.ilike(search_term),
+                Supplier.commercial_reg.ilike(search_term)
+            )
+        )
 
-    <!-- بطاقات الأرصدة والسيولة -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="p-5 rounded-3xl bg-[#1A102A] border border-[#362052]">
-            <span class="text-xs text-slate-400 block font-bold">إجمالي الرصيد الدفتري</span>
-            <div class="text-2xl font-black font-mono text-white mt-2">
-                {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-amber-400 font-sans">ريال</span>
-            </div>
-        </div>
+    if status_filter and status_filter != 'all':
+        query = query.filter(SupplierWallet.status == status_filter)
 
-        <div class="p-5 rounded-3xl bg-emerald-950/30 border border-emerald-500/30">
-            <span class="text-xs text-emerald-400 block font-bold">الرصيد المتاح للسحب الفوري</span>
-            <div class="text-2xl font-black font-mono text-emerald-400 mt-2">
-                {{ "{:,.2f}".format(wallet.balance_sar|float) }} <span class="text-xs text-emerald-300 font-sans">ريال</span>
-            </div>
-        </div>
+    # استخدام Decimal(0) لضمان عدم ضياع أي هللة أثناء الجمع والحسابات المالية
+    total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
+    total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
+    pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
 
-        <div class="p-5 rounded-3xl bg-amber-950/30 border border-amber-500/30">
-            <span class="text-xs text-amber-400 block font-bold">أمانات الضمان المحجوزة (Escrow)</span>
-            <div class="text-2xl font-black font-mono text-amber-400 mt-2">
-                {{ "0.00" }} <span class="text-xs text-amber-300 font-sans">ريال</span>
-            </div>
-        </div>
-    </div>
+    # ضمان توافق الأنواع تماماً من نوع Decimal لدقة الأهلّة
+    total_wallets_balance = Decimal(str(total_sar_balance)) + Decimal(str(total_pending_balance))
 
-    <!-- جدول المعاملات - مدمج -->
-    {{ tables.render_transactions_table(transactions) }}
+    kpis = {
+        'total_wallets_balance': total_wallets_balance,
+        'total_available_payouts': total_sar_balance,
+        'total_escrow_held': total_pending_balance,
+        'total_suppliers_count': SupplierWallet.query.count(),
+        'active_suppliers_count': SupplierWallet.query.filter_by(status='active').count(),
+        'pending_withdrawals_amount': pending_withdrawals_amount,
+        'pending_withdrawals_count': WalletTransaction.query.filter_by(status='pending').count()
+    }
 
-    <!-- نظام الصفحات -->
-    {{ pag.render_pagination(pagination) }}
+    pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
+    suppliers = pagination_obj.items
 
-</div>
-{% endblock %}
+    pagination = {
+        'current_page': pagination_obj.page,
+        'total_pages': pagination_obj.pages,
+        'has_prev': pagination_obj.has_prev,
+        'has_next': pagination_obj.has_next,
+        'total_count': pagination_obj.total,
+        'per_page': PER_PAGE
+    }
+
+    return render_template(
+        'admin/suppliers_wallets.html',
+        kpis=kpis,
+        pagination=pagination,
+        suppliers=suppliers,
+        search_query=search_query,
+        status_filter=status_filter
+    )
+
+@bp.route('/<int:supplier_id>', methods=['GET'])
+def supplier_ledger_detail(supplier_id):
+    wallet = SupplierWallet.query.get_or_404(supplier_id)
+    return render_template(
+        'admin/supplier_ledger_detail.html',
+        wallet=wallet
+    )
