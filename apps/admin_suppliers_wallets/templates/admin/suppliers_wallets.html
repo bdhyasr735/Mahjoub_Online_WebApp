@@ -12,7 +12,7 @@
     <!-- 2. شريط الفلترة المميز -->
     {% include "admin/components/wallet_filters.html" %}
 
-    <!-- 3. جدول المحافظ - خلفية بيضاء بتصميم مطابق للصور -->
+    <!-- 3. جدول المحافظ -->
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         
         <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -37,7 +37,6 @@
 
         <div class="overflow-x-auto">
             <table class="w-full text-right text-xs">
-                <!-- رأس الجدول مطابق للألوان في الصور -->
                 <thead class="bg-[#F8F9FA] text-gray-500 font-bold border-b border-gray-200 select-none">
                     <tr>
                         <th class="py-3 px-4">كود المحفظة</th>
@@ -54,7 +53,6 @@
                 <tbody class="divide-y divide-gray-100">
                     {% if suppliers %}
                         {% for supplier in suppliers %}
-                        <!-- صف المورد، يتحول للرمادي الفاتح عند التمرير -->
                         <tr 
                             ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
                             title="انقر نقراً مزدوجاً لفتح كشف الحساب"
@@ -64,13 +62,15 @@
                                 {{ supplier.wallet_code }}
                             </td>
                             
-                            <!-- ✅ التعديل هنا: عمود المورد والنشاط -->
+                            <!-- ✅ تم إصلاح ظهور "None" باستخدام دالة "or" لإضافة بدائل جميلة -->
                             <td class="py-4 px-4">
-                                <!-- السطر الأول: اسم المتجر (أو اسم المورد إذا لم يوجد) -->
-                                <div class="font-bold text-gray-800">{{ supplier.supplier.store_name|default(supplier.supplier.supplier_name) }}</div>
-                                <!-- السطر الثاني: اسم المالك -->
+                                <!-- السطر الأول: اسم المتجر (أو الاسم التجاري، أو اسم المستخدم كخطة احتياطية) -->
+                                <div class="font-bold text-gray-800">
+                                    {{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username or 'اسم المتجر' }}
+                                </div>
+                                <!-- السطر الثاني: المالك (أو تعبير بديل إذا كان فارغاً) -->
                                 <div class="text-[11px] text-gray-400 mt-0.5">
-                                    المالك: {{ supplier.supplier.owner_name|default('غير محدد') }}
+                                    المالك: {{ supplier.supplier.owner_name or 'غير محدد' }}
                                 </div>
                             </td>
                             
@@ -92,7 +92,6 @@
                                 <div class="text-[10px] font-mono text-gray-400 truncate max-w-[120px]">{{ supplier.supplier.iban|default('-') }}</div>
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <!-- أزرار الحالة (نشطة / مجمدة) -->
                                 {% if supplier.status == 'active' %}
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-400 text-emerald-700 rounded-full text-[10px] font-bold">
                                     <span class="w-3.5 h-3.5 flex items-center justify-center rounded-full border border-emerald-500">✓</span>
@@ -106,7 +105,6 @@
                                 {% endif %}
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <!-- أزرار الإجراءات الدائرية (كما في الصور تماماً) -->
                                 <div class="flex items-center justify-center gap-2">
                                     <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
                                        class="w-7 h-7 rounded-full bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">
@@ -133,7 +131,7 @@
             </table>
         </div>
 
-        <!-- شريط الترقيم (Pagination) بتصميم مطابق للصورة -->
+        <!-- شريط الترقيم -->
         {% if pagination and pagination.total_pages > 1 %}
         {% set current_args = request.args.to_dict() %}
         {% set _ = current_args.pop('page', None) %}
@@ -144,24 +142,9 @@
             </div>
 
             <div class="flex items-center gap-1.5 font-mono font-bold">
-                <a 
-                    href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **current_args) }}" 
-                    class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition"
-                >
-                    السابق
-                </a>
-
-                <!-- الصفحة النشطة بلون بنفسجي داكن كما في الصور -->
-                <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2B1B4E] text-white font-black text-xs">
-                    {{ pagination.current_page }}
-                </span>
-
-                <a 
-                    href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **current_args) }}" 
-                    class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition"
-                >
-                    التالي
-                </a>
+                <a href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **current_args) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition">السابق</a>
+                <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2B1B4E] text-white font-black text-xs">{{ pagination.current_page }}</span>
+                <a href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **current_args) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition">التالي</a>
             </div>
         </div>
         {% endif %}
