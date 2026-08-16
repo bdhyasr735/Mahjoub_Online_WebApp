@@ -16,6 +16,9 @@ def index():
     status_filter = request.args.get('status', 'all', type=str)
     bank_filter = request.args.get('bank', 'all', type=str)
 
+    # ✅ اكتشاف ما إذا كان الطلب قادماً من AJAX (للبحث اللحظي دون تحديث)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
     if search_query:
@@ -68,6 +71,20 @@ def index():
         'next_num': pagination_obj.next_num,
     }
 
+    # ✅ إذا كان طلب AJAX، يُعيد الصفحة كاملة (وسيتم استخراج الجدول من الـ JS)
+    # ملاحظة: لم نقم بإنشاء ملف جزئي، لذلك نعيد الصفحة كاملة والـ JS يستخرج الجدول فقط.
+    if is_ajax:
+        return render_template(
+            'admin/suppliers_wallets.html',
+            kpis=kpis,
+            pagination=pagination,
+            suppliers=suppliers,
+            search_query=search_query,
+            status_filter=status_filter,
+            bank_filter=bank_filter
+        )
+
+    # ✅ الطلب العادي (الصفحة الرئيسية عند الدخول لأول مرة)
     return render_template(
         'admin/suppliers_wallets.html',
         kpis=kpis,
