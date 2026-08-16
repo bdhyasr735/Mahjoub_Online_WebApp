@@ -107,16 +107,16 @@
                                 {% endif %}
                             </td>
                             
-                            <!-- ✅ تم توحيد حجم الأزرار لتصبح w-9 h-9 ومركزية 100% -->
+                            <!-- ✅ تم توحيد الأيقونات: جميع الأزرار الآن بنفس الحجم (w-9 h-9) ونفس الشكل (rounded-xl) -->
                             <td class="py-4 px-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    <!-- زر العرض (عين) -->
+                                    <!-- زر العرض (عين) - أصبح مربع بحواف دائرية مثل زر التسوية -->
                                     <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
-                                       class="w-9 h-9 rounded-full bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">
+                                       class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-[#D1D1D1] flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">
                                         👁️
                                     </a>
                                     
-                                    <!-- زر التسوية (+) - مع الحفاظ على الشكل المربع -->
+                                    <!-- زر التسوية (+) -->
                                     <button 
                                         onclick="openFundModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
                                         class="w-9 h-9 rounded-xl bg-[#FFF8E7] border-2 border-amber-400 flex items-center justify-center text-amber-700 hover:bg-[#FFEEC3] transition cursor-pointer font-bold text-lg" 
@@ -125,10 +125,10 @@
                                         +
                                     </button>
 
-                                    <!-- زر التجميد (قفل) -->
+                                    <!-- زر التجميد (قفل) - أصبح مربع بحواف دائرية -->
                                     <button 
                                         onclick="openFreezeModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
-                                        class="w-9 h-9 rounded-full bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
+                                        class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
                                         title="تجميد المحفظة"
                                     >
                                         🔒
@@ -173,7 +173,7 @@
 <!-- ✅ تمت إضافة المودالات هنا قبل إغلاق القالب -->
 {% include "admin/components/wallet_modals.html" %}
 
-<!-- ✅ استدعاء ملف JavaScript الخارجي للمودالات -->
-<script src="{{ url_for('static', filename='js/wallet_modals.js') }}"></script>
+<!-- ✅ تم تصحيح مسار ملف الـ JavaScript ليكون متوافقاً مع هيكلة blueprint الخاص بك -->
+<script src="{{ url_for('suppliers_wallets_controller.static', filename='js/wallet_modals.js') }}"></script>
 
 {% endblock %}
