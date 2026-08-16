@@ -173,7 +173,7 @@
 <!-- ✅ تمت إضافة المودالات هنا قبل إغلاق القالب -->
 {% include "admin/components/wallet_modals.html" %}
 
-<!-- ✅ تم تصحيح مسار ملف الـ JavaScript ليكون متوافقاً مع هيكلة blueprint الخاص بك -->
-<script src="{{ url_for('suppliers_wallets_controller.static', filename='js/wallet_modals.js') }}"></script>
+<!-- ✅ تم تصحيح مسار ملف الـ JavaScript ليكون متوافقاً مع الـ Blueprint الأبوي -->
+<script src="{{ url_for('admin_suppliers_wallets.static', filename='js/wallet_modals.js') }}"></script>
 
 {% endblock %}
