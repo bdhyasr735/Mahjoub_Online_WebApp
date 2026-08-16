@@ -27,7 +27,6 @@
 </div>
 
 <!-- 2. شريط البحث والفلترة المتقدمة -->
-<!-- ⚠️ ملاحظة: تم إزالة action="" لأننا سنستخدم JS -->
 <form id="searchFilterForm" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
     <!-- حقل البحث النصي -->
     <div class="relative flex-1">
@@ -85,10 +84,9 @@
     </div>
 </form>
 
-<!-- 🟢 سكربت البحث اللحظي بدون إعادة تحميل (AJAX) -->
+<!-- 🟢 سكربت البحث اللحظي المحسّن (AJAX) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('searchFilterForm');
     const searchInput = document.getElementById('liveSearchInput');
     const statusSelect = document.getElementById('statusSelect');
     const bankSelect = document.getElementById('bankSelect');
@@ -104,31 +102,32 @@ document.addEventListener('DOMContentLoaded', function() {
             bank: bankSelect.value
         });
 
-        // إرسال الطلب إلى نفس الرابط ولكن في الخلفية
+        // ✅ تحديث الرابط في المتصفح دون إعادة تحميل الصفحة
+        history.replaceState({}, '', `{{ request.path }}?${params.toString()}`);
+
+        // إرسال الطلب إلى الخادم في الخلفية
         fetch(`{{ request.path }}?${params.toString()}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.text())
         .then(html => {
-            // استخراج الجدول الجديد من الـ HTML المرتجع
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const newTableBody = doc.querySelector('tbody');
-            const newPaginationText = doc.querySelector('#pagination_count_text');
             
-            // تحديث الجدول
-            const currentTableBody = document.querySelector('tbody');
+            // ✅ استخدام getElementById لضمان العثور على الجدول بدقة
+            const newTableBody = doc.getElementById('suppliers-table-body');
+            const newPaginationText = doc.getElementById('pagination_count_text');
+            
+            const currentTableBody = document.getElementById('suppliers-table-body');
+            
+            // ✅ استخدام innerHTML بدلاً من outerHTML (أهم تعديل لجعل التحديث يظهر)
             if(currentTableBody && newTableBody) {
-                currentTableBody.outerHTML = newTableBody.outerHTML;
+                currentTableBody.innerHTML = newTableBody.innerHTML;
             }
 
-            // تحديث نص العداد (إن وجد)
             if(newPaginationText) {
                 document.getElementById('pagination_count_text').innerText = newPaginationText.innerText;
             }
-
-            // تحديث الرابط في المتصفح بدون إعادة تحميل (اختياري: لمحبي التخزين في التاريخ)
-            // history.replaceState({}, '', `{{ request.path }}?${params.toString()}`);
         })
         .catch(error => console.error('خطأ في البحث:', error));
     }
