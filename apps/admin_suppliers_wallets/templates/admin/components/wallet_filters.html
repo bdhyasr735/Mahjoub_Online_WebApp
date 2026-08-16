@@ -23,22 +23,22 @@
             🛡️ تحت المراجعة <span class="text-[10px] opacity-70">1</span>
         </a>
     </div>
-    <span class="text-[11px] text-gray-400 font-medium">عرض 10 من 10 محفظة</span>
+    <span class="text-[11px] text-gray-400 font-medium" id="pagination_count_text">عرض 10 من 10 محفظة</span>
 </div>
 
-<!-- 2. شريط البحث والفلترة المتقدمة (نسخة الألوان الفاتحة الخاصة بك) -->
-<form method="GET" action="" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+<!-- 2. شريط البحث والفلترة المتقدمة -->
+<!-- ⚠️ ملاحظة: تم إزالة action="" لأننا سنستخدم JS -->
+<form id="searchFilterForm" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
     <!-- حقل البحث النصي -->
     <div class="relative flex-1">
         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-        <!-- ✅ تم إضافة onkeyup للبحث اللحظي، و autocomplete="off" لإخفاء القائمة السوداء المزعجة -->
         <input 
+            id="liveSearchInput"
             type="text" 
             name="q" 
             value="{{ search_query or '' }}" 
             placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
             class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden focus:border-amber-400 transition"
-            onkeyup="this.form.submit()"
             autocomplete="off"
         >
     </div>
@@ -46,8 +46,8 @@
     <!-- القوائم المنسدلة للفلترة -->
     <div class="flex flex-wrap items-center gap-2">
         <select 
+            id="statusSelect"
             name="status" 
-            onchange="this.form.submit()" 
             class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer"
         >
             <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
@@ -57,8 +57,8 @@
         </select>
 
         <select 
+            id="bankSelect"
             name="bank" 
-            onchange="this.form.submit()" 
             class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer"
         >
             <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
@@ -70,7 +70,8 @@
         </select>
 
         <button 
-            type="submit" 
+            type="button" 
+            id="applyFilterBtn"
             class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm"
         >
             تطبيق الفلترة
@@ -83,3 +84,66 @@
         </a>
     </div>
 </form>
+
+<!-- 🟢 سكربت البحث اللحظي بدون إعادة تحميل (AJAX) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('searchFilterForm');
+    const searchInput = document.getElementById('liveSearchInput');
+    const statusSelect = document.getElementById('statusSelect');
+    const bankSelect = document.getElementById('bankSelect');
+    const applyBtn = document.getElementById('applyFilterBtn');
+    
+    let timeoutId;
+
+    // دالة لجلب البيانات وتحديث الجدول
+    function fetchFilteredData() {
+        const params = new URLSearchParams({
+            q: searchInput.value,
+            status: statusSelect.value,
+            bank: bankSelect.value
+        });
+
+        // إرسال الطلب إلى نفس الرابط ولكن في الخلفية
+        fetch(`{{ request.path }}?${params.toString()}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // استخراج الجدول الجديد من الـ HTML المرتجع
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTableBody = doc.querySelector('tbody');
+            const newPaginationText = doc.querySelector('#pagination_count_text');
+            
+            // تحديث الجدول
+            const currentTableBody = document.querySelector('tbody');
+            if(currentTableBody && newTableBody) {
+                currentTableBody.outerHTML = newTableBody.outerHTML;
+            }
+
+            // تحديث نص العداد (إن وجد)
+            if(newPaginationText) {
+                document.getElementById('pagination_count_text').innerText = newPaginationText.innerText;
+            }
+
+            // تحديث الرابط في المتصفح بدون إعادة تحميل (اختياري: لمحبي التخزين في التاريخ)
+            // history.replaceState({}, '', `{{ request.path }}?${params.toString()}`);
+        })
+        .catch(error => console.error('خطأ في البحث:', error));
+    }
+
+    // البحث التلقائي عند الكتابة (مع تأخير 500ms للحفاظ على أداء الخادم)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(fetchFilteredData, 500);
+    });
+
+    // البحث عند تغيير القوائم المنسدلة
+    statusSelect.addEventListener('change', fetchFilteredData);
+    bankSelect.addEventListener('change', fetchFilteredData);
+
+    // البحث عند الضغط على زر "تطبيق الفلترة"
+    applyBtn.addEventListener('click', fetchFilteredData);
+});
+</script>
