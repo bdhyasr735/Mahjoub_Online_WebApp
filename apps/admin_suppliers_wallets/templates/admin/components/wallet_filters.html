@@ -1,14 +1,14 @@
-<!-- شريط البحث والفلترة المتقدمة - نسخة بيضاء -->
-<form method="GET" action="" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+<!-- شريط البحث والفلترة المتقدمة - خلفية بيضاء مع أزرار مميزة -->
+<form method="GET" action="" class="bg-white border-2 border-blue-200 p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
     <!-- حقل البحث النصي -->
     <div class="relative flex-1">
-        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-blue-400 text-sm">🔍</span>
         <input 
             type="text" 
             name="q" 
             value="{{ search_query or '' }}" 
-            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
-            class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 placeholder-gray-400 focus:outline-hidden focus:border-blue-500 transition"
+            placeholder="بحث باسم المورد، كود المحفظة، السجل التجاري، الآيبان، أو المدينة..." 
+            class="w-full pl-4 pr-10 py-2.5 bg-white border-2 border-blue-300 rounded-xl text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600 transition"
         >
     </div>
 
@@ -17,7 +17,7 @@
         <select 
             name="status" 
             onchange="this.form.submit()" 
-            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+            class="px-3 py-2.5 bg-white border-2 border-purple-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-600 cursor-pointer"
         >
             <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
             <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
@@ -28,7 +28,7 @@
         <select 
             name="bank" 
             onchange="this.form.submit()" 
-            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-blue-500 cursor-pointer"
+            class="px-3 py-2.5 bg-white border-2 border-purple-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-600 cursor-pointer"
         >
             <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
             <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
@@ -40,9 +40,9 @@
 
         <button 
             type="submit" 
-            class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition shadow-sm"
+            class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-black rounded-xl transition shadow-lg shadow-blue-500/30"
         >
-            تطبيق الفلترة
+            تطبيق الفلترة 🚀
         </button>
     </div>
 </form>
