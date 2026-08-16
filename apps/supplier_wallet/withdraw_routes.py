@@ -20,9 +20,9 @@ from apps.supplier_wallet.utils import (
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
 
 
-@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False, endpoint='withdraw')
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False, endpoint='submit_withdrawal')
 @login_required
-def withdraw():
+def submit_withdrawal():
     """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب جديد للمورد بطريقة محمية تماماً ضد الضغط الموازي."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
@@ -51,7 +51,7 @@ def withdraw():
 
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
-                return redirect(url_for('supplier_wallet.withdraw'))
+                return redirect(url_for('supplier_wallet.submit_withdrawal'))
 
             # =========================================================================
             # 🔒 [Pessimistic Locking بدون OUTER JOIN]: حجز المحفظة بأمان تام في PostgreSQL
@@ -64,7 +64,7 @@ def withdraw():
 
             if not locked_wallet:
                 flash("تعذر تأمين حساب المحفظة، يرجى المحاولة لاحقاً.", "danger")
-                return redirect(url_for('supplier_wallet.withdraw'))
+                return redirect(url_for('supplier_wallet.submit_withdrawal'))
 
             # التحقق من الرصيد الحقيقي المحدث بعد القفل (Prevent Race Condition)
             real_avail_bal = Decimal(str(getattr(locked_wallet, 'balance_sar', '0.00')))
@@ -101,7 +101,7 @@ def withdraw():
                 db.session.commit()
 
                 flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.", "success")
-                return redirect(url_for('supplier_wallet.withdraw'))
+                return redirect(url_for('supplier_wallet.submit_withdrawal'))
                 
         except (ValueError, InvalidOperation):
             db.session.rollback()
