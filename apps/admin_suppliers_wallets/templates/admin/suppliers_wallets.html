@@ -1,10 +1,30 @@
 {% extends "admin/admin_base.html" %}
 
 {% block title %}إدارة محافظ الموردين المركزية{% endblock %}
-{% block breadcrumb %}سجل محافظ الموردين والتسويات{% endblock %}
+{% block breadcrumb %}سجل محافظ الموردين والتسويات المركزية SAMA{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 font-['IBM_Plex_Sans_Arabic']">
+
+    <!-- شريط الإجراءات والترويسة العلوية -->
+    <div class="bg-white p-6 rounded-3xl shadow-xl border border-[#E5E2DC] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="inline-block px-3 py-1 bg-[#1a0b2e] text-amber-300 rounded-lg text-[10px] font-mono font-bold mb-2">ADMIN_SUPPLIER_WALLETS - محرك التسويات المالية SAMA</div>
+            <h1 class="text-xl font-black text-[#1E1B18]">إدارة محافظ الموردين المركزية (Supplier Wallets)</h1>
+            <p class="text-xs text-[#6C757D] mt-1">عمليات السحب الفوري، والقطع البنكي المعتمد SAMA (Escrow)، حسابات الضمان، السدادات، وإصدار مطابقة الشريكة في المنصة.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button class="px-4 py-2.5 bg-white border border-[#E5E2DC] hover:bg-gray-50 text-[#1E1B18] text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2">
+                <span>📥</span> تصدير إكسل
+            </button>
+            <button class="px-4 py-2.5 bg-white border border-[#E5E2DC] hover:bg-gray-50 text-[#1E1B18] text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2">
+                <span>🖨️</span> طباعة الكشف
+            </button>
+            <button class="px-5 py-2.5 bg-[#1a0b2e] hover:bg-[#2d124a] text-amber-300 text-xs font-bold rounded-xl transition shadow-md flex items-center gap-2">
+                <span>🔄</span> مطابقة الأرصدة البنكية
+            </button>
+        </div>
+    </div>
 
     <!-- 1. استدعاء مكون كروت إجمالي المحافظ والعدادات -->
     {% include "admin/components/wallet_cards.html" %}
@@ -19,19 +39,16 @@
         <div class="p-5 bg-gradient-to-r from-[#1a0b2e] to-[#08020d] border-b border-[#362052] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
             <div>
                 <h2 class="text-base font-black flex items-center gap-2">
-                    📁 سجل وحسابات محافظ الموردين
+                    📁 سجل محافظ الموردين وحسابات التسوية
                 </h2>
                 <p class="text-xs text-slate-300 mt-0.5">
-                    سجل الأرصدة المعتمدة • <span class="text-amber-400 font-bold">انقر نقراً مزدوجاً (Double Click) لفتح كشف الحساب فوراً</span>
+                    على أي مورد لفتح تفاصيل المحفظة فوراً • <span class="text-amber-400 font-bold">انقر نقراً مزدوجاً (Double Click)</span>
                 </p>
             </div>
 
             <div class="flex items-center gap-2">
-                <button onclick="window.print()" class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] text-amber-300 text-xs font-bold rounded-xl border border-[#4B2A73] transition shadow-md">
-                    🖨️ طباعة الكشف
-                </button>
                 <span class="text-xs text-amber-300 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl font-mono font-bold shadow-inner">
-                    {{ pagination.per_page }} موردين / صفحة
+                    عرض {{ pagination.per_page }} موردين / صفحة (إجمالي قاعدة البيانات: {{ pagination.total_count }} محفظة معتمدة)
                 </span>
             </div>
         </div>
@@ -42,7 +59,7 @@
                     <tr>
                         <th class="py-4 px-4">كود المحفظة</th>
                         <th class="py-4 px-4">المورد والنشاط</th>
-                        <th class="py-4 px-4">السجل التجاري</th>
+                        <th class="py-4 px-4">السجل التجاري والمدينة</th>
                         <th class="py-4 px-4 text-left">الرصيد المتاح (SAR)</th>
                         <th class="py-4 px-4 text-left">الضمان المحجوز (SAR)</th>
                         <th class="py-4 px-4 text-left">إجمالي الرصيد (SAR)</th>
@@ -59,19 +76,23 @@
                         class="hover:bg-[#1a0b2e]/5 cursor-pointer transition select-none group"
                     >
                         <td class="py-4 px-4 font-mono font-bold text-[#1a0b2e]">
-                            {{ supplier.wallet_code }}
+                            <div class="flex items-center gap-1.5">
+                                <span>📄</span>
+                                <span>{{ supplier.wallet_code }}</span>
+                            </div>
                         </td>
                         <td class="py-4 px-4">
-                            <div class="font-extrabold text-[#1E1B18]">{{ supplier.supplier_name }}</div>
-                            <div class="text-[11px] text-[#6C757D] mt-0.5">{{ supplier.category }}</div>
+                            <div class="font-extrabold text-[#1E1B18] text-sm">{{ supplier.supplier_name }}</div>
+                            <div class="text-[11px] text-[#6C757D] mt-0.5 bg-gray-100 px-2 py-0.5 rounded inline-block">{{ supplier.category }}</div>
                         </td>
                         <td class="py-4 px-4 font-mono text-[#4A453F]">
-                            {{ supplier.commercial_reg }}
+                            <div class="font-bold">CR: {{ supplier.commercial_reg }}</div>
+                            <div class="text-[10px] text-gray-500">{{ supplier.city or 'الرياض' }}</div>
                         </td>
-                        <td class="py-4 px-4 text-left font-mono font-black text-emerald-600">
+                        <td class="py-4 px-4 text-left font-mono font-black text-emerald-600 text-sm">
                             {{ "{:,.2f}".format(supplier.available_balance) }}
                         </td>
-                        <td class="py-4 px-4 text-left font-mono font-bold text-amber-600">
+                        <td class="py-4 px-4 text-left font-mono font-bold text-amber-600 text-sm">
                             {{ "{:,.2f}".format(supplier.pending_escrow_balance) }}
                         </td>
                         <td class="py-4 px-4 text-left font-mono font-black text-[#1E1B18] text-sm">
@@ -79,12 +100,16 @@
                         </td>
                         <td class="py-4 px-4">
                             <div class="font-bold text-[#1E1B18]">{{ supplier.bank_name }}</div>
-                            <div class="text-[10px] font-mono text-[#6C757D] truncate max-w-[120px]">{{ supplier.iban }}</div>
+                            <div class="text-[10px] font-mono text-[#6C757D] truncate max-w-[130px]">{{ supplier.iban }}</div>
                         </td>
                         <td class="py-4 px-4 text-center">
                             {% if supplier.status == 'active' %}
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
                                 نشطة ✓
+                            </span>
+                            {% elif supplier.status == 'review' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                مراجعة ⏳
                             </span>
                             {% else %}
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-300">
@@ -93,12 +118,15 @@
                             {% endif %}
                         </td>
                         <td class="py-4 px-4 text-center">
-                            <a 
-                                href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}"
-                                class="inline-flex items-center px-3 py-1.5 bg-[#1a0b2e] hover:bg-[#2d124a] text-amber-300 hover:text-amber-200 font-bold rounded-lg border border-[#362052] text-xs transition shadow-sm"
-                            >
-                                كشف الحساب
-                            </a>
+                            <div class="flex items-center justify-center gap-1.5">
+                                <a 
+                                    href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}"
+                                    class="px-3 py-1.5 bg-[#1a0b2e] hover:bg-[#2d124a] text-amber-300 font-bold rounded-lg text-xs transition shadow-sm"
+                                    title="عرض كشف الحساب"
+                                >
+                                    عرض
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -109,12 +137,12 @@
         <!-- شريط الترقيم والتنقل الفاخر -->
         <div class="px-6 py-4 bg-[#F4F1EA] border-t border-[#E5E2DC] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6C757D]">
             <div>
-                عرض <span class="font-bold text-[#1E1B18] font-mono">{{ pagination.per_page }}</span> موردين لكل صفحة
+                عرض <span class="font-bold text-[#1E1B18] font-mono">{{ pagination.per_page }}</span> من إجمالي <span class="font-bold text-[#1E1B18] font-mono">{{ pagination.total_count }}</span> مورد في هذه الشاشة
             </div>
 
             <div class="flex items-center gap-1.5 font-mono font-bold">
                 <a 
-                    href="?page={{ pagination.prev_page }}" 
+                    href="?page={{ pagination.current_page - 1 }}" 
                     class="px-3.5 py-1.5 bg-white hover:bg-[#1a0b2e] hover:text-amber-300 {% if not pagination.has_prev %}opacity-40 pointer-events-none{% endif %} text-[#1E1B18] rounded-xl border border-[#E5E2DC] transition shadow-sm"
                 >
                     السابق
@@ -125,7 +153,7 @@
                 </span>
 
                 <a 
-                    href="?page={{ pagination.next_page }}" 
+                    href="?page={{ pagination.current_page + 1 }}" 
                     class="px-3.5 py-1.5 bg-white hover:bg-[#1a0b2e] hover:text-amber-300 {% if not pagination.has_next %}opacity-40 pointer-events-none{% endif %} text-[#1E1B18] rounded-xl border border-[#E5E2DC] transition shadow-sm"
                 >
                     التالي
