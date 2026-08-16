@@ -2,7 +2,7 @@
 {% import "supplier_wallet/components/tables.html" as tables %}
 {% import "supplier_wallet/components/pagination.html" as pag %}
 
-{% block title %}كشف حساب محفظة {{ wallet.supplier_name }} ({{ wallet.wallet_code }}){% endblock %}
+{% block title %}كشف حساب محفظة {{ wallet.supplier.supplier_name }} ({{ wallet.wallet_code }}){% endblock %}
 {% block breadcrumb %}كشف حساب المحفظة: {{ wallet.wallet_code }}{% endblock %}
 
 {% block content %}
@@ -17,8 +17,8 @@
                     {{ 'محفظة نشطة' if wallet.status == 'active' else 'محفظة مجمدة' }}
                 </span>
             </div>
-            <h1 class="text-2xl font-black text-white mt-1">{{ wallet.supplier_name }}</h1>
-            <p class="text-xs text-slate-400 mt-1">السجل التجاري: {{ wallet.commercial_reg }} • الرقم الضريبي: {{ wallet.tax_number }} • المدينة: {{ wallet.city }}</p>
+            <h1 class="text-2xl font-black text-white mt-1">{{ wallet.supplier.supplier_name }}</h1>
+            <p class="text-xs text-slate-400 mt-1">السجل التجاري: {{ wallet.supplier.commercial_reg }} • الرقم الضريبي: {{ wallet.supplier.tax_number }} • المدينة: {{ wallet.supplier.city }}</p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    <!-- بطاقات الأرصدة والسيولة (معدلة) -->
+    <!-- بطاقات الأرصدة والسيولة -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="p-5 rounded-3xl bg-[#1A102A] border border-[#362052]">
             <span class="text-xs text-slate-400 block font-bold">إجمالي الرصيد الدفتري</span>
