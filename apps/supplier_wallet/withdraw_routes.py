@@ -3,7 +3,7 @@
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
 from sqlalchemy.orm import lazyload
 from apps.extensions import db
@@ -47,6 +47,8 @@ def submit_withdrawal():
             method = request.form.get('method', 'bank')
 
             if not wallet_obj:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"status": "error", "message": "تعذر الوصول إلى حساب المحفظة الخاص بك."}), 400
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
                 return redirect(url_for('supplier_wallet.submit_withdrawal'))
 
@@ -58,17 +60,25 @@ def submit_withdrawal():
                 .first()
 
             if not locked_wallet:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"status": "error", "message": "تعذر تأمين حساب المحفظة، يرجى المحاولة لاحقاً."}), 400
                 flash("تعذر تأمين حساب المحفظة، يرجى المحاولة لاحقاً.", "danger")
                 return redirect(url_for('supplier_wallet.submit_withdrawal'))
 
             real_avail_bal = Decimal(str(getattr(locked_wallet, 'balance_sar', '0.00')))
 
+            error_msg = None
             if real_avail_bal <= Decimal('0.00'):
-                flash("رصيدك غير كافٍ، لا يوجد رصيد متاح للسحب حالياً.", "danger")
+                error_msg = "رصيدك غير كافٍ، لا يوجد رصيد متاح للسحب حالياً."
             elif amount > real_avail_bal:
-                flash("رصيدك غير كافٍ لتغطية المبلغ المطلوب!", "danger")
+                error_msg = "رصيدك غير كافٍ لتغطية المبلغ المطلوب!"
             elif amount < MIN_WITHDRAW_AMOUNT:
-                flash(f"الحد الأدنى لطلب السحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}", "danger")
+                error_msg = f"الحد الأدنى لطلب السحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}"
+
+            if error_msg:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"status": "error", "message": error_msg}), 400
+                flash(error_msg, "danger")
             else:
                 owner_name = registered_owner or f"مورد رقم #{supplier_id}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
@@ -90,15 +100,29 @@ def submit_withdrawal():
                 db.session.add(new_tx)
                 db.session.commit()
 
+                # ⚡ [ZSA Response Handling] استجابة فورية متزامنة
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({
+                        "status": "success",
+                        "message": "تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.",
+                        "new_balance": float(real_avail_bal)
+                    })
+
                 flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والاعتماد.", "success")
                 return redirect(url_for('supplier_wallet.submit_withdrawal'))
                 
         except (ValueError, InvalidOperation):
             db.session.rollback()
-            flash("يرجى إدخال مبلغ مالي صحيح.", "danger")
+            err = "يرجى إدخال مبلغ مالي صحيح."
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"status": "error", "message": err}), 400
+            flash(err, "danger")
         except Exception as e:
             db.session.rollback()
-            flash(f"حدث خطأ غير متوقع أثناء حفظ الطلب: {str(e)}", "danger")
+            err = f"حدث خطأ غير متوقع أثناء حفظ الطلب: {str(e)}"
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"status": "error", "message": err}), 500
+            flash(err, "danger")
 
     # استعلام واستعراض سجل عمليات السحب (GET)
     status_filter = request.args.get('status', 'all')
