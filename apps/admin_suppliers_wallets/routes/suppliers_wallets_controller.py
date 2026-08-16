@@ -1,5 +1,5 @@
 # coding: utf-8
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request
 from apps.models import SupplierWallet, WalletTransaction, Supplier, db
 from sqlalchemy import or_, func
 from decimal import Decimal
@@ -21,18 +21,18 @@ def index():
     # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # ✅ تم إصلاح البحث: إزالة commercial_reg وحل مشكلة AttributeError
+    # ✅ التصفية والبحث المحدث (لقد تم حذف supplier_name و commercial_reg)
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
                 SupplierWallet.wallet_code.ilike(search_term),
-                Supplier.trade_name.ilike(search_term),  # الاسم التجاري
-                Supplier.store_name.ilike(search_term),   # اسم المتجر
-                Supplier.username.ilike(search_term),     # اسم المستخدم
-                Supplier.supplier_code.ilike(search_term), # كود المورد (بديل للسجل التجاري إن وجد)
-                Supplier.iban.ilike(search_term),         # الآيبان
-                Supplier.city.ilike(search_term)          # المدينة
+                Supplier.trade_name.ilike(search_term),   # الاسم التجاري
+                Supplier.store_name.ilike(search_term),    # اسم المتجر
+                Supplier.username.ilike(search_term),      # اسم المستخدم
+                Supplier.supplier_code.ilike(search_term), # كود المورد (كبديل عن السجل التجاري إن وجد)
+                Supplier.iban.ilike(search_term),          # الآيبان
+                Supplier.city.ilike(search_term)           # المدينة
             )
         )
 
@@ -40,7 +40,7 @@ def index():
     if status_filter and status_filter != 'all':
         query = query.filter(SupplierWallet.status == status_filter)
 
-    # فلتر البنك (مطابقة تامة أو جزئية حسب القائمة)
+    # فلتر البنك
     if bank_filter and bank_filter != 'all':
         query = query.filter(Supplier.bank_name.ilike(f"%{bank_filter}%"))
 
@@ -92,13 +92,8 @@ def index():
 
 @bp.route('/<int:supplier_id>', methods=['GET'])
 def supplier_ledger_detail(supplier_id):
-    """
-    عرض كشف حساب محفظة مورد معين مع جميع التفاصيل
-    """
     wallet = SupplierWallet.query.get_or_404(supplier_id)
-    
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
-    
     return render_template(
         'admin/supplier_ledger_detail.html',
         wallet=wallet,
