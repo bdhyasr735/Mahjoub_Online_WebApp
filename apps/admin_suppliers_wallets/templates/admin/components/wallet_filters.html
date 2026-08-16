@@ -31,12 +31,15 @@
     <!-- حقل البحث النصي -->
     <div class="relative flex-1">
         <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+        <!-- ✅ تم إضافة onkeyup للبحث اللحظي، و autocomplete="off" لإخفاء القائمة السوداء المزعجة -->
         <input 
             type="text" 
             name="q" 
             value="{{ search_query or '' }}" 
             placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
             class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden focus:border-amber-400 transition"
+            onkeyup="this.form.submit()"
+            autocomplete="off"
         >
     </div>
 
