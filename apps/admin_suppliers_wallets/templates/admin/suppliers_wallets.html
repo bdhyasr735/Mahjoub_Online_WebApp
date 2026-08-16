@@ -113,13 +113,13 @@
                                         👁️
                                     </a>
                                     
-                                    <!-- ✅ زر التدوير (التغذية) الآن ينقل جميع البيانات للمودال -->
+                                    <!-- ✅ زر التغذية الجديد (زر مربع أصفر بعلامة +) -->
                                     <button 
                                         onclick="openFundModal({{ supplier.id }}, '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.wallet_code }}', {{ supplier.balance_sar }})"
-                                        class="w-7 h-7 rounded-full bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition cursor-pointer" 
+                                        class="w-9 h-9 rounded-xl bg-[#FFF8E7] border-2 border-amber-400 flex items-center justify-center text-amber-700 hover:bg-[#FFEEC3] transition cursor-pointer font-bold text-lg" 
                                         title="تغذية / تسوية الرصيد"
                                     >
-                                        🔄
+                                        +
                                     </button>
 
                                     <!-- ✅ زر التجميد الآن ينقل جميع البيانات للمودال -->
