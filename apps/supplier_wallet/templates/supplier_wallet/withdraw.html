@@ -44,7 +44,7 @@
         {% endif %}
     {% endwith %}
 
-    <!-- نموذج تقديم طلب سحب جديد مع حماية النقر المزدوج -->
+    <!-- نموذج تقديم طلب سحب جديد -->
     <div class="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80">
         <div class="border-b border-gray-100 pb-4 mb-5 flex items-center justify-between">
             <h2 class="text-sm font-black text-gray-800 flex items-center gap-2">
@@ -56,7 +56,8 @@
             </span>
         </div>
 
-        <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" class="space-y-4" onsubmit="return handleWithdrawSubmit(this)">
+        <!-- ✅ تم تعديل الـ action ليستخدم endpoint الجديد: submit_withdrawal -->
+        <form method="POST" action="{{ url_for('supplier_wallet.submit_withdrawal') }}" class="space-y-4" onsubmit="return handleWithdrawSubmit(this)">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -99,7 +100,7 @@
 
     <!-- تصفية واستكشاف طلبات السحب -->
     {% set filter_title = 'تصفية والبحث في طلبات السحب' %}
-    {% set action_url = url_for('supplier_wallet.withdraw') %}
+    {% set action_url = url_for('supplier_wallet.submit_withdrawal') %}
     {% set show_status = true %}
     {% set show_type = false %}
     {% set show_dates = true %}
@@ -112,7 +113,7 @@
 
     <!-- 2. شريط التنقل بين الصفحات (مكون معياري) -->
     {% if pagination is defined and render_pagination is defined %}
-        {{ render_pagination(pagination, endpoint='supplier_wallet.withdraw') }}
+        {{ render_pagination(pagination, endpoint='supplier_wallet.submit_withdrawal') }}
     {% endif %}
 
 </div>
