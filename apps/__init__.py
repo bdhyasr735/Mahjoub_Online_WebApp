@@ -61,9 +61,10 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Admin]: {e}")
 
-    # 2. زراعة موظف إدارة
+    # 2. زراعة موظف إدارة مع فحص دقيق لمنع تكرار المفتاح الفريد
     try:
-        if not AdminStaff.query.filter_by(username='admin_staff_test').first():
+        existing_staff = AdminStaff.query.filter_by(username='admin_staff_test').first()
+        if not existing_staff:
             staff = AdminStaff(
                 username='admin_staff_test',
                 name='موظف الإدارة التجريبي',
@@ -125,11 +126,9 @@ def seed_database():
             # --- 🛠️ توليد رقم سند فريد (6 خانات) باستخدام الدالة المعتمدة ---
             seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
 
-            # 📝 إنشاء حركة مالية للمحفظة
+            # 📝 إنشاء حركة مالية للمحفظة (تم إزالة owner_type لتجنب خطأ الحقول غير الموجودة)
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
-                owner_type='supplier',
-                owner_id=supplier.id,
                 trans_type='deposit',
                 status='completed',
                 amount=1000.00,
