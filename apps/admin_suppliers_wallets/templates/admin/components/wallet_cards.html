@@ -1,68 +1,60 @@
-<!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) - التصميم الفاتح -->
+<!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    
-    <!-- كرت 1: إجمالي أرصدة المحافظ -->
-    <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
+    <!-- كرت 1 -->
+    <div class="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-gray-700">إجمالي أرصدة المحافظ</span>
-            <div class="w-9 h-9 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-            </div>
+            <span class="text-sm font-bold text-gray-700">إجمالي أرصدة محافظ الموردين</span>
+            <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center">💳</div>
         </div>
-        <div class="text-3xl font-black font-mono text-gray-900">
+        <div class="text-2xl font-black font-mono text-gray-900">
             {{ "{:,.2f}".format(kpis.total_wallets_balance) }} <span class="text-xs font-sans text-gray-500">ريال</span>
         </div>
-        <div class="mt-1 text-xs text-gray-500">
-            إجمالي الموردين المسجلين: <span class="font-bold text-gray-700 font-mono">{{ "{:,}".format(kpis.total_suppliers_count) }}</span>
+        <div class="mt-1 text-[11px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-2">
+            <span>إجمالي الموردين المسجلين:</span>
+            <span class="font-mono font-bold text-gray-700">{{ "{:,}".format(kpis.total_suppliers_count) }}</span>
         </div>
     </div>
 
-    <!-- كرت 2: الرصيد المتاح للسحب الفوري -->
-    <div class="bg-white border border-emerald-400 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
+    <!-- كرت 2 -->
+    <div class="bg-white border border-emerald-400 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">الرصيد المتاح للسحب الفوري</span>
-            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M8 8h8"></path><path d="M8 12h5"></path><path d="M8 16h3"></path></svg>
-            </div>
+            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-500 flex items-center justify-center">⚡</div>
         </div>
-        <div class="text-3xl font-black font-mono text-emerald-600">
+        <div class="text-2xl font-black font-mono text-emerald-600">
             {{ "{:,.2f}".format(kpis.total_available_payouts) }} <span class="text-xs font-sans text-gray-500">ريال</span>
         </div>
-        <div class="mt-1 text-xs text-gray-500">
-            محافظ نشطة جاهزة للتحويل: <span class="font-bold text-gray-700 font-mono">{{ kpis.active_suppliers_count or 8 }}</span> مورد
+        <div class="mt-1 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
+            جاهز للتحويل الفوري عبر SAMA SARIE
         </div>
     </div>
 
-    <!-- كرت 3: أمانات الضمان المحجوزة (Escrow) -->
-    <div class="bg-white border border-amber-400 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
+    <!-- كرت 3 -->
+    <div class="bg-white border border-amber-400 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">أمانات الضمان المحجوزة (Escrow)</span>
-            <div class="w-9 h-9 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            </div>
+            <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center">🔒</div>
         </div>
-        <div class="text-3xl font-black font-mono text-amber-600">
+        <div class="text-2xl font-black font-mono text-amber-600">
             {{ "{:,.2f}".format(kpis.total_escrow_held) }} <span class="text-xs font-sans text-gray-500">ريال</span>
         </div>
-        <div class="mt-1 text-xs text-gray-500">
-            حماية مشتريات قيد التوصيل
+        <div class="mt-1 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
+            حماية مبيعات قيد الشحن والتسليم
         </div>
     </div>
 
-    <!-- كرت 4: طلبات السحب قيد الانتظار -->
-    <div class="bg-white border border-purple-400 rounded-2xl p-5 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
+    <!-- كرت 4 -->
+    <div class="bg-white border border-purple-400 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">طلبات السحب قيد الانتظار</span>
-            <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-            </div>
+            <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-500 flex items-center justify-center">⏳</div>
         </div>
-        <div class="text-3xl font-black font-mono text-purple-600">
+        <div class="text-2xl font-black font-mono text-purple-600">
             {{ "{:,.2f}".format(kpis.pending_withdrawals_amount) }} <span class="text-xs font-sans text-gray-500">ريال</span>
         </div>
-        <div class="mt-1 text-xs text-gray-500">
-            عدد الطلبات المفتوحة: <span class="font-bold text-gray-700 font-mono">{{ kpis.pending_withdrawals_count or 28 }}</span> طلب سحب
+        <div class="mt-1 text-[11px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-2">
+            <span>عدد الطلبات:</span>
+            <span class="font-mono font-bold text-gray-700">{{ kpis.pending_withdrawals_count }} طلب مفتوح</span>
         </div>
     </div>
-    
 </div>
