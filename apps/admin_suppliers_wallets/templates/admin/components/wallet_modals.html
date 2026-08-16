@@ -1,130 +1,161 @@
-<!-- مودال: قيد حركة مالية (تسوية رصيد) -->
-<div id="walletAdjustmentModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
-        <div class="bg-gray-50 p-5 border-b border-gray-200 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-300 text-amber-600 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </div>
-                <div>
-                    <h3 class="text-base font-extrabold text-gray-900">قيد حركة مالية وتسوية رصيد</h3>
-                    <p class="text-xs font-mono text-amber-600" id="adjModalWalletCode">WAL-SA-XXXX</p>
-                </div>
-            </div>
-            <button onclick="closeModal('walletAdjustmentModal')" class="w-8 h-8 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-500 flex items-center justify-center transition cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
+// دوال فتح وإغلاق المودالات
+function openWalletAdjustmentModal(walletId, walletCode, supplierName, currentBalance) {
+    document.getElementById('adjWalletId').value = walletId;
+    document.getElementById('adjModalWalletCode').innerText = walletCode;
+    document.getElementById('adjSupplierName').innerText = supplierName;
+    document.getElementById('adjCurrentBalance').innerText = parseFloat(currentBalance).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ريال';
+    document.getElementById('adjAmount').value = '';
+    document.getElementById('adjDescription').value = '';
+    document.getElementById('walletAdjustmentModal').classList.remove('hidden');
+}
 
-        <form id="walletAdjustmentForm" onsubmit="handleWalletAdjustmentSubmit(event)" class="p-6 space-y-4 text-sm">
-            <input type="hidden" id="adjWalletId" name="wallet_id" value="">
-            <!-- تفاصيل المورد -->
-            <div class="p-3 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between">
-                <div>
-                    <span class="text-gray-400 text-[11px] block">المورد المستفيد:</span>
-                    <span class="font-bold text-gray-800" id="adjSupplierName">-</span>
-                </div>
-                <div class="text-left">
-                    <span class="text-gray-400 text-[11px] block">الرصيد المتاح:</span>
-                    <span class="font-mono font-bold text-emerald-600" id="adjCurrentBalance">0.00 ريال</span>
-                </div>
-            </div>
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('hidden');
+}
 
-            <!-- نوع القيد -->
-            <div>
-                <label class="block text-gray-700 font-bold mb-2">نوع القيد المحاسبي:</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="p-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 flex items-center gap-2 cursor-pointer hover:bg-emerald-100 transition has-checked:border-emerald-500">
-                        <input type="radio" name="entry_type" value="credit" checked class="accent-emerald-600">
-                        <div>
-                            <span class="font-bold text-emerald-700 block">إيداع / تغذية (+)</span>
-                            <span class="text-[10px] text-gray-500">إضافة أرباح، تسوية مستحقات</span>
-                        </div>
-                    </label>
-                    <label class="p-3 rounded-xl border-2 border-gray-200 bg-white flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition has-checked:border-rose-400">
-                        <input type="radio" name="entry_type" value="debit" class="accent-rose-600">
-                        <div>
-                            <span class="font-bold text-rose-600 block">خصم / تسوية (-)</span>
-                            <span class="text-[10px] text-gray-500">رسوم منصة، مرتجعات</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
+function openVoucherModal(voucherNumber, refCode, amount, typeLabel, date, description) {
+    document.getElementById('modalVoucherNumber').innerText = voucherNumber;
+    document.getElementById('modalVoucherAmount').innerText = parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' ريال';
+    document.getElementById('modalVoucherType').innerText = typeLabel;
+    document.getElementById('modalVoucherDate').innerText = date;
+    document.getElementById('modalDescription').innerText = description;
+    document.getElementById('voucherDetailModal').classList.remove('hidden');
+}
 
-            <!-- المبلغ -->
-            <div>
-                <label class="block text-gray-700 font-bold mb-1.5">المبلغ المراد قيده (ريال):</label>
-                <div class="relative">
-                    <input type="number" step="0.01" min="1" required id="adjAmount" name="amount" placeholder="0.00" class="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-gray-900 font-mono font-bold text-base focus:border-amber-500 focus:outline-none">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-600">ريال</span>
-                </div>
-            </div>
+// دالة إرسال الحركة المالية
+async function handleWalletAdjustmentSubmit(event) {
+    event.preventDefault();
+    const submitBtn = document.getElementById('adjSubmitBtn');
+    const walletId = document.getElementById('adjWalletId').value;
+    const amount = document.getElementById('adjAmount').value;
+    const entryType = document.querySelector('input[name="entry_type"]:checked').value;
+    const description = document.getElementById('adjDescription').value;
 
-            <!-- البيان -->
-            <div>
-                <label class="block text-gray-700 font-bold mb-1.5">البيان المحاسبي ورقم المرجع:</label>
-                <textarea required id="adjDescription" name="description" rows="2" placeholder="اكتب سبب القيد ورقم المرجع..." class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 text-xs focus:border-amber-400 focus:outline-none"></textarea>
-            </div>
+    if (!amount || parseFloat(amount) <= 0) {
+        alert('⚠️ الرجاء إدخال مبلغ صحيح أكبر من الصفر');
+        return;
+    }
 
-            <!-- أزرار -->
-            <div class="pt-2 flex items-center gap-2">
-                <button type="submit" id="adjSubmitBtn" class="flex-1 py-2.5 bg-[#4C1D95] hover:bg-[#3B167A] text-white font-bold rounded-xl transition flex items-center justify-center gap-2 text-sm cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    اعتماد وقيد السند فوراً
-                </button>
-                <button type="button" onclick="closeModal('walletAdjustmentModal')" class="px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold rounded-xl transition text-sm cursor-pointer">إلغاء</button>
-            </div>
-        </form>
-    </div>
-</div>
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="animate-spin">⏳</span> جاري قيد السند...';
 
-<!-- مودال: عرض السند المحاسبي المعتمد -->
-<div id="voucherDetailModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
-        <div class="bg-gray-50 p-5 border-b border-gray-200 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-emerald-100 border border-emerald-300 text-emerald-600 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><polyline points="20 10 12 18 8 14"/></svg>
-                </div>
-                <div>
-                    <h3 class="text-base font-extrabold text-gray-900">سند حركة مالية معتمد</h3>
-                    <p class="text-xs font-mono text-emerald-600" id="modalVoucherNumber">VCH-XXXXXX</p>
-                </div>
-            </div>
-            <button onclick="closeModal('voucherDetailModal')" class="w-8 h-8 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-500 flex items-center justify-center transition cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
+    try {
+        const response = await fetch(`/admin/suppliers-wallets/${walletId}/adjust`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ amount: parseFloat(amount), type: entryType, description: description })
+        });
 
-        <div class="p-6 space-y-4 text-sm">
-            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex items-center justify-between">
-                <div>
-                    <span class="text-gray-400 block text-xs">المبلغ الصافي:</span>
-                    <span class="text-xl font-black font-mono text-emerald-600" id="modalVoucherAmount">0.00 ريال</span>
-                </div>
-                <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold">معتمد ✓</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div class="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                    <span class="text-gray-400 text-xs block">تاريخ الإصدار:</span>
-                    <span class="font-mono text-gray-800 font-bold" id="modalVoucherDate">-</span>
-                </div>
-                <div class="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                    <span class="text-gray-400 text-xs block">نوع الحركة:</span>
-                    <span class="text-amber-600 font-bold" id="modalVoucherType">-</span>
-                </div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span class="text-gray-400 text-xs block mb-1">البيان المحاسبي:</span>
-                <p class="text-gray-800 leading-relaxed" id="modalDescription">-</p>
-            </div>
-        </div>
+        const data = await response.json();
 
-        <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-            <button onclick="window.print()" class="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold flex items-center gap-2 transition cursor-pointer">
-                🖨️ طباعة السند
-            </button>
-            <button onclick="closeModal('voucherDetailModal')" class="px-6 py-2 bg-[#4C1D95] hover:bg-[#3B167A] text-white font-bold rounded-xl text-xs transition cursor-pointer">إغلاق</button>
-        </div>
-    </div>
-</div>
+        if (response.ok && data.status === 'success') {
+            closeModal('walletAdjustmentModal');
+            openVoucherModal(
+                data.voucher_code || 'VCH-NEW',
+                data.ref_code || 'TXN-NEW',
+                amount,
+                entryType === 'credit' ? 'سند قبض / تغذية دائنة' : 'سند صرف / تسوية مدينة',
+                new Date().toISOString().slice(0, 16).replace('T', ' '),
+                description
+            );
+            // تنبيه نجاح عائم (Toast) - أنيق وخفيف
+            Swal.fire({
+                icon: 'success',
+                title: 'تم بنجاح!',
+                text: data.message || 'تم قيد الحركة المالية بنجاح.',
+                timer: 3000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+                background: '#ffffff',
+                color: '#1e293b',
+                iconColor: '#10b981'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'فشلت العملية',
+                text: data.message || 'حدث خطأ غير معروف.',
+                background: '#ffffff',
+                color: '#1e293b',
+                confirmButtonColor: '#4C1D95'
+            });
+        }
+    } catch (error) {
+        console.error('Adjustment Error:', error);
+        Swal.fire('خطأ', 'حدث خطأ في الاتصال بالخادم.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'اعتماد وقيد السند فوراً';
+    }
+}
+
+// ✅ تأكيد تجميد/تنشيط المحفظة (نسخة متطابقة مع التصميم الفاتح)
+function confirmWalletStatusToggle(walletId, supplierName, currentStatus, endpointUrl) {
+    const isFreezing = currentStatus === 'active';
+    const actionText = isFreezing ? 'تجميد' : 'تنشيط وفك حظر';
+    
+    // الألوان المطابقة للواجهة الفاتحة
+    const bgColor = '#ffffff';
+    const textColor = '#1e293b';
+
+    Swal.fire({
+        title: `تأكيد ${actionText} محفظة المورد`,
+        html: `
+            <div class="text-right space-y-3 mt-2" style="text-align: right; direction: rtl;">
+                <p class="text-sm font-medium text-gray-700">هل أنت متأكد من رغبتك في <strong>${actionText}</strong> محفظة المورد: <strong class="text-amber-600">${supplierName}</strong>؟</p>
+                <p class="text-xs text-gray-500">${isFreezing ? 'سيتم إيقاف عمليات السحب والتحويلات البنكية فوراً.' : 'سيتم تمكين المورد من طلبات السحب والمعاملات فوراً.'}</p>
+                <div class="mt-4">
+                    <label class="block text-xs font-bold text-gray-700 mb-1 text-right">سبب الإجراء (للتوثيق المحاسبي):</label>
+                    <input id="swal-freeze-reason" class="swal2-input w-full border border-gray-300 rounded-lg p-2 text-sm" placeholder="اكتب سبب الإجراء..." style="width: 100%; background-color: #f9fafb; color: #1e293b;">
+                </div>
+            </div>
+        `,
+        icon: isFreezing ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonColor: isFreezing ? '#e11d48' : '#10b981', // أحمر للتجميد، أخضر للتنشيط
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: `نعم، قم بـ ${actionText} الآن`,
+        cancelButtonText: 'إلغاء',
+        background: bgColor,
+        color: textColor,
+        preConfirm: () => {
+            const reason = document.getElementById('swal-freeze-reason').value;
+            return { reason: reason || 'إجراء إداري دوري' };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(endpointUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({ reason: result.value.reason })
+                });
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'success') {
+                    // رسالة نجاح عائمة (Toast)
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم بنجاح!',
+                        text: data.message || 'تم تحديث حالة المحفظة بنجاح',
+                        timer: 2500,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end',
+                        background: '#ffffff',
+                        color: '#1e293b',
+                        iconColor: '#10b981'
+                    }).then(() => {
+                        window.location.reload(); // تحديث الصفحة
+                    });
+                } else {
+                    Swal.fire('خطأ', 'فشل تحديث الحالة', 'error');
+                }
+            } catch (e) {
+                Swal.fire('خطأ', 'فشل تحديث الحالة', 'error');
+            }
+        }
+    });
+}
