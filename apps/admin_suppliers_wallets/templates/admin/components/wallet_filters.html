@@ -1,149 +1,106 @@
-<!-- 1. أزرار تصفية الحالة (Status Chips) والعداد -->
-<div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="text-amber-400 text-xs font-bold ml-2">🔽 تصفية الحالة</span>
-        
-        <!-- زر الكل -->
-        <a href="{{ request.path }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'all' or not status_filter %}bg-[#2B1B4E] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            الكل <span class="text-[10px] opacity-70">10</span>
-        </a>
+# coding: utf-8
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from apps.models import SupplierWallet, WalletTransaction, Supplier, db
+from sqlalchemy import or_, func
+from decimal import Decimal
 
-        <!-- زر نشطة -->
-        <a href="{{ request.path }}?status=active" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'active' %}bg-emerald-100 text-emerald-700 border-emerald-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            ✅ نشطة <span class="text-[10px] opacity-70">8</span>
-        </a>
+bp = Blueprint('suppliers_wallets_controller', __name__)
 
-        <!-- زر مجمدة -->
-        <a href="{{ request.path }}?status=frozen" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'frozen' %}bg-rose-100 text-rose-700 border-rose-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            🔒 مجمدة <span class="text-[10px] opacity-70">1</span>
-        </a>
+PER_PAGE = 10
 
-        <!-- زر تحت المراجعة -->
-        <a href="{{ request.path }}?status=under_review" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'under_review' %}bg-purple-100 text-purple-700 border-purple-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            🛡️ تحت المراجعة <span class="text-[10px] opacity-70">1</span>
-        </a>
-    </div>
-    <span class="text-[11px] text-gray-400 font-medium" id="pagination_count_text">عرض 10 من 10 محفظة</span>
-</div>
+@bp.route('/', methods=['GET'])
+def index():
+    """
+    الصفحة الرئيسية لوحة تحكم محافظ الموردين مع حساب دقيق للأهلّة
+    """
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
+    status_filter = request.args.get('status', 'all', type=str)
+    bank_filter = request.args.get('bank', 'all', type=str)
 
-<!-- 2. شريط البحث والفلترة المتقدمة -->
-<!-- ⚠️ ملاحظة: تم إزالة action="" لأننا سنستخدم JS -->
-<form id="searchFilterForm" class="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-    <!-- حقل البحث النصي -->
-    <div class="relative flex-1">
-        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-        <input 
-            id="liveSearchInput"
-            type="text" 
-            name="q" 
-            value="{{ search_query or '' }}" 
-            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
-            class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden focus:border-amber-400 transition"
-            autocomplete="off"
-        >
-    </div>
+    # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
+    query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    <!-- القوائم المنسدلة للفلترة -->
-    <div class="flex flex-wrap items-center gap-2">
-        <select 
-            id="statusSelect"
-            name="status" 
-            class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer"
-        >
-            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
-            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
-            <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
-            <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
-        </select>
+    # ✅ تم إصلاح البحث: إزالة commercial_reg وحل مشكلة AttributeError
+    if search_query:
+        search_term = f"%{search_query}%"
+        query = query.filter(
+            or_(
+                SupplierWallet.wallet_code.ilike(search_term),
+                Supplier.trade_name.ilike(search_term),  # الاسم التجاري
+                Supplier.store_name.ilike(search_term),   # اسم المتجر
+                Supplier.username.ilike(search_term),     # اسم المستخدم
+                Supplier.supplier_code.ilike(search_term), # كود المورد (بديل للسجل التجاري إن وجد)
+                Supplier.iban.ilike(search_term),         # الآيبان
+                Supplier.city.ilike(search_term)          # المدينة
+            )
+        )
 
-        <select 
-            id="bankSelect"
-            name="bank" 
-            class="px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 focus:outline-hidden focus:border-amber-400 cursor-pointer"
-        >
-            <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
-            <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
-            <option value="الأهلي" {% if bank_filter == 'الأهلي' %}selected{% endif %}>البنك الأهلي (SNB)</option>
-            <option value="الإنماء" {% if bank_filter == 'الإنماء' %}selected{% endif %}>مصرف الإنماء</option>
-            <option value="الرياض" {% if bank_filter == 'الرياض' %}selected{% endif %}>بنك الرياض</option>
-            <option value="البلاد" {% if bank_filter == 'البلاد' %}selected{% endif %}>بنك البلاد</option>
-        </select>
+    # فلتر الحالة (نشطة / مجمدة)
+    if status_filter and status_filter != 'all':
+        query = query.filter(SupplierWallet.status == status_filter)
 
-        <button 
-            type="button" 
-            id="applyFilterBtn"
-            class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm"
-        >
-            تطبيق الفلترة
-        </button>
+    # فلتر البنك (مطابقة تامة أو جزئية حسب القائمة)
+    if bank_filter and bank_filter != 'all':
+        query = query.filter(Supplier.bank_name.ilike(f"%{bank_filter}%"))
 
-        <!-- زر إعادة الضبط (Reset) -->
-        <a href="{{ request.path }}" 
-           class="px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition">
-            إعادة
-        </a>
-    </div>
-</form>
+    # ترتيب النتائج (الأحدث أولاً)
+    query = query.order_by(SupplierWallet.id.desc())
 
-<!-- 🟢 سكربت البحث اللحظي بدون إعادة تحميل (AJAX) -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('searchFilterForm');
-    const searchInput = document.getElementById('liveSearchInput');
-    const statusSelect = document.getElementById('statusSelect');
-    const bankSelect = document.getElementById('bankSelect');
-    const applyBtn = document.getElementById('applyFilterBtn');
-    
-    let timeoutId;
+    # حساب مؤشرات الأداء الرئيسية (KPIs)
+    total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
+    total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
+    pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
 
-    // دالة لجلب البيانات وتحديث الجدول
-    function fetchFilteredData() {
-        const params = new URLSearchParams({
-            q: searchInput.value,
-            status: statusSelect.value,
-            bank: bankSelect.value
-        });
+    total_wallets_balance = Decimal(str(total_sar_balance)) + Decimal(str(total_pending_balance))
 
-        // إرسال الطلب إلى نفس الرابط ولكن في الخلفية
-        fetch(`{{ request.path }}?${params.toString()}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.text())
-        .then(html => {
-            // استخراج الجدول الجديد من الـ HTML المرتجع
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newTableBody = doc.querySelector('tbody');
-            const newPaginationText = doc.querySelector('#pagination_count_text');
-            
-            // تحديث الجدول
-            const currentTableBody = document.querySelector('tbody');
-            if(currentTableBody && newTableBody) {
-                currentTableBody.outerHTML = newTableBody.outerHTML;
-            }
-
-            // تحديث نص العداد (إن وجد)
-            if(newPaginationText) {
-                document.getElementById('pagination_count_text').innerText = newPaginationText.innerText;
-            }
-
-            // تحديث الرابط في المتصفح بدون إعادة تحميل (اختياري: لمحبي التخزين في التاريخ)
-            // history.replaceState({}, '', `{{ request.path }}?${params.toString()}`);
-        })
-        .catch(error => console.error('خطأ في البحث:', error));
+    kpis = {
+        'total_wallets_balance': total_wallets_balance,
+        'total_available_payouts': total_sar_balance,
+        'total_escrow_held': total_pending_balance,
+        'total_suppliers_count': SupplierWallet.query.count(),
+        'active_suppliers_count': SupplierWallet.query.filter_by(status='active').count(),
+        'pending_withdrawals_amount': pending_withdrawals_amount,
+        'pending_withdrawals_count': WalletTransaction.query.filter_by(status='pending').count()
     }
 
-    // البحث التلقائي عند الكتابة (مع تأخير 500ms للحفاظ على أداء الخادم)
-    searchInput.addEventListener('input', function() {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(fetchFilteredData, 500);
-    });
+    # تنفيذ الترقيم (Pagination)
+    pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
+    suppliers = pagination_obj.items
 
-    // البحث عند تغيير القوائم المنسدلة
-    statusSelect.addEventListener('change', fetchFilteredData);
-    bankSelect.addEventListener('change', fetchFilteredData);
+    pagination = {
+        'current_page': pagination_obj.page,
+        'total_pages': pagination_obj.pages,
+        'has_prev': pagination_obj.has_prev,
+        'has_next': pagination_obj.has_next,
+        'total_count': pagination_obj.total,
+        'per_page': PER_PAGE,
+        'prev_num': pagination_obj.prev_num,
+        'next_num': pagination_obj.next_num,
+    }
 
-    // البحث عند الضغط على زر "تطبيق الفلترة"
-    applyBtn.addEventListener('click', fetchFilteredData);
-});
-</script>
+    return render_template(
+        'admin/suppliers_wallets.html',
+        kpis=kpis,
+        pagination=pagination,
+        suppliers=suppliers,
+        search_query=search_query,
+        status_filter=status_filter,
+        bank_filter=bank_filter
+    )
+
+
+@bp.route('/<int:supplier_id>', methods=['GET'])
+def supplier_ledger_detail(supplier_id):
+    """
+    عرض كشف حساب محفظة مورد معين مع جميع التفاصيل
+    """
+    wallet = SupplierWallet.query.get_or_404(supplier_id)
+    
+    transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
+    
+    return render_template(
+        'admin/supplier_ledger_detail.html',
+        wallet=wallet,
+        transactions=transactions
+    )
