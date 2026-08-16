@@ -1,49 +1,53 @@
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <!-- إجمالي أرصدة المحافظ -->
-    <div class="bg-white p-5 rounded-3xl shadow-md border border-[#E5E2DC] flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between">
-            <div class="text-xs text-[#6C757D] font-bold">إجمالي أرصدة المحافظ</div>
-            <div class="w-8 h-8 rounded-full bg-[#1a0b2e]/10 flex items-center justify-center text-sm">🏛️</div>
-        </div>
-        <div class="text-2xl font-black font-mono text-[#1E1B18] mt-3">
-            {{ "{:,.2f}".format(kpis.total_wallets_balance) }} <span class="text-xs font-normal text-gray-500">ريال</span>
-        </div>
-        <div class="text-[10px] text-[#6C757D] mt-1 font-medium">إجمالي الموردين المسجلين ({{ kpis.total_suppliers_count }})</div>
+<!-- شريط البحث والفلترة المتقدمة -->
+<form method="GET" action="" class="bg-[#1A102A] border border-[#362052] p-4 rounded-2xl shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+    <!-- حقل البحث النصي -->
+    <div class="relative flex-1">
+        <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+        <input 
+            type="text" 
+            name="q" 
+            value="{{ search_query or '' }}" 
+            placeholder="بحث باسم المورد، كود المحفظة (WAL-)، السجل التجاري، الآيبان، أو المدينة..." 
+            class="w-full pl-4 pr-10 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs text-white placeholder-slate-400 focus:outline-hidden focus:border-amber-400 transition"
+        >
     </div>
 
-    <!-- الرصيد المتاح للسحب الفوري -->
-    <div class="bg-white p-5 rounded-3xl shadow-md border border-[#E5E2DC] flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between">
-            <div class="text-xs text-[#6C757D] font-bold">الرصيد المتاح للسحب الفوري</div>
-            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm">💳</div>
-        </div>
-        <div class="text-2xl font-black font-mono text-emerald-600 mt-3">
-            {{ "{:,.2f}".format(kpis.total_available_payouts) }} <span class="text-xs font-normal text-gray-500">ريال</span>
-        </div>
-        <div class="text-[10px] text-emerald-700 mt-1 font-bold">محافظ نشطة جاهزة للتحويل المالي</div>
-    </div>
+    <!-- القوائم المنسدلة للفلترة -->
+    <div class="flex flex-wrap items-center gap-2">
+        <select 
+            name="status" 
+            onchange="this.form.submit()" 
+            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-hidden focus:border-amber-400 cursor-pointer"
+        >
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>كل الحالات</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>محافظ نشطة</option>
+            <option value="frozen" {% if status_filter == 'frozen' %}selected{% endif %}>محافظ مجمدة</option>
+            <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>تحت المراجعة</option>
+        </select>
 
-    <!-- أمانات الضمان المحجوزة Escrow -->
-    <div class="bg-white p-5 rounded-3xl shadow-md border border-[#E5E2DC] flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between">
-            <div class="text-xs text-[#6C757D] font-bold">أمانات الضمان المحجوزة (Escrow)</div>
-            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm">🛡️</div>
-        </div>
-        <div class="text-2xl font-black font-mono text-amber-600 mt-3">
-            {{ "{:,.2f}".format(kpis.total_escrow_held) }} <span class="text-xs font-normal text-gray-500">ريال</span>
-        </div>
-        <div class="text-[10px] text-amber-700 mt-1 font-medium">🔒 حماية مبيعات قيد التوصيل</div>
-    </div>
+        <select 
+            name="bank" 
+            onchange="this.form.submit()" 
+            class="px-3 py-2.5 bg-[#120A1F] border border-[#362052] rounded-xl text-xs font-bold text-slate-200 focus:outline-hidden focus:border-amber-400 cursor-pointer"
+        >
+            <option value="all" {% if bank_filter == 'all' %}selected{% endif %}>كل البنوك المعتمدة</option>
+            <option value="الراجحي" {% if bank_filter == 'الراجحي' %}selected{% endif %}>مصرف الراجحي</option>
+            <option value="الأهلي" {% if bank_filter == 'الأهلي' %}selected{% endif %}>البنك الأهلي (SNB)</option>
+            <option value="الإنماء" {% if bank_filter == 'الإنماء' %}selected{% endif %}>مصرف الإنماء</option>
+            <option value="الرياض" {% if bank_filter == 'الرياض' %}selected{% endif %}>بنك الرياض</option>
+            <option value="البلاد" {% if bank_filter == 'البلاد' %}selected{% endif %}>بنك البلاد</option>
+        </select>
 
-    <!-- طلبات السحب قيد الانتظار -->
-    <div class="bg-white p-5 rounded-3xl shadow-md border border-[#E5E2DC] flex flex-col justify-between relative overflow-hidden">
-        <div class="flex items-center justify-between">
-            <div class="text-xs text-[#6C757D] font-bold">طلبات السحب قيد الانتظار</div>
-            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm">↗️</div>
-        </div>
-        <div class="text-2xl font-black font-mono text-[#4A134E] mt-3">
-            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount) }} <span class="text-xs font-normal text-gray-500">ريال</span>
-        </div>
-        <div class="text-[10px] text-[#4A134E] mt-1 font-bold">طلب سحب {{ kpis.pending_withdrawals_count }} مفتوحة</div>
+        <!-- زر مسح الفلاتر -->
+        <a href="{{ url_for(request.endpoint) }}" class="px-3 py-2.5 bg-[#231538] hover:bg-[#362052] text-slate-400 text-xs font-bold rounded-xl border border-[#4B2A73]/40 transition">
+            إعادة
+        </a>
+
+        <button 
+            type="submit" 
+            class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-[#120A1F] rounded-xl text-xs font-black transition shadow-sm"
+        >
+            تطبيق الفلترة
+        </button>
     </div>
-</div>
+</form>
