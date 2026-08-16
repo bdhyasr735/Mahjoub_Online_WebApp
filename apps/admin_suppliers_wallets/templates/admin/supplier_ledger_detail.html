@@ -54,15 +54,15 @@
         </div>
     </div>
 
-    <!-- جدول الحركات المالية -->
+    <!-- جدول الحركات المالية المكتملة -->
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-sm font-bold text-gray-800">سجل الحركات المالية الحديثة</h3>
-            <span class="text-xs text-gray-500" id="transactions_count">({{ transactions|length }} حركة)</span>
+            <h3 class="text-sm font-bold text-gray-800">سجل الحركات المالية المكتملة</h3>
+            <span class="text-xs text-gray-500">({{ transactions_pagination.total }} حركة)</span>
         </div>
         
         <div class="overflow-x-auto">
-            <table id="transactionsTable" class="w-full text-right text-xs">
+            <table class="w-full text-right text-xs">
                 <thead class="bg-[#F8F9FA] text-gray-500 font-bold border-b-2 border-gray-200">
                     <tr>
                         <th class="py-3 px-4">المرجع</th>
@@ -72,10 +72,9 @@
                         <th class="py-3 px-4 text-left">الرصيد بعد</th>
                     </tr>
                 </thead>
-                <!-- ✅ تم إضافة border-b لكل صف لضمان ظهور الخطوط -->
-                <tbody id="transactionsTableBody">
-                    {% for tx in transactions %}
-                    <tr class="hover:bg-gray-50 transition border-b border-gray-200 last:border-b-0 transaction-row">
+                <tbody class="divide-y divide-gray-200">
+                    {% for tx in transactions_pagination.items %}
+                    <tr class="hover:bg-gray-50 transition">
                         <td class="py-3 px-4 font-mono text-gray-600">{{ tx.reference_number or '---' }}</td>
                         <td class="py-3 px-4 text-gray-600">{{ tx.formatted_time }}</td>
                         <td class="py-3 px-4 text-gray-800">{{ tx.description or '---' }}</td>
@@ -86,74 +85,35 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-gray-400">لا توجد حركات مالية مسجلة لهذا المورد</td>
+                        <td colspan="5" class="py-8 text-center text-gray-400">لا توجد حركات مالية مكتملة لهذا المورد</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- ✅ أزرار تقليب الصفحات - ستختفي تلقائياً إذا كانت الصفحة واحدة -->
-        <div id="transactionsPagination" class="p-4 border-t border-gray-100 flex items-center justify-center gap-2 bg-gray-50/50 hidden">
-            <button id="prevPageBtn" onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
-                السابق
-            </button>
-            <span id="currentPageDisplay" class="px-3 py-1 bg-[#2B1B4E] text-white rounded-lg text-xs font-black">1</span>
-            <button id="nextPageBtn" onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                التالي
-            </button>
+        <!-- شريط الترقيم الديناميكي -->
+        {% if transactions_pagination.pages > 1 %}
+        <div class="p-4 border-t border-gray-100 flex items-center justify-center gap-2 bg-gray-50/50">
+            {% set query_params = request.args.copy() %}
+            {% set _ = query_params.pop('page', None) %}
+            
+            {% if transactions_pagination.has_prev %}
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=wallet.id, page=transactions_pagination.prev_num, **query_params) }}" class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 transition">السابق</a>
+            {% else %}
+            <button class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-300 cursor-not-allowed" disabled>السابق</button>
+            {% endif %}
+
+            <span class="px-3 py-1 bg-[#2B1B4E] text-white rounded-lg text-xs font-black">{{ transactions_pagination.page }}</span>
+
+            {% if transactions_pagination.has_next %}
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=wallet.id, page=transactions_pagination.next_num, **query_params) }}" class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 transition">التالي</a>
+            {% else %}
+            <button class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-300 cursor-not-allowed" disabled>التالي</button>
+            {% endif %}
         </div>
+        {% endif %}
     </div>
 
 </div>
-
-<!-- ✅ كود JavaScript المحسّن لإخفاء الترقيم إذا كان أقل من 10 حركات -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const rows = document.querySelectorAll('#transactionsTableBody .transaction-row');
-    const paginationWrapper = document.getElementById('transactionsPagination');
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    const pageDisplay = document.getElementById('currentPageDisplay');
-    const itemsPerPage = 10;
-    let currentPage = 1;
-    const totalPages = Math.ceil(rows.length / itemsPerPage);
-
-    function showPage(page) {
-        const start = (page - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-
-        rows.forEach((row, index) => {
-            if (index >= start && index < end) {
-                row.style.display = ''; // إظهار
-            } else {
-                row.style.display = 'none'; // إخفاء
-            }
-        });
-
-        pageDisplay.innerText = page;
-        prevBtn.disabled = page === 1;
-        nextBtn.disabled = page === totalPages || totalPages === 0;
-    }
-
-    window.changePage = function(direction) {
-        const newPage = currentPage + direction;
-        if (newPage >= 1 && newPage <= totalPages) {
-            currentPage = newPage;
-            showPage(currentPage);
-        }
-    }
-
-    // تشغيل الترقيم وإخفاء الأزرار إذا كانت الصفحة واحدة
-    if (rows.length > 0) {
-        showPage(1);
-        if (totalPages > 1) {
-            paginationWrapper.classList.remove('hidden');
-        }
-    } else {
-        paginationWrapper.style.display = 'none';
-    }
-});
-</script>
-
 {% endblock %}
