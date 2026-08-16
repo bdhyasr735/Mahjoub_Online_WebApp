@@ -1,6 +1,6 @@
 # coding: utf-8
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
-from apps.models import SupplierWallet, WalletTransaction, db
+from apps.models import SupplierWallet, WalletTransaction, Supplier, db
 from sqlalchemy import or_, func
 from decimal import Decimal
 
@@ -16,28 +16,40 @@ def index():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     status_filter = request.args.get('status', 'all', type=str)
-    
-    query = SupplierWallet.query
+    bank_filter = request.args.get('bank', 'all', type=str)  # ✅ إضافة فلتر البنك
 
+    # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
+    query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
+
+    # تطبيق البحث النصي (يشمل الحقول المطلوبة)
     if search_query:
         search_term = f"%{search_query}%"
-        query = query.join(SupplierWallet.supplier).filter(
+        query = query.filter(
             or_(
                 SupplierWallet.wallet_code.ilike(search_term),
                 Supplier.supplier_name.ilike(search_term),
-                Supplier.commercial_reg.ilike(search_term)
+                Supplier.commercial_reg.ilike(search_term),
+                Supplier.iban.ilike(search_term),      # ✅ إضافة الآيبان
+                Supplier.city.ilike(search_term)       # ✅ إضافة المدينة
             )
         )
 
+    # فلتر الحالة (نشطة / مجمدة)
     if status_filter and status_filter != 'all':
         query = query.filter(SupplierWallet.status == status_filter)
 
-    # استخدام Decimal(0) لضمان عدم ضياع أي هللة أثناء الجمع والحسابات المالية
+    # فلتر البنك (مطابقة تامة أو جزئية حسب القائمة)
+    if bank_filter and bank_filter != 'all':
+        query = query.filter(Supplier.bank_name.ilike(f"%{bank_filter}%"))
+
+    # ترتيب النتائج (الأحدث أولاً)
+    query = query.order_by(SupplierWallet.id.desc())
+
+    # حساب مؤشرات الأداء الرئيسية (KPIs) باستخدام Decimal لتجنب فقدان الدقة
     total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
     total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
     pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
 
-    # ضمان توافق الأنواع تماماً من نوع Decimal لدقة الأهلّة
     total_wallets_balance = Decimal(str(total_sar_balance)) + Decimal(str(total_pending_balance))
 
     kpis = {
@@ -50,6 +62,7 @@ def index():
         'pending_withdrawals_count': WalletTransaction.query.filter_by(status='pending').count()
     }
 
+    # تنفيذ الترقيم (Pagination)
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
     suppliers = pagination_obj.items
 
@@ -59,7 +72,9 @@ def index():
         'has_prev': pagination_obj.has_prev,
         'has_next': pagination_obj.has_next,
         'total_count': pagination_obj.total,
-        'per_page': PER_PAGE
+        'per_page': PER_PAGE,
+        'prev_num': pagination_obj.prev_num,
+        'next_num': pagination_obj.next_num,
     }
 
     return render_template(
@@ -68,13 +83,21 @@ def index():
         pagination=pagination,
         suppliers=suppliers,
         search_query=search_query,
-        status_filter=status_filter
+        status_filter=status_filter,
+        bank_filter=bank_filter  # ✅ تمرير الفلتر للقالب
     )
+
 
 @bp.route('/<int:supplier_id>', methods=['GET'])
 def supplier_ledger_detail(supplier_id):
+    """
+    عرض كشف حساب محفظة مورد معين مع جميع التفاصيل
+    """
     wallet = SupplierWallet.query.get_or_404(supplier_id)
+    # هنا يمكن إضافة جلب المعاملات إذا أردت عرضها في صفحة التفاصيل
+    transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
     return render_template(
         'admin/supplier_ledger_detail.html',
-        wallet=wallet
+        wallet=wallet,
+        transactions=transactions  # ✅ تمرير المعاملات للقالب
     )
