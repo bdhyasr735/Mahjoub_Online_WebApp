@@ -62,24 +62,24 @@
                                 {{ supplier.wallet_code }}
                             </td>
                             <td class="py-4 px-4">
-                                <div class="font-extrabold text-white">{{ supplier.supplier_name }}</div>
-                                <div class="text-[11px] text-slate-400 mt-0.5">{{ supplier.category|default('مورد معتمد') }}</div>
+                                <div class="font-extrabold text-white">{{ supplier.supplier.supplier_name }}</div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">{{ supplier.supplier.category|default('مورد معتمد') }}</div>
                             </td>
                             <td class="py-4 px-4 font-mono text-slate-300">
-                                {{ supplier.commercial_reg|default('-') }}
+                                {{ supplier.supplier.commercial_reg|default('-') }}
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-black text-emerald-400">
                                 {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-bold text-amber-400">
-                                {{ "0.00" }}  <!-- تم التعديل: لا يوجد حقل للضمان، وضعنا صفر -->
+                                {{ "0.00" }}  <!-- لا يوجد حقل للضمان -->
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-black text-white text-sm">
                                 {{ "{:,.2f}".format(supplier.balance_sar|float) }}
                             </td>
                             <td class="py-4 px-4">
-                                <div class="font-bold text-slate-200">{{ supplier.bank_name|default('-') }}</div>
-                                <div class="text-[10px] font-mono text-slate-400 truncate max-w-[120px]">{{ supplier.iban|default('-') }}</div>
+                                <div class="font-bold text-slate-200">{{ supplier.supplier.bank_name|default('-') }}</div>
+                                <div class="text-[10px] font-mono text-slate-400 truncate max-w-[120px]">{{ supplier.supplier.iban|default('-') }}</div>
                             </td>
                             <td class="py-4 px-4 text-center">
                                 {% if supplier.status == 'active' %}
@@ -114,30 +114,28 @@
         </div>
 
         <!-- شريط الترقيم والتنقل مع الحفاظ على الفلاتر -->
-        {% if pagination and pagination.pages > 1 %}
+        {% if pagination and pagination.total_pages > 1 %}
         {% set current_args = request.args.to_dict() %}
         {% set _ = current_args.pop('page', None) %}
         <div class="px-6 py-4 bg-[#160D26] border-t border-[#362052] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
             <div>
-                عرض الصفحة <span class="font-bold text-white font-mono">{{ pagination.page|default(pagination.current_page) }}</span> من إجمالي <span class="font-bold text-white font-mono">{{ pagination.pages }}</span> صفحات
+                عرض الصفحة <span class="font-bold text-white font-mono">{{ pagination.current_page }}</span> من إجمالي <span class="font-bold text-white font-mono">{{ pagination.total_pages }}</span> صفحات
             </div>
 
             <div class="flex items-center gap-1.5 font-mono font-bold">
-                {% set prev_p = pagination.prev_num|default(pagination.prev_page) %}
                 <a 
-                    href="{{ url_for(request.endpoint, page=prev_p, **current_args) }}" 
+                    href="{{ url_for(request.endpoint, page=pagination.current_page - 1 if pagination.has_prev else 1, **current_args) }}" 
                     class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] {% if not pagination.has_prev %}opacity-40 pointer-events-none{% endif %} text-slate-200 rounded-xl border border-[#4B2A73]/40 transition"
                 >
                     السابق
                 </a>
 
                 <span class="w-8 h-8 rounded-xl bg-amber-400 text-[#120A1F] font-black flex items-center justify-center text-xs shadow-md">
-                    {{ pagination.page|default(pagination.current_page) }}
+                    {{ pagination.current_page }}
                 </span>
 
-                {% set next_p = pagination.next_num|default(pagination.next_page) %}
                 <a 
-                    href="{{ url_for(request.endpoint, page=next_p, **current_args) }}" 
+                    href="{{ url_for(request.endpoint, page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, **current_args) }}" 
                     class="px-3.5 py-1.5 bg-[#231538] hover:bg-[#362052] {% if not pagination.has_next %}opacity-40 pointer-events-none{% endif %} text-slate-200 rounded-xl border border-[#4B2A73]/40 transition"
                 >
                     التالي
