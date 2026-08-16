@@ -1,8 +1,9 @@
 # coding: utf-8
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, jsonify
 from apps.models import SupplierWallet, WalletTransaction, Supplier, db
 from sqlalchemy import or_, func
 from decimal import Decimal
+from datetime import datetime
 
 bp = Blueprint('suppliers_wallets_controller', __name__)
 
@@ -17,17 +18,16 @@ def index():
 
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # ✅ تم إضافة owner_name (اسم المالك) وأيضاً store_name و supplier_code
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
-                SupplierWallet.wallet_code.ilike(search_term),  # كود المحفظة
-                Supplier.supplier_code.ilike(search_term),      # كود المورد
-                Supplier.store_name.ilike(search_term),         # اسم المتجر
-                Supplier.trade_name.ilike(search_term),         # الاسم التجاري
-                Supplier.owner_name.ilike(search_term),         # ✅ اسم المالك (المفقود سابقاً)
-                Supplier.username.ilike(search_term)            # اسم المستخدم
+                SupplierWallet.wallet_code.ilike(search_term),
+                Supplier.supplier_code.ilike(search_term),
+                Supplier.store_name.ilike(search_term),
+                Supplier.trade_name.ilike(search_term),
+                Supplier.owner_name.ilike(search_term),
+                Supplier.username.ilike(search_term)
             )
         )
 
@@ -39,7 +39,6 @@ def index():
 
     query = query.order_by(SupplierWallet.id.desc())
 
-    # حساب مؤشرات الأداء الرئيسية (KPIs)
     total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
     total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
     pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
@@ -89,3 +88,105 @@ def supplier_ledger_detail(supplier_id):
         wallet=wallet,
         transactions=transactions
     )
+
+
+# ==========================================================
+# ✅ 1. مسار POST: تجميد محفظة المورد
+# ==========================================================
+@bp.route('/<int:supplier_id>/freeze', methods=['POST'])
+def freeze_supplier_wallet(supplier_id):
+    try:
+        # جلب البيانات المرسلة من المودال (JSON)
+        data = request.get_json()
+        reason = data.get('reason', 'تم التجميد بواسطة المسؤول')
+
+        # البحث عن المحفظة
+        wallet = SupplierWallet.query.get_or_404(supplier_id)
+
+        # التحقق من أنها ليست مجمدة بالفعل
+        if wallet.status == 'frozen':
+            return jsonify({'success': False, 'message': 'هذه المحفظة مجمدة بالفعل.'})
+
+        # تنفيذ التجميد
+        wallet.status = 'frozen'
+        wallet.updated_at = datetime.utcnow()
+
+        # حفظ التغيير
+        db.session.commit()
+
+        return jsonify({
+            'success': True, 
+            'message': f'تم تجميد محفظة المورد بنجاح.',
+            'new_status': 'frozen'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'حدث خطأ أثناء التجميد: {str(e)}'})
+
+
+# ==========================================================
+# ✅ 2. مسار POST: تغذية محفظة المورد (إيداع/خصم مالي)
+# ==========================================================
+@bp.route('/<int:supplier_id>/fund', methods=['POST'])
+def fund_supplier_wallet(supplier_id):
+    try:
+        data = request.get_json()
+        trans_type = data.get('trans_type') # 'deposit' أو 'withdraw'
+        amount = Decimal(str(data.get('amount', 0)))
+        currency = data.get('currency', 'SAR')
+        description = data.get('reason', 'تغذية محفظة يدوية')
+
+        # التحقق من صحة المبلغ
+        if amount <= 0:
+            return jsonify({'success': False, 'message': 'يجب أن يكون المبلغ أكبر من 0.'})
+
+        # البحث عن المحفظة
+        wallet = SupplierWallet.query.get_or_404(supplier_id)
+
+        # التأكد من أن المحفظة نشطة (لا يمكن إيداعها إذا كانت مجمدة)
+        if wallet.status == 'frozen':
+            return jsonify({'success': False, 'message': 'لا يمكن إجراء حركات مالية على محفظة مجمدة.'})
+
+        current_balance = Decimal(str(wallet.balance_sar))
+        
+        # حساب الرصيد الجديد
+        if trans_type == 'deposit':
+            new_balance = current_balance + amount
+        elif trans_type == 'withdraw':
+            if amount > current_balance:
+                return jsonify({'success': False, 'message': 'الرصيد غير كافٍ لإجراء هذا الخصم.'})
+            new_balance = current_balance - amount
+        else:
+            return jsonify({'success': False, 'message': 'نوع القيد غير معروف.'})
+
+        # إنشاء سجل حركة مالية (WalletTransaction) في قاعدة البيانات
+        new_transaction = WalletTransaction(
+            wallet_id=wallet.id,
+            trans_type=trans_type,
+            status='completed',
+            amount=amount,
+            currency=currency,
+            balance_before=current_balance,
+            balance_after=new_balance
+        )
+        # استخدام التشفير الموجود في الموديل الخاص بك (description)
+        new_transaction.description = description 
+        
+        db.session.add(new_transaction)
+
+        # تحديث رصيد المحفظة
+        wallet.balance_sar = new_balance
+        wallet.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'تم تنفيذ القيد المالي بنجاح.',
+            'new_balance': float(new_balance)
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'حدث خطأ أثناء التغذية: {str(e)}'})
