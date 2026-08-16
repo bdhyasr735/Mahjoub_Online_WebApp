@@ -16,7 +16,7 @@ def index():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     status_filter = request.args.get('status', 'all', type=str)
-    bank_filter = request.args.get('bank', 'all', type=str)  # ✅ إضافة فلتر البنك
+    bank_filter = request.args.get('bank', 'all', type=str)
 
     # بناء الاستعلام الأساسي مع JOIN لجدول الموردين
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
@@ -52,6 +52,7 @@ def index():
 
     total_wallets_balance = Decimal(str(total_sar_balance)) + Decimal(str(total_pending_balance))
 
+    # ✅ تم تجهيز قاموس kpis لعرضه في الكروت العلوية
     kpis = {
         'total_wallets_balance': total_wallets_balance,
         'total_available_payouts': total_sar_balance,
@@ -66,6 +67,7 @@ def index():
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
     suppliers = pagination_obj.items
 
+    # ✅ تجهيز بيانات الترقيم لاستخدامها في القالب HTML
     pagination = {
         'current_page': pagination_obj.page,
         'total_pages': pagination_obj.pages,
@@ -77,6 +79,7 @@ def index():
         'next_num': pagination_obj.next_num,
     }
 
+    # ✅ تمرير كل المتغيرات الضرورية للقالب
     return render_template(
         'admin/suppliers_wallets.html',
         kpis=kpis,
@@ -84,7 +87,7 @@ def index():
         suppliers=suppliers,
         search_query=search_query,
         status_filter=status_filter,
-        bank_filter=bank_filter  # ✅ تمرير الفلتر للقالب
+        bank_filter=bank_filter
     )
 
 
@@ -94,10 +97,12 @@ def supplier_ledger_detail(supplier_id):
     عرض كشف حساب محفظة مورد معين مع جميع التفاصيل
     """
     wallet = SupplierWallet.query.get_or_404(supplier_id)
-    # هنا يمكن إضافة جلب المعاملات إذا أردت عرضها في صفحة التفاصيل
+    
+    # جلب حركات المحفظة (المعاملات) مرتبة تنازلياً حسب التاريخ
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
+    
     return render_template(
         'admin/supplier_ledger_detail.html',
         wallet=wallet,
-        transactions=transactions  # ✅ تمرير المعاملات للقالب
+        transactions=transactions
     )
