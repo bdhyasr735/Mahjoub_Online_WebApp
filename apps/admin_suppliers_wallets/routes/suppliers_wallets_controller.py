@@ -17,17 +17,17 @@ def index():
 
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
-    # ✅ تم حذف "iban" نهائياً لتجنب الخطأ 500. بحث فقط في الحقول الصحيحة:
+    # ✅ تم حذف جميع الحقول غير المؤكدة (city, iban, commercial_reg)
+    # البحث يعمل الآن فقط عبر الحقول الموجودة في جدول suppliers لديك
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             or_(
                 SupplierWallet.wallet_code.ilike(search_term),
-                Supplier.trade_name.ilike(search_term),
-                Supplier.store_name.ilike(search_term),
-                Supplier.username.ilike(search_term),
-                Supplier.supplier_code.ilike(search_term),
-                Supplier.city.ilike(search_term)
+                Supplier.trade_name.ilike(search_term),      # الاسم التجاري
+                Supplier.store_name.ilike(search_term),       # اسم المتجر
+                Supplier.username.ilike(search_term),         # اسم المستخدم
+                Supplier.supplier_code.ilike(search_term)     # كود المورد
             )
         )
 
@@ -39,6 +39,7 @@ def index():
 
     query = query.order_by(SupplierWallet.id.desc())
 
+    # حساب مؤشرات الأداء الرئيسية (KPIs)
     total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or Decimal('0.00')
     total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or Decimal('0.00')
     pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or Decimal('0.00')
