@@ -16,14 +16,11 @@ from apps.supplier_wallet.utils import (
     get_registered_supplier_payout_info
 )
 
-# الحد الأدنى المسموح به لتقديم طلب سحب رصيد
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
-
 
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False, endpoint='submit_withdrawal')
 @login_required
 def submit_withdrawal():
-    """عرض صفحة طلبات السحب ومعالجة تقديم طلب سحب جديد للمورد بطريقة محمية تماماً ضد الضغط الموازي."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
@@ -53,9 +50,7 @@ def submit_withdrawal():
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
                 return redirect(url_for('supplier_wallet.submit_withdrawal'))
 
-            # =========================================================================
-            # 🔒 [Pessimistic Locking بدون OUTER JOIN]: حجز المحفظة بأمان تام في PostgreSQL
-            # =========================================================================
+            # 🔒 [Pessimistic Locking]
             locked_wallet = db.session.query(SupplierWallet)\
                 .options(lazyload(SupplierWallet.supplier))\
                 .filter(SupplierWallet.id == wallet_obj.id)\
@@ -66,7 +61,6 @@ def submit_withdrawal():
                 flash("تعذر تأمين حساب المحفظة، يرجى المحاولة لاحقاً.", "danger")
                 return redirect(url_for('supplier_wallet.submit_withdrawal'))
 
-            # التحقق من الرصيد الحقيقي المحدث بعد القفل (Prevent Race Condition)
             real_avail_bal = Decimal(str(getattr(locked_wallet, 'balance_sar', '0.00')))
 
             if real_avail_bal <= Decimal('0.00'):
@@ -79,19 +73,17 @@ def submit_withdrawal():
                 owner_name = registered_owner or f"مورد رقم #{supplier_id}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" | التفاصيل: {registered_details}" if registered_details else ""
-                
-                # صياغة النص بحد أقصى 255 حرفاً
                 full_desc = f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}"[:255]
 
-                # ✅ تم حذف owner_id و owner_type لأنهما غير موجودين في موديل قاعدة البيانات
+                # ✅ تم حذف owner_id و owner_type نهائياً
                 new_tx = WalletTransaction(
                     wallet_id=locked_wallet.id,
                     trans_type='withdrawal',
-                    status='pending',          # حالة الطلب الأولي: قيد المراجعة
+                    status='pending',
                     amount=amount,
                     currency=curr,
-                    reference_number=None,     # يترك فارغاً
-                    voucher_number=None,       # يترك فارغاً للتحويل اليدوي من الإدارة
+                    reference_number=None,
+                    voucher_number=None,
                     description=full_desc
                 )
 
@@ -119,10 +111,7 @@ def submit_withdrawal():
     if status_filter != 'all':
         query = query.filter(WalletTransaction.status == status_filter)
 
-    pagination_obj = query.order_by(
-        WalletTransaction.created_at.desc(), 
-        WalletTransaction.id.desc()
-    ).paginate(page=page, per_page=per_page, error_out=False)
+    pagination_obj = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
         'supplier_wallet/withdraw.html',
