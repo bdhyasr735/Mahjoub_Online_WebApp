@@ -408,7 +408,7 @@ def create_app():
     # ✅ تسجيل الموديولات الديناميكية والنوافذ الشريطية (شامل لـ NAV_ITEMS و LINKS)
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
