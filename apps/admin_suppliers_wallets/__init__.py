@@ -32,7 +32,5 @@ def create_admin_suppliers_wallets_blueprint():
     print(f"🔧 [Blueprint]: تم إنشاء Blueprint '{bp.name}' مع {len(bp.deferred_functions)} مسار مسجل.")
     return bp
 
-
-# للاستيراد المباشر في حالة عدم استخدام create function
-# (احتياطي للتوافق مع أنظمة التسجيل المختلفة)
-blueprint = create_admin_suppliers_wallets_blueprint()
+# ❌ تم حذف السطر الذي كان موجوداً هنا: (blueprint = create_admin_suppliers_wallets_blueprint())
+# هذا السطر هو الذي كان يسبب تشغيل الدالة مرتين عند الاستيراد، مما يؤدي لظهور الخطأ في اللوق.
