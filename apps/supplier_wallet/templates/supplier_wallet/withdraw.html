@@ -7,6 +7,9 @@
 {% block title %}محفظة المورد - تقديم ومتابعة طلبات السحب{% endblock %}
 
 {% block content %}
+<!-- تضمين مكتبة SweetAlert2 للتنبيهات الاحترافية -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <style>
     /* إزالة أسهم حقل الإدخال الرقمي */
     input[type=number]::-webkit-inner-spin-button, 
@@ -135,17 +138,48 @@ async function handleWithdrawSubmit(event) {
         });
 
         const data = await response.json();
-        if (response.ok && (data.status === 'success' || data.status === 'warning')) {
-            alert(data.message);
-            window.location.reload();
+        
+        if (response.ok && data.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: 'تم تقديم الطلب بنجاح',
+                text: data.message,
+                confirmButtonText: 'حسناً',
+                confirmButtonColor: '#4A154B'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else if (data.status === 'warning') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: data.message,
+                confirmButtonText: 'حسناً',
+                confirmButtonColor: '#4A154B'
+            });
+            btn.disabled = false;
+            btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            btn.innerHTML = originalBtnHtml;
         } else {
-            alert(data.message || "حدث خطأ أثناء معالجة الطلب.");
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: data.message || "حدث خطأ أثناء معالجة الطلب.",
+                confirmButtonText: 'حسناً',
+                confirmButtonColor: '#4A154B'
+            });
             btn.disabled = false;
             btn.classList.remove('opacity-75', 'cursor-not-allowed');
             btn.innerHTML = originalBtnHtml;
         }
     } catch (e) {
-        alert("تعذر الاتصال بالخادم.");
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ في الاتصال',
+            text: 'تعذر الاتصال بالخادم، يرجى المحاولة لاحقاً.',
+            confirmButtonText: 'حسناً',
+            confirmButtonColor: '#4A154B'
+        });
         btn.disabled = false;
         btn.classList.remove('opacity-75', 'cursor-not-allowed');
         btn.innerHTML = originalBtnHtml;
