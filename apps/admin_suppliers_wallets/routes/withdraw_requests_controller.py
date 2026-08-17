@@ -12,7 +12,7 @@ from apps.admin_suppliers_wallets.services.wallet_service import (
 PER_PAGE = 10
 
 
-@bp.route('/withdraw-requests', methods=['GET'])
+@bp.route('/withdraw-requests', methods=['GET'], endpoint='withdraw_requests_list')
 @login_required
 def withdraw_requests_list():
     """
