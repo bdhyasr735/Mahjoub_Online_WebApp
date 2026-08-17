@@ -15,7 +15,16 @@ MODULE_METADATA = {
         "adjust_supplier_balance",
         "export_wallets_statement"
     ],
-    "description": "إدارة أرصدة الموردين، حسابات الضمان (Escrow)، وعمليات السحب الفوري والتحقق البنكي عبر SAMA Sarie."
+    "description": "إدارة أرصدة الموردين، حسابات الضمان (Escrow)، وعمليات السحب الفوري والتحقق البنكي عبر SAMA Sarie.",
+    # إضافة عنصر القائمة الجديد
+    "menu_items": [
+        {
+            "title": "إدارة الخزينة والقيود",
+            "icon": "wallet",
+            "route": "/admin/suppliers-wallets/withdraw-requests",
+            "permission": "view_suppliers_wallets"
+        }
+    ]
 }
 
 def register_module(app):
