@@ -7,22 +7,24 @@ MODULE_METADATA = {
     "name": "إدارة محافظ الموردين",
     "version": "2.4.0",
     "icon": "wallet",
-    "category": "Treasury & Settlements",
+    # ✅ تم تغيير التصنيف ليتناسب مع قسم "إدارة المحافظ/الموردين"
+    "category": "Supplier Management",
     "route_prefix": "/admin/suppliers-wallets",
     "permissions": [
         "view_suppliers_wallets",
         "freeze_supplier_wallet",
         "adjust_supplier_balance",
-        "export_wallets_statement"
+        "export_wallets_statement",
+        "manage_withdraw_requests"
     ],
     "description": "إدارة أرصدة الموردين، حسابات الضمان (Escrow)، وعمليات السحب الفوري والتحقق البنكي عبر SAMA Sarie.",
-    # إضافة عنصر القائمة الجديد
+    # ✅ تم تغيير العنوان إلى "طلبات السحب" ليتطابق مع طلبك
     "menu_items": [
         {
-            "title": "إدارة الخزينة والقيود",
-            "icon": "wallet",
+            "title": "طلبات السحب",
+            "icon": "money-bill-transfer",
             "route": "/admin/suppliers-wallets/withdraw-requests",
-            "permission": "view_suppliers_wallets"
+            "permission": "manage_withdraw_requests"
         }
     ]
 }
