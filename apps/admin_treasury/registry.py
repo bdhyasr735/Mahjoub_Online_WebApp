@@ -17,7 +17,7 @@ REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
 # ✅ تعريف الروابط والـ Endpoints لتظهر في القائمة الجانبية بسلاسة
-# تم تحديث اسم المسار ليتوافق مع الـ Blueprint المُسجل
+#    يجب أن يتطابق الاسم مع الـ Blueprint المُسجل فعلياً
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
     "admin_suppliers_wallets.suppliers_wallets_controller.index": "إدارة محافظ الموردين",
@@ -39,23 +39,25 @@ def get_nav_metadata():
 def register_module(app):
     """تسجيل موديولات الخزينة ومحافظ الموردين في التطبيق الرئيسي."""
     try:
-        # 1. تسجيل موديول الخزينة المركزية
+        # 1. تسجيل موديول الخزينة المركزية (موجود في هذا المجلد)
         from apps.admin_treasury.routes.treasury_controller import admin_treasury_bp
         if MODULE_KEY not in app.blueprints:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
             print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
             
-        # 2. تسجيل موديول محافظ الموردين (المسؤول عن الـ /admin/suppliers-wallets/)
-        #    نقوم باستيراد الدالة التي تنشئ الـ Blueprint الخاص به
+        # 2. تسجيل موديول محافظ الموردين (موجود في مجلد منفصل)
+        #    نستخدم الدالة التي تُنشئ الـ Blueprint من ملف __init__.py الخاص به
         from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
         suppliers_bp = create_admin_suppliers_wallets_blueprint()
         
-        # نتحقق إذا كان الـ Blueprint مُسجلاً مسبقاً لتجنب التكرار
+        # نتحقق من عدم تسجيله مسبقاً باستخدام اسمه الفريد
         if suppliers_bp.name not in app.blueprints:
             app.register_blueprint(suppliers_bp)
             print("✅ [Registry]: تم تسجيل موديول 'إدارة محافظ الموردين' بنجاح.")
         else:
-            print("ℹ️ [Registry]: موديول 'إدارة محافظ الموردين' مُسجل مسبقاً.")
+            print("ℹ️ [Registry]: موديول 'إدارة محافظ الموردين' مُسجل مسبقاً (تم تخطي التسجيل).")
             
+    except ImportError as e:
+        print(f"❌ [Registry Error]: فشل استيراد الموديول - تأكد من وجود الملفات في المسار الصحيح: {e}")
     except Exception as e:
         print(f"❌ [Registry Error]: فشل تسجيل الموديولات: {e}")
