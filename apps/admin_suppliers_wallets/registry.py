@@ -1,6 +1,7 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# 📂 apps/admin_suppliers_wallets/registry.py
 """
-سجل موديول محافظ الموردين وطلبات السحب (Metadata & Permissions)
+تسجيل موديول إدارة محافظ الموردين وطلبات السحب
 مشروع Mahjoub Online WebApp
 """
 
@@ -11,25 +12,15 @@ MODULE_ICON = "fas fa-wallet"
 ICON = "wallet"
 VERSION = "2.4.0"
 URL_PREFIX = "/admin/suppliers-wallets"
-REQUIRED_PERMISSION = "view_suppliers_wallets"
-SHOW_IN_ADMIN = False  # تم إخفاؤه هنا لأنه مُدرج وينتظم تحت قائمة "الرقابة المالية"
+REQUIRED_PERMISSION = "manage_platform_treasury"
+SHOW_IN_ADMIN = False  # يظهر كروابط فرعية تحت الرقابة المالية
 
-MODULE_METADATA = {
-    "module_id": MODULE_KEY,
-    "name": MODULE_NAME,
-    "version": VERSION,
-    "icon": ICON,
-    "category": "Treasury & Settlements",
-    "route_prefix": URL_PREFIX,
-    "permissions": [
-        "view_suppliers_wallets",
-        "freeze_supplier_wallet",
-        "adjust_supplier_balance",
-        "export_wallets_statement",
-        "manage_withdraw_requests"
-    ],
-    "description": "إدارة أرصدة الموردين، حسابات الضمان، وعمليات السحب تحت الرقابة المالية."
+LINKS = {
+    "admin_suppliers_wallets.index": "إدارة محافظ الموردين",
+    "admin_suppliers_wallets.withdraw_requests_list": "طلبات السحب"
 }
+
+links = LINKS
 
 def get_nav_metadata():
     return {
@@ -38,12 +29,19 @@ def get_nav_metadata():
         "icon": ICON,
         "url": URL_PREFIX,
         "items": [],
+        "links": links,
         "show_in_admin": SHOW_IN_ADMIN
     }
 
 def register_module(app):
-    """
-    تمت عملية التسجيل والربط الفعلي للـ Blueprint والمسارات 
-    مباشرة عبر موديول الرقابة المالية (الخزينة) لضمان عمل الروابط بكفاءة.
-    """
-    pass
+    try:
+        # تسجيل الـ Blueprint الخاص بمحافظ الموردين وطلبات السحب مباشرة تماماً مثل الطلبات
+        from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
+        wallets_bp = create_admin_suppliers_wallets_blueprint()
+        
+        if "admin_suppliers_wallets" not in app.blueprints:
+            app.register_blueprint(wallets_bp)
+            print("✅ [Module]: تم تسجيل موديول 'admin_suppliers_wallets' بنجاح.")
+            
+    except Exception as e:
+        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين: {e}")
