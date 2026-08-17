@@ -5,7 +5,7 @@ from sqlalchemy import or_, func
 from decimal import Decimal
 from datetime import datetime
 
-bp = Blueprint('suppliers_wallets_controller', __name__)
+bp = Blueprint('admin_suppliers_wallets', __name__)
 
 PER_PAGE = 10
 
@@ -71,8 +71,6 @@ def index():
         'next_num': pagination_obj.next_num,
     }
 
-    # ✅ إذا كان طلب AJAX، يُعيد الصفحة كاملة (وسيتم استخراج الجدول من الـ JS)
-    # ملاحظة: لم نقم بإنشاء ملف جزئي، لذلك نعيد الصفحة كاملة والـ JS يستخرج الجدول فقط.
     if is_ajax:
         return render_template(
             'admin/suppliers_wallets.html',
@@ -84,7 +82,6 @@ def index():
             bank_filter=bank_filter
         )
 
-    # ✅ الطلب العادي (الصفحة الرئيسية عند الدخول لأول مرة)
     return render_template(
         'admin/suppliers_wallets.html',
         kpis=kpis,
@@ -98,11 +95,8 @@ def index():
 @bp.route('/<int:supplier_id>', methods=['GET'])
 def supplier_ledger_detail(supplier_id):
     wallet = SupplierWallet.query.get_or_404(supplier_id)
-    
-    # ✅ جلب رقم الصفحة من الرابط
     page = request.args.get('page', 1, type=int)
     
-    # ✅ استعلام الحركات المكتملة فقط مع الترقيم (10 لكل صفحة)
     transactions_pagination = WalletTransaction.query.filter_by(
         wallet_id=wallet.id,
         status='completed'
@@ -167,7 +161,6 @@ def adjust_wallet_balance(supplier_id):
 def toggle_wallet_freeze(supplier_id):
     try:
         data = request.get_json()
-        reason = data.get('reason', 'إجراء إداري')
         wallet = SupplierWallet.query.get_or_404(supplier_id)
         
         new_status = 'frozen' if wallet.status == 'active' else 'active'
