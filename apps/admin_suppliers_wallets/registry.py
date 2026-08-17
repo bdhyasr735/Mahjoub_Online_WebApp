@@ -2,9 +2,11 @@
 # 📂 apps/admin_suppliers_wallets/registry.py
 """
 تسجيل موديول إدارة محافظ الموردين وطلبات السحب
-مشروع Mahjoub Online WebApp
+في نظام التسجيل المركزي للمشروع
+Mahjoub Online WebApp
 """
 
+# ========== بيانات الموديول الأساسية ==========
 MODULE_KEY = "admin_suppliers_wallets"
 MODULE_NAME = "إدارة محافظ الموردين"
 DISPLAY_NAME = "محافظ الموردين"
@@ -13,10 +15,12 @@ ICON = "wallet"
 VERSION = "2.4.0"
 URL_PREFIX = "/admin/suppliers-wallets"
 REQUIRED_PERMISSION = "manage_platform_treasury"
-SHOW_IN_ADMIN = False  # يظهر كروابط فرعية تحت الرقابة المالية
 
-# ✅ تصحيح أسماء نقاط النهاية (Endpoints)
-# يجب أن تتطابق مع الـ Blueprint المُسجل في __init__.py
+# يظهر كروابط فرعية تحت الرقابة المالية (وليس في القائمة الرئيسية)
+SHOW_IN_ADMIN = False
+
+# ========== روابط القائمة الجانبية ==========
+# يجب أن تتطابق أسماء النقاط (Endpoints) مع الـ Blueprint المُسجل
 LINKS = {
     "admin_suppliers_wallets.suppliers_wallets_controller.index": "إدارة محافظ الموردين",
     "admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list": "طلبات السحب"
@@ -24,7 +28,9 @@ LINKS = {
 
 links = LINKS
 
+
 def get_nav_metadata():
+    """إرجاع بيانات الموديول للقائمة الجانبية"""
     return {
         "key": MODULE_KEY,
         "name": DISPLAY_NAME,
@@ -35,18 +41,30 @@ def get_nav_metadata():
         "show_in_admin": SHOW_IN_ADMIN
     }
 
+
 def register_module(app):
+    """
+    تسجيل موديول محافظ الموردين في التطبيق الرئيسي.
+    تُستدعى هذه الدالة من نظام التسجيل المركزي.
+    """
     try:
-        # تسجيل الـ Blueprint الخاص بمحافظ الموردين وطلبات السحب
+        # استيراد دالة إنشاء الـ Blueprint من ملف __init__.py
         from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
         wallets_bp = create_admin_suppliers_wallets_blueprint()
         
-        # ✅ التحقق بالاسم الصحيح للـ Blueprint الرئيسي
+        # ✅ التحقق من عدم تسجيله مسبقاً لتجنب التكرار
         if wallets_bp.name not in app.blueprints:
             app.register_blueprint(wallets_bp)
-            print("✅ [Module]: تم تسجيل موديول 'admin_suppliers_wallets' بنجاح.")
+            print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
+            print(f"   📍 عدد المسارات المسجلة: {len(app.url_map._rules)}")
         else:
-            print("ℹ️ [Module]: موديول 'admin_suppliers_wallets' مُسجل مسبقاً.")
+            print(f"ℹ️ [Module]: موديول '{MODULE_NAME}' مُسجل مسبقاً (الاسم: {wallets_bp.name})، تم تخطي التسجيل.")
+            print(f"   💡 تحقق من عدم وجود تسجيل مزدوج في ملفات registry الأخرى.")
             
+    except ImportError as e:
+        print(f"❌ [Module Error]: فشل استيراد موديول محافظ الموردين.")
+        print(f"   📂 تأكد من وجود ملف __init__.py في المسار: apps/admin_suppliers_wallets/")
+        print(f"   📝 تفاصيل الخطأ: {e}")
     except Exception as e:
-        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين: {e}")
+        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين.")
+        print(f"   📝 تفاصيل الخطأ: {e}")
