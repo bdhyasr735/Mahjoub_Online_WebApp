@@ -34,7 +34,7 @@ def get_nav_metadata():
         "name": DISPLAY_NAME,
         "icon": ICON,
         "url": URL_PREFIX,
-        "items": NAV_ITEMS,
+        "items": [],
         "links": links
     }
 
