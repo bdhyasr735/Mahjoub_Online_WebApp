@@ -1,9 +1,27 @@
-# -*- coding: utf-8 -*-
-# 📂 apps/admin_treasury/routes/__init__.py
-
+# coding: utf-8
+# 📂 apps/admin_treasury/__init__.py
 """
-هذا الملف يضمن تحميل المتحكمات (Controllers) وتسجيل المسارات (Routes) 
-التابعة لموديول الخزينة داخل الـ Blueprint.
+حزمة الرقابة المالية (الخزينة المركزية)
+Mahjoub Online WebApp
 """
 
-from . import treasury_controller
+from flask import Blueprint
+
+# إنشاء الـ Blueprint الرئيسي للخزينة
+admin_treasury_bp = Blueprint(
+    'admin_treasury',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/admin/treasury'
+)
+
+# ✅ استيراد الـ Controller لتسجيل المسارات
+from apps.admin_treasury.routes import treasury_controller
+
+print(f"🔧 [Blueprint]: تم إنشاء Blueprint 'admin_treasury' مع المسار {admin_treasury_bp.url_prefix}")
+
+# دالة مساعدة للاستيراد من أنظمة التسجيل المختلفة
+def create_admin_treasury_blueprint():
+    """إعادة الـ Blueprint نفسه للتوافق مع نظام التسجيل المركزي"""
+    return admin_treasury_bp
