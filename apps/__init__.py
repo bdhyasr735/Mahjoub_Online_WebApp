@@ -11,19 +11,12 @@ from flask import Flask, redirect, session, url_for, request, jsonify, render_te
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
 from werkzeug.routing import BuildError
 from sqlalchemy import text, select
 import config
-from apps.extensions import db, login_manager, migrate
+from apps.extensions import db, login_manager, migrate, limiter
 from apps.services.graphql_client import GraphQLClient
-
-# تهيئة الأدوات
-csrf = CSRFProtect()
-talisman = Talisman()
-limiter = Limiter(key_func=get_remote_address, default_limits=["500 per day", "100 per hour"], storage_uri="memory://")
 
 ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
@@ -248,7 +241,7 @@ def create_app():
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    csrf.init_app(app)
+    csrf = CSRFProtect(app)
     limiter.init_app(app)
 
     @login_manager.user_loader
@@ -324,6 +317,7 @@ def create_app():
     # ============================================================
     # ✅ إعدادات Talisman
     # ============================================================
+    talisman = Talisman()
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
