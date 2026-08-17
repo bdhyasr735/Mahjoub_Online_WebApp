@@ -42,7 +42,7 @@ def submit_withdrawal():
         try:
             raw_amount = request.form.get('amount', '0').strip()
             amount = Decimal(str(raw_amount))
-            method = request.form.get('method', 'bank')
+            method = request.form.get('payout_method', 'bank_transfer')
 
             if not wallet_obj:
                 return jsonify({"status": "error", "code": "WALLET_NOT_FOUND", "message": "تعذر الوصول إلى حساب المحفظة."}), 400
