@@ -15,10 +15,11 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ الروابط الرئيسية للموديول مطابقة للـ endpoints الحقيقية في المنصة
+# ✅ الروابط الرئيسية للموديول مع ربط طلبات السحب بالـ Endpoint الحقيقي المعرف في نظام المحافظ
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
-    "suppliers_wallets_controller.index": "إدارة محافظ الموردين"
+    "suppliers_wallets_controller.index": "إدارة محافظ الموردين",
+    "admin_suppliers_wallets.withdraw_requests_list": "طلبات السحب"
 }
 
 # للحفاظ على التوافق مع الاستدعاءات القديمة
