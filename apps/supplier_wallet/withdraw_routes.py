@@ -5,7 +5,6 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
-from sqlalchemy.orm import lazyload
 from apps.extensions import db, limiter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
@@ -44,17 +43,30 @@ def submit_withdrawal():
             amount = Decimal(str(raw_amount))
             method = request.form.get('payout_method', 'bank_transfer')
 
-            if not wallet_obj:
-                return jsonify({"status": "error", "code": "WALLET_NOT_FOUND", "message": "تعذر الوصول إلى حساب المحفظة."}), 400
+            if not supplier_id:
+                return jsonify({"status": "error", "code": "SUPPLIER_NOT_FOUND", "message": "تعذر معرفة هوية المورد."}), 400
 
-            # 🔒 [Pessimistic Locking - مباشر بدون ربط لتجنب خطأ قاعدة البيانات]
-            locked_wallet = SupplierWallet.query\
-                .filter_by(id=wallet_obj.id)\
+            # 🔒 [Pessimistic Locking - استعلام مباشر تماماً بالـ supplier_id بدون أي Joins لضمان عدم ظهور خطأ PostgreSQL]
+            locked_wallet = db.session.query(SupplierWallet)\
+                .filter(SupplierWallet.supplier_id == supplier_id)\
                 .with_for_update()\
                 .first()
 
             if not locked_wallet:
-                return jsonify({"status": "error", "code": "WALLET_NOT_FOUND", "message": "تعذر العثور على سجل المحفظة للقفل."}), 400
+                # محاولة إنشاء المحفظة مباشرة إذا لم تكن موجودة
+                locked_wallet = SupplierWallet(
+                    supplier_id=supplier_id,
+                    balance_sar=Decimal('0.00'),
+                    default_currency='SAR',
+                    status='active'
+                )
+                db.session.add(locked_wallet)
+                db.session.commit()
+                # إعادة قفلها بعد الإنشاء
+                locked_wallet = db.session.query(SupplierWallet)\
+                    .filter(SupplierWallet.supplier_id == supplier_id)\
+                    .with_for_update()\
+                    .first()
 
             # 🛑 [Professional Gate] منع تعدد الطلبات المعلقة
             existing_pending = db.session.query(WalletTransaction)\
