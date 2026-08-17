@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
 from sqlalchemy.orm import lazyload
-from apps.extensions import db
+from apps.extensions import db, limiter  # ⚡ استيراد limiter من الامتدادات المركزية
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.supplier_wallet import supplier_wallet_bp
@@ -20,6 +20,7 @@ MIN_WITHDRAW_AMOUNT = Decimal('50.00')
 
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False, endpoint='submit_withdrawal')
 @login_required
+@limiter.exempt  # 🛡️ إعفاء مسار طلبات السحب من نظام تقييد المعدل لدعم آلاف الطلبات المتزامنة بسلاسة
 def submit_withdrawal():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
