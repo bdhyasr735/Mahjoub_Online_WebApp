@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/admin_treasury/registry.py
 """
-تسجيل موديول الرقابة المالية (الخزينة المركزية)
+تسجيل موديول الرقابة المالية (خزينة المنصة)
 في نظام التسجيل المركزي للمشروع
 Mahjoub Online WebApp
 """
@@ -9,21 +9,22 @@ Mahjoub Online WebApp
 # ========== بيانات الموديول الأساسية ==========
 MODULE_KEY = "admin_treasury"
 MODULE_NAME = "الرقابة المالية"
-DISPLAY_NAME = "الرقابة المالية"
-MODULE_ICON = "fas fa-wallet"
-ICON = "landmark"
-VERSION = "2.4.0"
+DISPLAY_NAME = "خزينة المنصة"
+MODULE_ICON = "fas fa-coins"
+ICON = "treasury"
+VERSION = "1.0.0"
 URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
-SHOW_IN_ADMIN = True  # يظهر في القائمة الرئيسية
+
+# يظهر كروابط فرعية تحت الرقابة المالية (وليس في القائمة الرئيسية)
+SHOW_IN_ADMIN = False
 
 # ========== روابط القائمة الجانبية ==========
-# يجب أن تتطابق أسماء النقاط (Endpoints) مع الـ Blueprint المُسجل
-# ملاحظة: روابط محافظ الموردين تشير إلى موديول منفصل
+# يجب أن تتطابق أسماء النقاط (Endpoints) مع الـ Blueprint المُسجل في __init__.py و treasury_controller.py
 LINKS = {
-    "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
-    "admin_suppliers_wallets.suppliers_wallets_controller.index": "إدارة محافظ الموردين",
-    "admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list": "طلبات السحب"
+    "admin_treasury.treasury_index": "سجل حركات الخزينة",
+    # يمكنك إضافة مسارات أخرى هنا عند إنشائها، مثل:
+    # "admin_treasury.treasury_detail": "تفاصيل السندات"
 }
 
 links = LINKS
@@ -44,31 +45,26 @@ def get_nav_metadata():
 
 def register_module(app):
     """
-    تسجيل موديول الخزينة المركزية في التطبيق الرئيسي.
+    تسجيل موديول خزينة المنصة في التطبيق الرئيسي.
     تُستدعى هذه الدالة من نظام التسجيل المركزي.
-    
-    ملاحظة: يتم تسجيل موديول محافظ الموردين من خلال ملفه الخاص
-            (apps/admin_suppliers_wallets/registry.py) لتجنب التكرار.
     """
     try:
-        # ✅ تسجيل موديول الخزينة فقط
+        # استيراد الـ Blueprint الجاهز من ملف __init__.py الخاص بالخزينة
         from apps.admin_treasury import admin_treasury_bp
         
-        # التحقق من عدم تسجيله مسبقاً
-        if MODULE_KEY not in app.blueprints:
-            app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
-            print(f"✅ [Registry]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
-            print(f"   📍 عدد المسارات الكلي في التطبيق: {len(app.url_map._rules)}")
+        # ✅ التحقق من عدم تسجيله مسبقاً لتجنب التكرار
+        if admin_treasury_bp.name not in app.blueprints:
+            app.register_blueprint(admin_treasury_bp)
+            print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
+            print(f"   📍 عدد المسارات المسجلة الإضافية للخزينة: {len(admin_treasury_bp.deferred_functions)}")
         else:
-            print(f"ℹ️ [Registry]: موديول '{MODULE_NAME}' مُسجل مسبقاً، تم تخطي التسجيل.")
+            print(f"ℹ️ [Module]: موديول '{MODULE_NAME}' مُسجل مسبقاً (الاسم: {admin_treasury_bp.name})، تم تخطي التسجيل.")
+            print(f"   💡 تحقق من عدم وجود تسجيل مزدوج في ملفات registry الأخرى.")
             
-        # ❌ تم إزالة تسجيل admin_suppliers_wallets من هنا
-        #    ليتم تسجيله فقط من خلال ملفه الخاص
-        
     except ImportError as e:
-        print(f"❌ [Registry Error]: فشل استيراد موديول الخزينة.")
+        print(f"❌ [Module Error]: فشل استيراد موديول خزينة المنصة.")
         print(f"   📂 تأكد من وجود ملف __init__.py في المسار: apps/admin_treasury/")
         print(f"   📝 تفاصيل الخطأ: {e}")
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة.")
+        print(f"❌ [Module Error]: تعذر تسجيل موديول خزينة المنصة.")
         print(f"   📝 تفاصيل الخطأ: {e}")
