@@ -153,7 +153,7 @@ def seed_database():
             db.session.add(treasury_entry)
 
             db.session.commit()
-            print(f"✅ [Seed]: تم زرع المورد، المحفظة، وحركة الخزينة (1000 SAR) بنجاح برقم: {seed_ref_number}.")
+            print(f"✅ [Seed]: تم زرع المورد، المحفظة، وحركة الخزينة (1000000 SAR) بنجاح برقم: {seed_ref_number}.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
