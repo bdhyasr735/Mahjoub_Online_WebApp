@@ -7,156 +7,195 @@ import random
 from datetime import datetime
 from decimal import Decimal
 
+# =====================================================================
+# ✅ استيراد الموديلات الحقيقية من قاعدة البيانات
+# =====================================================================
+from apps.extensions import db
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.supplier_db import Supplier
+from sqlalchemy import or_
+
+
 def calculate_wallets_kpis():
     """
-    حساب المؤشرات المالية المركزية للوحة التحكم
+    حساب المؤشرات المالية المركزية للوحة التحكم (بيانات حقيقية)
     """
+    from sqlalchemy import func
+    
+    total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0.00
+    total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or 0.00
+    pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or 0.00
+    
     return {
-        'total_wallets_balance': 3828900.50,
-        'total_available_payouts': 3012000.00,
-        'total_escrow_held': 816900.50,
-        'total_suppliers_count': 1420850,
-        'active_suppliers_count': 8,
-        'frozen_suppliers_count': 1,
-        'pending_withdrawals_amount': 345800.00,
-        'pending_withdrawals_count': 28,
+        'total_wallets_balance': float(total_sar_balance) + float(total_pending_balance),
+        'total_available_payouts': float(total_sar_balance),
+        'total_escrow_held': float(total_pending_balance),
+        'total_suppliers_count': SupplierWallet.query.count(),
+        'active_suppliers_count': SupplierWallet.query.filter_by(status='active').count(),
+        'pending_withdrawals_amount': float(pending_withdrawals_amount),
+        'pending_withdrawals_count': WalletTransaction.query.filter_by(status='pending', trans_type='withdrawal').count(),
         'currency': 'SAR'
     }
 
+
 def get_suppliers_list(search='', status='all', bank='all', page=1, per_page=10):
     """
-    استرجاع قائمة محافظ الموردين مع الفلترة والبحث والترقيم
+    استرجاع قائمة محافظ الموردين الحقيقية من قاعدة البيانات
     """
-    mock_suppliers = [
-        {
-            'id': 'sup-001',
-            'wallet_code': 'WAL-SA-9011',
-            'supplier_name': 'شركة الرياض للتقنية والإلكترونيات المحدودة',
-            'commercial_reg': '1010892341',
-            'category': 'إلكترونيات وأجهزة ذكية',
-            'city': 'الرياض',
-            'total_balance': 485200.50,
-            'available_balance': 395000.00,
-            'pending_escrow_balance': 90200.50,
-            'bank_name': 'مصرف الراجحي',
-            'iban': 'SA4480000201608010099221',
-            'status': 'active',
-            'created_at': '2025-03-10'
-        },
-        {
-            'id': 'sup-002',
-            'wallet_code': 'WAL-SA-8842',
-            'supplier_name': 'مؤسسة أفق التقنية للتجارة والتوريدات',
-            'commercial_reg': '4030198273',
-            'category': 'حلول برمجية وحواسيب',
-            'city': 'جدة',
-            'total_balance': 620450.00,
-            'available_balance': 540000.00,
-            'pending_escrow_balance': 80450.00,
-            'bank_name': 'البنك الأهلي السعودي (SNB)',
-            'iban': 'SA0310000001234567890123',
-            'status': 'active',
-            'created_at': '2025-01-18'
-        },
-        {
-            'id': 'sup-003',
-            'wallet_code': 'WAL-SA-7731',
-            'supplier_name': 'شركة التميز لحلول اللوجستيات والمستودعات',
-            'commercial_reg': '2050981245',
-            'category': 'خدمات لوجستية وتغليف',
-            'city': 'الدمام',
-            'total_balance': 195800.00,
-            'available_balance': 0.00,
-            'pending_escrow_balance': 45800.00,
-            'bank_name': 'بنك الرياض',
-            'iban': 'SA6520000000987654321098',
-            'status': 'frozen',
-            'created_at': '2024-11-05'
-        }
-    ]
-    
+    query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                SupplierWallet.wallet_code.ilike(search_term),
+                Supplier.supplier_code.ilike(search_term),
+                Supplier.store_name.ilike(search_term),
+                Supplier.trade_name.ilike(search_term),
+                Supplier.owner_name.ilike(search_term),
+                Supplier.username.ilike(search_term)
+            )
+        )
+
+    if status and status != 'all':
+        query = query.filter(SupplierWallet.status == status)
+
+    if bank and bank != 'all':
+        query = query.filter(Supplier.bank_name.ilike(f"%{bank}%"))
+
+    query = query.order_by(SupplierWallet.id.desc())
+    pagination_obj = query.paginate(page=page, per_page=per_page, error_out=False)
+
     return {
-        'items': mock_suppliers,
-        'total_count': len(mock_suppliers)
+        'items': pagination_obj.items,
+        'total_count': pagination_obj.total
     }
+
 
 def get_supplier_wallet_by_id(supplier_id):
     """
-    استرجاع بيانات المحفظة الفردية وكشف الحساب المفصل
+    استرجاع بيانات المحفظة الحقيقية وكشف الحساب
     """
-    return {
-        'id': supplier_id,
-        'wallet_code': 'WAL-SA-9011',
-        'supplier_name': 'شركة الرياض للتقنية والإلكترونيات المحدودة',
-        'commercial_reg': '1010892341',
-        'tax_number': '300982716200003',
-        'category': 'إلكترونيات وأجهزة ذكية',
-        'city': 'الرياض',
-        'phone': '+966 50 123 4567',
-        'email': 'finance@riyadh-tech.sa',
-        'total_balance': 485200.50,
-        'available_balance': 395000.00,
-        'pending_escrow_balance': 90200.50,
-        'total_withdrawn': 1200000.00,
-        'total_sales': 2450000.00,
-        'bank_name': 'مصرف الراجحي',
-        'bank_account_name': 'شركة الرياض للتقنية ش.ش.و',
-        'iban': 'SA4480000201608010099221',
-        'account_number': '201608010099221',
-        'status': 'active',
-        'is_verified': True,
-        'created_at': '2025-03-10',
-        'last_settlement_at': '2026-08-10',
-        'recent_transactions': [
-            {
-                'id': 'tx-101',
-                'ref_code': 'TXN-99101',
-                'voucher_number': 'VCH-88210',
-                'type': 'credit',
-                'type_label': 'إيداع أرباح طلبات',
-                'amount': 24500.00,
-                'balance_after': 485200.50,
-                'description': 'تسوية مبيعات مجمعة لطلبات التجزئة #ORD-7710',
-                'created_at': '2026-08-14 10:15',
-                'status': 'completed'
-            },
-            {
-                'id': 'tx-102',
-                'ref_code': 'TXN-99084',
-                'voucher_number': 'VCH-88195',
-                'type': 'withdrawal',
-                'type_label': 'تحويل بنكي صادر (Sarie)',
-                'amount': 150000.00,
-                'balance_after': 460700.50,
-                'description': 'صرف مستحقات بنكية إلى مصرف الراجحي - دفعة رقم 14',
-                'created_at': '2026-08-10 14:20',
-                'status': 'completed'
-            }
-        ]
-    }
+    return SupplierWallet.query.get_or_404(supplier_id)
+
 
 def toggle_freeze_service(supplier_id, reason='إجراء إداري'):
     """
     تجميد أو فك حظر المحفظة مع التوثيق
     """
+    wallet = SupplierWallet.query.get_or_404(supplier_id)
+    wallet.status = 'frozen' if wallet.status == 'active' else 'active'
+    wallet.updated_at = datetime.utcnow()
+    db.session.commit()
     return {
         'status': 'success',
-        'supplier_id': supplier_id,
-        'message': f'تم تحديث حالة المحفظة بنجاح: {reason}'
+        'message': f'تم تغيير حالة المحفظة بنجاح'
     }
+
 
 def create_manual_adjustment(supplier_id, amount, entry_type, description):
     """
     إنشاء قيد تسوية مالي يدوي وتوليد سند رسمي
     """
-    voucher_code = f"VCH-{random.randint(100000, 999999)}"
-    ref_code = f"TXN-{random.randint(100000, 999999)}"
-    
+    wallet = SupplierWallet.query.get_or_404(supplier_id)
+    current_balance = Decimal(str(wallet.balance_sar))
+    new_balance = current_balance + amount if entry_type == 'credit' else current_balance - amount
+
+    transaction = WalletTransaction(
+        wallet_id=wallet.id,
+        trans_type='deposit' if entry_type == 'credit' else 'withdraw',
+        status='completed',
+        amount=amount,
+        currency='SAR',
+        balance_before=current_balance,
+        balance_after=new_balance,
+        description=description
+    )
+    db.session.add(transaction)
+    wallet.balance_sar = new_balance
+    db.session.commit()
+
     return {
         'status': 'success',
-        'voucher_code': voucher_code,
-        'ref_code': ref_code,
-        'amount': amount,
-        'entry_type': entry_type,
-        'message': f'تم قيد السند المحاسبي {voucher_code} بنجاح'
+        'voucher_code': f"VCH-{random.randint(100000, 999999)}",
+        'ref_code': f"REF-{datetime.utcnow().strftime('%H%M')}",
+        'message': 'تم قيد السند المحاسبي بنجاح'
     }
+
+
+# ====================================================================
+# ✅ الدوال الجديدة المطلوبة لصفحة طلبات السحب (النسخة الحقيقية)
+# ====================================================================
+
+def get_withdraw_requests(status='pending', search='', page=1, per_page=10):
+    """
+    جلب طلبات السحب الحقيقية من قاعدة البيانات وربطها ببيانات المورد.
+    """
+    # 1. ربط الجداول: المعاملة -> المحفظة -> المورد
+    query = WalletTransaction.query.join(
+        SupplierWallet, SupplierWallet.id == WalletTransaction.wallet_id
+    ).join(
+        Supplier, Supplier.id == SupplierWallet.supplier_id
+    )
+
+    # 2. فلترة نوع المعاملة: السحب فقط
+    query = query.filter(WalletTransaction.trans_type == 'withdrawal')
+
+    # 3. فلترة الحالة (افتراضي: pending)
+    if status and status != 'all':
+        query = query.filter(WalletTransaction.status == status)
+
+    # 4. البحث في اسم المتجر أو كود المحفظة
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Supplier.store_name.ilike(search_term),
+                Supplier.trade_name.ilike(search_term),
+                SupplierWallet.wallet_code.ilike(search_term)
+            )
+        )
+
+    # 5. الترتيب والترقيم
+    query = query.order_by(WalletTransaction.created_at.desc())
+    pagination_obj = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return {
+        'items': pagination_obj.items,
+        'pagination': {
+            'current_page': pagination_obj.page,
+            'total_pages': pagination_obj.pages,
+            'has_prev': pagination_obj.has_prev,
+            'has_next': pagination_obj.has_next,
+            'total_count': pagination_obj.total,
+            'per_page': per_page,
+        }
+    }
+
+
+def update_withdrawal_status(request_id, action, reason=''):
+    """
+    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات (اعتماد أو رفض).
+    """
+    try:
+        transaction = WalletTransaction.query.get_or_404(request_id)
+        
+        if action == 'approve':
+            transaction.status = 'completed'
+            message = f'تم اعتماد طلب السحب رقم {request_id} بنجاح.'
+        elif action == 'reject':
+            transaction.status = 'rejected'
+            if reason:
+                transaction.description = f"{transaction.description} | مرفوض: {reason}"
+            message = f'تم رفض طلب السحب رقم {request_id} بسبب: {reason}'
+        else:
+            return {'success': False, 'message': 'إجراء غير معروف.'}
+
+        transaction.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return {'success': True, 'message': message}
+
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': f'حدث خطأ أثناء التحديث: {str(e)}'}
