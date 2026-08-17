@@ -47,11 +47,14 @@ def submit_withdrawal():
             if not wallet_obj:
                 return jsonify({"status": "error", "code": "WALLET_NOT_FOUND", "message": "تعذر الوصول إلى حساب المحفظة."}), 400
 
-            # 🔒 [Pessimistic Locking]
-            locked_wallet = db.session.query(SupplierWallet)\
-                .filter(SupplierWallet.id == wallet_obj.id)\
+            # 🔒 [Pessimistic Locking - مباشر بدون ربط لتجنب خطأ قاعدة البيانات]
+            locked_wallet = SupplierWallet.query\
+                .filter_by(id=wallet_obj.id)\
                 .with_for_update()\
                 .first()
+
+            if not locked_wallet:
+                return jsonify({"status": "error", "code": "WALLET_NOT_FOUND", "message": "تعذر العثور على سجل المحفظة للقفل."}), 400
 
             # 🛑 [Professional Gate] منع تعدد الطلبات المعلقة
             existing_pending = db.session.query(WalletTransaction)\
@@ -105,7 +108,7 @@ def submit_withdrawal():
         except Exception as e:
             db.session.rollback()
             import traceback
-            traceback.print_exc()  # طباعة الخطأ كاملاً في سجلات السيرفر (Logs) لتشخيصه بدقة
+            traceback.print_exc()
             return jsonify({"status": "error", "message": f"خطأ داخلي: {str(e)}"}), 500
 
     # GET Request
