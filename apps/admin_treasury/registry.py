@@ -41,16 +41,16 @@ def register_module(app):
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
             print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
             
-        # تسجيل موديول محافظ الموردين بالاسم الأساسي ليتطابق مع الـ Endpoints
+        # تسجيل موديول محافظ الموردين وضمان عدم تداخل الـ Endpoints
         from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
         wallets_bp = create_admin_suppliers_wallets_blueprint()
         if "admin_suppliers_wallets" not in app.blueprints:
             app.register_blueprint(wallets_bp)
             print("✅ [Registry]: تم تسجيل موديول 'محافظ الموردين' بنجاح.")
 
-        # 🔍 طباعة الـ Endpoints المسجلة التي تحتوي على كلمة withdraw للتأكد منها في سجلات ريندر
-        withdraw_endpoints = [p for p in app.view_functions.keys() if 'withdraw' in p]
-        print(f"🔍 [Debug Endpoints]: {withdraw_endpoints}")
+        # 🔍 طباعة الـ Endpoints الخاصة بمحافظ الموردين للتأكد من ظهورها بشكل صحيح في سجلات ريندر
+        admin_wallets_endpoints = [p for p in app.view_functions.keys() if 'admin_suppliers_wallets' in p]
+        print(f"🔍 [Debug Admin Wallets Endpoints]: {admin_wallets_endpoints}")
             
     except Exception as e:
         print(f"❌ [Registry Error]: {e}")
