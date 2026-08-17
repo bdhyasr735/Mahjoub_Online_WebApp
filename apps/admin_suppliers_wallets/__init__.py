@@ -10,8 +10,8 @@ def create_admin_suppliers_wallets_blueprint():
         url_prefix='/admin/suppliers-wallets'
     )
 
-    # استيراد المتحكمات لضمان تسجيل مسارات المحافظ وطلبات السحب والـ Endpoints بالكامل
+    # تسجيل مسارات المحافظ وطلبات السحب لتعمل الروابط فوراً
     from apps.admin_suppliers_wallets.routes import suppliers_wallets_controller
-    from apps.admin_suppliers_wallets.routes import admin_withdraw_requests_controller
+    from apps.admin_suppliers_wallets.routes import withdraw_requests_controller
 
     return bp
