@@ -20,9 +20,9 @@ REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = False
 
 # ========== روابط القائمة الجانبية ==========
-# ✅ الاسم الصحيح يجب أن يبدأ بـ admin_suppliers_wallets. لأنه Blueprint رئيسي
+# ✅ تم تحسين التسمية لتجنب التكرار في القائمة
 LINKS = {
-    "admin_suppliers_wallets.suppliers_wallets_controller.index": "إدارة محافظ الموردين",
+    "admin_suppliers_wallets.suppliers_wallets_controller.index": "عرض المحافظ", # 👈 تغيير الاسم هنا لمنع التكرار
     "admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list": "طلبات السحب"
 }
 
@@ -62,9 +62,6 @@ def register_module(app):
             print(f"   💡 تحقق من عدم وجود تسجيل مزدوج في ملفات registry الأخرى.")
             
     except ImportError as e:
-        print(f"❌ [Module Error]: فشل استيراد موديول محافظ الموردين.")
-        print(f"   📂 تأكد من وجود ملف __init__.py في المسار: apps/admin_suppliers_wallets/")
-        print(f"   📝 تفاصيل الخطأ: {e}")
+        print(f"❌ [Module Error]: فشل استيراد موديول محافظ الموردين. تفاصيل: {e}")
     except Exception as e:
-        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين.")
-        print(f"   📝 تفاصيل الخطأ: {e}")
+        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين. تفاصيل: {e}")
