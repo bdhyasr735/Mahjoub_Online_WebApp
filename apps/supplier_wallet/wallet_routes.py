@@ -1,102 +1,148 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/wallet_routes.py
+# 📂 apps/supplier_wallet/withdraw_routes.py
 
 from datetime import datetime
-from decimal import Decimal
-from flask import render_template, request, flash, redirect, url_for
+from decimal import Decimal, InvalidOperation
+from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
-from apps.extensions import db
+from sqlalchemy.orm import noload
+from apps.extensions import db, limiter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
-    get_current_supplier_id,
-    get_or_create_supplier_wallet,
+    get_current_supplier_id, 
+    get_or_create_supplier_wallet, 
     get_registered_supplier_payout_info
 )
 
-@supplier_wallet_bp.route('/', methods=['GET'], strict_slashes=False)
-@supplier_wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
+MIN_WITHDRAW_AMOUNT = Decimal('50.00')
+
+@supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'], strict_slashes=False, endpoint='submit_withdrawal')
 @login_required
-def wallet_dashboard():
-    """عرض كشف الحساب المحاسبي الفعلي للمورد (الحركات المكتملة فقط) مع الفلترة الزمنية والنوعية."""
+@limiter.exempt  
+def submit_withdrawal():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
-    # الأرصدة والملخص المالي
-    balance_sar = float(getattr(wallet_obj, 'balance_sar', 0.00)) if wallet_obj else 0.00
-    total_withdrawn = float(getattr(wallet_obj, 'total_withdrawn', 0.00)) if wallet_obj else 0.00
-    curr = getattr(wallet_obj, 'default_currency', 'SAR') if wallet_obj else 'SAR'
+    avail_bal = Decimal('0.00')
+    curr = 'SAR'
+
+    if wallet_obj:
+        avail_bal = Decimal(str(getattr(wallet_obj, 'balance_sar', '0.00')))
+        curr = getattr(wallet_obj, 'default_currency', 'SAR')
 
     summary = {
-        'balance_sar': balance_sar,
-        'available_balance': balance_sar,
-        'total_withdrawn': total_withdrawn,
+        'available_balance': float(avail_bal),
+        'min_withdraw_amount': float(MIN_WITHDRAW_AMOUNT),
         'currency': curr
     }
 
-    # 1. إعدادات التقسيم (Pagination)
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    
-    # 2. استقبال متغيرات الفلترة من الـ UI (النوع، البحث، والسنة، والشهر)
-    type_filter = request.args.get('type', '')
-    search_query = request.args.get('search', '').strip()
-    year_filter = request.args.get('year', type=int)
-    month_filter = request.args.get('month', type=int)
+    if request.method == 'POST':
+        try:
+            raw_amount = request.form.get('amount', '0').strip()
+            amount = Decimal(str(raw_amount))
+            method = request.form.get('payout_method', 'bank_transfer')
 
-    # 3. تعريف مصفوفات أنواع الحركات للفلترة الذكية
-    credit_types = ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
-    debit_types = ['debit', 'withdrawal', 'commission_deduction', 'adjustment_debit']
+            if not supplier_id:
+                return jsonify({"status": "error", "code": "SUPPLIER_NOT_FOUND", "message": "تعذر معرفة هوية المورد."}), 400
 
-    # 4. بناء الاستعلام الأساسي (المكتملة فقط)
-    query = WalletTransaction.query.filter_by(
-        wallet_id=wallet_obj.id if wallet_obj else -1,
-        status='completed'
-    )
+            # 🔒 [Pessimistic Locking مع منع أي Join تلقائي عبر noload]
+            locked_wallet = db.session.query(SupplierWallet)\
+                .options(noload('*'))\
+                .filter(SupplierWallet.supplier_id == supplier_id)\
+                .with_for_update()\
+                .first()
 
-    # 5. تطبيق فلتر النوع (Type)
-    if type_filter == 'credit':
-        query = query.filter(WalletTransaction.trans_type.in_(credit_types))
-    elif type_filter == 'debit':
-        query = query.filter(WalletTransaction.trans_type.in_(debit_types))
+            if not locked_wallet:
+                # محاولة إنشاء المحفظة مباشرة إذا لم تكن موجودة
+                locked_wallet = SupplierWallet(
+                    supplier_id=supplier_id,
+                    balance_sar=Decimal('0.00'),
+                    default_currency='SAR',
+                    status='active'
+                )
+                db.session.add(locked_wallet)
+                db.session.commit()
+                # إعادة قفلها بعد الإنشاء بدون علاقات
+                locked_wallet = db.session.query(SupplierWallet)\
+                    .options(noload('*'))\
+                    .filter(SupplierWallet.supplier_id == supplier_id)\
+                    .with_for_update()\
+                    .first()
 
-    # 6. تطبيق فلتر البحث المباشر
-    if search_query:
-        query = query.filter(
-            db.or_(
-                WalletTransaction.reference_number.ilike(f"%{search_query}%"),
-                WalletTransaction.voucher_number.ilike(f"%{search_query}%"),
-                WalletTransaction.description.ilike(f"%{search_query}%")
+            # 🛑 [Professional Gate] منع تعدد الطلبات المعلقة
+            existing_pending = db.session.query(WalletTransaction)\
+                .filter(WalletTransaction.wallet_id == locked_wallet.id)\
+                .filter(WalletTransaction.trans_type == 'withdrawal')\
+                .filter(WalletTransaction.status == 'pending')\
+                .first()
+
+            if existing_pending:
+                return jsonify({
+                    "status": "warning", 
+                    "code": "PENDING_REQUEST_EXISTS", 
+                    "message": "لديك طلب سحب قيد المراجعة حالياً. يرجى الانتظار حتى يتم إتمام الطلب الحالي."
+                }), 409
+
+            real_avail_bal = Decimal(str(getattr(locked_wallet, 'balance_sar', '0.00')))
+
+            # التحقق من القيود المالية
+            if real_avail_bal <= Decimal('0.00'):
+                return jsonify({"status": "error", "message": "رصيدك الحالي لا يسمح بالسحب."}), 400
+            if amount > real_avail_bal:
+                return jsonify({"status": "error", "message": "المبلغ المطلوب يتجاوز الرصيد المتاح."}), 400
+            if amount < MIN_WITHDRAW_AMOUNT:
+                return jsonify({"status": "error", "message": f"الحد الأدنى للسحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}"}), 400
+
+            # إنشاء طلب السحب
+            owner_name = registered_owner or f"مورد #{supplier_id}"
+            full_desc = f"طلب سحب | {owner_name} | وسيلة: {method}"[:255]
+
+            new_tx = WalletTransaction(
+                wallet_id=locked_wallet.id,
+                trans_type='withdrawal',
+                status='pending',
+                amount=amount,
+                currency=curr,
+                description=full_desc
             )
-        )
 
-    # 7. تطبيق الفلاتر الزمنية (السنة والشهر) بدقة على حقل الإنشاء
-    if year_filter:
-        query = query.filter(db.extract('year', WalletTransaction.created_at) == year_filter)
-    if month_filter:
-        query = query.filter(db.extract('month', WalletTransaction.created_at) == month_filter)
+            db.session.add(new_tx)
+            db.session.commit()
 
-    # 8. التنفيذ والترتيب
-    pagination_obj = query.order_by(
-        WalletTransaction.created_at.desc(), 
-        WalletTransaction.id.desc()
-    ).paginate(page=page, per_page=per_page, error_out=False)
+            return jsonify({
+                "status": "success", 
+                "message": "تم تقديم طلب السحب بنجاح. سيقوم فريقنا بمراجعته قريباً.",
+                "data": {"tx_id": new_tx.id}
+            }), 201
+                
+        except (ValueError, InvalidOperation):
+            db.session.rollback()
+            return jsonify({"status": "error", "message": "القيمة المالية المدخلة غير صحيحة."}), 400
+        except Exception as e:
+            db.session.rollback()
+            import traceback
+            traceback.print_exc()
+            return jsonify({"status": "error", "message": f"خطأ داخلي: {str(e)}"}), 500
+
+    # GET Request
+    status_filter = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    
+    query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)\
+                                   .filter(WalletTransaction.trans_type == 'withdrawal')
+
+    if status_filter != 'all':
+        query = query.filter(WalletTransaction.status == status_filter)
+
+    pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
 
     return render_template(
-        'supplier_wallet/wallet.html',
-        wallet=wallet_obj,
+        'supplier_wallet/withdraw.html',
         summary=summary,
         transactions=pagination_obj.items,
+        withdrawals=pagination_obj.items,
         pagination=pagination_obj,
-        active_type=type_filter,
-        search_query=search_query,
-        active_year=year_filter,
-        active_month=month_filter,
-        registered_owner=registered_owner,
-        registered_details=registered_details
+        active_filter=status_filter
     )
-
-# ✅ تم حذف withdraw() و export_wallet_pdf() نهائياً من هذا الملف
-# ✅ لأنهما أصبحا في ملفات منفصلة (withdraw_routes.py و export_routes.py) 
-# ✅ لتجنب أي تعارض أو أخطاء في الـ endpoints.
