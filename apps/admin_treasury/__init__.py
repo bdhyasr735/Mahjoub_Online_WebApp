@@ -19,11 +19,7 @@ admin_treasury_bp = Blueprint(
 # ✅ استيراد الـ Controller لتسجيل المسارات
 from apps.admin_treasury.routes import treasury_controller
 
-# ✅ (اختياري) استيراد مسارات إضافية إن وجدت
-# from apps.admin_treasury.routes import reports_controller
-
 print(f"🔧 [Blueprint]: تم إنشاء Blueprint 'admin_treasury' مع المسار {admin_treasury_bp.url_prefix}")
-
 
 # دالة مساعدة للاستيراد من أنظمة التسجيل المختلفة
 def create_admin_treasury_blueprint():
