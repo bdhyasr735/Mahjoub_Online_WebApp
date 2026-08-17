@@ -6,8 +6,6 @@ SHOW_IN_SUPPLIER = False
 
 LINKS = {
     'admin_orders_bp.list_admin_orders': 'عرض الطلبات',
-    # ✅ إضافة رابط طلبات السحب (يستخدم مسار الموديول الخاص بالمحافظ)
-    'suppliers_wallets_controller.withdraw_requests_list': 'طلبات السحب',
 }
 
 def register_module(app):
