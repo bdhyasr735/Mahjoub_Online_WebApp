@@ -39,7 +39,7 @@ NAV_ITEMS = [
     {
         "id": "suppliers_withdraw_requests",
         "title": "طلبات السحب",
-        "endpoint": "admin_suppliers_wallets.withdraw_requests_list",
+        "endpoint": "admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list",
         "icon": "money-bill-transfer",
         "permission": "manage_withdraw_requests"
     }
