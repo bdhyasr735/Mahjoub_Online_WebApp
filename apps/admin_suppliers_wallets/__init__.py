@@ -10,10 +10,8 @@ def create_admin_suppliers_wallets_blueprint():
         url_prefix='/admin/suppliers-wallets'
     )
 
-    # 🛠 الحل: استيراد وتسجيل المسارات هنا لربطها بالـ Blueprint
-    from .routes import suppliers_wallets_controller, withdraw_requests_controller
-    
-    # تأكد أن المتحكمات تحتوي على @bp.route(...) وليس @app.route(...)
-    # إذا كانت المتحكمات تستخدم bp بالفعل، فالتسجيل سيتم تلقائياً بمجرد الاستيراد
-    
+    # استيراد المتحكمات لضمان تسجيل جميع المسارات والـ Endpoints (index و withdraw_requests_list)
+    from apps.admin_suppliers_wallets.routes import suppliers_wallets_controller
+    from apps.admin_suppliers_wallets.routes import withdraw_requests_controller
+
     return bp
