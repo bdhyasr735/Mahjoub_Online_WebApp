@@ -21,7 +21,7 @@ def create_admin_suppliers_wallets_blueprint():
         url_prefix='/admin/suppliers-wallets'
     )
 
-    # ✅ تسجيل مسارات المحافظ (القائمة، التفاصيل، ...)
+    # ✅ تسجيل مسارات المحافظ
     from apps.admin_suppliers_wallets.routes import suppliers_wallets_controller
     bp.register_blueprint(suppliers_wallets_controller.bp)
 
@@ -32,5 +32,5 @@ def create_admin_suppliers_wallets_blueprint():
     print(f"🔧 [Blueprint]: تم إنشاء Blueprint '{bp.name}' مع {len(bp.deferred_functions)} مسار مسجل.")
     return bp
 
-# ❌ تم حذف السطر الذي كان موجوداً هنا: (blueprint = create_admin_suppliers_wallets_blueprint())
-# هذا السطر هو الذي كان يسبب تشغيل الدالة مرتين عند الاستيراد، مما يؤدي لظهور الخطأ في اللوق.
+# ❌ تم حذف السطر الذي كان يدعى: blueprint = create_admin_suppliers_wallets_blueprint()
+# لأن وجوده كان يسبب تشغيل الدالة مرتين عند الاستيراد.
