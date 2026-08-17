@@ -7,8 +7,7 @@ MODULE_METADATA = {
     "name": "إدارة محافظ الموردين",
     "version": "2.4.0",
     "icon": "wallet",
-    # ✅ تم تغيير التصنيف ليتناسب مع قسم "إدارة المحافظ/الموردين"
-    "category": "Supplier Management",
+    "category": "Treasury & Settlements",
     "route_prefix": "/admin/suppliers-wallets",
     "permissions": [
         "view_suppliers_wallets",
@@ -17,16 +16,8 @@ MODULE_METADATA = {
         "export_wallets_statement",
         "manage_withdraw_requests"
     ],
-    "description": "إدارة أرصدة الموردين، حسابات الضمان (Escrow)، وعمليات السحب الفوري والتحقق البنكي عبر SAMA Sarie.",
-    # ✅ تم تغيير العنوان إلى "طلبات السحب" ليتطابق مع طلبك
-    "menu_items": [
-        {
-            "title": "طلبات السحب",
-            "icon": "money-bill-transfer",
-            "route": "/admin/suppliers-wallets/withdraw-requests",
-            "permission": "manage_withdraw_requests"
-        }
-    ]
+    "description": "إدارة أرصدة الموردين، حسابات الضمان (Escrow)، وعمليات السحب الفوري والتحقق البنكي عبر SAMA Sarie."
+    # ✅ تم إزالة "menu_items" بالكامل لأنها أصبحت مسجلة عبر موديول الخزينة.
 }
 
 def register_module(app):
