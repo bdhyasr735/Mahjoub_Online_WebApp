@@ -10,8 +10,12 @@ def create_admin_suppliers_wallets_blueprint():
         url_prefix='/admin/suppliers-wallets'
     )
 
-    # تسجيل مسارات المحافظ وطلبات السحب لتعمل الروابط فوراً
+    # ✅ تسجيل مسارات المحافظ وطلبات السحب لتعمل الروابط فوراً
     from apps.admin_suppliers_wallets.routes import suppliers_wallets_controller
     from apps.admin_suppliers_wallets.routes import withdraw_requests_controller
+
+    # ✅ الخطوة المفقودة: تسجيل الـ Blueprints الفرعية
+    bp.register_blueprint(suppliers_wallets_controller.bp)
+    bp.register_blueprint(withdraw_requests_controller.bp)
 
     return bp
