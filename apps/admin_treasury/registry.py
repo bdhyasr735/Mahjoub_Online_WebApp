@@ -15,10 +15,11 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
+# ✅ استخدام Endpoints نظامية تحتوي على نقطة (.) لكي يتجاوزها شرط القالب بنجاح
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
-    "suppliers_wallets_controller.index": "إدارة محافظ الموردين",
-    "suppliers_wallets_controller.withdraw_requests_list": "طلبات السحب"
+    "admin_suppliers_wallets.index": "إدارة محافظ الموردين",
+    "admin_suppliers_wallets.withdraw_requests_list": "طلبات السحب"
 }
 
 links = LINKS
@@ -38,13 +39,11 @@ def register_module(app):
         from apps.admin_treasury.routes.treasury_controller import admin_treasury_bp
         if MODULE_KEY not in app.blueprints:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
-            print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
             
+        # تسجيل موديول محافظ الموردين بالاسم الأساسي ليتطابق مع الـ Endpoints
         from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
         wallets_bp = create_admin_suppliers_wallets_blueprint()
         if "admin_suppliers_wallets" not in app.blueprints:
             app.register_blueprint(wallets_bp)
-            print("✅ [Registry]: تم تسجيل موديول 'محافظ الموردين' بنجاح.")
-            
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل الموديولات: {e}")
+        print(f"❌ [Registry Error]: {e}")
