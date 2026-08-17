@@ -22,20 +22,21 @@
     </div>
 
     <!-- 1. أزرار تصفية الحالة والبحث -->
-    <form method="GET" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_list') }}" class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <!-- ✅ تم تصحيح الـ url_for بإضافة (suppliers_wallets_controller) -->
+    <form method="GET" action="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list') }}" class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div class="flex flex-wrap items-center gap-2">
             <span class="text-amber-500 text-xs font-bold ml-2">🔽 تصفية الحالة:</span>
             <!-- المحافظة على حالة الفلتر الحالي عند البحث والعكس -->
             <input type="hidden" name="status" value="{{ status_filter }}">
             
             <!-- زر الكل -->
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_list', status='all', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'all' %}bg-[#2B1B4E] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">الكل</a>
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list', status='all', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'all' %}bg-[#2B1B4E] text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">الكل</a>
             <!-- زر قيد الانتظار -->
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_list', status='pending', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'pending' %}bg-amber-100 text-amber-700 border-amber-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">⏳ قيد الانتظار</a>
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list', status='pending', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'pending' %}bg-amber-100 text-amber-700 border-amber-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">⏳ قيد الانتظار</a>
             <!-- زر مكتمل -->
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_list', status='completed', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'completed' %}bg-emerald-100 text-emerald-700 border-emerald-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">✅ مكتمل</a>
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list', status='completed', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'completed' %}bg-emerald-100 text-emerald-700 border-emerald-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">✅ مكتمل</a>
             <!-- زر مرفوض -->
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_list', status='rejected', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'rejected' %}bg-rose-100 text-rose-700 border-rose-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">🚫 مرفوض</a>
+            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list', status='rejected', q=search_query) }}" class="px-4 py-1.5 rounded-full text-[11px] font-bold transition border border-transparent {% if status_filter == 'rejected' %}bg-rose-100 text-rose-700 border-rose-400{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">🚫 مرفوض</a>
         </div>
         <!-- حقل البحث -->
         <div class="relative">
@@ -48,11 +49,12 @@
     {% include "admin/components/withdraw_requests_table.html" %}
 
     <!-- 3. شريط الترقيم (Pagination) -->
+    <!-- ✅ تم تصحيح الـ url_for في ترقيم الصفحات أيضاً -->
     {% if pagination and pagination.total_pages > 1 %}
     <div class="flex items-center justify-center gap-1.5 font-mono font-bold mt-4">
-        <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_list', page=pagination.current_page - 1 if pagination.has_prev else 1, status=status_filter, q=search_query) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition">السابق</a>
+        <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list', page=pagination.current_page - 1 if pagination.has_prev else 1, status=status_filter, q=search_query) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_prev %}opacity-50 pointer-events-none{% endif %} transition">السابق</a>
         <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2B1B4E] text-white font-black text-xs">{{ pagination.current_page }}</span>
-        <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_list', page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, status=status_filter, q=search_query) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition">التالي</a>
+        <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list', page=pagination.current_page + 1 if pagination.has_next else pagination.total_pages, status=status_filter, q=search_query) }}" class="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-400 hover:bg-gray-50 {% if not pagination.has_next %}opacity-50 pointer-events-none{% endif %} transition">التالي</a>
     </div>
     {% endif %}
 
