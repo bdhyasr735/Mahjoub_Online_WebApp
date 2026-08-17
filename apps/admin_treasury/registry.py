@@ -15,7 +15,7 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ ربط الروابط بالـ endpoints الصحيحة المطابقة للـ Controllers الفعلية
+# ✅ استخدام الـ endpoints الفعلية والمسجلة في التطبيق
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
     "suppliers_wallets_controller.index": "إدارة محافظ الموردين",
