@@ -51,13 +51,18 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-[#4A154B]"></span>
                 تقديم طلب سحب رصيد جديد
             </h2>
-            <span class="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-lg border border-gray-100">
-                الحد الأدنى للسحب: <strong class="text-gray-700 font-mono">50.00 {{ summary.currency if summary and summary.currency is defined else (wallet.default_currency if wallet and wallet.default_currency is defined else 'SAR') }}</strong>
-            </span>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="runZsaStressTest()" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-xs flex items-center gap-1.5" title="إرسال 40 طلب سحب متزامن بقيمة 50 ريال للاختبار">
+                    <span>⚡ اختبار ضغط ZSA (40 طلب)</span>
+                </button>
+                <span class="text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-lg border border-gray-100">
+                    الحد الأدنى للسحب: <strong class="text-gray-700 font-mono">50.00 {{ summary.currency if summary and summary.currency is defined else (wallet.default_currency if wallet and wallet.default_currency is defined else 'SAR') }}</strong>
+                </span>
+            </div>
         </div>
 
-        <!-- ✅ تم تعديل الـ action ليستخدم endpoint الجديد: submit_withdrawal -->
-        <form method="POST" action="{{ url_for('supplier_wallet.submit_withdrawal') }}" class="space-y-4" onsubmit="return handleWithdrawSubmit(this)">
+        <!-- نموذج الإرسال المتزامن ZSA -->
+        <form id="withdrawForm" method="POST" action="{{ url_for('supplier_wallet.submit_withdrawal') }}" class="space-y-4" onsubmit="return handleWithdrawSubmit(event)">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -118,25 +123,125 @@
 
 </div>
 
-<!-- 🛡️ حماية منع الضغط المزدوج على مستوى المتصفح -->
+<!-- 🛡️ البرمجة التفاعلية والتحكم بـ ZSA واختبار الضغط المتزامن -->
 <script>
-function handleWithdrawSubmit(form) {
-    const btn = form.querySelector('#withdrawSubmitBtn');
-    if (!btn || btn.disabled) {
-        return false;
-    }
+async function handleWithdrawSubmit(event) {
+    if (event) event.preventDefault();
     
+    const form = document.getElementById('withdrawForm');
+    if (!form) return false;
+
+    const btn = document.getElementById('withdrawSubmitBtn');
+    if (!btn || btn.disabled) return false;
+    
+    const amountInput = form.querySelector('input[name="amount"]');
+    const methodSelect = form.querySelector('select[name="payout_method"]');
+    const csrfInput = form.querySelector('input[name="csrf_token"]');
+
+    const amount = amountInput ? amountInput.value : '50.00';
+    const method = methodSelect ? methodSelect.value : 'bank_transfer';
+    const csrf = csrfInput ? csrfInput.value : '';
+
     // تجميد الزر وتغيير حالته البصرية فوراً
     btn.disabled = true;
     btn.classList.add('opacity-75', 'cursor-not-allowed');
+    const originalBtnHtml = btn.innerHTML;
     btn.innerHTML = `
-        <svg class="w-4 h-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 animate-spin text-white inline-block ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span>جاري تقديم الطلب...</span>
+        <span>جاري تقديم الطلب (ZSA)...</span>
     `;
-    return true;
+
+    const formData = new URLSearchParams();
+    formData.append('amount', amount);
+    formData.append('method', method);
+    if (csrf) formData.append('csrf_token', csrf);
+
+    try {
+        const response = await fetch("{{ url_for('supplier_wallet.submit_withdrawal') }}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+            alert(data.message);
+            if (data.new_balance !== undefined) {
+                const balanceElement = document.querySelector('.font-mono.text-emerald-400');
+                if (balanceElement) {
+                    balanceElement.innerText = Number(data.new_balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+            }
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            alert(data.message || "حدث خطأ أثناء معالجة الطلب.");
+        }
+    } catch (error) {
+        console.error("ZSA Error:", error);
+        alert("تعذر الاتصال بالخادم.");
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = originalBtnHtml;
+    }
+
+    return false;
+}
+
+// 🚀 [ZSA Stress Test] محاكاة 40 طلب سحب متزامن بقيمة 50 ريال للطلب
+async function runZsaStressTest() {
+    const totalRequests = 40;
+    const testAmount = '50.00';
+    const url = "{{ url_for('supplier_wallet.submit_withdrawal') }}";
+    
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    const csrf = csrfInput ? csrfInput.value : '';
+
+    if (!confirm(`هل أنت متأكد من رغبتك في بدء اختبار الضغط وإرسال ${totalRequests} طلبات سحب متزامنة بقيمة ${testAmount} ريال لكل طلب؟`)) {
+        return;
+    }
+
+    console.log(`🚀 بدء اختبار الضغط ZSA: إرسال ${totalRequests} طلبات متزامنة بقيمة ${testAmount} ريال للطلب...`);
+    
+    const results = { success: 0, rejected: 0, errors: 0 };
+
+    const promises = Array.from({ length: totalRequests }).map(async (_, index) => {
+        const formData = new URLSearchParams();
+        formData.append('amount', testAmount);
+        formData.append('method', 'bank_transfer');
+        if (csrf) formData.append('csrf_token', csrf);
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                results.success++;
+                console.log(`✅ الطلب رقم ${index + 1}: تم بنجاح`);
+            } else {
+                results.rejected++;
+                console.warn(`🔒 الطلب رقم ${index + 1}: تم الرفض بأمان (${data.message})`);
+            }
+        } catch (e) {
+            results.errors++;
+            console.error(`❌ الطلب رقم ${index + 1}: خطأ شبكة`, e);
+        }
+    });
+
+    await Promise.all(promises);
+    console.log("🏁 انتهى اختبار الضغط ZSA بنجاح. النتائج النهائية:", results);
+    alert(`انتهى اختبار الضغط بنجاح!\n- الطلبات الناجحة: ${results.success}\n- الطلبات المرفوضة بأمان (بسبب القفل/الرصيد): ${results.rejected}\n- الأخطاء التقنية: ${results.errors}`);
+    window.location.reload();
 }
 </script>
 {% endblock %}
