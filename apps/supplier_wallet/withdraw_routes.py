@@ -104,7 +104,9 @@ def submit_withdrawal():
             return jsonify({"status": "error", "message": "القيمة المالية المدخلة غير صحيحة."}), 400
         except Exception as e:
             db.session.rollback()
-            return jsonify({"status": "error", "message": "حدث خطأ داخلي أثناء المعالجة."}), 500
+            import traceback
+            traceback.print_exc()  # طباعة الخطأ كاملاً في سجلات السيرفر (Logs) لتشخيصه بدقة
+            return jsonify({"status": "error", "message": f"خطأ داخلي: {str(e)}"}), 500
 
     # GET Request
     status_filter = request.args.get('status', 'all')
@@ -118,7 +120,6 @@ def submit_withdrawal():
 
     pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
 
-    # تمرير المتغيرات بكل الاحتمالات لضمان ظهور الجدول والفلاتر تماماً
     return render_template(
         'supplier_wallet/withdraw.html',
         summary=summary,
