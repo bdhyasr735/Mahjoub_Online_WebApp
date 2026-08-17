@@ -15,22 +15,38 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ الروابط وقوائم التنقل
+# ✅ الروابط الرئيسية للموديول
 links = {
-    "admin_treasury.treasury_index": "إدارة الخزينة والقيود"
+    "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية"
 }
 
-LINKS = links  # للحفاظ على توافق أي استدعاء قديم
-
+# ✅ التنقل والشريط الجانبي (تمت إضافة إدارة محافظ الموردين وطلبات السحب)
 NAV_ITEMS = [
     {
         "id": "treasury_overview",
-        "title": "إدارة الخزينة والقيود",
+        "title": "لوحة الخزينة المركزية",
         "endpoint": "admin_treasury.treasury_index",
-        "icon": "wallet",
+        "icon": "chart-pie",
         "permission": "view_treasury"
+    },
+    {
+        "id": "suppliers_wallets_management",
+        "title": "إدارة محافظ الموردين",
+        "endpoint": "admin_suppliers_wallets.index",
+        "icon": "wallet",
+        "permission": "view_suppliers_wallets"
+    },
+    {
+        "id": "suppliers_withdraw_requests",
+        "title": "طلبات السحب",
+        "endpoint": "admin_suppliers_wallets.withdraw_requests_list",
+        "icon": "money-bill-transfer",
+        "permission": "manage_withdraw_requests"
     }
 ]
+
+# للحفاظ على التوافق مع الاستدعاءات القديمة
+LINKS = links
 
 def get_nav_metadata():
     """
