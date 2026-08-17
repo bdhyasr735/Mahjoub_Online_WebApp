@@ -5,7 +5,8 @@ from sqlalchemy import or_, func
 from decimal import Decimal
 from datetime import datetime
 
-bp = Blueprint('admin_suppliers_wallets', __name__)
+# ✅ تم تعديل الاسم هنا ليصبح فريداً ولا يتعارض مع الـ Blueprint الرئيسي
+bp = Blueprint('suppliers_wallets_controller', __name__)
 
 PER_PAGE = 10
 
