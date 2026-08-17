@@ -16,7 +16,7 @@ from apps.supplier_wallet.utils import (
 @login_required
 @limiter.exempt
 def wallet_dashboard():
-    """لوحة تحكم المحفظة الرئيسية للمورد (عرض الأرصدة، الملخص المالي، وآخر المعاملات)."""
+    """لوحة تحكم المحفظة الرئيسية للمورد (عرض الأرصدة، الملخص المالي، وآخر المعاملات المعتمدة)."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
 
@@ -36,7 +36,10 @@ def wallet_dashboard():
 
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
 
-    if status_filter != 'all':
+    # المنطق البرمجي: إذا لم يحدد المستخدم فلتر حالة معين، نستبعد المعاملات المعلقة (pending) من الكشف المالي الأساسي
+    if status_filter == 'all':
+        query = query.filter(WalletTransaction.status != 'pending')
+    else:
         query = query.filter(WalletTransaction.status == status_filter)
     
     if type_filter != 'all':
