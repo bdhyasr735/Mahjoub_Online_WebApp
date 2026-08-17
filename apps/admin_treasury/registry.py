@@ -15,11 +15,11 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ الروابط الرئيسية للموديول (تم استخدام الرابط المباشر بدلاً من endpoint)
+# ✅ الروابط الرئيسية للموديول (تم استخدام endpoint الصحيح)
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
-    "/admin/suppliers-wallets": "إدارة محافظ الموردين",  # رابط مباشر
-    "/admin/suppliers-wallets/withdraw-requests": "طلبات السحب"  # رابط مباشر
+    "admin_suppliers_wallets.index": "إدارة محافظ الموردين",
+    "admin_suppliers_wallets.withdraw_requests_list": "طلبات السحب"
 }
 
 # للحفاظ على التوافق مع الاستدعاءات القديمة
@@ -34,6 +34,7 @@ def get_nav_metadata():
         "name": DISPLAY_NAME,
         "icon": ICON,
         "url": URL_PREFIX,
+        "items": NAV_ITEMS,
         "links": links
     }
 
@@ -42,7 +43,6 @@ def register_module(app):
     دالة التسجيل القياسية المعتمدة في مشروع محجوب أونلاين لموديول الرقابة المالية
     """
     try:
-        # ✅ التصحيح الجذري هنا: الاستيراد المباشر من مسار الـ routes الفعلي
         from apps.admin_treasury.routes.treasury_controller import admin_treasury_bp
         
         if MODULE_KEY not in app.blueprints:
