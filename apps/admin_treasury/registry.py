@@ -20,26 +20,26 @@ links = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية"
 }
 
-# ✅ التنقل والشريط الجانبي (تم تصحيح الـ Endpoints)
+# ✅ التنقل والشريط الجانبي (تم استبدال endpoint بـ url المباشر)
 NAV_ITEMS = [
     {
         "id": "treasury_overview",
         "title": "لوحة الخزينة المركزية",
-        "endpoint": "admin_treasury.treasury_index",
+        "url": "/admin/treasury",
         "icon": "chart-pie",
         "permission": "view_treasury"
     },
     {
         "id": "suppliers_wallets_management",
         "title": "إدارة محافظ الموردين",
-        "endpoint": "admin_suppliers_wallets.index",  # ✅ صحيح
+        "url": "/admin/suppliers-wallets",
         "icon": "wallet",
         "permission": "view_suppliers_wallets"
     },
     {
         "id": "suppliers_withdraw_requests",
         "title": "طلبات السحب",
-        "endpoint": "admin_suppliers_wallets.withdraw_requests_list",  # ✅ تم إصلاح الخطأ هنا
+        "url": "/admin/suppliers-wallets/withdraw-requests",
         "icon": "money-bill-transfer",
         "permission": "manage_withdraw_requests"
     }
