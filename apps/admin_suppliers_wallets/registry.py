@@ -20,10 +20,10 @@ REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = False
 
 # ========== روابط القائمة الجانبية ==========
-# يجب أن تتطابق أسماء النقاط (Endpoints) مع الـ Blueprint المُسجل
+# ✅ تم إصلاح الروابط لتتوافق مع اسم الـ Blueprint الجديد (تمت إزالة admin_suppliers_wallets.)
 LINKS = {
-    "admin_suppliers_wallets.suppliers_wallets_controller.index": "إدارة محافظ الموردين",
-    "admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list": "طلبات السحب"
+    "suppliers_wallets_controller.index": "إدارة محافظ الموردين",
+    "suppliers_wallets_controller.withdraw_requests_list": "طلبات السحب"
 }
 
 links = LINKS
