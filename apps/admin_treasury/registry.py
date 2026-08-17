@@ -15,10 +15,10 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ استخدام المسارات المباشرة (URLs) بدلاً من الـ endpoints لتجنب مشاكل دالة safe_url_for
+# ✅ الروابط الرئيسية للموديول (تم ضبط رابط طلبات السحب بالمسار المباشر لتجنب مشكلة safe_url_for)
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
-    "/admin/suppliers-wallets/": "إدارة محافظ الموردين",
+    "suppliers_wallets_controller.index": "إدارة محافظ الموردين",
     "/admin/suppliers-wallets/withdraw-requests": "طلبات السحب"
 }
 
