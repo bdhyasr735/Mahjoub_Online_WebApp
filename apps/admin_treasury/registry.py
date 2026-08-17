@@ -16,8 +16,8 @@ VERSION = "1.0.0"
 URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 
-# يظهر كروابط فرعية تحت الرقابة المالية (وليس في القائمة الرئيسية)
-SHOW_IN_ADMIN = False
+# ✅ تم التعديل هنا: تم تغيير False إلى True لتظهر في القائمة الجانبية
+SHOW_IN_ADMIN = True
 
 # ========== روابط القائمة الجانبية ==========
 # يجب أن تتطابق أسماء النقاط (Endpoints) مع الـ Blueprint المُسجل في __init__.py و treasury_controller.py
