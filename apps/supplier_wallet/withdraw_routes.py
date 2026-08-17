@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
+from sqlalchemy.orm import noload
 from apps.extensions import db, limiter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet import supplier_wallet_bp
@@ -46,8 +47,9 @@ def submit_withdrawal():
             if not supplier_id:
                 return jsonify({"status": "error", "code": "SUPPLIER_NOT_FOUND", "message": "تعذر معرفة هوية المورد."}), 400
 
-            # 🔒 [Pessimistic Locking - استعلام مباشر تماماً بالـ supplier_id بدون أي Joins لضمان عدم ظهور خطأ PostgreSQL]
+            # 🔒 [Pessimistic Locking مع منع أي Join تلقائي عبر noload]
             locked_wallet = db.session.query(SupplierWallet)\
+                .options(noload('*'))\
                 .filter(SupplierWallet.supplier_id == supplier_id)\
                 .with_for_update()\
                 .first()
@@ -62,8 +64,9 @@ def submit_withdrawal():
                 )
                 db.session.add(locked_wallet)
                 db.session.commit()
-                # إعادة قفلها بعد الإنشاء
+                # إعادة قفلها بعد الإنشاء بدون علاقات
                 locked_wallet = db.session.query(SupplierWallet)\
+                    .options(noload('*'))\
                     .filter(SupplierWallet.supplier_id == supplier_id)\
                     .with_for_update()\
                     .first()
