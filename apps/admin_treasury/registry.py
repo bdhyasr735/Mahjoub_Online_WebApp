@@ -15,7 +15,7 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ العودة لاستخدام الـ Endpoints النظامية التي يتطلبها القالب لتظهر الروابط وتعمل باحترافية
+# ✅ تعريف الروابط والـ Endpoints لتظهر في القائمة الجانبية بسلاسة
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
     "admin_suppliers_wallets.index": "إدارة محافظ الموردين",
@@ -36,16 +36,11 @@ def get_nav_metadata():
 
 def register_module(app):
     try:
+        # تسجيل موديول الخزينة المركزية فقط، وتجنب إعادة تسجيل محافظ الموردين هنا لمنع التداخل
         from apps.admin_treasury.routes.treasury_controller import admin_treasury_bp
         if MODULE_KEY not in app.blueprints:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
             print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
-            
-        from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
-        wallets_bp = create_admin_suppliers_wallets_blueprint()
-        if "admin_suppliers_wallets" not in app.blueprints:
-            app.register_blueprint(wallets_bp, url_prefix="/admin/suppliers-wallets")
-            print("✅ [Registry]: تم تسجيل موديول 'محافظ الموردين وطلبات السحب' بنجاح.")
             
     except Exception as e:
         print(f"❌ [Registry Error]: {e}")
