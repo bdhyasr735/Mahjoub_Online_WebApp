@@ -42,7 +42,7 @@ def import_all_models():
                     print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
 
 def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي في المحفظة والخزينة العامة (1000 ر.س)"""
+    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي في المحفظة والخزينة العامة (1,000,000 ر.س)"""
     from apps.models.admin_db import AdminUser
     from apps.models.admin_staff_db import AdminStaff
     from apps.models.supplier_db import Supplier
@@ -81,7 +81,7 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Staff]: {e}")
 
-    # 3. زراعة مورد، محفظته، حركة الإيداع، وقيد الخزينة العامة برصيد 1000 ر.س متناسقة بالكامل
+    # 3. زراعة مورد، محفظته، حركة الإيداع، وقيد الخزينة العامة برصيد 1,000,000 ر.س
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
             supplier = Supplier(
@@ -96,11 +96,11 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 1000.00
+            # إنشاء المحفظة برصيد 1,000,000.00
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=1000.00
+                balance_sar=1000000.00
             )
             db.session.add(wallet)
             db.session.flush()
@@ -126,12 +126,12 @@ def seed_database():
             # --- 🛠️ توليد رقم سند فريد (6 خانات) باستخدام الدالة المعتمدة ---
             seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
 
-            # 📝 إنشاء حركة مالية للمحفظة (تم إزالة owner_type لتجنب خطأ الحقول غير الموجودة)
+            # 📝 إنشاء حركة مالية للمحفظة
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
                 trans_type='deposit',
                 status='completed',
-                amount=1000.00,
+                amount=1000000.00,
                 currency='SAR',
                 reference_number=seed_ref_number,
                 voucher_number=seed_voucher_number,
@@ -139,12 +139,12 @@ def seed_database():
             )
             db.session.add(initial_transaction)
 
-            # 📝 🌟 إنشاء قيد مطابق في الخزينة العامة لكي تظهر تلقائياً في صفحة Treasury
+            # 📝 🌟 إنشاء قيد مطابق في الخزينة العامة
             treasury_entry = TreasuryEntry(
                 reference_number=seed_ref_number,
                 voucher_number=seed_voucher_number,
                 entry_type='deposit',
-                amount=1000.00,
+                amount=1000000.00,
                 currency='SAR',
                 owner_type='supplier',
                 owner_id=supplier.id,
@@ -153,7 +153,7 @@ def seed_database():
             db.session.add(treasury_entry)
 
             db.session.commit()
-            print(f"✅ [Seed]: تم زرع المورد، المحفظة، وحركة الخزينة (1000000 SAR) بنجاح برقم: {seed_ref_number}.")
+            print(f"✅ [Seed]: تم زرع المورد، المحفظة، وحركة الخزينة (1,000,000 SAR) بنجاح برقم: {seed_ref_number}.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
@@ -405,7 +405,7 @@ def create_app():
         pass
 
     # ============================================================
-    # ✅ تسجيل الموديولات الديناميكية والنوافذ الشريطية (شامل لـ NAV_ITEMS و LINKS)
+    # ✅ تسجيل الموديولات الديناميكية والنوافذ الشريطية
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
@@ -419,28 +419,21 @@ def create_app():
             if os.path.exists(registry_file):
                 try:
                     module = importlib.import_module(f"apps.{item}.registry")
-                    
-                    # 1. تسجيل الـ Blueprint الخاص بالموديول
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
-                    
-                    # 2. استخراج الروابط بذكاء ومرونة تامة (يدعم NAV_ITEMS, LINKS, أو get_menu_items)
                     links_data = {}
-                    
                     if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
                         for nav in module.NAV_ITEMS:
                             ep = nav.get('endpoint')
                             title = nav.get('title')
                             if ep and title:
                                 links_data[ep] = title
-                    
                     if not links_data and hasattr(module, 'LINKS'):
                         raw_links = getattr(module, 'LINKS')
                         if isinstance(raw_links, dict):
                             links_data = {ep: lbl for ep, lbl in raw_links.items()}
                         elif isinstance(raw_links, list):
                             links_data = {ep: lbl for ep, lbl in raw_links}
-                    
                     menu_items_func = getattr(module, 'get_menu_items', None)
                     if not links_data and menu_items_func:
                         res = menu_items_func()
@@ -448,8 +441,6 @@ def create_app():
                             links_data = res
                         elif isinstance(res, list):
                             links_data = {ep: lbl for ep, lbl in res}
-                    
-                    # 3. إدراج الموديول في القوائم العامة حسب تصنيفه
                     if links_data:
                         mod_data = {
                             "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
@@ -460,7 +451,6 @@ def create_app():
                             SUPPLIER_MODULES[item] = mod_data
                         else: 
                             ADMIN_MODULES[item] = mod_data
-                            
                 except Exception as e:
                     print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
 
