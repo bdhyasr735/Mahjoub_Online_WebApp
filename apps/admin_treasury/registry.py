@@ -20,7 +20,7 @@ links = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية"
 }
 
-# ✅ التنقل والشريط الجانبي (تمت إضافة إدارة محافظ الموردين وطلبات السحب)
+# ✅ التنقل والشريط الجانبي (تم تصحيح الـ Endpoints)
 NAV_ITEMS = [
     {
         "id": "treasury_overview",
@@ -32,14 +32,14 @@ NAV_ITEMS = [
     {
         "id": "suppliers_wallets_management",
         "title": "إدارة محافظ الموردين",
-        "endpoint": "admin_suppliers_wallets.index",
+        "endpoint": "admin_suppliers_wallets.index",  # ✅ صحيح
         "icon": "wallet",
         "permission": "view_suppliers_wallets"
     },
     {
         "id": "suppliers_withdraw_requests",
         "title": "طلبات السحب",
-        "endpoint": "admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list",
+        "endpoint": "admin_suppliers_wallets.withdraw_requests_list",  # ✅ تم إصلاح الخطأ هنا
         "icon": "money-bill-transfer",
         "permission": "manage_withdraw_requests"
     }
