@@ -15,20 +15,15 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ الروابط الرئيسية للموديول (تم ضبط رابط طلبات السحب بالمسار المباشر لتجنب مشكلة safe_url_for)
 LINKS = {
     "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
     "suppliers_wallets_controller.index": "إدارة محافظ الموردين",
-    "/admin/suppliers-wallets/withdraw-requests": "طلبات السحب"
+    "suppliers_wallets_controller.withdraw_requests_list": "طلبات السحب"
 }
 
-# للحفاظ على التوافق مع الاستدعاءات القديمة
 links = LINKS
 
 def get_nav_metadata():
-    """
-    إرجاع البيانات الوصفية للموديول لعرضها في لوحة التحكم الرئيسية
-    """
     return {
         "key": MODULE_KEY,
         "name": DISPLAY_NAME,
@@ -39,14 +34,17 @@ def get_nav_metadata():
     }
 
 def register_module(app):
-    """
-    دالة التسجيل القياسية المعتمدة في مشروع محجوب أونلاين لموديول الرقابة المالية
-    """
     try:
         from apps.admin_treasury.routes.treasury_controller import admin_treasury_bp
-        
         if MODULE_KEY not in app.blueprints:
             app.register_blueprint(admin_treasury_bp, url_prefix=URL_PREFIX)
             print("✅ [Registry]: تم تسجيل موديول 'الخزينة' بنجاح.")
+            
+        from apps.admin_suppliers_wallets import create_admin_suppliers_wallets_blueprint
+        wallets_bp = create_admin_suppliers_wallets_blueprint()
+        if "admin_suppliers_wallets" not in app.blueprints:
+            app.register_blueprint(wallets_bp)
+            print("✅ [Registry]: تم تسجيل موديول 'محافظ الموردين' بنجاح.")
+            
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة: {e}")
+        print(f"❌ [Registry Error]: فشل تسجيل الموديولات: {e}")
