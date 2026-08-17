@@ -118,9 +118,11 @@ def submit_withdrawal():
 
     pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
 
+    # تمرير المتغيرات بكل الاحتمالات لضمان ظهور الجدول والفلاتر تماماً
     return render_template(
         'supplier_wallet/withdraw.html',
         summary=summary,
+        transactions=pagination_obj.items,
         withdrawals=pagination_obj.items,
         pagination=pagination_obj,
         active_filter=status_filter
