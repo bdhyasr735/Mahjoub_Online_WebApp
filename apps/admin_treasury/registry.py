@@ -15,11 +15,11 @@ URL_PREFIX = "/admin/treasury"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = True
 
-# ✅ استخدام المسارات المباشرة (URLs) لتفتح الروابط مباشرة بدون علامة #
+# ✅ العودة لاستخدام الـ Endpoints النظامية التي يتطلبها القالب لتظهر الروابط وتعمل باحترافية
 LINKS = {
-    "/admin/treasury/": "لوحة الخزينة والقيود المركزية",
-    "/admin/suppliers-wallets/": "إدارة محافظ الموردين",
-    "/admin/suppliers-wallets/withdraw-requests": "طلبات السحب"
+    "admin_treasury.treasury_index": "لوحة الخزينة والقيود المركزية",
+    "admin_suppliers_wallets.index": "إدارة محافظ الموردين",
+    "admin_suppliers_wallets.withdraw_requests_list": "طلبات السحب"
 }
 
 links = LINKS
@@ -45,7 +45,7 @@ def register_module(app):
         wallets_bp = create_admin_suppliers_wallets_blueprint()
         if "admin_suppliers_wallets" not in app.blueprints:
             app.register_blueprint(wallets_bp, url_prefix="/admin/suppliers-wallets")
-            print("✅ [Registry]: تم تسجيل موديول 'محافظ الموردين' بنجاح.")
+            print("✅ [Registry]: تم تسجيل موديول 'محافظ الموردين وطلبات السحب' بنجاح.")
             
     except Exception as e:
         print(f"❌ [Registry Error]: {e}")
