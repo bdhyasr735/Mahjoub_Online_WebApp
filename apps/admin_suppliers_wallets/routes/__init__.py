@@ -1,3 +1,4 @@
+# coding: utf-8
 from flask import Blueprint
 
 def create_admin_suppliers_wallets_blueprint():
@@ -9,7 +10,7 @@ def create_admin_suppliers_wallets_blueprint():
         url_prefix='/admin/suppliers-wallets'
     )
     
-    from .routes import suppliers_wallets_controller
+    from . import suppliers_wallets_controller, withdraw_requests_controller
     bp.register_blueprint(suppliers_wallets_controller.bp)
     
     return bp
