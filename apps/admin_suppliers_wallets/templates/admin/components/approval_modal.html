@@ -13,6 +13,9 @@
         </div>
 
         <form id="approvalForm" method="POST" class="p-6 space-y-4" onsubmit="handleSuccessfulApproval(event)">
+            <!-- حقل الأمان المفقود (تمت الإضافة هنا) -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
             <input type="hidden" name="action" value="approve">
 
             <!-- اختيار النوع (بنك / شركة صرافة) -->
@@ -80,16 +83,10 @@
         }
     }
 
-    // دالة إظهار رسالة النجاح المنبثقة عند الاعتماد
     function handleSuccessfulApproval(event) {
-        // يمكنك إزالة التعليق عن السطر التالي إذا كنت تريد محاكاة الإرسال AJAX، 
-        // أو ترك النموذج يرسل البيانات طبيعياً POST مع ظهور رسالة سريعة قبل إعادة التوجيه:
-        
         const toast = document.getElementById('successToast');
         toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
         toast.classList.add('translate-y-0', 'opacity-100');
-
-        // إخفاء الـ Modal بصנות أنيقة
         closeApprovalModal();
     }
 </script>
