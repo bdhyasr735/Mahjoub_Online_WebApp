@@ -44,14 +44,16 @@ def withdraw_requests_list():
         per_page=PER_PAGE
     )
 
-    # ✅ دعم البحث اللحظي عبر AJAX: إرجاع مكون الجدول فقط إذا كان الطلب قادماً عبر XMLHttpRequest
+    # ✅ دعم البحث اللحظي عبر AJAX: إرجاع مكون الجدول فقط مع الحفاظ على تمرير البيانات لمنع أخطاء القوالب
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template(
             'admin/components/withdraw_requests_table.html',
             withdrawals=result['items'],
             pagination=result['pagination'],
             status_filter=status_filter,
-            search_query=search_query
+            search_query=search_query,
+            yemen_banks=yemen_banks,
+            financial_companies=financial_companies
         )
 
     return render_template(
