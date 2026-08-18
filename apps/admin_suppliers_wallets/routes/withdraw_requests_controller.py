@@ -31,7 +31,7 @@ PER_PAGE = 10
 @login_required
 def withdraw_requests_list():
     """
-    عرض صفحة طلبات السحب مع الفلترة والبحث والترقيم الديناميكي.
+    عرض صفحة طلبات السحب مع الفلترة والبحث اللحظي والترقيم الديناميكي.
     """
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', 'pending')
@@ -43,6 +43,16 @@ def withdraw_requests_list():
         page=page,
         per_page=PER_PAGE
     )
+
+    # ✅ دعم البحث اللحظي عبر AJAX: إرجاع مكون الجدول فقط إذا كان الطلب قادماً عبر XMLHttpRequest
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template(
+            'admin/components/withdraw_requests_table.html',
+            withdrawals=result['items'],
+            pagination=result['pagination'],
+            status_filter=status_filter,
+            search_query=search_query
+        )
 
     return render_template(
         'admin/withdraw_requests.html',
