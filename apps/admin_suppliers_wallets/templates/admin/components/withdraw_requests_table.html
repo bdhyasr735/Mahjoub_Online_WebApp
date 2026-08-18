@@ -81,18 +81,20 @@
 
                     <td class="py-3 px-4 text-center">
                         {% if request.status == 'pending' %}
-                            <div class="flex items-center justify-center gap-1.5">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- زر الاعتماد -->
                                 <button type="button" 
                                         onclick="openApprovalModal('{{ request.id }}', '{{ request.amount }}', '{{ request.currency if request.currency else 'SAR' }}')"
-                                        class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition">
+                                        class="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow-sm">
                                     اعتماد
                                 </button>
 
-                                <form method="POST" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;" class="flex items-center gap-1">
-                                    <input type="hidden" name="action" value="reject">
-                                    <input type="text" name="reason" placeholder="سبب الرفض" class="w-28 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-rose-400" required>
-                                    <button type="submit" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition">رفض</button>
-                                </form>
+                                <!-- زر الرفض المنبثق الاحترافي -->
+                                <button type="button" 
+                                        onclick="openRejectModal('{{ request.id }}', '{{ request.voucher_number or request.reference_code or ('VCH-' ~ request.id) }}')"
+                                        class="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                                    رفض
+                                </button>
                             </div>
                         {% else %}
                             <span class="text-xs text-gray-400">—</span>
@@ -111,8 +113,54 @@
     </div>
 </div>
 
+<!-- تضمين نافذة الاعتماد -->
 {% include 'admin/components/approval_modal.html' %}
 
+<!-- نافذة الرفض المنبثقة الاحترافية (Modal) -->
+<div id="rejectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
+    <div class="bg-white w-full max-w-md mx-4 rounded-3xl shadow-2xl border border-rose-100 overflow-hidden transform transition-all">
+        
+        <!-- رأس النافذة -->
+        <div class="bg-gradient-to-r from-rose-600 to-rose-700 px-6 py-4 flex items-center justify-between text-white">
+            <h3 class="text-sm font-black flex items-center gap-2">
+                <span class="text-lg">❌</span> رفض طلب السحب
+            </h3>
+            <button type="button" onclick="closeRejectModal()" class="text-rose-100 hover:text-white transition text-sm font-bold">
+                ✕
+            </button>
+        </div>
+
+        <!-- محتوى النموذج -->
+        <form id="rejectForm" method="POST" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="reject">
+            
+            <div class="p-3 bg-rose-50 border border-rose-100 rounded-2xl text-xs text-rose-800 font-medium">
+                أنت على وشك رفض الطلب رقم: <span id="rejectVoucherSpan" class="font-bold font-mono"></span>. يرجى توضيح سبب الرفض أدناه ليتم إبلاغ المورد به.
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1.5">سبب الرفض <span class="text-rose-500">*</span></label>
+                <textarea name="reason" id="rejectReasonInput" rows="3" required
+                          placeholder="اكتب سبب الرفض بوضوح (مثال: بيانات الحساب البنكي غير مطابقة...)"
+                          class="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 bg-gray-50"></textarea>
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeRejectModal()" 
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold transition">
+                    إلغاء
+                </button>
+                <button type="submit" 
+                        class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-rose-600/20">
+                    تأكيد وإرسال الرفض
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- سكريبت التحكم بالنافذة المنبثقة -->
 <script>
     function openApprovalModal(requestId, amount, currency) {
         const modal = document.getElementById('approvalModal');
@@ -132,6 +180,25 @@
 
     function closeApprovalModal() {
         const modal = document.getElementById('approvalModal');
+        modal.classList.add('hidden');
+    }
+
+    // دوال نافذة الرفض
+    function openRejectModal(requestId, voucherNumber) {
+        const modal = document.getElementById('rejectModal');
+        const form = document.getElementById('rejectForm');
+        const voucherSpan = document.getElementById('rejectVoucherSpan');
+        const reasonInput = document.getElementById('rejectReasonInput');
+
+        form.action = `/admin/suppliers-wallets/withdraw-requests/${requestId}/action`;
+        if (voucherSpan) voucherSpan.textContent = voucherNumber;
+        if (reasonInput) reasonInput.value = '';
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeRejectModal() {
+        const modal = document.getElementById('rejectModal');
         modal.classList.add('hidden');
     }
 </script>
