@@ -36,7 +36,7 @@
             {% endfor %}
         </div>
 
-        <!-- حقل البحث الآمن -->
+        <!-- حقل البحث -->
         <div class="flex items-center gap-2">
             <div class="relative flex-1 sm:w-72">
                 <input type="text" id="liveSearchInput" value="{{ search_query }}" placeholder="بحث بالمورد، الكود أو رقم السند..." 
@@ -71,26 +71,33 @@
     {% endif %}
 </div>
 
-<!-- سكريبت البحث المباشر المستقر -->
+<!-- سكريبت البحث اللحظي الصامت -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('liveSearchInput');
+        const tableContainer = document.getElementById('tableContainer');
         let timeout = null;
 
         if (searchInput) {
             searchInput.addEventListener('input', function() {
                 clearTimeout(timeout);
                 const query = this.value;
-                const currentStatus = "{{ status_filter }}";
+                const status = "{{ status_filter }}";
 
-                // الانتظار نصف ثانية بعد توقف الكتابة لتحديث النتائج بأمان تام
                 timeout = setTimeout(() => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('q', query);
-                    url.searchParams.set('status', currentStatus);
-                    url.searchParams.set('page', '1');
-                    window.location.href = url.toString();
-                }, 500);
+                    // رابط الطلب بدون تغيير الرابط في المتصفح
+                    const url = `{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}?status=${status}&q=${encodeURIComponent(query)}`;
+                    
+                    // استخدام fetch لجلب البيانات صمتاً وتحديث الجدول فقط
+                    fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        tableContainer.innerHTML = html;
+                    })
+                    .catch(err => console.error('خطأ في جلب البيانات:', err));
+                }, 400);
             });
         }
     });
