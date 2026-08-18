@@ -5,7 +5,7 @@ from sqlalchemy import or_, func
 from decimal import Decimal
 from datetime import datetime
 
-# ✅ تم تغيير الاسم هنا ليصبح فريداً ولن يتكرر حتى لو تم تشغيل الكود مرتين
+# ✅ التغيير الحاسم هنا: الاسم فريد ولن يتكرر
 bp = Blueprint('wallets_controller', __name__)
 
 PER_PAGE = 10
@@ -17,7 +17,6 @@ def index():
     status_filter = request.args.get('status', 'all', type=str)
     bank_filter = request.args.get('bank', 'all', type=str)
 
-    # ✅ اكتشاف ما إذا كان الطلب قادماً من AJAX (للبحث اللحظي دون تحديث)
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
