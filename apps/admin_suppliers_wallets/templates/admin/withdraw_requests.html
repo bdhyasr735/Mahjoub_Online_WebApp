@@ -6,86 +6,61 @@
 {% block content %}
 <div class="space-y-6">
     
-    <!-- 📌 ترويسة الصفحة -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+    <!-- 📌 ترويسة الصفحة بتنسيق الهوية -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-purple-100 shadow-sm shadow-purple-50/50">
         <div>
-            <h1 class="text-xl font-black text-gray-800 flex items-center gap-2">
-                <span>💰</span> إدارة طلبات سحب الموردين
+            <h1 class="text-xl font-black text-[#1a0b2e] flex items-center gap-2">
+                <span class="text-2xl">💰</span> إدارة طلبات سحب الموردين
             </h1>
-            <p class="text-xs text-gray-500 mt-1">مراجعة واعتماد طلبات السحب من الموردين، مع توثيق محاسبي كامل.</p>
+            <p class="text-xs text-gray-500 mt-1 font-medium">مراجعة واعتماد طلبات السحب من الموردين، مع توثيق محاسبي كامل وفق معايير المنصة.</p>
         </div>
         <div class="flex items-center gap-3">
-            <span class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold border border-gray-200">
+            <span class="px-4 py-2 bg-[#1a0b2e] text-white rounded-xl text-xs font-bold border border-[#632C8F]">
                 إجمالي الطلبات: {{ pagination.get('total', 0) if pagination else 0 }}
             </span>
         </div>
     </div>
 
-    <!-- 🔍 شريط البحث وأزرار الفلترة حسب الحالة -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+    <!-- 🔍 شريط البحث وأزرار الفلترة -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         
-        <!-- أزرار الفلترة -->
         <div class="flex items-center flex-wrap gap-2">
-            <span class="text-xs font-bold text-gray-500 ml-2">تصفية الحالة:</span>
+            <span class="text-xs font-bold text-gray-400 ml-2">تصفية:</span>
             
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status='all', q=search_query) }}" 
-               class="px-3 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'all' %}bg-indigo-900 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-                الكل
+            {% set filters = [('all', 'الكل', 'bg-gray-800'), ('pending', '⏳ قيد الانتظار', 'bg-amber-500'), ('completed', '✅ مكتمل', 'bg-emerald-600'), ('rejected', '❌ مرفوض', 'bg-rose-600')] %}
+            {% for status, label, color in filters %}
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status=status, q=search_query) }}" 
+               class="px-4 py-1.5 rounded-xl text-xs font-bold transition {{ color if status_filter == status else 'bg-gray-100 text-gray-600 hover:bg-gray-200' }} {{ 'text-white shadow-md' if status_filter == status else '' }}">
+                {{ label }}
             </a>
-            
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status='pending', q=search_query) }}" 
-               class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 {% if status_filter == 'pending' %}bg-amber-500 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-                ⏳ قيد الانتظار
-            </a>
-            
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status='completed', q=search_query) }}" 
-               class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 {% if status_filter == 'completed' %}bg-emerald-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-                ✅ مكتمل
-            </a>
-            
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status='rejected', q=search_query) }}" 
-               class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 {% if status_filter == 'rejected' %}bg-rose-600 text-white shadow-sm{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-                ❌ مرفوض
-            </a>
+            {% endfor %}
         </div>
 
-        <!-- حقل البحث -->
         <form method="GET" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}" class="flex items-center gap-2">
             <input type="hidden" name="status" value="{{ status_filter }}">
             <div class="relative flex-1 sm:w-64">
-                <input type="text" name="q" value="{{ search_query }}" placeholder="بحث باسم المورد أو كود المحفظة..." 
-                       class="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 bg-gray-50/50">
-                <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="بحث بالمورد أو المحفظة..." 
+                       class="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#632C8F] focus:ring-1 focus:ring-[#632C8F] bg-gray-50">
+                <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
             </div>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">بحث</button>
-            {% if search_query %}
-                <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status=status_filter) }}" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-xs font-bold transition">إلغاء</a>
-            {% endif %}
+            <button type="submit" class="px-4 py-2 bg-[#632C8F] hover:bg-[#1a0b2e] text-white rounded-xl text-xs font-bold transition">بحث</button>
         </form>
-
     </div>
 
-    <!-- 📊 جدول طلبات السحب (استدعاء المكون) -->
+    <!-- 📊 الجدول المحدث (سيستخدم المكون الذي أضفنا له المودال) -->
     {% include 'admin/components/withdraw_requests_table.html' %}
 
-    <!-- 📑 الترقيم (Pagination) لكل 10 طلبات في صفحة -->
+    <!-- 📑 الترقيم -->
     {% if pagination and pagination.get('pages', 0) > 1 %}
     <div class="flex items-center justify-center gap-2 py-4">
         {% if pagination.get('has_prev') %}
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('prev_num', 1), status=status_filter, q=search_query) }}" 
-               class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">السابق</a>
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('prev_num', 1), status=status_filter, q=search_query) }}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">السابق</a>
         {% endif %}
-        
-        <span class="text-xs text-gray-500 font-medium">
-            صفحة {{ pagination.get('page', 1) }} من {{ pagination.get('pages', 1) }}
-        </span>
-
+        <span class="text-xs text-gray-500 font-bold px-3 py-1.5 bg-gray-100 rounded-lg">صفحة {{ pagination.get('page', 1) }} من {{ pagination.get('pages', 1) }}</span>
         {% if pagination.get('has_next') %}
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('next_num', 1), status=status_filter, q=search_query) }}" 
-               class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">التالي</a>
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('next_num', 1), status=status_filter, q=search_query) }}" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">التالي</a>
         {% endif %}
     </div>
     {% endif %}
-
 </div>
 {% endblock %}
