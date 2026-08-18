@@ -9,12 +9,12 @@ ICON = "wallet"
 VERSION = "2.4.0"
 URL_PREFIX = "/admin/suppliers-wallets"
 REQUIRED_PERMISSION = "manage_platform_treasury"
-SHOW_IN_ADMIN = True  # ✅ تم تفعيله ليظهر في القائمة الجانبية السيادية
+SHOW_IN_ADMIN = True  # ✅ تم تفعيله ليظهر في القائمة الجانبية
 
-# ✅ تحديث الروابط لتطابق أسماء الـ Blueprints المستقلة الجديدة
+# ✅ تحديث الروابط لتطابق أسماء الـ Blueprints المركبة الصحيحة
 LINKS = {
-    "wallets_controller.index": "عرض المحافظ",
-    "withdraw_requests_controller.withdraw_requests_list": "طلبات السحب"
+    "admin_suppliers_wallets.wallets_controller.index": "عرض المحافظ",
+    "admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list": "طلبات السحب"
 }
 
 links = LINKS
