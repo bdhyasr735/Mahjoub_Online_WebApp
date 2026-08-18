@@ -4,7 +4,7 @@
         <table class="w-full text-right border-collapse text-xs">
             <thead>
                 <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold">
-                    <th class="py-3 px-4">رقم الطلب</th>
+                    <th class="py-3 px-4">رقم السند / الطلب</th>
                     <th class="py-3 px-4">اسم المتجر / المالك</th>
                     <th class="py-3 px-4">كود المحفظة</th>
                     <th class="py-3 px-4">المبلغ</th>
@@ -16,12 +16,12 @@
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
                 <tr class="hover:bg-gray-50/50 transition">
-                    <!-- ✅ رقم الطلب -->
+                    <!-- ✅ عرض رقم السند المرتبط تماماً بمعاملة المحفظة أو رقم السند في الجدول -->
                     <td class="py-3 px-4 font-mono font-bold text-gray-700">
-                        #{{ request.id }}
+                        {{ request.voucher_number or request.reference_code or ('VCH-' ~ request.id) }}
                     </td>
 
-                    <!-- ✅ اسم المتجر وتحته اسم المالك كامل مع معالجة عدم التوفر -->
+                    <!-- ✅ اسم المتجر وتحته اسم المالك كامل -->
                     <td class="py-3 px-4">
                         <div class="flex flex-col">
                             {% if request.wallet and request.wallet.supplier and request.wallet.supplier.store_name %}
@@ -32,7 +32,6 @@
                                 <span class="text-gray-400 font-normal">مورد غير مسجل</span>
                             {% endif %}
                             
-                            <!-- اسم المالك الكامل -->
                             <span class="text-[11px] text-gray-500 font-medium mt-0.5">
                                 {{ request.wallet.supplier.full_name if (request.wallet and request.wallet.supplier and request.wallet.supplier.full_name) else (request.wallet.supplier.name if (request.wallet and request.wallet.supplier and request.wallet.supplier.name) else '—') }}
                             </span>
@@ -41,7 +40,6 @@
 
                     <td class="py-3 px-4 font-mono text-gray-600">{{ request.wallet.wallet_code if request.wallet else '—' }}</td>
                     
-                    <!-- ✅ عرض المبلغ مع العملة الديناميكية -->
                     <td class="py-3 px-4 font-mono font-black text-amber-600">
                         {{ "{:,.2f}".format(request.amount) }} 
                         <span class="text-[10px] text-gray-500 font-normal">
@@ -51,26 +49,32 @@
 
                     <td class="py-3 px-4 text-gray-500">{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     
+                    <!-- ✅ تناسق شارة الحالة (قيد الانتظار، مكتمل، مرفوض) -->
                     <td class="py-3 px-4 text-center">
                         {% if request.status == 'pending' %}
-                            <span class="px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-300 rounded-full text-[10px] font-bold">قيد الانتظار</span>
+                            <span class="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[11px] font-bold">
+                                <span>⏳</span> قيد الانتظار
+                            </span>
                         {% elif request.status == 'completed' %}
-                            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-full text-[10px] font-bold">مكتمل</span>
+                            <span class="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold">
+                                <span>✅</span> مكتمل
+                            </span>
                         {% elif request.status == 'rejected' %}
-                            <span class="px-2.5 py-1 bg-rose-100 text-rose-700 border border-rose-300 rounded-full text-[10px] font-bold">مرفوض</span>
+                            <span class="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold">
+                                <span>❌</span> مرفوض
+                            </span>
                         {% endif %}
                     </td>
+
                     <td class="py-3 px-4 text-center">
                         {% if request.status == 'pending' %}
                             <div class="flex items-center justify-center gap-1.5">
-                                <!-- ✅ زر الاعتماد الذي يفتح النافذة المنبثقة -->
                                 <button type="button" 
                                         onclick="openApprovalModal('{{ request.id }}', '{{ request.amount }}', '{{ request.currency if request.currency else 'SAR' }}')"
                                         class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition">
                                     اعتماد
                                 </button>
 
-                                <!-- ✅ نموذج الرفض بالاسم المركب الصحيح للـ Blueprint -->
                                 <form method="POST" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;" class="flex items-center gap-1">
                                     <input type="hidden" name="action" value="reject">
                                     <input type="text" name="reason" placeholder="سبب الرفض" class="w-28 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-rose-400" required>
@@ -94,25 +98,19 @@
     </div>
 </div>
 
-<!-- 🪟 تضمين النافذة المنبثقة المستقلة (Modal) مع منطق تصفية الجهات -->
 {% include 'admin/components/approval_modal.html' %}
 
-<!-- 📜 سكريبت التحكم بالنافذة المنبثقة -->
 <script>
     function openApprovalModal(requestId, amount, currency) {
         const modal = document.getElementById('approvalModal');
         const form = document.getElementById('approvalForm');
-        
-        // ضبط مسار الإرسال (Action URL) الديناميكي الصحيح للـ Blueprint
         form.action = `/admin/suppliers-wallets/withdraw-requests/${requestId}/action`;
         
-        // إعادة تعيين الحقول عند الفتح لتجنب البيانات القديمة
         const payoutType = document.getElementById('payoutType');
         const payoutBankSelect = document.getElementById('payoutBankSelect');
         if (payoutType) payoutType.value = '';
         if (payoutBankSelect) payoutBankSelect.innerHTML = '<option value="">يجب اختيار نوع الجهة أولاً...</option>';
         
-        // تفريغ حقل رقم الحوالة إن وجد
         const transferInput = form.querySelector('input[name="transfer_number"]');
         if (transferInput) transferInput.value = '';
 
