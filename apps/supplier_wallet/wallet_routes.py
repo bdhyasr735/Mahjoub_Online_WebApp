@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/wallet_routes.py
 
+from datetime import datetime
 from flask import render_template, request, jsonify
 from flask_login import login_required
 from apps.extensions import db, limiter
@@ -55,6 +56,38 @@ def wallet_dashboard():
         pagination=pagination_obj,
         active_status=status_filter,
         active_type=type_filter
+    )
+
+
+@supplier_wallet_bp.route('/print-statement', methods=['GET'], endpoint='wallet_print_statement')
+@login_required
+def wallet_print_statement():
+    """عرض كشف حساب المورد بصيغة مهيأة للطباعة (PDF)."""
+    supplier_id = get_current_supplier_id()
+    wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    
+    if not wallet_obj:
+        return "المحفظة غير موجودة", 404
+
+    # تجهيز الملخص (إجمالي شامل لغايات الكشف)
+    summary = {
+        'total_balance': float(wallet_obj.balance_sar or 0.00) + float(wallet_obj.balance_pending or 0.00),
+        'available_balance': float(wallet_obj.balance_sar or 0.00),
+        'total_withdrawn': float(wallet_obj.total_withdrawn or 0.00),
+        'currency': getattr(wallet_obj, 'default_currency', 'SAR')
+    }
+
+    # جلب كافة المعاملات المكتملة لعرضها في الكشف (بدون صفحات)
+    transactions = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id)\
+        .filter(WalletTransaction.status != 'pending')\
+        .order_by(WalletTransaction.created_at.desc())\
+        .all()
+
+    return render_template(
+        'supplier_wallet/wallet_pdf_print.html',
+        summary=summary,
+        transactions=transactions,
+        current_date=datetime.now().strftime('%Y-%m-%d %H:%M')
     )
 
 
