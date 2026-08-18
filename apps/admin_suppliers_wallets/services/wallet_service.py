@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/admin_suppliers_wallets/services/wallet_service.py
+
 """
 طبقة الخدمات المحاسبية وإدارة العمليات المصرفية لمحافظ الموردين
 Mahjoub Online WebApp - Treasury & Supplier Wallets Service Layer
@@ -173,20 +176,30 @@ def get_withdraw_requests(status='pending', search='', page=1, per_page=10):
     }
 
 
-def update_withdrawal_status(request_id, action, reason=''):
+def update_withdrawal_status(request_id, action, reason='', transfer_number=None, approval_ref=None, payout_bank=None):
     """
-    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات (اعتماد أو رفض).
+    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات (اعتماد أو رفض) مع حفظ بيانات التوثيق المالي.
     """
     try:
         transaction = WalletTransaction.query.get_or_404(request_id)
         
         if action == 'approve':
             transaction.status = 'completed'
-            message = f'تم اعتماد طلب السحب رقم {request_id} بنجاح.'
+            
+            # ✅ حفظ معلومات التحويل البنكي والتوثيق المالي
+            if transfer_number:
+                transaction.transfer_number = transfer_number
+            if approval_ref:
+                transaction.approval_ref = approval_ref
+            if payout_bank:
+                transaction.payout_bank = payout_bank
+                
+            message = f'تم اعتماد طلب السحب رقم {request_id} بنجاح عبر ({payout_bank or "جهة معتمدة"}) برقم حوالة: ({transfer_number or "---"}).'
+            
         elif action == 'reject':
             transaction.status = 'rejected'
             if reason:
-                transaction.description = f"{transaction.description} | مرفوض: {reason}"
+                transaction.description = f"{transaction.description or ''} | مرفوض: {reason}"
             message = f'تم رفض طلب السحب رقم {request_id} بسبب: {reason}'
         else:
             return {'success': False, 'message': 'إجراء غير معروف.'}
