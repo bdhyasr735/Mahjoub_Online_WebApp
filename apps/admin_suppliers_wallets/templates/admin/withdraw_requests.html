@@ -1,71 +1,72 @@
-<!-- 📂 apps/admin_suppliers_wallets/templates/admin/components/withdraw_requests_table.html -->
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-right text-xs">
-            <thead class="bg-gray-50 border-b border-gray-100">
-                <tr>
-                    <th class="px-6 py-4 font-bold text-gray-500">رقم الطلب</th>
-                    <th class="px-6 py-4 font-bold text-gray-500">المتجر / المالك</th>
-                    <th class="px-6 py-4 font-bold text-gray-500">كود المحفظة</th>
-                    <th class="px-6 py-4 font-bold text-gray-500">المبلغ</th>
-                    <th class="px-6 py-4 font-bold text-gray-500">التاريخ</th>
-                    <th class="px-6 py-4 font-bold text-gray-500">الحالة</th>
-                    <th class="px-6 py-4 font-bold text-gray-500 text-center">الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                {% for req in withdrawals %}
-                <tr class="hover:bg-purple-50/30 transition">
-                    <!-- رقم الطلب -->
-                    <td class="px-6 py-4 font-mono font-bold text-gray-600">#{{ req.id }}</td>
-                    
-                    <!-- اسم المتجر والمالك -->
-                    <td class="px-6 py-4">
-                        <div class="flex flex-col">
-                            <span class="font-black text-[#1a0b2e]">{{ req.supplier_name }}</span>
-                            <span class="text-[10px] text-gray-400 font-bold mt-0.5">{{ req.owner_full_name }}</span>
-                        </div>
-                    </td>
+<!-- 📂 apps/admin_suppliers_wallets/templates/admin/withdraw_requests.html -->
+{% extends "admin/admin_base.html" %}
 
-                    <td class="px-6 py-4 font-bold text-gray-600">{{ req.wallet_code }}</td>
-                    <td class="px-6 py-4 font-black text-[#632C8F]">{{ req.amount }} <span class="text-[10px]">SAR</span></td>
-                    <td class="px-6 py-4 text-gray-500 font-medium">{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    
-                    <!-- الحالة -->
-                    <td class="px-6 py-4">
-                        {% if req.status == 'pending' %}
-                            <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg font-bold text-[10px]">قيد الانتظار</span>
-                        {% elif req.status == 'completed' %}
-                            <span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-bold text-[10px]">مكتمل</span>
-                        {% else %}
-                            <span class="px-2 py-1 bg-rose-100 text-rose-700 rounded-lg font-bold text-[10px]">مرفوض</span>
-                        {% endif %}
-                    </td>
+{% block title %}إدارة طلبات سحب الموردين{% endblock %}
 
-                    <!-- الإجراءات -->
-                    <td class="px-6 py-4 text-center">
-                        {% if req.status == 'pending' %}
-                        <button onclick="openApprovalModal('{{ req.id }}')" class="px-3 py-1.5 bg-[#632C8F] text-white rounded-lg font-bold text-[10px] hover:bg-[#1a0b2e] transition">اعتماد</button>
-                        {% else %}
-                        <span class="text-[10px] text-gray-400 font-bold">تمت المعالجة</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- 📌 ترويسة الصفحة بتنسيق الهوية -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-purple-100 shadow-sm shadow-purple-50/50">
+        <div>
+            <h1 class="text-xl font-black text-[#1a0b2e] flex items-center gap-2">
+                <span class="text-2xl">💰</span> إدارة طلبات سحب الموردين
+            </h1>
+            <p class="text-xs text-gray-500 mt-1 font-medium">مراجعة واعتماد طلبات السحب من الموردين، مع توثيق محاسبي كامل وفق معايير المنصة.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="px-4 py-2 bg-[#1a0b2e] text-white rounded-xl text-xs font-bold border border-[#632C8F]">
+                إجمالي الطلبات: {{ pagination.get('total', 0) if pagination else 0 }}
+            </span>
+        </div>
     </div>
+
+    <!-- 🔍 شريط البحث وأزرار الفلترة -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        
+        <div class="flex items-center flex-wrap gap-2">
+            <span class="text-xs font-bold text-gray-400 ml-2">تصفية:</span>
+            
+            {% set filters = [('all', 'الكل', 'bg-gray-800'), ('pending', '⏳ قيد الانتظار', 'bg-amber-500'), ('completed', '✅ مكتمل', 'bg-emerald-600'), ('rejected', '❌ مرفوض', 'bg-rose-600')] %}
+            {% for status, label, color in filters %}
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status=status, q=search_query) }}" 
+               class="px-4 py-1.5 rounded-xl text-xs font-bold transition {{ color if status_filter == status else 'bg-gray-100 text-gray-600 hover:bg-gray-200' }} {{ 'text-white shadow-md' if status_filter == status else '' }}">
+                {{ label }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <form method="GET" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}" class="flex items-center gap-2">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <div class="relative flex-1 sm:w-64">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="بحث بالمورد أو المحفظة..." 
+                       class="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#632C8F] focus:ring-1 focus:ring-[#632C8F] bg-gray-50">
+                <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-[#632C8F] hover:bg-[#1a0b2e] text-white rounded-xl text-xs font-bold transition">بحث</button>
+        </form>
+    </div>
+
+    <!-- 📊 الجدول المحدث -->
+    {% include 'admin/components/withdraw_requests_table.html' %}
+
+    <!-- 📑 الترقيم الديناميكي -->
+    {% if pagination and pagination.get('pages', 0) > 1 %}
+    <div class="flex items-center justify-center gap-2 py-4">
+        {% if pagination.get('has_prev') %}
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('prev_num', 1), status=status_filter, q=search_query) }}" 
+               class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">السابق</a>
+        {% endif %}
+        
+        <span class="text-xs text-gray-500 font-bold px-3 py-1.5 bg-gray-100 rounded-lg">
+            صفحة {{ pagination.get('page', 1) }} من {{ pagination.get('pages', 1) }}
+        </span>
+        
+        {% if pagination.get('has_next') %}
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('next_num', 1), status=status_filter, q=search_query) }}" 
+               class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">التالي</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
-
-<!-- تضمين المودال المحدث -->
-{% include 'admin/components/approval_modal.html' %}
-
-<script>
-    function openApprovalModal(requestId) {
-        document.getElementById('approvalModal').classList.remove('hidden');
-        document.getElementById('approvalForm').action = `/withdraw-requests/${requestId}/action`;
-    }
-    function closeApprovalModal() {
-        document.getElementById('approvalModal').classList.add('hidden');
-    }
-</script>
+{% endblock %}
