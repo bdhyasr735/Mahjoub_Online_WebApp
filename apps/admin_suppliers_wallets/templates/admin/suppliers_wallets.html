@@ -54,8 +54,9 @@
                 <tbody id="suppliers-table-body" class="divide-y divide-gray-100">
                     {% if suppliers %}
                         {% for supplier in suppliers %}
+                        <!-- ✅ إصلاح: استبدال 'suppliers_wallets_controller' بـ 'wallets_controller' -->
                         <tr 
-                            ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
+                            ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
                             title="انقر نقراً مزدوجاً لفتح كشف الحساب"
                             class="hover:bg-gray-50 cursor-pointer transition select-none group"
                         >
@@ -104,8 +105,8 @@
                             <td class="py-4 px-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
                                     
-                                    <!-- ✅ زر العرض (عين) - رابط بسيط يفتح صفحة كشف الحساب -->
-                                    <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
+                                    <!-- ✅ إصلاح: استبدال 'suppliers_wallets_controller' بـ 'wallets_controller' -->
+                                    <a href="{{ url_for('admin_suppliers_wallets.wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
                                        class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" 
                                        title="عرض كشف الحساب">
                                         👁️
@@ -121,8 +122,9 @@
                                     </button>
 
                                     <!-- زر التجميد (قفل) -->
+                                    <!-- ✅ إصلاح: استبدال 'suppliers_wallets_controller' بـ 'wallets_controller' -->
                                     <button 
-                                        onclick="confirmWalletStatusToggle('{{ supplier.id }}', '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.status }}', '{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.toggle_wallet_freeze', supplier_id=supplier.id) }}')"
+                                        onclick="confirmWalletStatusToggle('{{ supplier.id }}', '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.status }}', '{{ url_for('admin_suppliers_wallets.wallets_controller.toggle_wallet_freeze', supplier_id=supplier.id) }}')"
                                         class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
                                         title="تجميد المحفظة"
                                     >
