@@ -16,7 +16,7 @@
         </div>
         <div class="flex items-center gap-3">
             <span class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold border border-gray-200">
-                إجمالي الطلبات: {{ pagination.total if pagination else 0 }}
+                إجمالي الطلبات: {{ pagination.get('total', 0) if pagination else 0 }}
             </span>
         </div>
     </div>
@@ -68,20 +68,20 @@
     <!-- 📊 جدول طلبات السحب (استدعاء المكون) -->
     {% include 'admin/components/withdraw_requests_table.html' %}
 
-    <!-- 📑 الترقيم (Pagination) إن وجد -->
-    {% if pagination and pagination.pages > 1 %}
+    <!-- 📑 الترقيم (Pagination) لكل 10 طلبات في صفحة -->
+    {% if pagination and pagination.get('pages', 0) > 1 %}
     <div class="flex items-center justify-center gap-2 py-4">
-        {% if pagination.has_prev %}
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.prev_num, status=status_filter, q=search_query) }}" 
+        {% if pagination.get('has_prev') %}
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('prev_num', 1), status=status_filter, q=search_query) }}" 
                class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">السابق</a>
         {% endif %}
         
         <span class="text-xs text-gray-500 font-medium">
-            صفحة {{ pagination.page }} من {{ pagination.pages }}
+            صفحة {{ pagination.get('page', 1) }} من {{ pagination.get('pages', 1) }}
         </span>
 
-        {% if pagination.has_next %}
-            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.next_num, status=status_filter, q=search_query) }}" 
+        {% if pagination.get('has_next') %}
+            <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', page=pagination.get('next_num', 1), status=status_filter, q=search_query) }}" 
                class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">التالي</a>
         {% endif %}
     </div>
