@@ -46,13 +46,26 @@ def withdraw_requests_list():
 @login_required
 def process_withdraw_request_post(request_id):
     """
-    معالجة طلب السحب عبر POST (اعتماد أو رفض).
+    معالجة طلب السحب عبر POST (اعتماد أو رفض) مع التقاط بيانات التوثيق المالي.
     """
     try:
         action = request.form.get('action')
         reason = request.form.get('reason', '')
+        
+        # ✅ التقاط بيانات التوثيق المالي الجديدة من الـ Modal
+        transfer_number = request.form.get('transfer_number')
+        approval_ref = request.form.get('approval_ref')
+        payout_bank = request.form.get('payout_bank')
 
-        result = update_withdrawal_status(request_id, action, reason)
+        # تمرير البيانات المضافة إلى خدمة التحديث
+        result = update_withdrawal_status(
+            request_id=request_id,
+            action=action,
+            reason=reason,
+            transfer_number=transfer_number,
+            approval_ref=approval_ref,
+            payout_bank=payout_bank
+        )
 
         if result['success']:
             flash(result['message'], 'success')
