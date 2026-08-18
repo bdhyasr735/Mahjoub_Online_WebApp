@@ -62,8 +62,9 @@ def process_withdraw_request_post(request_id):
     except Exception as e:
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
+    # ✅ استخدام الاسم المركب الصحيح للـ Blueprint في التوجيه
     return redirect(url_for(
-        'withdraw_requests_controller.withdraw_requests_list',
+        'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
         status=request.args.get('status', 'pending'),
         q=request.args.get('q', '')
     ))
