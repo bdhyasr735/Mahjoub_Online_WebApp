@@ -1,38 +1,54 @@
-# coding: utf-8
-# 📂 apps/admin_suppliers_wallets/__init__.py
+# -*- coding: utf-8 -*-
+# 📂 apps/admin_treasury/registry.py
 """
-حزمة إدارة محافظ الموردين وطلبات السحب
+تسجيل موديول الرقابة المالية (خزينة المنصة)
+في نظام التسجيل المركزي للمشروع
 Mahjoub Online WebApp
 """
 
-from flask import Blueprint
+# ========== بيانات الموديول الأساسية ==========
+MODULE_KEY = "admin_treasury"
+MODULE_NAME = "الرقابة المالية"
+DISPLAY_NAME = "خزينة المنصة"
+MODULE_ICON = "fas fa-coins"
+ICON = "treasury"
+VERSION = "1.0.0"
+URL_PREFIX = "/admin/treasury"
+REQUIRED_PERMISSION = "manage_platform_treasury"
 
-def create_admin_suppliers_wallets_blueprint():
-    """
-    إنشاء وإعداد Blueprint لموديول محافظ الموردين
-    مع تسجيل جميع المسارات الفرعية
-    """
-    # إنشاء الـ Blueprint الرئيسي
-    bp = Blueprint(
-        'admin_suppliers_wallets',
-        __name__,
-        template_folder='templates',
-        static_folder='static',
-        url_prefix='/admin/suppliers-wallets'
-    )
+# ✅ تم التعديل هنا: تم تغيير False إلى True لتظهر في القائمة الجانبية
+SHOW_IN_ADMIN = True
 
-    # ✅ تسجيل مسارات المحافظ (القائمة، التفاصيل، ...)
-    from apps.admin_suppliers_wallets.routes import suppliers_wallets_controller
-    bp.register_blueprint(suppliers_wallets_controller.bp)
+# ========== روابط القائمة الجانبية ==========
+LINKS = {
+    "admin_treasury.treasury_index": "سجل حركات الخزينة",
+}
 
-    # ✅ تسجيل مسارات طلبات السحب
-    from apps.admin_suppliers_wallets.routes import withdraw_requests_controller
-    bp.register_blueprint(withdraw_requests_controller.bp)
+links = LINKS
 
-    print(f"🔧 [Blueprint]: تم إنشاء Blueprint '{bp.name}' مع {len(bp.deferred_functions)} مسار مسجل.")
-    return bp
 
-# ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
-# توقف تماماً هنا! ممنوع وضع أي سطر خارج الدالة نهائياً.
-# حتى لو كان تعليقاً باسم المتغير، يجب حذف السطر بالكامل.
-# ⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
+def get_nav_metadata():
+    return {
+        "key": MODULE_KEY,
+        "name": DISPLAY_NAME,
+        "icon": ICON,
+        "url": URL_PREFIX,
+        "items": [],
+        "links": links,
+        "show_in_admin": SHOW_IN_ADMIN
+    }
+
+
+def register_module(app):
+    try:
+        from apps.admin_treasury import admin_treasury_bp
+        if admin_treasury_bp.name not in app.blueprints:
+            app.register_blueprint(admin_treasury_bp)
+            print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
+            print(f"   📍 عدد المسارات المسجلة الإضافية للخزينة: {len(admin_treasury_bp.deferred_functions)}")
+        else:
+            print(f"ℹ️ [Module]: موديول '{MODULE_NAME}' مُسجل مسبقاً.")
+    except ImportError as e:
+        print(f"❌ [Module Error]: فشل استيراد موديول خزينة المنصة. تفاصيل: {e}")
+    except Exception as e:
+        print(f"❌ [Module Error]: تعذر تسجيل موديول خزينة المنصة. تفاصيل: {e}")
