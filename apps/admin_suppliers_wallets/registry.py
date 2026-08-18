@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/admin_suppliers_wallets/registry.py
+
 MODULE_KEY = "admin_suppliers_wallets"
 MODULE_NAME = "إدارة محافظ الموردين"
 DISPLAY_NAME = "محافظ الموردين"
@@ -8,7 +9,7 @@ ICON = "wallet"
 VERSION = "2.4.0"
 URL_PREFIX = "/admin/suppliers-wallets"
 REQUIRED_PERMISSION = "manage_platform_treasury"
-SHOW_IN_ADMIN = False
+SHOW_IN_ADMIN = True  # ✅ تم تفعيله ليظهر في القائمة الجانبية السيادية
 
 # ✅ تحديث الروابط لتطابق أسماء الـ Blueprints المستقلة الجديدة
 LINKS = {
@@ -37,7 +38,7 @@ def register_module(app):
         if wallets_bp.name not in app.blueprints:
             app.register_blueprint(wallets_bp)
             print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
-            print(f"   📍 عدد المسارات المسجلة: {len(app.url_map._rules)}")
+            print(f"    📍 عدد المسارات المسجلة: {len(app.url_map._rules)}")
         else:
             print(f"ℹ️ [Module]: موديول '{MODULE_NAME}' مُسجل مسبقاً (الاسم: {wallets_bp.name})، تم تخطي التسجيل.")
             
