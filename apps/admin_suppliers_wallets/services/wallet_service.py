@@ -178,11 +178,15 @@ def get_withdraw_requests(status='pending', search='', page=1, per_page=10):
 
 def update_withdrawal_status(request_id, action, reason='', transfer_number=None, approval_ref=None, payout_bank=None):
     """
-    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات (اعتماد أو رفض) مع حفظ بيانات التوثيق المالي.
+    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات (اعتماد أو رفض) مع حفظ بيانات التوثيق وإرسال إشعار للمورد.
     """
     try:
         transaction = WalletTransaction.query.get_or_404(request_id)
         
+        # ✅ جلب محفظة المورد المرتبطة بالمعاملة للوصول إلى المورد وإرسال الفلاش/الإشعار
+        wallet = SupplierWallet.query.get(transaction.wallet_id)
+        supplier_id = wallet.supplier_id if wallet else None
+
         if action == 'approve':
             transaction.status = 'completed'
             
@@ -196,11 +200,38 @@ def update_withdrawal_status(request_id, action, reason='', transfer_number=None
                 
             message = f'تم اعتماد طلب السحب رقم {request_id} بنجاح عبر ({payout_bank or "جهة معتمدة"}) برقم حوالة: ({transfer_number or "---"}).'
             
+            # ✅ إرسال إشعار فلاش مباشر للمورد (تخزين في سجل إشعارات النظام إن وجد)
+            try:
+                from apps.models.notification_db import Notification
+                if supplier_id:
+                    notif = Notification(
+                        supplier_id=supplier_id,
+                        title='تم اعتماد سحب أرباحك',
+                        body=f'تم اعتماد وتحويل مبلغ طلب السحب رقم {request_id} عبر {payout_bank or "البنك"} برقم حوالة {transfer_number or "---"}',
+                        type='success'
+                    )
+                    db.session.add(notif)
+            except Exception:
+                pass
+            
         elif action == 'reject':
             transaction.status = 'rejected'
             if reason:
                 transaction.description = f"{transaction.description or ''} | مرفوض: {reason}"
             message = f'تم رفض طلب السحب رقم {request_id} بسبب: {reason}'
+            
+            try:
+                from apps.models.notification_db import Notification
+                if supplier_id:
+                    notif = Notification(
+                        supplier_id=supplier_id,
+                        title='تم رفض طلب السحب',
+                        body=f'عذراً، تم رفض طلب السحب رقم {request_id}. السبب: {reason}',
+                        type='danger'
+                    )
+                    db.session.add(notif)
+            except Exception:
+                pass
         else:
             return {'success': False, 'message': 'إجراء غير معروف.'}
 
