@@ -1,4 +1,3 @@
-apps/admin_suppliers_wallets/__init__.py
 # coding: utf-8
 # 📂 apps/admin_suppliers_wallets/__init__.py
 """
