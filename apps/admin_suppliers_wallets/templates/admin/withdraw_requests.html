@@ -71,39 +71,41 @@
     {% endif %}
 </div>
 
-<!-- سكريبت البحث اللحظي الفوري -->
+<!-- سكريبت البحث اللحظي المصحح -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('liveSearchInput');
         let timeout = null;
 
-        searchInput.addEventListener('input', function() {
-            clearTimeout(timeout);
-            const query = this.value;
-            const currentStatus = "{{ status_filter }}";
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(timeout);
+                const query = this.value;
+                const currentStatus = "{{ status_filter }}";
 
-            // الانتظار نصف ثانية بعد توقف الكتابة لتفادي كثرة الطلبات المتكررة
-            timeout = setTimeout(() => {
-                const url = `{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}?status=${currentStatus}&q=${encodeURIComponent(query)}`;
-                
-                fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.text())
-                .then(html => {
-                    // استخراج الجدول وتحديثه فقط في الصفحة بدون إعادة تحميل كاملة
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newTableContainer = doc.getElementById('tableContainer');
-                    if (newTableContainer) {
-                        document.getElementById('tableContainer').innerHTML = newTableContainer.innerHTML;
-                    }
-                .catch(err => console.error('خطأ في البحث اللحظي:', err));
-                });
-            }, 300);
-        });
+                timeout = setTimeout(() => {
+                    const url = `{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}?status=${currentStatus}&q=${encodeURIComponent(query)}`;
+                    
+                    fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newTableContainer = doc.getElementById('tableContainer');
+                        if (newTableContainer) {
+                            document.getElementById('tableContainer').innerHTML = newTableContainer.innerHTML;
+                        } else {
+                            document.getElementById('tableContainer').innerHTML = html;
+                        }
+                    })
+                    .catch(err => console.error('خطأ في البحث اللحظي:', err));
+                }, 300);
+            });
+        }
     });
 </script>
 {% endblock %}
