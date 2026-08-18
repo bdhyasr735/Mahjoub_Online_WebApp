@@ -1,3 +1,4 @@
+<!-- apps/admin_suppliers_wallets/templates/admin/suppliers_wallets.html -->
 {% extends "admin/admin_base.html" %}
 
 {% block title %}إدارة محافظ الموردين المركزية{% endblock %}
@@ -42,9 +43,9 @@
                         <th class="py-3 px-4">كود المحفظة</th>
                         <th class="py-3 px-4">المورد والنشاط</th>
                         <th class="py-3 px-4">السجل التجاري</th>
-                        <th class="py-3 px-4 text-left">الرصيد المتاح (SAR)</th>
-                        <th class="py-3 px-4 text-left">الضمان المحجوز (SAR)</th>
-                        <th class="py-3 px-4 text-left">إجمالي الرصيد (SAR)</th>
+                        <th class="py-3 px-4 text-left">الرصيد المتاح (<span class="currency-label">{{ supplier.currency|default('SAR') }}</span>)</th>
+                        <th class="py-3 px-4 text-left">الضمان المحجوز (<span class="currency-label">{{ supplier.currency|default('SAR') }}</span>)</th>
+                        <th class="py-3 px-4 text-left">إجمالي الرصيد (<span class="currency-label">{{ supplier.currency|default('SAR') }}</span>)</th>
                         <th class="py-3 px-4">البنك المعتمد</th>
                         <th class="py-3 px-4 text-center">الحالة</th>
                         <th class="py-3 px-4 text-center">الإجراءات</th>
@@ -54,7 +55,8 @@
                 <tbody id="suppliers-table-body" class="divide-y divide-gray-100">
                     {% if suppliers %}
                         {% for supplier in suppliers %}
-                        <!-- ✅ إصلاح: استبدال 'suppliers_wallets_controller' بـ 'wallets_controller' -->
+                        <!-- تحديد رمز العملة ديناميكياً لكل مورد إن وجد، وإلا فالافتراضي -->
+                        {% set curr = supplier.currency or supplier.supplier.currency or 'SAR' %}
                         <tr 
                             ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'"
                             title="انقر نقراً مزدوجاً لفتح كشف الحساب"
@@ -77,13 +79,13 @@
                                 {{ supplier.supplier.commercial_reg|default('-') }}
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-bold text-gray-800">
-                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
+                                {{ "{:,.2f}".format(supplier.balance_sar|float) }} <span class="text-[10px] text-gray-400">{{ curr }}</span>
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-bold text-amber-600">
-                                {{ "0.00" }}
+                                {{ "0.00" }} <span class="text-[10px] text-gray-400">{{ curr }}</span>
                             </td>
                             <td class="py-4 px-4 text-left font-mono font-black text-green-600 text-sm">
-                                {{ "{:,.2f}".format(supplier.balance_sar|float) }}
+                                {{ "{:,.2f}".format(supplier.balance_sar|float) }} <span class="text-[10px] text-gray-400">{{ curr }}</span>
                             </td>
                             <td class="py-4 px-4">
                                 <div class="font-bold text-gray-700">{{ supplier.supplier.bank_name|default('-') }}</div>
@@ -105,7 +107,6 @@
                             <td class="py-4 px-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
                                     
-                                    <!-- ✅ إصلاح: استبدال 'suppliers_wallets_controller' بـ 'wallets_controller' -->
                                     <a href="{{ url_for('admin_suppliers_wallets.wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" 
                                        class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" 
                                        title="عرض كشف الحساب">
@@ -122,7 +123,6 @@
                                     </button>
 
                                     <!-- زر التجميد (قفل) -->
-                                    <!-- ✅ إصلاح: استبدال 'suppliers_wallets_controller' بـ 'wallets_controller' -->
                                     <button 
                                         onclick="confirmWalletStatusToggle('{{ supplier.id }}', '{{ supplier.supplier.store_name or supplier.supplier.trade_name or supplier.supplier.username }}', '{{ supplier.status }}', '{{ url_for('admin_suppliers_wallets.wallets_controller.toggle_wallet_freeze', supplier_id=supplier.id) }}')"
                                         class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" 
@@ -167,13 +167,10 @@
 
 </div>
 
-<!-- ✅ تمت إضافة المودالات هنا قبل إغلاق القالب -->
+<!-- المودالات والسكربتات الخاصة بالبحث -->
 {% include "admin/components/wallet_modals.html" %}
-
-<!-- ✅ استدعاء ملف JavaScript الخارجي للمودالات -->
 <script src="{{ url_for('admin_suppliers_wallets.static', filename='js/wallet_modals.js') }}"></script>
 
-<!-- ✅ كود البحث اللحظي (AJAX) - إذا لم يكن موجوداً في wallet_filters.html -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('liveSearchInput');
@@ -217,14 +214,16 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('خطأ في البحث:', error));
     }
 
-    searchInput.addEventListener('input', function() {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(fetchFilteredData, 500);
-    });
+    if(searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(fetchFilteredData, 500);
+        });
+    }
 
-    statusSelect.addEventListener('change', fetchFilteredData);
-    bankSelect.addEventListener('change', fetchFilteredData);
-    applyBtn.addEventListener('click', fetchFilteredData);
+    if(statusSelect) statusSelect.addEventListener('change', fetchFilteredData);
+    if(bankSelect) bankSelect.addEventListener('change', fetchFilteredData);
+    if(applyBtn) applyBtn.addEventListener('click', fetchFilteredData);
 });
 </script>
 
