@@ -17,9 +17,9 @@
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
                 <tr class="hover:bg-purple-50/20 transition">
-                    <!-- الترقيم الديناميكي المستمر بين الصفحات -->
+                    <!-- الترقيم الديناميكي المستمر بين الصفحات (تم التعديل ليتوافق مع الـ dict) -->
                     <td class="py-3.5 px-4 font-mono font-bold text-gray-400">
-                        {{ loop.index + ((pagination.page - 1) * 10 if pagination else 0) }}
+                        {{ loop.index + (((pagination.get('page', 1) - 1) * 10) if pagination else 0) }}
                     </td>
 
                     <!-- رقم السند -->
