@@ -1,85 +1,73 @@
 <!-- 📂 apps/admin_suppliers_wallets/templates/admin/components/approval_modal.html -->
-
-<!-- نافذة الاعتماد الرئيسية -->
-<div id="approvalModal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#1a0b2e]/60 backdrop-blur-md hidden p-4">
-    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
-        <div class="bg-gradient-to-r from-[#1a0b2e] to-[#632C8F] px-6 py-4 flex items-center justify-between text-white">
-            <h3 class="font-black text-xs sm:text-sm flex items-center gap-2">🛡️ توثيق اعتماد طلب السحب المالي</h3>
-            <button type="button" onclick="closeApprovalModal()" class="text-lg font-bold">&times;</button>
+<div id="approvalModal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#1a0b2e]/60 backdrop-blur-md hidden p-4 transition-opacity duration-300">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-purple-100 transform transition-all scale-100">
+        
+        <!-- Header بنمط ملكي متناسق مع المنصة -->
+        <div class="bg-gradient-to-r from-[#1a0b2e] to-[#632C8F] px-6 py-4 flex items-center justify-between text-white shadow-sm">
+            <h3 class="font-black text-xs sm:text-sm flex items-center gap-2 tracking-wide">
+                <span class="text-base">🛡️</span> توثيق اعتماد طلب السحب المالي
+            </h3>
+            <button type="button" onclick="closeApprovalModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-lg font-bold transition">
+                &times;
+            </button>
         </div>
 
-        <form id="approvalForm" class="p-6 space-y-4">
+        <form id="approvalForm" method="POST" class="p-6 space-y-4">
+            <!-- حقل الأمان CSRF -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="approve">
 
+            <!-- اختيار النوع (بنك / شركة صرافة) -->
             <div class="space-y-1.5">
                 <label class="block text-[11px] font-bold text-gray-700">نوع جهة التحويل</label>
-                <select id="payoutType" onchange="filterOptions()" class="w-full px-3.5 py-3 text-xs border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#632C8F]" required>
-                    <option value="">اختر النوع...</option>
+                <select id="payoutType" onchange="filterOptions()" class="w-full px-3.5 py-3 text-xs border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#632C8F] focus:ring-2 focus:ring-[#632C8F]/20 outline-none transition font-medium text-gray-800">
+                    <option value="">اختر نوع الجهة...</option>
                     <option value="bank">🏦 بنك محلي</option>
                     <option value="company">💸 شركة صرافة</option>
                 </select>
             </div>
 
+            <!-- القائمة الديناميكية للجهات -->
             <div class="space-y-1.5">
-                <label class="block text-[11px] font-bold text-gray-700">الجهة المانحة</label>
-                <select id="payoutBankSelect" name="payout_bank" class="w-full px-3.5 py-3 text-xs border border-gray-200 rounded-xl bg-gray-50 focus:outline-none" required>
-                    <option value="">اختر النوع أولاً...</option>
+                <label class="block text-[11px] font-bold text-gray-700">الجهة المانحة / المحولة</label>
+                <select id="payoutBankSelect" name="payout_bank" class="w-full px-3.5 py-3 text-xs border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#632C8F] focus:ring-2 focus:ring-[#632C8F]/20 outline-none transition font-medium text-gray-800" required>
+                    <option value="">اختر النوع أولاً لعرض الجهات...</option>
                 </select>
             </div>
 
+            <!-- رقم الحوالة / الإيصال -->
             <div class="space-y-1.5">
-                <label class="block text-[11px] font-bold text-gray-700">رقم الحوالة</label>
-                <input type="text" name="transfer_number" id="transferNumberInput" class="w-full px-3.5 py-3 text-xs border border-gray-200 rounded-xl bg-gray-50 focus:outline-none" required>
+                <label class="block text-[11px] font-bold text-gray-700">رقم الحوالة أو سند الإيصال</label>
+                <input type="text" name="transfer_number" id="transferNumberField" placeholder="أدخل رقم الحوالة أو السند بدقة..." class="w-full px-3.5 py-3 text-xs border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#632C8F] focus:ring-2 focus:ring-[#632C8F]/20 outline-none transition font-mono font-bold text-gray-800" required>
             </div>
 
-            <button type="button" onclick="submitApproval()" class="w-full py-3 bg-[#632C8F] text-white rounded-xl text-xs font-black shadow-lg">تأكيد الاعتماد</button>
+            <!-- أزرار الإجراءات -->
+            <div class="pt-3 flex items-center gap-2.5">
+                <button type="submit" class="flex-1 py-3 bg-[#632C8F] hover:bg-[#570575] text-white rounded-xl text-xs font-black shadow-lg shadow-purple-900/10 transition active:scale-[0.98]">
+                    تأكيد الاعتماد المالي
+                </button>
+                <button type="button" onclick="closeApprovalModal()" class="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold transition">
+                    إلغاء
+                </button>
+            </div>
         </form>
     </div>
 </div>
 
-<!-- نافذة النجاح المنبثقة -->
-<div id="successModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-[#1a0b2e]/70 backdrop-blur-sm hidden p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl">
-        <div class="text-4xl">✅</div>
-        <h3 class="font-black text-lg">تم الاعتماد بنجاح</h3>
-        <div class="bg-gray-50 p-4 rounded-xl text-right space-y-2 text-xs">
-            <p>الجهة: <span id="modalBankDisplay" class="font-bold text-[#632C8F]"></span></p>
-            <p>رقم الحوالة: <span id="modalNumberDisplay" class="font-mono font-bold text-gray-800"></span></p>
-        </div>
-        <button onclick="copyDetails()" class="w-full py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold">نسخ البيانات</button>
-        <button onclick="location.reload()" class="w-full py-2 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold">إغلاق وتحديث</button>
-    </div>
-</div>
-
 <script>
-    const approvalData = { bank: {{ yemen_banks|tojson }}, company: {{ financial_companies|tojson }} };
+    const approvalData = { 
+        bank: {{ yemen_banks|tojson }}, 
+        company: {{ financial_companies|tojson }} 
+    };
 
     function filterOptions() {
         const type = document.getElementById('payoutType').value;
         const select = document.getElementById('payoutBankSelect');
-        select.innerHTML = '<option value="">اختر الجهة...</option>';
-        if (approvalData[type]) approvalData[type].forEach(item => select.innerHTML += `<option value="${item.name}">${item.name}</option>`);
-    }
-
-    async function submitApproval() {
-        const form = document.getElementById('approvalForm');
-        const formData = new FormData(form);
-        
-        // إرسال البيانات
-        const response = await fetch(window.location.href, { method: 'POST', body: formData });
-        
-        if (response.ok) {
-            document.getElementById('modalBankDisplay').innerText = formData.get('payout_bank');
-            document.getElementById('modalNumberDisplay').innerText = formData.get('transfer_number');
-            document.getElementById('approvalModal').classList.add('hidden');
-            document.getElementById('successModal').classList.remove('hidden');
+        select.innerHTML = '<option value="">اختر الجهة المحددة...</option>';
+        if (approvalData[type]) {
+            approvalData[type].forEach(item => {
+                select.innerHTML += `<option value="${item.name}">${item.name}</option>`;
+            });
         }
-    }
-
-    function copyDetails() {
-        const text = `الجهة: ${document.getElementById('modalBankDisplay').innerText} | رقم الحوالة: ${document.getElementById('modalNumberDisplay').innerText}`;
-        navigator.clipboard.writeText(text);
-        alert('تم النسخ!');
     }
 </script>
