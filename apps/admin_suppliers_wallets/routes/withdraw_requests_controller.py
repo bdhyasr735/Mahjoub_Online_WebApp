@@ -88,7 +88,7 @@ def withdraw_requests_list():
 @login_required
 def process_withdraw_request_post(request_id):
     """
-    معالجة طلب السحب عبر POST (اعتماد أو رفض) مع التقاط بيانات التوثيق المالي.
+    معالجة طلب السحب عبر POST (اعتماد أو رفض) مع التقاط بيانات التوثيق المالي والمعرف الحقيقي.
     """
     action = request.form.get('action')
     reason = request.form.get('reason', '')
@@ -112,7 +112,9 @@ def process_withdraw_request_post(request_id):
         if result['success']:
             flash(result['message'], 'success')
             
-            # ✅ تمرير رقم الطلب الحقيقي (request_id) مع معاملات النافذة المنبثقة لضمان ظهور رقم الطلب الصحيح وأزرار النسخ
+            # ✅ التقاط رقم الطلب الحقيقي (actual_id) من قاعدة البيانات لضمان عدم ظهوره كرقم ترقيم وهمي
+            actual_id = result.get('actual_id', request_id)
+            
             if action == 'approve':
                 return redirect(url_for(
                     'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
@@ -120,7 +122,7 @@ def process_withdraw_request_post(request_id):
                     status=request.args.get('status', 'pending'),
                     q=request.args.get('q', ''),
                     modal='success',
-                    req_id=request_id,
+                    req_id=actual_id,  # ✅ تمرير الرقم الحقيقي هنا
                     bank=payout_bank,
                     tnum=transfer_number
                 ))
@@ -130,7 +132,7 @@ def process_withdraw_request_post(request_id):
     except Exception as e:
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
-    # ✅ الحفاظ على رقم الصفحة الحالية والبحث والفلترة عند إعادة التوجيه (الترقيم الديناميكي)
+    # ✅ الحفاظ على رقم الصفحة الحالية والبحث والفلترة عند إعادة التوجيه
     return redirect(url_for(
         'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
         page=request.args.get('page', 1, type=int),
