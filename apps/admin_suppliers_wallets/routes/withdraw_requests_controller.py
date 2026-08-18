@@ -63,4 +63,4 @@ def process_withdraw_request_post():
             ))
     else:
         flash(result['message'], 'danger')
-        return redirect(url_for('withdraw_requests.withdraw_requests_list'))
+        return redirect(url_for('withdraw_requests.withdraw_requests_list')
