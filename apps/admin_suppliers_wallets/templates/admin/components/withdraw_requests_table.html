@@ -4,7 +4,8 @@
         <table class="w-full text-right border-collapse text-xs">
             <thead>
                 <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold">
-                    <th class="py-3 px-4">اسم المتجر / المورد</th>
+                    <th class="py-3 px-4">رقم الطلب</th>
+                    <th class="py-3 px-4">اسم المتجر / المالك</th>
                     <th class="py-3 px-4">كود المحفظة</th>
                     <th class="py-3 px-4">المبلغ</th>
                     <th class="py-3 px-4">تاريخ الطلب</th>
@@ -15,16 +16,29 @@
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
                 <tr class="hover:bg-gray-50/50 transition">
-                    <!-- ✅ معالجة اسم المتجر لضمان عدم ظهور None -->
-                    <td class="py-3 px-4 font-bold text-gray-800">
-                        {% if request.wallet and request.wallet.supplier and request.wallet.supplier.store_name %}
-                            {{ request.wallet.supplier.store_name }}
-                        {% elif request.wallet and request.wallet.supplier and request.wallet.supplier.trade_name %}
-                            {{ request.wallet.supplier.trade_name }}
-                        {% else %}
-                            <span class="text-gray-400 font-normal">مورد غير مسجل ({{ request.wallet.wallet_code if request.wallet else 'بدون' }})</span>
-                        {% endif %}
+                    <!-- ✅ رقم الطلب -->
+                    <td class="py-3 px-4 font-mono font-bold text-gray-700">
+                        #{{ request.id }}
                     </td>
+
+                    <!-- ✅ اسم المتجر وتحته اسم المالك كامل مع معالجة عدم التوفر -->
+                    <td class="py-3 px-4">
+                        <div class="flex flex-col">
+                            {% if request.wallet and request.wallet.supplier and request.wallet.supplier.store_name %}
+                                <span class="font-black text-gray-900">{{ request.wallet.supplier.store_name }}</span>
+                            {% elif request.wallet and request.wallet.supplier and request.wallet.supplier.trade_name %}
+                                <span class="font-black text-gray-900">{{ request.wallet.supplier.trade_name }}</span>
+                            {% else %}
+                                <span class="text-gray-400 font-normal">مورد غير مسجل</span>
+                            {% endif %}
+                            
+                            <!-- اسم المالك الكامل -->
+                            <span class="text-[11px] text-gray-500 font-medium mt-0.5">
+                                {{ request.wallet.supplier.full_name if (request.wallet and request.wallet.supplier and request.wallet.supplier.full_name) else (request.wallet.supplier.name if (request.wallet and request.wallet.supplier and request.wallet.supplier.name) else '—') }}
+                            </span>
+                        </div>
+                    </td>
+
                     <td class="py-3 px-4 font-mono text-gray-600">{{ request.wallet.wallet_code if request.wallet else '—' }}</td>
                     
                     <!-- ✅ عرض المبلغ مع العملة الديناميكية -->
@@ -70,7 +84,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="py-8 text-center text-gray-400 font-medium">
+                    <td colspan="7" class="py-8 text-center text-gray-400 font-medium">
                         لا توجد طلبات سحب متاحة حالياً.
                     </td>
                 </tr>
