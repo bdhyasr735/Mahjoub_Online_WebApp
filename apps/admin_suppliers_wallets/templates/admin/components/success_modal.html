@@ -1,11 +1,11 @@
 <!-- 📂 apps/admin_suppliers_wallets/templates/admin/components/success_modal.html -->
 <div id="successModal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#1a0b2e]/65 backdrop-blur-md hidden p-4 transition-all duration-300">
-    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-emerald-100 transform transition-all scale-100 animate-fade-in-down">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-emerald-100 transform transition-all scale-100">
         
-        <!-- Header بنمط النجاح المكي -->
+        <!-- Header بنمط النجاح الملكي -->
         <div class="bg-gradient-to-r from-emerald-800 to-emerald-600 px-6 py-4 flex items-center justify-between text-white shadow-sm">
             <h3 class="font-black text-xs sm:text-sm flex items-center gap-2 tracking-wide">
-                <span class="text-base">✅</span> تم اعتماد الطلب وتوثيق الحوالة بنجاح
+                <span class="text-base">✅</span> تم اعتماد طلب السحب رقم (<span id="successReqId">---</span>) بنجاح
             </h3>
             <button type="button" onclick="closeSuccessModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-gray-100 text-lg font-bold transition">
                 &times;
@@ -15,26 +15,26 @@
         <div class="p-6 space-y-4">
             <div class="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 space-y-3">
                 
-                <!-- جهة التحويل -->
+                <!-- جهة التحويل وزر النسخ المرئي -->
                 <div class="flex items-center justify-between text-xs">
                     <span class="text-gray-500 font-bold">جهة التحويل:</span>
                     <div class="flex items-center gap-2">
                         <span id="successPayoutBank" class="font-black text-gray-800">---</span>
-                        <button type="button" onclick="copyText('successPayoutBank')" class="p-1.5 bg-white hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition text-[10px]" title="نسخ الجهة">
-                            📋 نسخ
+                        <button type="button" onclick="copyTextValue('successPayoutBank', event)" class="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition font-bold text-[11px] shadow-sm">
+                            📋 نسخ الجهة
                         </button>
                     </div>
                 </div>
 
                 <hr class="border-emerald-100/60">
 
-                <!-- رقم الحوالة -->
+                <!-- رقم الحوالة وزر النسخ المرئي -->
                 <div class="flex items-center justify-between text-xs">
                     <span class="text-gray-500 font-bold">رقم الحوالة / السند:</span>
                     <div class="flex items-center gap-2">
                         <span id="successTransferNumber" class="font-mono font-black text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">---</span>
-                        <button type="button" onclick="copyText('successTransferNumber')" class="p-1.5 bg-white hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition text-[10px]" title="نسخ رقم الحوالة">
-                            📋 نسخ
+                        <button type="button" onclick="copyTextValue('successTransferNumber', event)" class="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition font-bold text-[11px] shadow-sm">
+                            📋 نسخ الرقم
                         </button>
                     </div>
                 </div>
@@ -52,23 +52,42 @@
 </div>
 
 <script>
-    // وظيفة النسخ السريع إلى الحافظة (Clipboard)
-    function copyText(elementId) {
+    function copyTextValue(elementId, event) {
         const text = document.getElementById(elementId).innerText;
+        const btn = event.target;
         navigator.clipboard.writeText(text).then(() => {
-            // إظهار تنبيه بسيط أو تغيير مؤقت لنص الزر
-            event.target.innerText = '✨ تم النسخ';
+            const originalText = btn.innerText;
+            btn.innerText = '✨ تم النسخ';
+            btn.classList.add('bg-emerald-600', 'text-white');
             setTimeout(() => {
-                event.target.innerText = '📋 نسخ';
+                btn.innerText = originalText;
+                btn.classList.remove('bg-emerald-600', 'text-white');
             }, 2000);
         }).catch(err => {
             console.error('فشل النسخ:', err);
         });
     }
 
+    function openSuccessModal(reqId, bankName, transferNum) {
+        document.getElementById('successReqId').innerText = reqId;
+        document.getElementById('successPayoutBank').innerText = bankName;
+        document.getElementById('successTransferNumber').innerText = transferNum;
+        document.getElementById('successModal').classList.remove('hidden');
+    }
+
     function closeSuccessModal() {
         document.getElementById('successModal').classList.add('hidden');
-        // إعادة تحميل الصفحة لتحديث الجدول وإزالة الحالات المعلقة
-        window.location.reload();
+        window.location.href = window.location.pathname; // إعادة توجيه نظيفة لإزالة معاملات البارامترات من الرابط
     }
+
+    // التقاط البارامترات عند تحميل الصفحة لعرض الـ Modal تلقائياً
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('modal') === 'success') {
+            const reqId = urlParams.get('req_id') || '---';
+            const bank = urlParams.get('bank') || '---';
+            const tnum = urlParams.get('tnum') || '---';
+            openSuccessModal(reqId, bank, tnum);
+        }
+    });
 </script>
