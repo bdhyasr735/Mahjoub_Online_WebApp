@@ -135,3 +135,30 @@ def get_registered_supplier_payout_info(supplier_id: Optional[int]) -> Tuple[str
             account_details = getattr(current_user, 'bank_details', None) or getattr(current_user, 'account_details', '') or ''
 
     return owner_name.strip(), account_details.strip()
+
+
+def validate_withdrawal_eligibility(supplier_id: int, requested_amount: Decimal) -> Tuple[bool, str]:
+    """
+    التحقق من أهلية المورد لسحب المبلغ المطلوب:
+    1. التأكد من توفر الرصيد.
+    2. التأكد من وجود بيانات بنكية مسجلة.
+    """
+    wallet = get_or_create_supplier_wallet(supplier_id)
+    
+    if not wallet:
+        return False, "تعذر الوصول للمحفظة."
+
+    # 1. التحقق من الرصيد المتاح
+    available = wallet.balance_sar or Decimal('0.00')
+    if requested_amount <= 0:
+        return False, "مبلغ السحب يجب أن يكون أكبر من صفر."
+    
+    if requested_amount > available:
+        return False, f"الرصيد المتاح غير كافٍ. المتوفر هو: {available} {getattr(wallet, 'default_currency', 'SAR')}"
+
+    # 2. التحقق من البيانات البنكية
+    owner_name, account_details = get_registered_supplier_payout_info(supplier_id)
+    if not owner_name or not account_details:
+        return False, "لم يتم العثور على بيانات بنكية مسجلة. يرجى تحديث ملف المورد."
+
+    return True, "جاهز لعملية السحب."
