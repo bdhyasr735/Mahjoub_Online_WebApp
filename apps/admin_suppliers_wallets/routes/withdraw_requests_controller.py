@@ -31,7 +31,7 @@ PER_PAGE = 10
 @login_required
 def withdraw_requests_list():
     """
-    عرض صفحة طلبات السحب مع الفلترة والبحث اللحظي والترقيم الديناميكي.
+    عرض صفحة طلبات السحب مع الفلترة والبحث اللحظي والترقيم الديناميكي وحساب الإجمالي.
     """
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', 'pending')
@@ -43,6 +43,9 @@ def withdraw_requests_list():
         page=page,
         per_page=PER_PAGE
     )
+
+    # ✅ حساب إجمالي المبالغ للطلبات الظاهرة في القائمة الحالية أو النتيجة المفلترة
+    total_withdraw_amount = sum(float(item.amount) for item in result.get('items', []) if item.amount)
 
     # ✅ دعم البحث اللحظي عبر AJAX: إرجاع مكون الجدول فقط مع الحفاظ على تمرير البيانات لمنع أخطاء القوالب
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -62,8 +65,9 @@ def withdraw_requests_list():
         pagination=result['pagination'],
         status_filter=status_filter,
         search_query=search_query,
-        yemen_banks=yemen_banks,                 # ✅ تمرير قائمة البنوك
-        financial_companies=financial_companies  # ✅ تمرير قائمة الشركات المالية
+        total_withdraw_amount=total_withdraw_amount,  # ✅ تمرير إجمالي المبالغ للقالب
+        yemen_banks=yemen_banks,                      # ✅ تمرير قائمة البنوك
+        financial_companies=financial_companies       # ✅ تمرير قائمة الشركات المالية
     )
 
 
