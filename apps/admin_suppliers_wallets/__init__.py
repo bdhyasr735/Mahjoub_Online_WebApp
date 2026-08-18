@@ -32,5 +32,5 @@ def create_admin_suppliers_wallets_blueprint():
     print(f"🔧 [Blueprint]: تم إنشاء Blueprint '{bp.name}' مع {len(bp.deferred_functions)} مسار مسجل.")
     return bp
 
-# ❌ تم حذف السطر الذي كان يدعى: blueprint = create_admin_suppliers_wallets_blueprint()
-# لأن وجوده كان يسبب تشغيل الدالة مرتين عند الاستيراد.
+# ⛔⛔⛔ توقف هنا. تأكد أنه لا يوجد أي شيء بعد هذا السطر. 
+# حتى التعليقات التي تحمل اسم المتغير يجب حذفها تماماً من هذا الملف.
