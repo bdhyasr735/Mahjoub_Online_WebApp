@@ -31,7 +31,7 @@ PER_PAGE = 10
 @login_required
 def withdraw_requests_list():
     """
-    عرض صفحة طلبات السحب مع الفلترة والبحث والترقيم.
+    عرض صفحة طلبات السحب مع الفلترة والبحث والترقيم الديناميكي.
     """
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', 'pending')
@@ -88,9 +88,10 @@ def process_withdraw_request_post(request_id):
     except Exception as e:
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
-    # ✅ استخدام الاسم المركب الصحيح للـ Blueprint في التوجيه
+    # ✅ الحفاظ على رقم الصفحة الحالية والبحث والفلترة عند إعادة التوجيه (الترقيم الديناميكي)
     return redirect(url_for(
         'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
+        page=request.args.get('page', 1, type=int),
         status=request.args.get('status', 'pending'),
         q=request.args.get('q', '')
     ))
