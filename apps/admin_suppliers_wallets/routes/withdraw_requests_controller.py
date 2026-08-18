@@ -10,9 +10,9 @@ from apps.admin_suppliers_wallets.services.wallet_service import (
     update_withdrawal_status
 )
 
-# ✅ استيراد قوائم البنوك والشركات المالية لتمريرها للواجهة (Modal)
+# ✅ استيراد قائمة البنوك باستخدام الاسم الصحيح YEMEN_BANKS المعرف في ملف yemen_banks.py
 try:
-    from apps.data.yemen_banks import yemen_banks
+    from apps.data.yemen_banks import YEMEN_BANKS as yemen_banks
 except ImportError:
     yemen_banks = []
 
