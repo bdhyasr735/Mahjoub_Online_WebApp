@@ -12,7 +12,8 @@ from apps.supplier_wallet import supplier_wallet_bp
 from apps.supplier_wallet.utils import (
     get_current_supplier_id, 
     get_or_create_supplier_wallet, 
-    get_registered_supplier_payout_info
+    get_registered_supplier_payout_info,
+    generate_transaction_ref  # تم استيرادها لاستخدامها في المرجع
 )
 
 MIN_WITHDRAW_AMOUNT = Decimal('50.00')
@@ -47,7 +48,7 @@ def submit_withdrawal():
             if not supplier_id:
                 return jsonify({"status": "error", "code": "SUPPLIER_NOT_FOUND", "message": "تعذر معرفة هوية المورد."}), 400
 
-            # 🔒 [Pessimistic Locking مع منع أي Join تلقائي عبر noload]
+            # 🔒 Locking
             locked_wallet = db.session.query(SupplierWallet)\
                 .options(noload('*'))\
                 .filter(SupplierWallet.supplier_id == supplier_id)\
@@ -55,23 +56,9 @@ def submit_withdrawal():
                 .first()
 
             if not locked_wallet:
-                # محاولة إنشاء المحفظة مباشرة إذا لم تكن موجودة
-                locked_wallet = SupplierWallet(
-                    supplier_id=supplier_id,
-                    balance_sar=Decimal('0.00'),
-                    default_currency='SAR',
-                    status='active'
-                )
-                db.session.add(locked_wallet)
-                db.session.commit()
-                # إعادة قفلها بعد الإنشاء بدون علاقات
-                locked_wallet = db.session.query(SupplierWallet)\
-                    .options(noload('*'))\
-                    .filter(SupplierWallet.supplier_id == supplier_id)\
-                    .with_for_update()\
-                    .first()
+                return jsonify({"status": "error", "message": "المحفظة غير مهيأة بعد."}), 400
 
-            # 🛑 [Professional Gate] منع تعدد الطلبات المعلقة
+            # 🛑 منع تعدد الطلبات
             existing_pending = db.session.query(WalletTransaction)\
                 .filter(WalletTransaction.wallet_id == locked_wallet.id)\
                 .filter(WalletTransaction.trans_type == 'withdrawal')\
@@ -79,25 +66,19 @@ def submit_withdrawal():
                 .first()
 
             if existing_pending:
-                return jsonify({
-                    "status": "warning", 
-                    "code": "PENDING_REQUEST_EXISTS", 
-                    "message": "لديك طلب سحب قيد المراجعة حالياً. يرجى الانتظار حتى يتم إتمام الطلب الحالي."
-                }), 409
+                return jsonify({"status": "warning", "code": "PENDING_REQUEST_EXISTS", "message": "لديك طلب سحب قيد المراجعة حالياً."}), 409
 
             real_avail_bal = Decimal(str(getattr(locked_wallet, 'balance_sar', '0.00')))
 
-            # التحقق من القيود المالية
-            if real_avail_bal <= Decimal('0.00'):
-                return jsonify({"status": "error", "message": "رصيدك الحالي لا يسمح بالسحب."}), 400
+            # التحقق المالي
             if amount > real_avail_bal:
                 return jsonify({"status": "error", "message": "المبلغ المطلوب يتجاوز الرصيد المتاح."}), 400
             if amount < MIN_WITHDRAW_AMOUNT:
                 return jsonify({"status": "error", "message": f"الحد الأدنى للسحب هو {float(MIN_WITHDRAW_AMOUNT):,.2f} {curr}"}), 400
 
-            # إنشاء طلب السحب
-            owner_name = registered_owner or f"مورد #{supplier_id}"
-            full_desc = f"طلب سحب | {owner_name} | وسيلة: {method}"[:255]
+            # ⚙️ إنشاء المراجع الموحدة
+            sup_code = locked_wallet.wallet_code.split('-')[-1] if locked_wallet.wallet_code else f"S{supplier_id}"
+            ref, vch = generate_transaction_ref(locked_wallet.id, sup_code, prefix='WTH')
 
             new_tx = WalletTransaction(
                 wallet_id=locked_wallet.id,
@@ -105,7 +86,9 @@ def submit_withdrawal():
                 status='pending',
                 amount=amount,
                 currency=curr,
-                description=full_desc
+                description=f"طلب سحب | {registered_owner or 'مورد'} | {method}",
+                reference_number=ref,
+                voucher_number=vch
             )
 
             db.session.add(new_tx)
@@ -113,8 +96,8 @@ def submit_withdrawal():
 
             return jsonify({
                 "status": "success", 
-                "message": "تم تقديم طلب السحب بنجاح. سيقوم فريقنا بمراجعته قريباً.",
-                "data": {"tx_id": new_tx.id}
+                "message": "تم تقديم طلب السحب بنجاح.",
+                "data": {"tx_id": new_tx.id, "ref": ref}
             }), 201
                 
         except (ValueError, InvalidOperation):
@@ -122,8 +105,6 @@ def submit_withdrawal():
             return jsonify({"status": "error", "message": "القيمة المالية المدخلة غير صحيحة."}), 400
         except Exception as e:
             db.session.rollback()
-            import traceback
-            traceback.print_exc()
             return jsonify({"status": "error", "message": f"خطأ داخلي: {str(e)}"}), 500
 
     # GET Request
@@ -142,7 +123,6 @@ def submit_withdrawal():
         'supplier_wallet/withdraw.html',
         summary=summary,
         transactions=pagination_obj.items,
-        withdrawals=pagination_obj.items,
         pagination=pagination_obj,
         active_filter=status_filter
     )
