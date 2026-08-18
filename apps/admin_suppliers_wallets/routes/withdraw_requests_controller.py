@@ -1,17 +1,17 @@
 # coding: utf-8
-from flask import render_template, request, redirect, url_for, flash
+# 📂 apps/admin_suppliers_wallets/routes/withdraw_requests_controller.py
+
+from flask import render_template, request, redirect, url_for, flash, Blueprint
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction
-from flask import Blueprint  # استيراد Blueprint
-
-# ✅ إنشاء Blueprint مستقل خاص بطلبات السحب باسم فريد
-bp = Blueprint('withdraw_requests_controller', __name__)
-
 from apps.admin_suppliers_wallets.services.wallet_service import (
     get_withdraw_requests,
     update_withdrawal_status
 )
+
+# إنشاء الـ Blueprint مع تحديد الـ template_folder إذا لزم الأمر
+bp = Blueprint('withdraw_requests_controller', __name__, template_folder='../templates')
 
 PER_PAGE = 10
 
@@ -63,7 +63,7 @@ def process_withdraw_request_post(request_id):
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
     return redirect(url_for(
-        '.withdraw_requests_list',
+        'withdraw_requests_controller.withdraw_requests_list',
         status=request.args.get('status', 'pending'),
         q=request.args.get('q', '')
     ))
