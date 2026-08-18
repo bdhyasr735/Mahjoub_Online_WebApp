@@ -1,5 +1,5 @@
 <!-- 📂 apps/admin_suppliers_wallets/templates/admin/components/withdraw_requests_table.html -->
-<div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+<div id="tableContainer" class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-right border-collapse text-xs">
             <thead>
@@ -16,24 +16,37 @@
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
                 <tr class="hover:bg-gray-50/50 transition">
-                    <!-- ✅ عرض رقم السند المرتبط تماماً بمعاملة المحفظة أو رقم السند في الجدول -->
+                    <!-- رقم السند -->
                     <td class="py-3 px-4 font-mono font-bold text-gray-700">
                         {{ request.voucher_number or request.reference_code or ('VCH-' ~ request.id) }}
                     </td>
 
-                    <!-- ✅ اسم المتجر وتحته اسم المالك كامل -->
+                    <!-- اسم المتجر وتحته اسم المالك بشكل واضح ومترابط -->
                     <td class="py-3 px-4">
                         <div class="flex flex-col">
-                            {% if request.wallet and request.wallet.supplier and request.wallet.supplier.store_name %}
-                                <span class="font-black text-gray-900">{{ request.wallet.supplier.store_name }}</span>
-                            {% elif request.wallet and request.wallet.supplier and request.wallet.supplier.trade_name %}
-                                <span class="font-black text-gray-900">{{ request.wallet.supplier.trade_name }}</span>
+                            {% set store_name = namespace(val='') %}
+                            {% if request.wallet and request.wallet.supplier %}
+                                {% if request.wallet.supplier.store_name %}
+                                    {% set store_name.val = request.wallet.supplier.store_name %}
+                                {% elif request.wallet.supplier.trade_name %}
+                                    {% set store_name.val = request.wallet.supplier.trade_name %}
+                                {% endif %}
+                            {% endif %}
+
+                            {% if store_name.val %}
+                                <span class="font-black text-gray-900 text-[13px]">{{ store_name.val }}</span>
                             {% else %}
-                                <span class="text-gray-400 font-normal">مورد غير مسجل</span>
+                                <span class="text-gray-400 font-normal">متجر غير مسجل</span>
                             {% endif %}
                             
-                            <span class="text-[11px] text-gray-500 font-medium mt-0.5">
-                                {{ request.wallet.supplier.full_name if (request.wallet and request.wallet.supplier and request.wallet.supplier.full_name) else (request.wallet.supplier.name if (request.wallet and request.wallet.supplier and request.wallet.supplier.name) else '—') }}
+                            <!-- اسم المالك أسفل اسم المتجر -->
+                            {% set owner_val = none %}
+                            {% if request.wallet and request.wallet.supplier %}
+                                {% set owner_val = request.wallet.supplier.owner_name or request.wallet.supplier.full_name or request.wallet.supplier.name %}
+                            {% endif %}
+                            
+                            <span class="text-[11px] text-purple-700 font-semibold mt-0.5 flex items-center gap-1">
+                                <span class="text-gray-400 font-normal">المالك:</span> {{ owner_val if owner_val else 'غير متوفر' }}
                             </span>
                         </div>
                     </td>
@@ -49,7 +62,7 @@
 
                     <td class="py-3 px-4 text-gray-500">{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     
-                    <!-- ✅ تناسق شارة الحالة (قيد الانتظار، مكتمل، مرفوض) -->
+                    <!-- الحالة بتنسيق متناسق -->
                     <td class="py-3 px-4 text-center">
                         {% if request.status == 'pending' %}
                             <span class="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[11px] font-bold">
