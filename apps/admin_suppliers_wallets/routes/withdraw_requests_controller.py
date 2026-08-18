@@ -112,7 +112,7 @@ def process_withdraw_request_post(request_id):
         if result['success']:
             flash(result['message'], 'success')
             
-            # ✅ إذا كان الإجراء اعتماد، نقوم بتمرير بيانات الحوالة لعرض نافذة النجاح والنسخ
+            # ✅ تمرير رقم الطلب الحقيقي (request_id) مع معاملات النافذة المنبثقة لضمان ظهور رقم الطلب الصحيح وأزرار النسخ
             if action == 'approve':
                 return redirect(url_for(
                     'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
@@ -120,6 +120,7 @@ def process_withdraw_request_post(request_id):
                     status=request.args.get('status', 'pending'),
                     q=request.args.get('q', ''),
                     modal='success',
+                    req_id=request_id,
                     bank=payout_bank,
                     tnum=transfer_number
                 ))
