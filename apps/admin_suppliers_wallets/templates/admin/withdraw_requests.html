@@ -31,19 +31,16 @@
         
         <!-- إحصائيات سريعة وأزرار التحكم -->
         <div class="flex items-center gap-2.5 flex-wrap">
-            <!-- عدد الطلبات (محدث ليقرا total_count الصحيح) -->
             <span class="px-3.5 py-2 bg-[#1a0b2e] text-white rounded-xl text-xs font-bold border border-[#632C8F] flex items-center gap-1.5 shadow-sm">
                 <span class="text-purple-300 font-normal">الطلبات:</span> {{ total_count if total_count is defined else 0 }}
             </span>
 
-            <!-- إجمالي المبالغ المطلوبة -->
             <span class="px-3.5 py-2 bg-amber-50 text-amber-800 rounded-xl text-xs font-black border border-amber-200 flex items-center gap-1.5 shadow-sm">
                 <span class="text-amber-600 font-medium">الإجمالي:</span> 
                 <span>{{ "{:,.2f}".format(total_withdraw_amount if total_withdraw_amount is defined else 0.0) }}</span>
                 <span class="text-[10px] text-gray-500 font-normal">SAR</span>
             </span>
 
-            <!-- زر الرجوع -->
             <a href="{{ url_for('supplier_wallet.wallet_dashboard') }}" 
                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-gray-200">
                 <span>↩</span> رجوع
@@ -53,10 +50,8 @@
 
     <!-- 🔍 شريط البحث وأزرار الفلترة -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-        
         <div class="flex items-center flex-wrap gap-2">
             <span class="text-xs font-bold text-gray-400 ml-2">تصفية:</span>
-            
             {% set filters = [('all', 'الكل', 'bg-gray-800'), ('pending', '⏳ قيد الانتظار', 'bg-amber-500'), ('completed', '✅ مكتمل', 'bg-emerald-600'), ('rejected', '❌ مرفوض', 'bg-rose-600')] %}
             {% for status, label, color in filters %}
             <a href="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list', status=status, q=search_query) }}" 
@@ -66,7 +61,6 @@
             {% endfor %}
         </div>
 
-        <!-- حقل البحث -->
         <div class="flex items-center gap-2">
             <div class="relative flex-1 sm:w-72">
                 <input type="text" id="liveSearchInput" value="{{ search_query }}" placeholder="بحث بالمورد، الكود أو رقم السند..." 
@@ -100,6 +94,9 @@
     </div>
     {% endif %}
 </div>
+
+<!-- 📦 تضمين نافذة النجاح والنسخ المنبثقة -->
+{% include 'admin/components/success_modal.html' %}
 
 <!-- سكريبت البحث اللحظي الصامت -->
 <script>
