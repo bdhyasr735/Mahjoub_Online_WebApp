@@ -49,11 +49,13 @@
                     <td class="py-3 px-4 text-center">
                         {% if request.status == 'pending' %}
                             <div class="flex items-center justify-center gap-1.5">
-                                <!-- ✅ نموذج الموافقة بالاسم المركب الصحيح للـ Blueprint -->
-                                <form method="POST" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;">
-                                    <input type="hidden" name="action" value="approve">
-                                    <button type="submit" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition">اعتماد</button>
-                                </form>
+                                <!-- ✅ زر الاعتماد الذي يفتح النافذة المنبثقة -->
+                                <button type="button" 
+                                        onclick="openApprovalModal('{{ request.id }}', '{{ request.amount }}', '{{ request.currency if request.currency else 'SAR' }}')"
+                                        class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition">
+                                    اعتماد
+                                </button>
+
                                 <!-- ✅ نموذج الرفض بالاسم المركب الصحيح للـ Blueprint -->
                                 <form method="POST" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;" class="flex items-center gap-1">
                                     <input type="hidden" name="action" value="reject">
@@ -77,3 +79,68 @@
         </table>
     </div>
 </div>
+
+<!-- 🪟 النافذة المنبثقة (Modal) لإدخال بيانات الاعتماد والتحويل المالي -->
+<div id="approvalModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
+    <div class="bg-white w-full max-w-md mx-4 rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all">
+        
+        <!-- ترويسة المودال -->
+        <div class="bg-indigo-900 px-6 py-4 flex items-center justify-between text-white">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+                <span>🛡️</span> توثيق واعتماد طلب السحب المالي
+            </h3>
+            <button type="button" onclick="closeApprovalModal()" class="text-indigo-200 hover:text-white font-bold text-lg">×</button>
+        </div>
+
+        <!-- نموذج إرسال الاعتماد -->
+        <form id="approvalForm" method="POST" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="approve">
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">جهة الصرف / البنك المستُخدم:</label>
+                <select name="payout_bank" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 bg-gray-50" required>
+                    <option value="" disabled selected>اختر جهة التحويل...</option>
+                    <option value="مصرف الراجحي">مصرف الراجحي</option>
+                    <option value="شركة الكريمي للصرافة">شركة الكريمي للصرافة</option>
+                    <option value="STC Pay">STC Pay</option>
+                    <option value="تحويل بنكي مباشر">تحويل بنكي مباشر</option>
+                    <option value="حفظ ودائع أخرى">أخرى / يدوياً</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">رقم الحوالة البنكية / الإيصال الرسمي:</label>
+                <input type="text" name="transfer_number" placeholder="أدخل رقم الحوالة أو السند البنكي..." class="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 bg-gray-50 font-mono" required>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">مرجع الاعتماد الداخلي (اختياري/افتراضي):</label>
+                <input type="text" name="approval_ref" placeholder="يترك فارغاً للتوليد التلقائي VCH-XXXX" class="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 bg-gray-50 font-mono">
+            </div>
+
+            <!-- أزرار الإجراء -->
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                <button type="button" onclick="closeApprovalModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition">إلغاء</button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm">تأكيد الاعتماد والتوثيق</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 📜 سكريبت التحكم بالنافذة المنبثقة -->
+<script>
+    function openApprovalModal(requestId, amount, currency) {
+        const modal = document.getElementById('approvalModal');
+        const form = document.getElementById('approvalForm');
+        
+        // ضبط مسار الإرسال (Action URL) بناءً على معرف الطلب
+        form.action = `/admin/suppliers-wallets/withdraw-requests/${requestId}/process`; // أو استخدام مسار الـ url_for ديناميكياً
+        
+        modal.classList.remove('hidden');
+    }
+
+    function closeApprovalModal() {
+        const modal = document.getElementById('approvalModal');
+        modal.classList.add('hidden');
+    }
+</script>
