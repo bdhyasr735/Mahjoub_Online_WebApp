@@ -17,7 +17,7 @@ except ImportError:
     yemen_banks = []
 
 try:
-    from apps.data.financial_companies import financial_companies
+    from apps.data.financial_companies import FINANCIAL_COMPANIES as financial_companies
 except ImportError:
     financial_companies = []
 
