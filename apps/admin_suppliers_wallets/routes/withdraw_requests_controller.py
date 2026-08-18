@@ -3,7 +3,11 @@ from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction
-from apps.admin_suppliers_wallets.routes.suppliers_wallets_controller import bp
+from flask import Blueprint  # استيراد Blueprint
+
+# ✅ إنشاء Blueprint مستقل خاص بطلبات السحب باسم فريد
+bp = Blueprint('withdraw_requests_controller', __name__)
+
 from apps.admin_suppliers_wallets.services.wallet_service import (
     get_withdraw_requests,
     update_withdrawal_status
@@ -19,10 +23,9 @@ def withdraw_requests_list():
     عرض صفحة طلبات السحب مع الفلترة والبحث والترقيم.
     """
     page = request.args.get('page', 1, type=int)
-    status_filter = request.args.get('status', 'pending')  # افتراضي: المعلقة
+    status_filter = request.args.get('status', 'pending')
     search_query = request.args.get('q', '', type=str)
 
-    # استدعاء الخدمة لجلب الطلبات
     result = get_withdraw_requests(
         status=status_filter,
         search=search_query,
@@ -49,7 +52,6 @@ def process_withdraw_request_post(request_id):
         action = request.form.get('action')
         reason = request.form.get('reason', '')
 
-        # استدعاء الخدمة لتحديث الحالة
         result = update_withdrawal_status(request_id, action, reason)
 
         if result['success']:
@@ -60,7 +62,6 @@ def process_withdraw_request_post(request_id):
     except Exception as e:
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
-    # إعادة التوجيه إلى صفحة الطلبات مع الحفاظ على الفلاتر الحالية
     return redirect(url_for(
         '.withdraw_requests_list',
         status=request.args.get('status', 'pending'),
