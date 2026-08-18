@@ -31,7 +31,7 @@ PER_PAGE = 10
 @login_required
 def withdraw_requests_list():
     """
-    عرض صفحة طلبات السحب مع الفلترة والبحث اللحظي والترقيم الديناميكي وحساب الإجمالي.
+    عرض صفحة طلبات السحب مع الفلترة والبحث اللحظي والترقيم الديناميكي وحساب الإجمالي والعدد.
     """
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', 'pending')
@@ -44,15 +44,27 @@ def withdraw_requests_list():
         per_page=PER_PAGE
     )
 
-    # ✅ حساب إجمالي المبالغ للطلبات الظاهرة في القائمة الحالية أو النتيجة المفلترة
-    total_withdraw_amount = sum(float(item.amount) for item in result.get('items', []) if item.amount)
+    items = result.get('items', [])
+    
+    # ✅ حساب إجمالي المبالغ للطلبات الظاهرة في القائمة الحالية
+    total_withdraw_amount = sum(float(item.amount) for item in items if item.amount)
+    
+    # ✅ استخراج العدد الإجمالي للطلبات بشكل دقيق وآمن
+    pagination_data = result.get('pagination', {})
+    if isinstance(pagination_data, dict):
+        total_count = pagination_data.get('total', len(items))
+    else:
+        total_count = getattr(pagination_data, 'total', len(items))
+    
+    if not total_count:
+        total_count = len(items)
 
     # ✅ دعم البحث اللحظي عبر AJAX: إرجاع مكون الجدول فقط مع الحفاظ على تمرير البيانات لمنع أخطاء القوالب
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template(
             'admin/components/withdraw_requests_table.html',
-            withdrawals=result['items'],
-            pagination=result['pagination'],
+            withdrawals=items,
+            pagination=pagination_data,
             status_filter=status_filter,
             search_query=search_query,
             yemen_banks=yemen_banks,
@@ -61,11 +73,12 @@ def withdraw_requests_list():
 
     return render_template(
         'admin/withdraw_requests.html',
-        withdrawals=result['items'],
-        pagination=result['pagination'],
+        withdrawals=items,
+        pagination=pagination_data,
+        total_withdraw_amount=total_withdraw_amount,  # ✅ تمرير إجمالي المبالغ للقالب
+        total_count=total_count,                      # ✅ تمرير إجمالي عدد الطلبات للقالب
         status_filter=status_filter,
         search_query=search_query,
-        total_withdraw_amount=total_withdraw_amount,  # ✅ تمرير إجمالي المبالغ للقالب
         yemen_banks=yemen_banks,                      # ✅ تمرير قائمة البنوك
         financial_companies=financial_companies       # ✅ تمرير قائمة الشركات المالية
     )
