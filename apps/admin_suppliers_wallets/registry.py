@@ -20,10 +20,10 @@ REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = False
 
 # ========== روابط القائمة الجانبية ==========
-# ✅ تم تحسين التسمية لتجنب التكرار في القائمة
+# ✅ تم تحديث الاسم ليتوافق مع التعديل في ملف الـ Controller (wallets_controller)
 LINKS = {
-    "admin_suppliers_wallets.suppliers_wallets_controller.index": "عرض المحافظ", # 👈 تغيير الاسم هنا لمنع التكرار
-    "admin_suppliers_wallets.suppliers_wallets_controller.withdraw_requests_list": "طلبات السحب"
+    "admin_suppliers_wallets.wallets_controller.index": "عرض المحافظ",
+    "admin_suppliers_wallets.wallets_controller.withdraw_requests_list": "طلبات السحب"
 }
 
 links = LINKS
@@ -62,6 +62,9 @@ def register_module(app):
             print(f"   💡 تحقق من عدم وجود تسجيل مزدوج في ملفات registry الأخرى.")
             
     except ImportError as e:
-        print(f"❌ [Module Error]: فشل استيراد موديول محافظ الموردين. تفاصيل: {e}")
+        print(f"❌ [Module Error]: فشل استيراد موديول محافظ الموردين.")
+        print(f"   📂 تأكد من وجود ملف __init__.py في المسار: apps/admin_suppliers_wallets/")
+        print(f"   📝 تفاصيل الخطأ: {e}")
     except Exception as e:
-        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين. تفاصيل: {e}")
+        print(f"❌ [Module Error]: تعذر تسجيل موديول محافظ الموردين.")
+        print(f"   📝 تفاصيل الخطأ: {e}")
