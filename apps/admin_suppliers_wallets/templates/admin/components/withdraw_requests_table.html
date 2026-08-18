@@ -92,10 +92,16 @@
         // ضبط مسار الإرسال (Action URL) الديناميكي الصحيح للـ Blueprint
         form.action = `/admin/suppliers-wallets/withdraw-requests/${requestId}/action`;
         
-        // إعادة تعيين الحقول عند الفتح
-        document.getElementById('payoutType').value = '';
-        document.getElementById('payoutBankSelect').innerHTML = '<option value="">يجب اختيار نوع الجهة أولاً...</option>';
+        // إعادة تعيين الحقول عند الفتح لتجنب البيانات القديمة
+        const payoutType = document.getElementById('payoutType');
+        const payoutBankSelect = document.getElementById('payoutBankSelect');
+        if (payoutType) payoutType.value = '';
+        if (payoutBankSelect) payoutBankSelect.innerHTML = '<option value="">يجب اختيار نوع الجهة أولاً...</option>';
         
+        // تفريغ حقل رقم الحوالة إن وجد
+        const transferInput = form.querySelector('input[name="transfer_number"]');
+        if (transferInput) transferInput.value = '';
+
         modal.classList.remove('hidden');
     }
 
