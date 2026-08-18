@@ -6,7 +6,7 @@
 {% block content %}
 <div class="space-y-6">
     
-    <!-- 📌 ترويسة الصفحة بتنسيق الهوية -->
+    <!-- 📌 ترويسة الصفحة -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-purple-100 shadow-sm shadow-purple-50/50">
         <div>
             <h1 class="text-xl font-black text-[#1a0b2e] flex items-center gap-2">
@@ -21,7 +21,7 @@
         </div>
     </div>
 
-    <!-- 🔍 شريط البحث وأزرار الفلترة -->
+    <!-- 🔍 شريط البحث اللحظي وأزرار الفلترة -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         
         <div class="flex items-center flex-wrap gap-2">
@@ -36,19 +36,20 @@
             {% endfor %}
         </div>
 
-        <form method="GET" action="{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}" class="flex items-center gap-2">
-            <input type="hidden" name="status" value="{{ status_filter }}">
-            <div class="relative flex-1 sm:w-64">
-                <input type="text" name="q" value="{{ search_query }}" placeholder="بحث بالمورد أو المحفظة..." 
+        <!-- حقل البحث اللحظي -->
+        <div class="flex items-center gap-2">
+            <div class="relative flex-1 sm:w-72">
+                <input type="text" id="liveSearchInput" value="{{ search_query }}" placeholder="بحث لحظي بالمورد، الكود أو رقم السند..." 
                        class="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#632C8F] focus:ring-1 focus:ring-[#632C8F] bg-gray-50">
                 <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
             </div>
-            <button type="submit" class="px-4 py-2 bg-[#632C8F] hover:bg-[#1a0b2e] text-white rounded-xl text-xs font-bold transition">بحث</button>
-        </form>
+        </div>
     </div>
 
-    <!-- 📊 الجدول المحدث -->
-    {% include 'admin/components/withdraw_requests_table.html' %}
+    <!-- 📊 جدول الطلبات -->
+    <div id="tableContainer">
+        {% include 'admin/components/withdraw_requests_table.html' %}
+    </div>
 
     <!-- 📑 الترقيم الديناميكي -->
     {% if pagination and pagination.get('pages', 0) > 1 %}
@@ -69,4 +70,40 @@
     </div>
     {% endif %}
 </div>
+
+<!-- سكريبت البحث اللحظي الفوري -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('liveSearchInput');
+        let timeout = null;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const query = this.value;
+            const currentStatus = "{{ status_filter }}";
+
+            // الانتظار نصف ثانية بعد توقف الكتابة لتفادي كثرة الطلبات المتكررة
+            timeout = setTimeout(() => {
+                const url = `{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}?status=${currentStatus}&q=${encodeURIComponent(query)}`;
+                
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // استخراج الجدول وتحديثه فقط في الصفحة بدون إعادة تحميل كاملة
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newTableContainer = doc.getElementById('tableContainer');
+                    if (newTableContainer) {
+                        document.getElementById('tableContainer').innerHTML = newTableContainer.innerHTML;
+                    }
+                .catch(err => console.error('خطأ في البحث اللحظي:', err));
+                });
+            }, 300);
+        });
+    });
+</script>
 {% endblock %}
