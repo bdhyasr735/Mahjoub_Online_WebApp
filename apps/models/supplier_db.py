@@ -55,7 +55,7 @@ class Supplier(db.Model, UserMixin):
     
     financials = db.relationship('OrderFinancial', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
-    # الربط مع الموظفين
+    # الربط مع الموظفين (يستخدم الاسم النصي لتجنب التكرار والتضارب)
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
     # ✅ الربط مع منتجات قمرة (ProductSupplierMapping)
@@ -105,53 +105,6 @@ class Supplier(db.Model, UserMixin):
 
     def __repr__(self):
         return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
-
-
-# --- نموذج موظفي الموردين مع دعم حقل البحث الهاتفي لتجنب أخطاء تسجيل الدخول ---
-class SupplierStaff(db.Model, UserMixin):
-    """نموذج موظفي الموردين"""
-    __tablename__ = 'supplier_staff'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    
-    # [التشفير السيادي]: رقم هاتف الموظف مشفر
-    _phone_enc = db.Column(db.String(255), nullable=True)
-    search_phone = db.Column(db.String(20), index=True) # ✅ الحقل الذي كان يسبب الخطأ عند البحث
-    
-    password_hash = db.Column(db.String(255), nullable=True)
-    status = db.Column(db.String(20), default='active')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # العلاقة العكسية مع المورد
-    supplier = db.relationship('Supplier', back_populates='staff_members')
-
-    @property
-    def phone(self):
-        try:
-            key = os.environ.get('ENCRYPTION_KEY')
-            fernet_key = key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
-            return Fernet(fernet_key).decrypt(self._phone_enc.encode()).decode()
-        except:
-            return None
-
-    @phone.setter
-    def phone(self, value):
-        if value:
-            key = os.environ.get('ENCRYPTION_KEY')
-            fernet_key = key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
-            self._phone_enc = Fernet(fernet_key).encrypt(str(value).encode()).decode()
-            self.search_phone = str(value)[-9:]
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        return f"<SupplierStaff {self.id}: {self.username}>"
 
 
 # --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) ---
