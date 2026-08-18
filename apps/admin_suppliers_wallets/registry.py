@@ -10,10 +10,10 @@ URL_PREFIX = "/admin/suppliers-wallets"
 REQUIRED_PERMISSION = "manage_platform_treasury"
 SHOW_IN_ADMIN = False
 
-# ✅ الروابط يجب أن تكون متطابقة مع الاسم الجديد
+# ✅ تحديث الروابط لتطابق أسماء الـ Blueprints المستقلة الجديدة
 LINKS = {
-    "admin_suppliers_wallets.wallets_controller.index": "عرض المحافظ",
-    "admin_suppliers_wallets.wallets_controller.withdraw_requests_list": "طلبات السحب"
+    "wallets_controller.index": "عرض المحافظ",
+    "withdraw_requests_controller.withdraw_requests_list": "طلبات السحب"
 }
 
 links = LINKS
