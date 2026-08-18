@@ -3,26 +3,26 @@
     <div class="overflow-x-auto">
         <table class="w-full text-right border-collapse text-xs">
             <thead>
-                <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold">
-                    <th class="py-3 px-4">رقم السند / الطلب</th>
-                    <th class="py-3 px-4">اسم المتجر / المالك</th>
-                    <th class="py-3 px-4">كود المحفظة</th>
-                    <th class="py-3 px-4">المبلغ</th>
-                    <th class="py-3 px-4">تاريخ الطلب</th>
-                    <th class="py-3 px-4 text-center">الحالة</th>
-                    <th class="py-3 px-4 text-center">الإجراءات</th>
+                <tr class="bg-gradient-to-r from-gray-50 to-purple-50/30 border-b border-gray-200 text-gray-800 font-black tracking-wide">
+                    <th class="py-3.5 px-4">رقم السند / الطلب</th>
+                    <th class="py-3.5 px-4">اسم المتجر / المالك</th>
+                    <th class="py-3.5 px-4">كود المحفظة</th>
+                    <th class="py-3.5 px-4">المبلغ</th>
+                    <th class="py-3.5 px-4">تاريخ الطلب</th>
+                    <th class="py-3.5 px-4 text-center">الحالة</th>
+                    <th class="py-3.5 px-4 text-center">الإجراءات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
-                <tr class="hover:bg-gray-50/50 transition">
+                <tr class="hover:bg-purple-50/20 transition">
                     <!-- رقم السند -->
-                    <td class="py-3 px-4 font-mono font-bold text-gray-700">
+                    <td class="py-3.5 px-4 font-mono font-bold text-gray-700">
                         {{ request.voucher_number or request.reference_code or ('VCH-' ~ request.id) }}
                     </td>
 
                     <!-- اسم المتجر وتحته اسم المالك بشكل واضح ومترابط -->
-                    <td class="py-3 px-4">
+                    <td class="py-3.5 px-4">
                         <div class="flex flex-col">
                             {% set store_name = namespace(val='') %}
                             {% if request.wallet and request.wallet.supplier %}
@@ -45,25 +45,25 @@
                                 {% set owner_val = request.wallet.supplier.owner_name or request.wallet.supplier.full_name or request.wallet.supplier.name %}
                             {% endif %}
                             
-                            <span class="text-[11px] text-purple-700 font-semibold mt-0.5 flex items-center gap-1">
-                                <span class="text-gray-400 font-normal">المالك:</span> {{ owner_val if owner_val else 'غير متوفر' }}
+                            <span class="text-[11px] text-purple-700 font-bold mt-0.5 flex items-center gap-1">
+                                <span class="text-gray-400 font-medium">المالك:</span> {{ owner_val if owner_val else 'غير متوفر' }}
                             </span>
                         </div>
                     </td>
 
-                    <td class="py-3 px-4 font-mono text-gray-600">{{ request.wallet.wallet_code if request.wallet else '—' }}</td>
+                    <td class="py-3.5 px-4 font-mono font-semibold text-gray-600">{{ request.wallet.wallet_code if request.wallet else '—' }}</td>
                     
-                    <td class="py-3 px-4 font-mono font-black text-amber-600">
+                    <td class="py-3.5 px-4 font-mono font-black text-amber-600 text-sm">
                         {{ "{:,.2f}".format(request.amount) }} 
                         <span class="text-[10px] text-gray-500 font-normal">
                             {{ request.currency if request.currency else (request.wallet.transactions[0].currency if request.wallet and request.wallet.transactions else 'SAR') }}
                         </span>
                     </td>
 
-                    <td class="py-3 px-4 text-gray-500">{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="py-3.5 px-4 text-gray-600 font-medium">{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     
                     <!-- الحالة بتنسيق متناسق -->
-                    <td class="py-3 px-4 text-center">
+                    <td class="py-3.5 px-4 text-center">
                         {% if request.status == 'pending' %}
                             <span class="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[11px] font-bold">
                                 <span>⏳</span> قيد الانتظار
@@ -79,7 +79,7 @@
                         {% endif %}
                     </td>
 
-                    <td class="py-3 px-4 text-center">
+                    <td class="py-3.5 px-4 text-center">
                         {% if request.status == 'pending' %}
                             <div class="flex items-center justify-center gap-2">
                                 <!-- زر الاعتماد -->
