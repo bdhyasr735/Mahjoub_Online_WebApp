@@ -4,18 +4,24 @@
         <table class="w-full text-right border-collapse text-xs">
             <thead>
                 <tr class="bg-gradient-to-r from-gray-50 to-purple-50/30 border-b border-gray-200 text-gray-800 font-black tracking-wide">
+                    <th class="py-3.5 px-4 rounded-tr-xl">#</th> <!-- عمود الترقيم -->
                     <th class="py-3.5 px-4">رقم السند / الطلب</th>
                     <th class="py-3.5 px-4">اسم المتجر / المالك</th>
                     <th class="py-3.5 px-4">كود المحفظة</th>
                     <th class="py-3.5 px-4">المبلغ</th>
                     <th class="py-3.5 px-4">تاريخ الطلب</th>
                     <th class="py-3.5 px-4 text-center">الحالة</th>
-                    <th class="py-3.5 px-4 text-center">الإجراءات</th>
+                    <th class="py-3.5 px-4 text-center rounded-tl-xl">الإجراءات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
                 <tr class="hover:bg-purple-50/20 transition">
+                    <!-- الترقيم الديناميكي المستمر بين الصفحات -->
+                    <td class="py-3.5 px-4 font-mono font-bold text-gray-400">
+                        {{ loop.index + ((pagination.page - 1) * 10 if pagination else 0) }}
+                    </td>
+
                     <!-- رقم السند -->
                     <td class="py-3.5 px-4 font-mono font-bold text-gray-700">
                         {{ request.voucher_number or request.reference_code or ('VCH-' ~ request.id) }}
@@ -103,7 +109,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="py-8 text-center text-gray-400 font-medium">
+                    <td colspan="8" class="py-8 text-center text-gray-400 font-medium">
                         لا توجد طلبات سحب متاحة حالياً.
                     </td>
                 </tr>
