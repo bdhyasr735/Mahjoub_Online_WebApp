@@ -10,6 +10,17 @@ from apps.admin_suppliers_wallets.services.wallet_service import (
     update_withdrawal_status
 )
 
+# ✅ استيراد قوائم البنوك والشركات المالية لتمريرها للواجهة (Modal)
+try:
+    from apps.data.yemen_banks import yemen_banks
+except ImportError:
+    yemen_banks = []
+
+try:
+    from apps.data.financial_companies import financial_companies
+except ImportError:
+    financial_companies = []
+
 # إنشاء الـ Blueprint مع تحديد الـ template_folder إذا لزم الأمر
 bp = Blueprint('withdraw_requests_controller', __name__, template_folder='../templates')
 
@@ -38,7 +49,9 @@ def withdraw_requests_list():
         withdrawals=result['items'],
         pagination=result['pagination'],
         status_filter=status_filter,
-        search_query=search_query
+        search_query=search_query,
+        yemen_banks=yemen_banks,                 # ✅ تمرير قائمة البنوك
+        financial_companies=financial_companies  # ✅ تمرير قائمة الشركات المالية
     )
 
 
