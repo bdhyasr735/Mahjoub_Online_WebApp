@@ -90,15 +90,15 @@ def process_withdraw_request_post(request_id):
     """
     معالجة طلب السحب عبر POST (اعتماد أو رفض) مع التقاط بيانات التوثيق المالي.
     """
-    try:
-        action = request.form.get('action')
-        reason = request.form.get('reason', '')
-        
-        # ✅ التقاط بيانات التوثيق المالي الجديدة من الـ Modal
-        transfer_number = request.form.get('transfer_number')
-        approval_ref = request.form.get('approval_ref')
-        payout_bank = request.form.get('payout_bank')
+    action = request.form.get('action')
+    reason = request.form.get('reason', '')
+    
+    # ✅ التقاط بيانات التوثيق المالي الجديدة من الـ Modal
+    transfer_number = request.form.get('transfer_number')
+    approval_ref = request.form.get('approval_ref')
+    payout_bank = request.form.get('payout_bank')
 
+    try:
         # تمرير البيانات المضافة إلى خدمة التحديث
         result = update_withdrawal_status(
             request_id=request_id,
@@ -111,6 +111,18 @@ def process_withdraw_request_post(request_id):
 
         if result['success']:
             flash(result['message'], 'success')
+            
+            # ✅ إذا كان الإجراء اعتماد، نقوم بتمرير بيانات الحوالة لعرض نافذة النجاح والنسخ
+            if action == 'approve':
+                return redirect(url_for(
+                    'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
+                    page=request.args.get('page', 1, type=int),
+                    status=request.args.get('status', 'pending'),
+                    q=request.args.get('q', ''),
+                    modal='success',
+                    bank=payout_bank,
+                    tnum=transfer_number
+                ))
         else:
             flash(result['message'], 'danger')
 
