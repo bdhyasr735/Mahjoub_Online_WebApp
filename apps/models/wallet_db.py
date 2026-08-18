@@ -26,7 +26,6 @@ class SupplierWallet(db.Model):
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
-    # عمود الحالة لدعم لوحة التحكم والفلترة بدون أخطاء
     status = db.Column(db.String(20), default='active', nullable=False)
 
     balance_yer = db.Column(db.Numeric(18, 2), default=0.00)
@@ -43,9 +42,7 @@ class SupplierWallet(db.Model):
 
     @staticmethod
     def _get_fernet():
-        key = os.environ.get('ENCRYPTION_KEY')
-        if not key:
-            key = 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V='
+        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
         try:
             return Fernet(key.encode('utf-8'))
         except Exception:
@@ -70,7 +67,6 @@ class SupplierWallet(db.Model):
 
     @property
     def formatted_time(self):
-        """تنسيق وقت التحديث بدقة (الساعة، الدقيقة، الثانية) بتوقيت اليمن/مكة (+3)"""
         if self.updated_at:
             local_time = self.updated_at + timedelta(hours=3)
             return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
@@ -92,7 +88,7 @@ class SupplierWallet(db.Model):
 
 
 class WalletTransaction(db.Model):
-    """سجل الحركات المالية الموحد مع تشفير حقل الوصف والفهرسة الفائقة."""
+    """سجل الحركات المالية الموحد مع التوثيق المالي المشفر والفهرسة الفائقة."""
     __tablename__ = 'wallet_transactions'
 
     __table_args__ = (
@@ -112,7 +108,11 @@ class WalletTransaction(db.Model):
     balance_before = db.Column(db.Numeric(18, 2), nullable=False)
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
     
-    # [التشفير السيادي]: وصف الحركة مشفر بالكامل
+    # [بيانات التوثيق المالي الجديدة]
+    transfer_number = db.Column(db.String(100), nullable=True)
+    approval_ref = db.Column(db.String(100), nullable=True)
+    payout_bank = db.Column(db.String(100), nullable=True)
+    
     _description_enc = db.Column(db.String(500), nullable=True)
     
     reference_number = db.Column(db.String(80), unique=True, nullable=True)
@@ -141,7 +141,6 @@ class WalletTransaction(db.Model):
 
     @property
     def formatted_time(self):
-        """تنسيق وقت الحركة المالية بدقة (الساعة، الدقيقة، الثانية) بتوقيت اليمن/مكة (+3)"""
         if self.created_at:
             local_time = self.created_at + timedelta(hours=3)
             return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
@@ -155,6 +154,9 @@ class WalletTransaction(db.Model):
             'amount': float(self.amount or 0.0),
             'reference_number': self.reference_number,
             'voucher_number': self.voucher_number,
+            'transfer_number': self.transfer_number,
+            'approval_ref': self.approval_ref,
+            'payout_bank': self.payout_bank,
             'description': self.description,
             'formatted_time': self.formatted_time,
             'created_at': self.created_at.isoformat() if self.created_at else None
@@ -162,39 +164,29 @@ class WalletTransaction(db.Model):
 
 
 def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
-    """توليد رقم سند فريد يتكون من 6 خانات عشوائية (أرقام وحروف مخلوطة) مع الفحص المباشر لعدم التكرار."""
-    characters = string.ascii_uppercase + string.digits  # حروف كبيرة وأرقام (A-Z, 0-9)
-    
+    characters = string.ascii_uppercase + string.digits
     while True:
         random_str = ''.join(secrets.choice(characters) for _ in range(length))
         candidate_voucher = f"{prefix}{random_str}"
-        
         existing = connection.execute(
             select(WalletTransaction.voucher_number)
             .where(WalletTransaction.voucher_number == candidate_voucher)
         ).scalar()
-        
         if not existing:
             return candidate_voucher
 
 
-# --- مشغل الأحداث (Engine) للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
-    """توليد الأرقام المرجعية وأرقام السندات المكونة من 6 خانات عشوائية وحساب الأرصدة لحظياً."""
-    
     wallet_table = SupplierWallet.__table__
-    
-    # 1. جلب بيانات المحفظة لمعرفة supplier_id
     wallet_row = connection.execute(
         select(wallet_table).where(wallet_table.c.id == target.wallet_id)
     ).mappings().first()
 
-    sup_code = f"SUPP{target.wallet_id}"  # قيمة افتراضية احتياطية
+    sup_code = f"SUPP{target.wallet_id}"
     
     if wallet_row:
         supplier_id = wallet_row.get('supplier_id')
-        # 2. جلب كود المورد (supplier_code) من جدول suppliers مباشرة
         supplier_table = db.metadata.tables.get('suppliers')
         if supplier_table is not None:
             sup_code_val = connection.execute(
@@ -203,28 +195,22 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             if sup_code_val:
                 sup_code = sup_code_val
 
-    # 3. إنشاء رقم المرجع المخصص بحيث يحتوي على 6 خانات عشوائية مخلوطة بالأحرف والأرقام
     if not target.reference_number:
         characters = string.ascii_uppercase + string.digits
-        
         while True:
             random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
             candidate_ref = f"TRX-{sup_code}-{random_6_code}"
-            
             existing_ref = connection.execute(
                 select(WalletTransaction.reference_number)
                 .where(WalletTransaction.reference_number == candidate_ref)
             ).scalar()
-            
             if not existing_ref:
                 target.reference_number = candidate_ref
                 break
 
-    # 4. توليد رقم السند العشوائي الفريد (6 خانات حروف وأرقام) تلقائياً
     if not target.voucher_number:
         target.voucher_number = generate_unique_voucher_number(connection, length=6, prefix="VCH-")
 
-    # 5. حساب الأرصدة (Balance Logic)
     if wallet_row:
         attr = f'balance_{(target.currency or "sar").lower()}'
         current_bal = Decimal(str(wallet_row.get(attr, 0)))
@@ -233,7 +219,6 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         is_credit = target.trans_type in ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
         target.balance_after = (current_bal + Decimal(str(target.amount))) if is_credit else (current_bal - Decimal(str(target.amount)))
 
-        # تحديث المحفظة مباشرة
         connection.execute(
             update(wallet_table)
             .where(wallet_table.c.id == target.wallet_id)
