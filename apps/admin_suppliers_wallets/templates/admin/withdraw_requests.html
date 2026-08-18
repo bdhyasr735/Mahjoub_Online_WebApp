@@ -14,10 +14,26 @@
             </h1>
             <p class="text-xs text-gray-500 mt-1 font-medium">مراجعة واعتماد طلبات السحب من الموردين، مع توثيق محاسبي كامل وفق معايير المنصة.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="px-4 py-2 bg-[#1a0b2e] text-white rounded-xl text-xs font-bold border border-[#632C8F]">
-                إجمالي الطلبات: {{ pagination.get('total', 0) if pagination else 0 }}
+        
+        <!-- إحصائيات سريعة وأزرار التحكم -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <!-- عدد الطلبات -->
+            <span class="px-3.5 py-2 bg-[#1a0b2e] text-white rounded-xl text-xs font-bold border border-[#632C8F] flex items-center gap-1.5 shadow-sm">
+                <span class="text-purple-300 font-normal">الطلبات:</span> {{ pagination.get('total', 0) if pagination else 0 }}
             </span>
+
+            <!-- إجمالي المبالغ المطلوبة -->
+            <span class="px-3.5 py-2 bg-amber-50 text-amber-800 rounded-xl text-xs font-black border border-amber-200 flex items-center gap-1.5 shadow-sm">
+                <span class="text-amber-600 font-medium">الإجمالي:</span> 
+                <span>{{ "{:,.2f}".format(total_withdraw_amount if total_withdraw_amount is defined else 0.0) }}</span>
+                <span class="text-[10px] text-gray-500 font-normal">SAR</span>
+            </span>
+
+            <!-- زر الرجوع -->
+            <a href="{{ url_for('admin_suppliers_wallets.admin_suppliers_wallets_dashboard') }}" 
+               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-gray-200">
+                <span>↩</span> رجوع
+            </a>
         </div>
     </div>
 
@@ -85,10 +101,8 @@
                 const status = "{{ status_filter }}";
 
                 timeout = setTimeout(() => {
-                    // رابط الطلب بدون تغيير الرابط في المتصفح
                     const url = `{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list') }}?status=${status}&q=${encodeURIComponent(query)}`;
                     
-                    // استخدام fetch لجلب البيانات صمتاً وتحديث الجدول فقط
                     fetch(url, {
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     })
