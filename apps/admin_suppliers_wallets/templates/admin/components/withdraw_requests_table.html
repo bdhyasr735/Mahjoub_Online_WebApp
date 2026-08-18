@@ -15,13 +15,13 @@
     </td>
     <td class="py-3 px-4 text-center">
         {% if request.status == 'pending' %}
-            <!-- نموذج الموافقة -->
-            <form method="POST" action="{{ url_for('admin_suppliers_wallets.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;">
+            <!-- ✅ نموذج الموافقة بالاسم الصحيح للـ Blueprint -->
+            <form method="POST" action="{{ url_for('withdraw_requests_controller.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;">
                 <input type="hidden" name="action" value="approve">
                 <button type="submit" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition">اعتماد</button>
             </form>
-            <!-- نموذج الرفض -->
-            <form method="POST" action="{{ url_for('admin_suppliers_wallets.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;">
+            <!-- ✅ نموذج الرفض بالاسم الصحيح للـ Blueprint -->
+            <form method="POST" action="{{ url_for('withdraw_requests_controller.process_withdraw_request_post', request_id=request.id) }}" style="display:inline;">
                 <input type="hidden" name="action" value="reject">
                 <input type="text" name="reason" placeholder="سبب الرفض" class="w-32 px-2 py-1 text-xs border border-gray-300 rounded-lg" required>
                 <button type="submit" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition">رفض</button>
