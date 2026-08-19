@@ -10,8 +10,8 @@
         <table class="w-full text-right border-collapse">
             <thead>
                 <tr class="bg-gray-50/80 text-gray-500 text-[11px] font-bold border-b border-gray-100">
-                    <th class="p-4">رقم السند / المرجع</th>
-                    <th class="p-4">تفاصيل الحركة والبيان</th>
+                    <th class="p-4 whitespace-nowrap">رقم السند / المرجع</th>
+                    <th class="p-4 min-w-[300px]">تفاصيل الحركة والبيان</th>
                     <th class="p-4">جهة التحويل / البنك</th>
                     <th class="p-4">رقم الحوالة</th>
                     <th class="p-4">نوع الحركة</th>
@@ -25,51 +25,53 @@
                         {% set is_credit = tx.trans_type in ['credit', 'deposit', 'sale_revenue', 'adjustment_credit'] %}
                         <tr class="hover:bg-gray-50/60 transition-colors">
                             <!-- 1. رقم السند -->
-                            <td class="p-4 font-mono font-bold text-gray-800">
+                            <td class="p-4 font-mono font-bold text-gray-800 whitespace-nowrap">
                                 {{ tx.reference_number or tx.voucher_code or 'VCH-' ~ tx.id }}
                             </td>
                             
-                            <!-- 2. البيان واسم المالك/المورد الكامل -->
+                            <!-- 2. البيان والبيانات التفصيلية المجهزة من الباك إند -->
                             <td class="p-4">
-                                <div class="font-bold text-gray-900">{{ tx.description or 'حركة مالية بالمحفظة' }}</div>
-                                {% if tx.wallet and tx.wallet.supplier %}
-                                    <div class="text-[10px] text-gray-500 mt-0.5">المالك: <span class="font-semibold text-gray-700">{{ tx.wallet.supplier.owner_name or tx.wallet.supplier.store_name }}</span></div>
-                                {% endif %}
+                                <div class="font-bold text-gray-900 mb-1">{{ tx.description or 'حركة مالية بالمحفظة' }}</div>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                        المستفيد: <span class="font-semibold text-gray-800">{{ tx.display_beneficiary }}</span>
+                                    </span>
+                                </div>
                             </td>
 
-                            <!-- 3. جهة التحويل / البنك -->
+                            <!-- 3. جهة التحويل -->
                             <td class="p-4 font-bold text-gray-700">
-                                <span class="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200 text-[11px]">
-                                    {{ tx.payout_bank or tx.bank_name or 'حساب النظام الداخلي' }}
+                                <span class="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200 text-[11px] whitespace-nowrap">
+                                    {{ tx.display_bank }}
                                 </span>
                             </td>
 
                             <!-- 4. رقم الحوالة -->
-                            <td class="p-4 font-mono font-bold text-[#4A154B]">
-                                {{ tx.transfer_number or '---' }}
+                            <td class="p-4 font-mono font-bold text-[#4A154B] whitespace-nowrap">
+                                {{ tx.display_transfer_no }}
                             </td>
 
                             <!-- 5. نوع الحركة -->
                             <td class="p-4">
                                 {% if is_credit %}
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[10px]">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> إيداع / إيراد
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[10px] whitespace-nowrap">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> إيداع
                                     </span>
                                 {% else %}
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[10px]">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> سحب / خصم
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[10px] whitespace-nowrap">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> سحب
                                     </span>
                                 {% endif %}
                             </td>
 
                             <!-- 6. المبلغ -->
-                            <td class="p-4 font-mono font-black {% if is_credit %}text-emerald-600{% else %}text-rose-600{% endif %}" dir="ltr">
+                            <td class="p-4 font-mono font-black {% if is_credit %}text-emerald-600{% else %}text-rose-600{% endif %} whitespace-nowrap" dir="ltr">
                                 {{ ("+" if is_credit else "-") ~ "{:,.2f}".format(tx.amount|abs) }} 
-                                <span class="text-[10px] font-normal text-gray-400">{{ currency }}</span>
+                                <span class="text-[10px] font-normal text-gray-400">{{ tx.currency or currency }}</span>
                             </td>
 
                             <!-- 7. التاريخ -->
-                            <td class="p-4 text-gray-500 text-left font-mono text-[11px]" dir="ltr">
+                            <td class="p-4 text-gray-500 text-left font-mono text-[11px] whitespace-nowrap" dir="ltr">
                                 {{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '-' }}
                             </td>
                         </tr>
