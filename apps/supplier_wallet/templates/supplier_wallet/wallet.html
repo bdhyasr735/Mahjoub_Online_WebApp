@@ -54,7 +54,7 @@
     <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs">
         <form method="GET" action="{{ url_for('supplier_wallet.wallet_dashboard') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             
-            <!-- حقل البحث اللحظي (قابق للبحث بالمرجع أو البيان) -->
+            <!-- حقل البحث اللحظي (قابل للبحث بالمرجع أو البيان) -->
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">بحث برقم المرجع أو البيان</label>
                 <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="ابحث هنا..." class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-medium focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B]">
@@ -131,16 +131,33 @@
                             </td>
                             <td class="py-3.5 px-4 font-mono font-bold text-gray-900">{{ tx.reference_number or tx.transfer_number or '-' }}</td>
                             <td class="py-3.5 px-4 font-mono text-gray-500">{{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '-' }}</td>
+                            
+                            <!-- نوع الحركة: سحب باللون الأحمر أو باقي الأنواع -->
                             <td class="py-3.5 px-4 font-bold">
-                                <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-[#4A154B] text-[11px]">
-                                    {{ tx.trans_type or 'حركة مالية' }}
-                                </span>
+                                {% if tx.trans_type == 'withdrawal' or tx.trans_type == 'سحب' %}
+                                    <span class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[11px]">سحب</span>
+                                {% elif tx.trans_type == 'deposit' or tx.trans_type == 'إيداع' %}
+                                    <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[11px]">إيداع</span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-[#4A154B] text-[11px]">{{ tx.trans_type or 'حركة مالية' }}</span>
+                                {% endif %}
                             </td>
-                            <td class="py-3.5 px-4 font-mono font-black {% if tx.amount and tx.amount > 0 %}text-emerald-600{% else %}text-gray-900{% endif %}" dir="ltr">
+
+                            <!-- المبلغ والعملة: لون أحمر كامل في حالة السحب -->
+                            <td class="py-3.5 px-4 font-mono font-black {% if tx.trans_type == 'withdrawal' or tx.trans_type == 'سحب' %}text-red-600{% elif tx.amount and tx.amount > 0 %}text-emerald-600{% else %}text-gray-900{% endif %}" dir="ltr">
                                 {{ "{:,.2f}".format(tx.amount) }} {{ summary.currency }}
                             </td>
-                            <td class="py-3.5 px-4 text-gray-600 max-w-xs truncate" title="{{ tx.description }}">
-                                {{ tx.description or '-' }}
+
+                            <!-- البيان / التفاصيل: عرض كامل ومفصل -->
+                            <td class="py-3.5 px-4 text-gray-600">
+                                <div class="font-bold text-gray-900">{{ tx.description or '-' }}</div>
+                                {% if tx.bank_name or tx.beneficiary_name %}
+                                <div class="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                                    {% if tx.bank_name %}الجهة: <span class="font-semibold text-gray-700">{{ tx.bank_name }}</span>{% endif %}
+                                    {% if tx.bank_name and tx.beneficiary_name %} | {% endif %}
+                                    {% if tx.beneficiary_name %}اسم المالك: <span class="font-semibold text-gray-700">{{ tx.beneficiary_name }}</span>{% endif %}
+                                </div>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
