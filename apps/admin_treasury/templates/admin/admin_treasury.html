@@ -50,13 +50,12 @@
 
     <!-- شريط البحث والفلترة -->
     <div class="bg-white p-4 rounded-2xl mb-6 shadow-sm border border-slate-200">
-        <form method="GET" action="/admin/treasury/" class="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <form id="search-form" method="GET" action="/admin/treasury/" class="flex flex-col md:flex-row gap-4 items-center justify-between" onsubmit="return false;">
             <div class="w-full md:w-1/2 flex gap-2">
-                <input type="text" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#4A154B]">
-                <button type="submit" class="royal-card hover:opacity-95 text-amber-300 font-bold px-6 py-2.5 rounded-xl transition text-xs shadow-sm">بحث</button>
+                <input type="text" id="search-input" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#4A154B]">
             </div>
             <div class="w-full md:w-auto flex items-center gap-2">
-                <select name="flow_type" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#4A154B] w-full md:w-56">
+                <select id="flow-type-select" name="flow_type" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#4A154B] w-full md:w-56">
                     <option value="">جميع أنواع الحركات</option>
                     <option value="deposit" {% if filters.flow_type == 'deposit' %}selected{% endif %}>إيداع نقدي</option>
                     <option value="revenue_net" {% if filters.flow_type == 'revenue_net' %}selected{% endif %}>صافي إيرادات مبيعات</option>
@@ -64,84 +63,88 @@
                     <option value="affiliate_payout" {% if filters.flow_type == 'affiliate_payout' %}selected{% endif %}>عمولة مسوق بالعمولة</option>
                     <option value="operational_cost" {% if filters.flow_type == 'operational_cost' %}selected{% endif %}>تكلفة تشغيلية</option>
                 </select>
-                {% if filters.q or filters.flow_type %}
-                <a href="/admin/treasury/" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2.5 rounded-xl border border-rose-200 transition text-nowrap">إلغاء الفلترة</a>
-                {% endif %}
+                <div id="reset-filter-container">
+                    {% if filters.q or filters.flow_type %}
+                    <a href="/admin/treasury/" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2.5 rounded-xl border border-rose-200 transition text-nowrap block">إلغاء الفلترة</a>
+                    {% endif %}
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- جدول الحركات المالية -->
-    <div class="bg-white rounded-3xl overflow-hidden shadow-md border border-slate-200">
-        <div class="overflow-x-auto">
-            <table class="w-full text-right border-collapse">
-                <thead>
-                    <tr class="royal-card text-purple-100 text-xs uppercase tracking-wider">
-                        <th class="p-4 font-bold">رقم السند / المرجع</th>
-                        <th class="p-4 font-bold">نوع الحركة</th>
-                        <th class="p-4 font-bold">الطرف المعني / المتجر</th>
-                        <th class="p-4 font-bold">المبلغ</th>
-                        <th class="p-4 font-bold">التاريخ والوقت</th>
-                        <th class="p-4 font-bold text-center">الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-xs">
-                    {% if vouchers %}
-                        {% for v in vouchers %}
-                        <tr class="hover:bg-purple-50/50 transition cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number or v.voucher_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
-                            <td class="p-4 font-mono">
-                                <span class="block text-slate-900 font-black">{{ v.voucher_number or '-' }}</span>
-                                <span class="text-slate-400 text-[11px]">{{ v.reference_number or '-' }}</span>
-                            </td>
-                            <td class="p-4">
-                                <span class="inline-block px-3 py-1 rounded-full font-bold
-                                    {% if v.entry_type in ['deposit', 'revenue_net'] %} bg-emerald-50 text-emerald-700 border border-emerald-200
-                                    {% else %} bg-rose-50 text-rose-700 border border-rose-200 {% endif %}">
-                                    {{ v.localized_entry_type }}
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <span class="block font-bold text-slate-900">{{ v.owner_details.store_name }}</span>
-                                <span class="text-[11px] text-slate-500">{{ v.owner_details.owner_name }}</span>
-                            </td>
-                            <td class="p-4 font-black font-mono {% if v.entry_type in ['deposit', 'revenue_net'] %}text-emerald-600{% else %}text-rose-600{% endif %}">
-                                {{ "%.2f"|format(v.amount) }} SAR
-                            </td>
-                            <td class="p-4 text-slate-500 font-mono text-[11px]">
-                                {{ v.formatted_time }}
-                            </td>
-                            <td class="p-4 text-center">
-                                <a href="/admin/treasury/detail/{{ v.reference_number or v.voucher_number }}" class="inline-block royal-card hover:opacity-90 text-amber-300 px-3.5 py-1.5 rounded-xl border border-amber-500/30 transition font-bold shadow-sm">
-                                    التفاصيل
-                                </a>
-                            </td>
+    <!-- حاوية جدول الحركات المالية والترقيم لتحديثها لحظياً -->
+    <div id="results-container">
+        <div class="bg-white rounded-3xl overflow-hidden shadow-md border border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="royal-card text-purple-100 text-xs uppercase tracking-wider">
+                            <th class="p-4 font-bold">رقم السند / المرجع</th>
+                            <th class="p-4 font-bold">نوع الحركة</th>
+                            <th class="p-4 font-bold">الطرف المعني / المتجر</th>
+                            <th class="p-4 font-bold">المبلغ</th>
+                            <th class="p-4 font-bold">التاريخ والوقت</th>
+                            <th class="p-4 font-bold text-center">الإجراءات</th>
                         </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="6" class="p-10 text-center text-slate-400">
-                                لا توجد سجلات مالية مطابقة للبحث أو الخزينة فارغة حالياً.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- الترقيم (Pagination) لتخفيف الضغط -->
-        {% if total_pages > 1 %}
-        <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
-            <span class="text-slate-500">الصفحة {{ current_page }} من {{ total_pages }}</span>
-            <div class="flex gap-2">
-                {% if current_page > 1 %}
-                <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-sm">السابق</a>
-                {% endif %}
-                {% if current_page < total_pages %}
-                <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-sm">التالي</a>
-                {% endif %}
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs">
+                        {% if vouchers %}
+                            {% for v in vouchers %}
+                            <tr class="hover:bg-purple-50/50 transition cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number or v.voucher_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
+                                <td class="p-4 font-mono">
+                                    <span class="block text-slate-900 font-black">{{ v.voucher_number or '-' }}</span>
+                                    <span class="text-slate-400 text-[11px]">{{ v.reference_number or '-' }}</span>
+                                </td>
+                                <td class="p-4">
+                                    <span class="inline-block px-3 py-1 rounded-full font-bold
+                                        {% if v.entry_type in ['deposit', 'revenue_net'] %} bg-emerald-50 text-emerald-700 border border-emerald-200
+                                        {% else %} bg-rose-50 text-rose-700 border border-rose-200 {% endif %}">
+                                        {{ v.localized_entry_type }}
+                                    </span>
+                                </td>
+                                <td class="p-4">
+                                    <span class="block font-bold text-slate-900">{{ v.owner_details.store_name }}</span>
+                                    <span class="text-[11px] text-slate-500">{{ v.owner_details.owner_name }}</span>
+                                </td>
+                                <td class="p-4 font-black font-mono {% if v.entry_type in ['deposit', 'revenue_net'] %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                                    {{ "%.2f"|format(v.amount) }} SAR
+                                </td>
+                                <td class="p-4 text-slate-500 font-mono text-[11px]">
+                                    {{ v.formatted_time }}
+                                </td>
+                                <td class="p-4 text-center">
+                                    <a href="/admin/treasury/detail/{{ v.reference_number or v.voucher_number }}" class="inline-block royal-card hover:opacity-90 text-amber-300 px-3.5 py-1.5 rounded-xl border border-amber-500/30 transition font-bold shadow-sm">
+                                        التفاصيل
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="p-10 text-center text-slate-400">
+                                    لا توجد سجلات مالية مطابقة للبحث أو الخزينة فارغة حالياً.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
+
+            <!-- الترقيم (Pagination) لتخفيف الضغط -->
+            {% if total_pages > 1 %}
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+                <span class="text-slate-500">الصفحة {{ current_page }} من {{ total_pages }}</span>
+                <div class="flex gap-2">
+                    {% if current_page > 1 %}
+                    <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-sm">السابق</a>
+                    {% endif %}
+                    {% if current_page < total_pages %}
+                    <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-sm">التالي</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
 </div>
@@ -190,5 +193,59 @@
             window.location.href = '/admin/treasury/detail/' + ref;
         }
     }
+
+    // منطق البحث اللحظي وتحديث الجدول (AJAX)
+    const searchInput = document.getElementById('search-input');
+    const flowTypeSelect = document.getElementById('flow-type-select');
+    const resultsContainer = document.getElementById('results-container');
+    const resetFilterContainer = document.getElementById('reset-filter-container');
+
+    let searchTimeout = null;
+
+    function fetchFilteredResults() {
+        const query = searchInput.value;
+        const flowType = flowTypeSelect.value;
+
+        const params = new URLSearchParams();
+        if (query) params.append('q', query);
+        if (flowType) params.append('flow_type', flowType);
+
+        const url = `/admin/treasury/?${params.toString()}`;
+
+        // تحديث عنوان URL المتصفح دون إعادة تحميل الصفحة
+        window.history.replaceState({}, '', url);
+
+        // إظهار زر إلغاء الفلترة أو إخفاؤه ديناميكياً
+        if (query || flowType) {
+            resetFilterContainer.innerHTML = `<a href="/admin/treasury/" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2.5 rounded-xl border border-rose-200 transition text-nowrap block">إلغاء الفلترة</a>`;
+        } else {
+            resetFilterContainer.innerHTML = '';
+        }
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newResults = doc.getElementById('results-container');
+            if (newResults) {
+                resultsContainer.innerHTML = newResults.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error fetching search results:', error));
+    }
+
+    // البحث اللحظي عند الكتابة مع تأخير بسيط (Debounce) لمنع الضغط على السيرفر
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(fetchFilteredResults, 300);
+    });
+
+    // التحديث الفوري عند تغيير اختيار القائمة المنسدلة لأنواع الحركات
+    flowTypeSelect.addEventListener('change', fetchFilteredResults);
 </script>
 {% endblock %}
