@@ -2,17 +2,17 @@
 <!-- كروت إجمالي المحافظ والعدادات المالية (KPIs) -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     
-    <!-- تحديد العملة الافتراضية للوحة المؤشرات (يمكن ربطها بالمتغير العام أو الإعدادات) -->
+    <!-- استيراد رمز العملة المعتمد من متغير kpis -->
     {% set kpi_curr = kpis.currency|default('SAR') %}
 
-    <!-- كرت 1 -->
+    <!-- كرت 1: إجمالي أرصدة محافظ الموردين -->
     <div class="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">إجمالي أرصدة محافظ الموردين</span>
             <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center">💳</div>
         </div>
         <div class="text-2xl font-black font-mono text-gray-900">
-            {{ "{:,.2f}".format(kpis.total_wallets_balance|float) }} <span class="text-xs font-sans text-gray-500">{{ kpi_curr }}</span>
+            {{ "{:,.2f}".format(kpis.total_wallets_balance|float) }} <span class="text-xs font-sans text-gray-500 currency-label">{{ kpi_curr }}</span>
         </div>
         <div class="mt-1 text-[11px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-2">
             <span>إجمالي الموردين المسجلين:</span>
@@ -20,42 +20,42 @@
         </div>
     </div>
 
-    <!-- كرت 2 -->
+    <!-- كرت 2: الرصيد المتاح للسحب الفوري -->
     <div class="bg-white border border-emerald-400 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">الرصيد المتاح للسحب الفوري</span>
             <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-500 flex items-center justify-center">⚡</div>
         </div>
         <div class="text-2xl font-black font-mono text-emerald-600">
-            {{ "{:,.2f}".format(kpis.total_available_payouts|float) }} <span class="text-xs font-sans text-gray-500">{{ kpi_curr }}</span>
+            {{ "{:,.2f}".format(kpis.total_available_payouts|float) }} <span class="text-xs font-sans text-gray-500 currency-label">{{ kpi_curr }}</span>
         </div>
         <div class="mt-1 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
             جاهز للتحويل الفوري عبر SAMA SARIE
         </div>
     </div>
 
-    <!-- كرت 3 -->
+    <!-- كرت 3: أمانات الضمان المحجوزة (Escrow) -->
     <div class="bg-white border border-amber-400 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">أمانات الضمان المحجوزة (Escrow)</span>
             <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center">🔒</div>
         </div>
         <div class="text-2xl font-black font-mono text-amber-600">
-            {{ "{:,.2f}".format(kpis.total_escrow_held|float) }} <span class="text-xs font-sans text-gray-500">{{ kpi_curr }}</span>
+            {{ "{:,.2f}".format(kpis.total_escrow_held|float) }} <span class="text-xs font-sans text-gray-500 currency-label">{{ kpi_curr }}</span>
         </div>
         <div class="mt-1 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
             حماية مبيعات قيد الشحن والتسليم
         </div>
     </div>
 
-    <!-- كرت 4 -->
+    <!-- كرت 4: طلبات السحب قيد الانتظار -->
     <div class="bg-white border border-purple-400 p-5 rounded-2xl shadow-sm flex flex-col gap-2 transition hover:shadow-md">
         <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-gray-700">طلبات السحب قيد الانتظار</span>
             <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-500 flex items-center justify-center">⏳</div>
         </div>
         <div class="text-2xl font-black font-mono text-purple-600">
-            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount|float) }} <span class="text-xs font-sans text-gray-500">{{ kpi_curr }}</span>
+            {{ "{:,.2f}".format(kpis.pending_withdrawals_amount|float) }} <span class="text-xs font-sans text-gray-500 currency-label">{{ kpi_curr }}</span>
         </div>
         <div class="mt-1 text-[11px] text-gray-500 flex items-center justify-between border-t border-gray-100 pt-2">
             <span>عدد الطلبات:</span>
