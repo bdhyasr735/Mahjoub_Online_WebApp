@@ -108,12 +108,12 @@ def view_voucher_detail(voucher_code):
     if not wallet_obj:
         abort(404)
 
-    # البحث عن الحركة إما برقم المرجع أو كود السند أو المعرف، بشرط أن تخص محفظة المورد الحالي
+    # البحث عن الحركة إما برقم المرجع أو رقم الحوالة، بشرط أن تخص محفظة المورد الحالي
     transaction = WalletTransaction.query.filter(
         WalletTransaction.wallet_id == wallet_obj.id,
         db.or_(
             WalletTransaction.reference_number == voucher_code,
-            WalletTransaction.voucher_code == voucher_code
+            WalletTransaction.transfer_number == voucher_code
         )
     ).first_or_404()
 
