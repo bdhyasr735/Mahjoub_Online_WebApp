@@ -120,24 +120,29 @@ def process_withdraw_request_post(request_id):
                 trans_info = f" برقم حوالة: ({transfer_number})" if transfer_number else ""
                 default_msg = f"تم اعتماد طلب السحب رقم ({actual_code}){bank_info}{trans_info} بنجاح وإرسال الإشعار للمورد."
                 
-                # 🔴 [إضافة جذرية للربط مع الخزينة]: تسجيل الحركة في جدول الخزينة مباشرة عند الاعتماد الناجح
+                # 🔴 [إضافة جذرية للربط مع الخزينة]: تسجيل الحركة في جدول الخزينة مباشرة عند الاعتماد الناجح مع استيفاء القيود
                 try:
                     from apps.models.treasury_db import TreasuryEntry
-                    from datetime import datetime
                     
                     # التحقق من عدم تكرار السجل مسبقاً بنفس رقم المرجع
                     existing_entry = TreasuryEntry.query.filter_by(reference_number=actual_code).first()
                     if not existing_entry and tx_obj:
+                        supplier_id = getattr(tx_obj, 'supplier_id', None) or 1
+                        
                         treasury_entry = TreasuryEntry(
-                            reference_number=actual_code,
-                            amount=getattr(tx_obj, 'amount', 0),
                             entry_type='expense',
-                            description=f"صرف طلب سحب للمورد - سند رقم {actual_code}{bank_info}{trans_info}",
-                            date=datetime.utcnow()
+                            amount=getattr(tx_obj, 'amount', 0),
+                            currency='SAR',
+                            reference_number=actual_code,
+                            voucher_number=actual_code,
+                            owner_type='supplier',
+                            owner_id=supplier_id,
+                            description=f"صرف طلب سحب للمورد - سند رقم {actual_code}{bank_info}{trans_info}"
                         )
                         db.session.add(treasury_entry)
                         db.session.commit()
                 except Exception as treasury_err:
+                    db.session.rollback()
                     print(f"❌ [Treasury Integration Error]: {str(treasury_err)}")
 
             elif action == 'reject':
