@@ -99,9 +99,9 @@
         </form>
     </div>
 
-    <!-- قسم الفلاتر والبحث -->
+    <!-- قسم الفلاتر والبحث (يتم توجيهه لصفحة العرض GET بدلاً من إرسال الطلب POST) -->
     {% set filter_title = 'تصفية والبحث في طلبات السحب' %}
-    {% set action_url = url_for('supplier_wallet.submit_withdrawal') %}
+    {% set action_url = url_for('supplier_wallet.withdraw') %}
     {% set show_status = true %}
     {% set show_type = true %}
     {% set show_dates = true %}
@@ -170,9 +170,9 @@
         </div>
     </div>
 
-    <!-- التنقل بين الصفحات (Pagination) -->
+    <!-- التنقل بين الصفحات (Pagination) - موجه لمسار عرض الصفحة GET الأساسي -->
     {% if pagination is defined and render_pagination is defined %}
-        {{ render_pagination(pagination, endpoint='supplier_wallet.submit_withdrawal') }}
+        {{ render_pagination(pagination, endpoint='supplier_wallet.withdraw') }}
     {% endif %}
 </div>
 
