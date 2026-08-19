@@ -55,7 +55,8 @@
                         {% if request.status == 'pending' %}
                             <div class="flex items-center justify-center gap-2">
                                 <button type="button" onclick="openApprovalModal('{{ request.id }}', '{{ request.amount }}', '{{ request.currency if request.currency else 'SAR' }}')" class="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow-sm">اعتماد</button>
-                                <button type="button" onclick="rejectWithdrawRequest('{{ request.id }}')" class="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition shadow-sm">رفض</button>
+                                <!-- ✅ تم التحديث لاستدعاء النافذة المنبثقة الاحترافية للرفض بدلاً من prompt المتصفح -->
+                                <button type="button" onclick="openRejectModal('{{ request.id }}')" class="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition shadow-sm">رفض</button>
                             </div>
                         {% else %}
                             <span class="text-xs text-gray-400">—</span>
