@@ -10,11 +10,12 @@
         <table class="w-full text-right border-collapse">
             <thead>
                 <tr class="bg-gray-50/80 text-gray-500 text-[11px] font-bold border-b border-gray-100">
-                    <th class="p-4 whitespace-nowrap">رقم السند / المرجع</th>
-                    <th class="p-4 min-w-[350px]">تفاصيل الحركة والبيان</th>
+                    <th class="p-4 whitespace-nowrap w-12">#</th>
+                    <th class="p-4 whitespace-nowrap">رقم المرجع / الحوالة</th>
+                    <th class="p-4 whitespace-nowrap">التاريخ والوقت</th>
                     <th class="p-4 whitespace-nowrap">نوع الحركة</th>
                     <th class="p-4 whitespace-nowrap">المبلغ</th>
-                    <th class="p-4 text-left whitespace-nowrap">التاريخ والوقت</th>
+                    <th class="p-4 min-w-[350px]">البيان / التفاصيل</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-xs">
@@ -23,9 +24,14 @@
                         {% set is_credit = tx.trans_type in ['credit', 'deposit', 'sale_revenue', 'adjustment_credit'] %}
                         {% set voucher_code = tx.reference_number or tx.voucher_code or 'VCH-' ~ tx.id %}
                         <tr class="hover:bg-gray-50/60 transition-colors">
-                            <!-- 1. رقم السند كرابط لصفحة التفاصيل المستقلة -->
+                            <!-- 0. التسلسل -->
+                            <td class="p-4 font-mono font-bold text-gray-400">
+                                {{ loop.index }}
+                            </td>
+
+                            <!-- 1. رقم المرجع كرابط تفاعلي لصفحة السند المستقلة -->
                             <td class="p-4 whitespace-nowrap">
-                                <a href="{{ url_for('treasury.view_transaction_detail', voucher_code=voucher_code) }}" 
+                                <a href="{{ url_for('supplier_wallet.view_voucher_detail', voucher_code=voucher_code) }}" 
                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#4A154B]/10 text-[#4A154B] hover:bg-[#4A154B] hover:text-white transition-all font-mono font-bold text-xs">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
@@ -33,38 +39,10 @@
                                     <span>{{ voucher_code }}</span>
                                 </a>
                             </td>
-                            
-                            <!-- 2. البيان والتفاصيل المدمجة (الجهة، رقم الحوالة، المستفيد) -->
-                            <td class="p-4">
-                                <div class="font-bold text-gray-900 mb-1.5 leading-relaxed">{{ tx.description or 'حركة مالية بالمحفظة' }}</div>
-                                <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-                                    <!-- جهة التحويل / البنك -->
-                                    {% set bank = tx.display_bank or tx.bank_name or tx.payout_bank %}
-                                    {% if bank and bank != 'None' %}
-                                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">
-                                            <span class="text-gray-400">الجهة:</span>
-                                            <strong class="font-semibold">{{ bank }}</strong>
-                                        </span>
-                                    {% endif %}
 
-                                    <!-- رقم الحوالة -->
-                                    {% set transfer_no = tx.display_transfer_no or tx.transfer_number %}
-                                    {% if transfer_no and transfer_no != '-' %}
-                                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">
-                                            <span class="text-gray-400">رقم الحوالة:</span>
-                                            <strong class="font-mono text-[#4A154B] font-bold">{{ transfer_no }}</strong>
-                                        </span>
-                                    {% endif %}
-
-                                    <!-- المستفيد -->
-                                    {% set beneficiary = tx.display_beneficiary %}
-                                    {% if beneficiary and beneficiary != 'غير محدد' %}
-                                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">
-                                            <span class="text-gray-400">المستفيد:</span>
-                                            <strong class="font-semibold">{{ beneficiary }}</strong>
-                                        </span>
-                                    {% endif %}
-                                </div>
+                            <!-- 2. التاريخ والوقت -->
+                            <td class="p-4 text-gray-500 font-mono text-[11px] whitespace-nowrap" dir="ltr">
+                                {{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '-' }}
                             </td>
 
                             <!-- 3. نوع الحركة -->
@@ -85,16 +63,41 @@
                                 {{ ("+" if is_credit else "-") ~ "{:,.2f}".format(tx.amount|abs) }} 
                                 <span class="text-[10px] font-normal text-gray-400">{{ tx.currency or currency }}</span>
                             </td>
+                            
+                            <!-- 5. البيان والتفاصيل المدمجة -->
+                            <td class="p-4">
+                                <div class="font-bold text-gray-900 mb-1.5 leading-relaxed">{{ tx.description or 'حركة مالية بالمحفظة' }}</div>
+                                <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                    {% set bank = tx.display_bank or tx.bank_name or tx.payout_bank %}
+                                    {% if bank and bank != 'None' %}
+                                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">
+                                            <span class="text-gray-400">الجهة:</span>
+                                            <strong class="font-semibold">{{ bank }}</strong>
+                                        </span>
+                                    {% endif %}
 
-                            <!-- 5. التاريخ والوقت -->
-                            <td class="p-4 text-gray-500 text-left font-mono text-[11px] whitespace-nowrap" dir="ltr">
-                                {{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '-' }}
+                                    {% set transfer_no = tx.display_transfer_no or tx.transfer_number %}
+                                    {% if transfer_no and transfer_no != '-' %}
+                                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">
+                                            <span class="text-gray-400">رقم الحوالة:</span>
+                                            <strong class="font-mono text-[#4A154B] font-bold">{{ transfer_no }}</strong>
+                                        </span>
+                                    {% endif %}
+
+                                    {% set beneficiary = tx.display_beneficiary %}
+                                    {% if beneficiary and beneficiary != 'غير محدد' %}
+                                        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">
+                                            <span class="text-gray-400">المستفيد:</span>
+                                            <strong class="font-semibold">{{ beneficiary }}</strong>
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="5" class="py-12 text-center text-gray-400 font-medium bg-gray-50/30">
+                        <td colspan="6" class="py-12 text-center text-gray-400 font-medium bg-gray-50/30">
                             لا توجد حركات مالية مسجلة حتى الآن
                         </td>
                     </tr>
