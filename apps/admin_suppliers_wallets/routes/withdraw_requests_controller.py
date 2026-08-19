@@ -110,11 +110,11 @@ def process_withdraw_request_post(request_id):
         )
 
         if result.get('success', False):
-            # ✅ جلب الكود النصي الحقيقي للسند (مثل VCH-1YV7C6) من نتيجة الخدمة، أو استعلامه مباشرة من القاعدة لضمان الدقة
+            # ✅ جلب رقم السند الحقيقي حصرياً من حقل voucher_number المطابق للجدول (مثل VCH-CK08WU)
             tx_obj = WalletTransaction.query.get(request_id)
-            actual_code = getattr(tx_obj, 'reference_number', None) or getattr(tx_obj, 'code', None) or result.get('actual_id') or f"VCH-{request_id}"
+            actual_code = getattr(tx_obj, 'voucher_number', None) or result.get('voucher_number') or f"VCH-{request_id}"
             
-            # ✅ صياغة نص رسالة إشعار دقيقة ومخصصة بناءً على نوع الإجراء (اعتماد أم رفض) باستخدام الكود النصي
+            # ✅ صياغة نص رسالة إشعار دقيقة ومخصصة بناءً على نوع الإجراء (اعتماد أم رفض) باستخدام الكود الصحيح
             if action == 'approve':
                 bank_info = f" عبر ({payout_bank})" if payout_bank else ""
                 trans_info = f" برقم حوالة: ({transfer_number})" if transfer_number else ""
