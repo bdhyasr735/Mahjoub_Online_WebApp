@@ -15,32 +15,23 @@ class TreasuryEntry(db.Model):
         db.Index('idx_treasury_owner', 'owner_type', 'owner_id'),
         db.Index('idx_treasury_ref', 'reference_number'),
         db.Index('idx_treasury_voucher', 'voucher_number'),
+        db.Index('idx_treasury_order', 'order_id'), # إضافة لسرعة الربط
         {'extend_existing': True}
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    
-    # Entry types: (revenue_net, affiliate_payout, supplier_settlement, operational_cost, deposit)
     entry_type = db.Column(db.String(50), nullable=False) 
-    
-    # Amount strictly in Saudi Riyals (SAR)
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
-    
-    # Currency standard
+    amount = db.Column(db.Numeric(18, 2), nullable=False, default=0.00)
     currency = db.Column(db.String(10), default='SAR', nullable=False)
 
-    # References and relations
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=True)
     reference_number = db.Column(db.String(80), nullable=True) 
     voucher_number = db.Column(db.String(50), unique=True, nullable=True)  
     
-    # Entity owner type: 'supplier', 'affiliate', 'platform'
     owner_type = db.Column(db.String(20), nullable=False) 
     owner_id = db.Column(db.Integer, nullable=False)
     
-    # Encrypted transaction description for financial privacy
     _description_enc = db.Column(db.String(500), nullable=True)
-    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # --- Encryption System ---
@@ -51,12 +42,10 @@ class TreasuryEntry(db.Model):
 
     @property
     def description(self):
-        if not self._description_enc:
-            return None
+        if not self._description_enc: return None
         try:
             return Fernet(self._get_key()).decrypt(self._description_enc.encode()).decode()
-        except:
-            return None
+        except: return None
 
     @description.setter
     def description(self, value):
@@ -66,25 +55,10 @@ class TreasuryEntry(db.Model):
             self._description_enc = None
 
     @property
-    def localized_entry_type(self):
-        """Localized presentation layer for entry types (UI translation)"""
-        if not self.entry_type:
-            return "General Flow"
-            
-        translations = {
-            'deposit': 'Cash Deposit',
-            'revenue_net': 'Net Sales Revenue',
-            'supplier_settlement': 'Supplier Settlement',
-            'affiliate_payout': 'Affiliate Payout',
-            'operational_cost': 'Operational Cost'
-        }
-        cleaned_type = str(self.entry_type).strip().lower()
-        return translations.get(cleaned_type, self.entry_type)
-
-    @property
     def owner_details(self):
-        """Fetch counterparty details (Store name, owner, wallet code, supplier code)"""
+        """Dynamic fetch with safe lazy loading to avoid import loops"""
         if self.owner_type == 'supplier':
+            # استيراد محلي لتجنب تعارض الاستيراد
             from apps.models.supplier_db import Supplier
             from apps.models.wallet_db import SupplierWallet
             
@@ -92,43 +66,25 @@ class TreasuryEntry(db.Model):
             wallet = SupplierWallet.query.filter_by(supplier_id=self.owner_id).first()
             
             return {
-                "owner_name": supplier.owner_name if supplier else "Unknown Owner",
-                "store_name": supplier.store_name or supplier.trade_name if supplier else "Unknown Store",
+                "owner_name": supplier.owner_name if supplier else "Unknown",
+                "store_name": supplier.store_name if supplier else "Unknown",
                 "supplier_code": supplier.supplier_code if supplier else f"SUP-{self.owner_id}",
-                "wallet_code": wallet.wallet_code if wallet else f"WEL-{self.owner_id}"
+                "wallet_code": wallet.wallet_code if wallet else "N/A"
             }
-        return {
-            "owner_name": f"Other ({self.owner_type})",
-            "store_name": "-",
-            "supplier_code": "-",
-            "wallet_code": "-"
-        }
+        return {"owner_name": self.owner_type, "store_name": "-", "supplier_code": "-", "wallet_code": "-"}
 
     @property
     def formatted_time(self):
-        """Formatted timestamp with UTC+3 offset"""
-        if self.created_at:
-            local_time = self.created_at + timedelta(hours=3)
-            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
-        return "-"
+        return (self.created_at + timedelta(hours=3)).strftime('%Y-%m-%d | %I:%M:%S %p') if self.created_at else "-"
 
     def to_dict(self):
-        """Export entry data in a secured format"""
         return {
             'id': self.id,
             'entry_type': self.entry_type,
-            'localized_entry_type': self.localized_entry_type,
             'amount': float(self.amount),
-            'currency': self.currency,
             'order_id': self.order_id,
-            'reference_number': self.reference_number,
-            'voucher_number': self.voucher_number,
-            'owner': f"{self.owner_type}_{self.owner_id}",
-            'owner_details': self.owner_details,
+            'voucher': self.voucher_number,
+            'owner_info': self.owner_details,
             'description': self.description,
-            'formatted_time': self.formatted_time,
-            'date': self.created_at.isoformat() if self.created_at else None
+            'time': self.formatted_time
         }
-
-    def __repr__(self):
-        return f"<Treasury {self.entry_type} | {self.amount} {self.currency} | Voucher: {self.voucher_number}>"
