@@ -122,7 +122,7 @@ def treasury_index():
         if flow_type:
             query = query.filter(TreasuryEntry.entry_type == flow_type)
 
-        # التعديل هنا: جعل عدد الحركات في كل صفحة 10 حركات
+        # الترقيم: 10 حركات لكل صفحة لتخفيف الضغط على قاعدة البيانات
         pagination = query.order_by(TreasuryEntry.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
         
         # إثراء السجلات بالترجمة والخصائص الآمنة
