@@ -33,18 +33,48 @@ def wallet_dashboard():
     # معاملات البحث والفلترة والصفحات
     status_filter = request.args.get('status', 'all')
     type_filter = request.args.get('type', 'all')
+    search_query = request.args.get('q', '').strip() # دعم البحث اللحظي (رقم السند أو البيان)
+    start_date = request.args.get('start_date')     # تاريخ البدء
+    end_date = request.args.get('end_date')         # تاريخ الانتهاء
     page = request.args.get('page', 1, type=int)
 
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)
 
-    # المنطق البرمجي: إذا لم يحدد المستخدم فلتر حالة معين، نستبعد المعاملات المعلقة (pending) من الكشف المالي الأساسي
+    # فلتر الحالة
     if status_filter == 'all':
         query = query.filter(WalletTransaction.status != 'pending')
     else:
         query = query.filter(WalletTransaction.status == status_filter)
     
+    # فلتر النوع
     if type_filter != 'all':
         query = query.filter(WalletTransaction.trans_type == type_filter)
+
+    # البحث اللحظي (في رقم المرجع أو البيان أو رقم الحوالة)
+    if search_query:
+        search_term = f"%{search_query}%"
+        query = query.filter(
+            db.or_(
+                WalletTransaction.reference_number.ilike(search_term),
+                WalletTransaction.description.ilike(search_term),
+                WalletTransaction.transfer_number.ilike(search_term)
+            )
+        )
+
+    # فلتر نطاق التاريخ (من وإلى)
+    if start_date:
+        try:
+            parsed_start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(WalletTransaction.created_at >= parsed_start)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            parsed_end = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            query = query.filter(WalletTransaction.created_at <= parsed_end)
+        except ValueError:
+            pass
 
     pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
 
@@ -62,7 +92,7 @@ def wallet_dashboard():
 @supplier_wallet_bp.route('/print-statement', methods=['GET'], endpoint='wallet_print_statement')
 @login_required
 def wallet_print_statement():
-    """عرض كشف حساب المورد بصيغة مهيأة للطباعة (PDF)."""
+    """عرض كشف حساب المورد بصيغة مهيأة للطباعة (PDF) مع دعم الفلترة الحالية."""
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     
@@ -77,11 +107,48 @@ def wallet_print_statement():
         'currency': getattr(wallet_obj, 'default_currency', 'SAR')
     }
 
-    # جلب كافة المعاملات المكتملة لعرضها في الكشف (بدون صفحات)
-    transactions = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id)\
-        .filter(WalletTransaction.status != 'pending')\
-        .order_by(WalletTransaction.created_at.desc())\
-        .all()
+    # استقبال نفس معاملات الفلترة لتطابق ما يشاهده المورد في الكشف المطبوع
+    status_filter = request.args.get('status', 'all')
+    type_filter = request.args.get('type', 'all')
+    search_query = request.args.get('q', '').strip()
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id)
+
+    if status_filter == 'all':
+        query = query.filter(WalletTransaction.status != 'pending')
+    else:
+        query = query.filter(WalletTransaction.status == status_filter)
+
+    if type_filter != 'all':
+        query = query.filter(WalletTransaction.trans_type == type_filter)
+
+    if search_query:
+        search_term = f"%{search_query}%"
+        query = query.filter(
+            db.or_(
+                WalletTransaction.reference_number.ilike(search_term),
+                WalletTransaction.description.ilike(search_term),
+                WalletTransaction.transfer_number.ilike(search_term)
+            )
+        )
+
+    if start_date:
+        try:
+            parsed_start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(WalletTransaction.created_at >= parsed_start)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            parsed_end = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            query = query.filter(WalletTransaction.created_at <= parsed_end)
+        except ValueError:
+            pass
+
+    transactions = query.order_by(WalletTransaction.created_at.desc()).all()
 
     return render_template(
         'supplier_wallet/wallet_pdf_print.html',
