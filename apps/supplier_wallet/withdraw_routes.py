@@ -107,14 +107,14 @@ def submit_withdrawal():
             db.session.rollback()
             return jsonify({"status": "error", "message": f"خطأ داخلي: {str(e)}"}), 500
 
-    # GET Request
+    # GET Request - تم ضبط الحالة الافتراضية هنا لتشمل الكل أو عدم فرض حظر على المعلق
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
     
     query = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id if wallet_obj else -1)\
                                    .filter(WalletTransaction.trans_type == 'withdrawal')
 
-    if status_filter != 'all':
+    if status_filter and status_filter != 'all':
         query = query.filter(WalletTransaction.status == status_filter)
 
     pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
