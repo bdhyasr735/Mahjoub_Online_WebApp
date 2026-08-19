@@ -3,7 +3,7 @@
 {% block content %}
 <div style="max-width: 50rem; margin: 0 auto; padding: 2rem 1rem; width: 100%; font-family: Tahoma, Arial, sans-serif;" dir="rtl">
     
-    <!-- زر التحكم بالطباعة (تختفي عند الطباعة) -->
+    <!-- زر التحكم بالطباعة والعودة (تختفي عند الطباعة) -->
     <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;" class="print:hidden">
         <a href="/admin/treasury/" style="font-size: 0.8rem; color: #4A154B; text-decoration: none; font-weight: bold;">
             ← العودة لقائمة الخزينة
@@ -32,15 +32,15 @@
             </div>
         </div>
 
-        <!-- معلومات السند -->
+        <!-- معلومات السند الأساسية والمرجعية -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; background: #f9fafb; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
             <div>
                 <span style="color: #6b7280; display: block; font-size: 0.75rem;">رقم السند الأساسي:</span>
                 <span style="font-family: monospace; font-weight: bold; color: #111827; font-size: 1rem;">{{ voucher.voucher_number or '---' }}</span>
             </div>
             <div>
-                <span style="color: #6b7280; display: block; font-size: 0.75rem;">المرجع المالي:</span>
-                <span style="font-family: monospace; font-weight: bold; color: #3F0E40; font-size: 0.85rem;">{{ voucher.reference_number or '---' }}</span>
+                <span style="color: #6b7280; display: block; font-size: 0.75rem;">المرجع المالي / رقم الطلب:</span>
+                <span style="font-family: monospace; font-weight: bold; color: #4A154B; font-size: 0.85rem;">{{ voucher.reference_number or voucher.order_id or '---' }}</span>
             </div>
             <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 0.5rem; margin-top: 0.5rem;">
                 <span style="color: #6b7280; font-size: 0.75rem;">تاريخ القيد والتنفيذ:</span>
@@ -48,7 +48,7 @@
             </div>
         </div>
 
-        <!-- مبلغ الحركة -->
+        <!-- مبلغ الحركة المالي -->
         <div style="background: linear-gradient(135deg, #fdf5fd 0%, #fef3c7 100%); border: 1px solid #4A154B; border-radius: 0.75rem; padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;">
             <span style="font-size: 0.75rem; color: #4A154B; display: block; margin-bottom: 0.25rem; font-weight: bold;">المبلغ الإجمالي للحركة</span>
             <div style="font-size: 2rem; font-weight: 900; color: #4A154B;">
@@ -56,7 +56,7 @@
             </div>
         </div>
 
-        <!-- تفاصيل المستفيد -->
+        <!-- تفاصيل المستفيد والطرف المعني -->
         <div style="margin-bottom: 1.5rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
             <div style="background: #4A154B; color: #FBBF24; padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: bold;">
                 بيانات الطرف المعني (المتجر / المستفيد)
@@ -80,6 +80,14 @@
                 </div>
             </div>
         </div>
+
+        <!-- وصف الحركة المالية المشفرة (إن وُجدت) -->
+        {% if voucher.description %}
+        <div style="margin-bottom: 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; font-size: 0.85rem;">
+            <span style="color: #64748b; display: block; font-size: 0.75rem; font-weight: bold; margin-bottom: 0.25rem;">بيان الحركة أو ملاحظات إضافية:</span>
+            <p style="color: #334155; margin: 0; line-height: 1.4;">{{ voucher.description }}</p>
+        </div>
+        {% endif %}
 
         <!-- ملاحظة الاعتماد الإلكتروني -->
         <div style="border-top: 1px solid #e5e7eb; padding-top: 1.25rem; text-align: center;">
