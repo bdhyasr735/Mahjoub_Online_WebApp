@@ -2,7 +2,7 @@
 # 📂 apps/supplier_wallet/wallet_routes.py
 
 from datetime import datetime
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, abort
 from flask_login import login_required
 from apps.extensions import db, limiter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -95,6 +95,37 @@ def wallet_dashboard():
         pagination=pagination_obj,
         active_status=status_filter,
         active_type=type_filter
+    )
+
+
+@supplier_wallet_bp.route('/voucher/<voucher_code>', methods=['GET'], endpoint='view_voucher_detail')
+@login_required
+def view_voucher_detail(voucher_code):
+    """عرض صفحة تفاصيل السند المستقلة الخاصة بالمورد."""
+    supplier_id = get_current_supplier_id()
+    wallet_obj = get_or_create_supplier_wallet(supplier_id)
+    
+    if not wallet_obj:
+        abort(404)
+
+    # البحث عن الحركة إما برقم المرجع أو كود السند أو المعرف، بشرط أن تخص محفظة المورد الحالي
+    transaction = WalletTransaction.query.filter(
+        WalletTransaction.wallet_id == wallet_obj.id,
+        db.or_(
+            WalletTransaction.reference_number == voucher_code,
+            WalletTransaction.voucher_code == voucher_code
+        )
+    ).first_or_404()
+
+    # تجهيز خصائص العرض للسند
+    transaction.display_bank = getattr(transaction, 'bank_name', None) or 'غير محدد'
+    transaction.display_beneficiary = getattr(transaction, 'beneficiary_name', None) or 'غير محدد'
+    transaction.display_transfer_no = getattr(transaction, 'transfer_number', None) or transaction.reference_number or '-'
+
+    return render_template(
+        'supplier_wallet/voucher_detail.html',
+        transaction=transaction,
+        wallet=wallet_obj
     )
 
 
