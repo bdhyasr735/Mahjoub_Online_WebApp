@@ -88,7 +88,7 @@ def withdraw_requests_list():
 @login_required
 def process_withdraw_request_post(request_id):
     """
-    معالجة طلب السحب عبر POST (اعتماد أو رفض) مع التقاط بيانات التوثيق المالي والمعرف الحقيقي.
+    معالجة طلب السحب عبر POST (اعتماد أو رفض) مع التقاط بيانات التوثيق المالي والمعرف الحقيقي وتسجيلها في الخزينة.
     """
     action = request.form.get('action')
     reason = request.form.get('reason', '')
@@ -119,6 +119,27 @@ def process_withdraw_request_post(request_id):
                 bank_info = f" عبر ({payout_bank})" if payout_bank else ""
                 trans_info = f" برقم حوالة: ({transfer_number})" if transfer_number else ""
                 default_msg = f"تم اعتماد طلب السحب رقم ({actual_code}){bank_info}{trans_info} بنجاح وإرسال الإشعار للمورد."
+                
+                # 🔴 [إضافة جذرية للربط مع الخزينة]: تسجيل الحركة في جدول الخزينة مباشرة عند الاعتماد الناجح
+                try:
+                    from apps.models.treasury_db import TreasuryEntry
+                    from datetime import datetime
+                    
+                    # التحقق من عدم تكرار السجل مسبقاً بنفس رقم المرجع
+                    existing_entry = TreasuryEntry.query.filter_by(reference_number=actual_code).first()
+                    if not existing_entry and tx_obj:
+                        treasury_entry = TreasuryEntry(
+                            reference_number=actual_code,
+                            amount=getattr(tx_obj, 'amount', 0),
+                            entry_type='expense',
+                            description=f"صرف طلب سحب للمورد - سند رقم {actual_code}{bank_info}{trans_info}",
+                            date=datetime.utcnow()
+                        )
+                        db.session.add(treasury_entry)
+                        db.session.commit()
+                except Exception as treasury_err:
+                    print(f"❌ [Treasury Integration Error]: {str(treasury_err)}")
+
             elif action == 'reject':
                 reason_info = f" بسبب: ({reason})" if reason else ""
                 default_msg = f"تم رفض طلب السحب رقم ({actual_code}){reason_info} وإشعار المورد بذلك."
@@ -139,6 +160,7 @@ def process_withdraw_request_post(request_id):
             flash(result.get('message', 'فشل تنفيذ العملية'), 'danger')
 
     except Exception as e:
+        db.session.rollback()
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
     # ✅ الحفاظ على رقم الصفحة الحالية والبحث والفلترة عند حدوث خطأ أو فشل
