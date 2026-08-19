@@ -33,7 +33,7 @@
             </thead>
             <tbody id="suppliers-table-body" class="divide-y divide-gray-100">
                 {% for supplier in suppliers %}
-                <tr ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'" title="انقر نقراً مزدوجاً لفتح كشف الحساب" class="hover:bg-gray-50 cursor-pointer transition select-none group">
+                <tr ondblclick="window.location.href='{{ url_for('admin_suppliers_wallets.wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}'" title="انقر نقراً مزدوجاً لفتح كشف الحساب" class="hover:bg-gray-50 cursor-pointer transition select-none group">
                     <td class="py-4 px-4 font-mono font-bold text-amber-600">{{ supplier.wallet_code }}</td>
                     <td class="py-4 px-4">
                         <div class="font-bold text-gray-800">{{ supplier.supplier_name }}</div>
@@ -56,9 +56,9 @@
                     </td>
                     <td class="py-4 px-4 text-center">
                         <div class="flex items-center justify-center gap-2">
-                            <a href="{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">👁️</a>
+                            <a href="{{ url_for('admin_suppliers_wallets.wallets_controller.supplier_ledger_detail', supplier_id=supplier.id) }}" class="w-9 h-9 rounded-xl bg-[#F0F0F0] border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition" title="عرض">👁️</a>
                             <button onclick="openWalletAdjustmentModal('{{ supplier.id }}', '{{ supplier.wallet_code }}', '{{ supplier.supplier_name }}', {{ supplier.available_balance }})" class="w-9 h-9 rounded-xl bg-[#FFF8E7] border-2 border-amber-400 flex items-center justify-center text-amber-700 hover:bg-[#FFEEC3] transition cursor-pointer font-bold text-lg" title="تغذية / تسوية الرصيد">+</button>
-                            <button onclick="confirmWalletStatusToggle('{{ supplier.id }}', '{{ supplier.supplier_name }}', '{{ supplier.status }}', '{{ url_for('admin_suppliers_wallets.suppliers_wallets_controller.toggle_wallet_freeze', supplier_id=supplier.id) }}')" class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" title="تجميد المحفظة">🔒</button>
+                            <button onclick="confirmWalletStatusToggle('{{ supplier.id }}', '{{ supplier.supplier_name }}', '{{ supplier.status }}', '{{ url_for('admin_suppliers_wallets.wallets_controller.toggle_wallet_freeze', supplier_id=supplier.id) }}')" class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-300 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition cursor-pointer" title="تجميد المحفظة">🔒</button>
                         </div>
                     </td>
                 </tr>
