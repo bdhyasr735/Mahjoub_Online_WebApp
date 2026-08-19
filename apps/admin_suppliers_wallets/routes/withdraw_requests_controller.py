@@ -76,10 +76,10 @@ def withdraw_requests_list():
         withdrawals=items,
         pagination=pagination_data,
         total_withdraw_amount=total_withdraw_amount,  # ✅ تمرير إجمالي المبالغ للقالب
-        total_count=total_count,                    # ✅ تمرير إجمالي عدد الطلبات للقالب
+        total_count=total_count,                        # ✅ تمرير إجمالي عدد الطلبات للقالب
         status_filter=status_filter,
         search_query=search_query,
-        yemen_banks=yemen_banks,                    # ✅ تمرير قائمة البنوك
+        yemen_banks=yemen_banks,                        # ✅ تمرير قائمة البنوك
         financial_companies=financial_companies        # ✅ تمرير قائمة الشركات المالية
     )
 
