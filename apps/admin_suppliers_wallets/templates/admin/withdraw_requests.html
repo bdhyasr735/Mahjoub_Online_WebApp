@@ -105,7 +105,8 @@
     // ✅ دوال نافذة الاعتماد
     function openApprovalModal(requestId) {
         const form = document.getElementById('approvalForm');
-        if (form) form.action = `/withdraw-requests/${requestId}/action`;
+        // استخدام المسار الكامل لمنع خطأ 404
+        if (form) form.action = "{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.process_withdraw_request_post', request_id=0) }}".replace('0', requestId);
         const modal = document.getElementById('approvalModal');
         if (modal) modal.classList.remove('hidden');
     }
@@ -114,7 +115,8 @@
     // ✅ دوال نافذة الرفض
     function openRejectModal(requestId) {
         const form = document.getElementById('rejectForm');
-        if (form) form.action = `/withdraw-requests/${requestId}/action`;
+        // استخدام المسار الكامل لمنع خطأ 404
+        if (form) form.action = "{{ url_for('admin_suppliers_wallets.withdraw_requests_controller.process_withdraw_request_post', request_id=0) }}".replace('0', requestId);
         const modal = document.getElementById('rejectModal');
         if (modal) modal.classList.remove('hidden');
     }
