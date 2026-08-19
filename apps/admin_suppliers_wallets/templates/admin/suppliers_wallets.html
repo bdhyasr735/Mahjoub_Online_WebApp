@@ -1,4 +1,4 @@
-<!-- apps/admin_suppliers_wallets/templates/admin/suppliers.html -->
+<!-- apps/admin_suppliers_wallets/templates/admin/suppliers_wallets.html -->
 {% extends "admin/admin_base.html" %}
 
 {% block title %}إدارة محافظ الموردين والتسويات المالية{% endblock %}
@@ -18,7 +18,7 @@
         </div>
         
         <div class="flex items-center gap-3">
-            <!-- محدد العملة العام إذا لزم الأمر -->
+            <!-- محدد العملة العام -->
             <div class="bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-bold text-gray-700">
                 <span>العملة المعتمدة:</span>
                 <span class="font-mono text-purple-600" x-text="currentCurrency">SAR</span>
@@ -75,7 +75,6 @@
 
 <!-- سكربتات التحكم والنافذة التفاعلية -->
 <script>
-    // تحديث قيم العملات ديناميكياً في الواجهة إن وجدت متغيرات عامة
     document.addEventListener("DOMContentLoaded", function() {
         const currencySymbol = "{{ kpis.currency|default('SAR') }}";
         document.querySelectorAll('.currency-label').forEach(el => {
@@ -89,7 +88,7 @@
         document.getElementById('adjSupplierName').textContent = supplierName;
         document.getElementById('adjCurrentBalance').textContent = parseFloat(currentBalance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + "{{ kpis.currency|default('SAR') }}";
         
-        // فتح المودال
+        // إزالة الكلاس 'hidden' لعرض المودال
         document.getElementById('walletAdjustmentModal').classList.remove('hidden');
     }
 
