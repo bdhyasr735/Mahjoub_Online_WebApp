@@ -10,21 +10,16 @@ import random
 from datetime import datetime
 from decimal import Decimal
 
-# =====================================================================
-# ✅ استيراد الموديلات الحقيقية من قاعدة البيانات
-# =====================================================================
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.supplier_db import Supplier
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 
 def calculate_wallets_kpis():
     """
     حساب المؤشرات المالية المركزية للوحة التحكم (بيانات حقيقية)
     """
-    from sqlalchemy import func
-    
     total_sar_balance = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0.00
     total_pending_balance = db.session.query(func.sum(SupplierWallet.balance_pending)).scalar() or 0.00
     pending_withdrawals_amount = db.session.query(func.sum(WalletTransaction.amount)).filter_by(status='pending').scalar() or 0.00
@@ -42,9 +37,6 @@ def calculate_wallets_kpis():
 
 
 def get_suppliers_list(search='', status='all', bank='all', page=1, per_page=10):
-    """
-    استرجاع قائمة محافظ الموردين الحقيقية من قاعدة البيانات
-    """
     query = SupplierWallet.query.join(Supplier, Supplier.id == SupplierWallet.supplier_id)
 
     if search:
@@ -76,30 +68,21 @@ def get_suppliers_list(search='', status='all', bank='all', page=1, per_page=10)
 
 
 def get_supplier_wallet_by_id(supplier_id):
-    """
-    استرجاع بيانات المحفظة الحقيقية وكشف الحساب
-    """
     return SupplierWallet.query.get_or_404(supplier_id)
 
 
 def toggle_freeze_service(supplier_id, reason='إجراء إداري'):
-    """
-    تجميد أو فك حظر المحفظة مع التوثيق
-    """
     wallet = SupplierWallet.query.get_or_404(supplier_id)
     wallet.status = 'frozen' if wallet.status == 'active' else 'active'
     wallet.updated_at = datetime.utcnow()
     db.session.commit()
     return {
         'status': 'success',
-        'message': f'تم تغيير حالة المحفظة بنجاح'
+        'message': 'تم تغيير حالة المحفظة بنجاح'
     }
 
 
 def create_manual_adjustment(supplier_id, amount, entry_type, description):
-    """
-    إنشاء قيد تسوية مالي يدوي وتوليد سند رسمي
-    """
     wallet = SupplierWallet.query.get_or_404(supplier_id)
     current_balance = Decimal(str(wallet.balance_sar))
     new_balance = current_balance + amount if entry_type == 'credit' else current_balance - amount
@@ -126,14 +109,7 @@ def create_manual_adjustment(supplier_id, amount, entry_type, description):
     }
 
 
-# ====================================================================
-# ✅ الدوال المطلوبة لصفحة طلبات السحب (النسخة الحقيقية الكاملة)
-# ====================================================================
-
 def get_withdraw_requests(status='pending', search='', page=1, per_page=10):
-    """
-    جلب طلبات السحب الحقيقية من قاعدة البيانات وربطها ببيانات المورد.
-    """
     query = WalletTransaction.query.join(
         SupplierWallet, SupplierWallet.id == WalletTransaction.wallet_id
     ).join(
@@ -161,11 +137,13 @@ def get_withdraw_requests(status='pending', search='', page=1, per_page=10):
     return {
         'items': pagination_obj.items,
         'pagination': {
-            'current_page': pagination_obj.page,
-            'total_pages': pagination_obj.pages,
+            'page': pagination_obj.page,
+            'pages': pagination_obj.pages,
             'has_prev': pagination_obj.has_prev,
             'has_next': pagination_obj.has_next,
-            'total_count': pagination_obj.total,
+            'prev_num': pagination_obj.prev_num,
+            'next_num': pagination_obj.next_num,
+            'total': pagination_obj.total,
             'per_page': per_page,
         }
     }
@@ -173,11 +151,10 @@ def get_withdraw_requests(status='pending', search='', page=1, per_page=10):
 
 def update_withdrawal_status(request_id, action, reason='', transfer_number=None, approval_ref=None, payout_bank=None):
     """
-    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات مع إرجاع المعرف الفعلي (actual_id).
+    تحديث حالة طلب السحب الحقيقي في قاعدة البيانات مع دعم كافة وسائط التوثيق المالي.
     """
     try:
         transaction = WalletTransaction.query.get_or_404(request_id)
-        
         wallet = SupplierWallet.query.get(transaction.wallet_id)
         supplier_id = wallet.supplier_id if wallet else None
 
