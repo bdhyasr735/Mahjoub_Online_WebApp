@@ -4,13 +4,13 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
     .gold-border { border-color: rgba(212, 175, 55, 0.4); }
-    .royal-card { background: linear-gradient(135deg, #2e1065 0%, #1e1b4b 100%); color: #ffffff; }
-    .accent-card { background: linear-gradient(135deg, #4a154b 0%, #2e1065 100%); color: #ffffff; }
+    .royal-card { background: linear-gradient(135deg, #4A154B 0%, #3F0E40 100%); color: #ffffff; }
+    .accent-card { background: linear-gradient(135deg, #4A154B 0%, #2e1065 100%); color: #ffffff; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6 w-full bg-[#f8f9fa] min-h-screen text-slate-800">
+<div class="max-w-7xl mx-auto px-4 py-6 w-full bg-[#f8f9fa] min-h-screen text-slate-800" dir="rtl">
         
     <!-- عنوان الصفحة -->
     <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-4">
@@ -38,9 +38,9 @@
             <span class="text-xs text-purple-200 block">احتياطي الضمان (Escrow)</span>
             <span class="text-lg font-black text-amber-300 mt-1 block font-mono">{{ "%.2f"|format(kpi.escrow_reserve) }}</span>
         </div>
-        <div class="bg-white p-4 rounded-2xl border-r-4 border-purple-700 shadow-sm border border-slate-200">
+        <div class="bg-white p-4 rounded-2xl border-r-4 border-[#4A154B] shadow-sm border border-slate-200">
             <span class="text-xs text-slate-500 block">صافي أرباح المنصة</span>
-            <span class="text-lg font-black text-purple-800 mt-1 block font-mono">{{ "%.2f"|format(kpi.net_platform_profit) }}</span>
+            <span class="text-lg font-black text-[#4A154B] mt-1 block font-mono">{{ "%.2f"|format(kpi.net_platform_profit) }}</span>
         </div>
         <div class="bg-white p-4 rounded-2xl border-r-4 border-blue-600 shadow-sm border border-slate-200">
             <span class="text-xs text-slate-500 block">العملة المعتمدة</span>
@@ -52,11 +52,11 @@
     <div class="bg-white p-4 rounded-2xl mb-6 shadow-sm border border-slate-200">
         <form method="GET" action="/admin/treasury/" class="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div class="w-full md:w-1/2 flex gap-2">
-                <input type="text" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-purple-800">
-                <button type="submit" class="accent-card hover:opacity-95 text-amber-300 font-bold px-6 py-2.5 rounded-xl transition text-xs shadow-sm">بحث</button>
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="بحث برقم السند، المرجع، أو نوع الطرف..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#4A154B]">
+                <button type="submit" class="royal-card hover:opacity-95 text-amber-300 font-bold px-6 py-2.5 rounded-xl transition text-xs shadow-sm">بحث</button>
             </div>
             <div class="w-full md:w-auto flex items-center gap-2">
-                <select name="flow_type" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-purple-800 w-full md:w-56">
+                <select name="flow_type" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#4A154B] w-full md:w-56">
                     <option value="">جميع أنواع الحركات</option>
                     <option value="deposit" {% if filters.flow_type == 'deposit' %}selected{% endif %}>إيداع نقدي</option>
                     <option value="revenue_net" {% if filters.flow_type == 'revenue_net' %}selected{% endif %}>صافي إيرادات مبيعات</option>
@@ -76,7 +76,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-right border-collapse">
                 <thead>
-                    <tr class="accent-card text-purple-100 text-xs uppercase tracking-wider">
+                    <tr class="royal-card text-purple-100 text-xs uppercase tracking-wider">
                         <th class="p-4 font-bold">رقم السند / المرجع</th>
                         <th class="p-4 font-bold">نوع الحركة</th>
                         <th class="p-4 font-bold">الطرف المعني / المتجر</th>
@@ -88,7 +88,7 @@
                 <tbody class="divide-y divide-slate-100 text-xs">
                     {% if vouchers %}
                         {% for v in vouchers %}
-                        <tr class="hover:bg-purple-50/50 transition cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
+                        <tr class="hover:bg-purple-50/50 transition cursor-pointer" ondblclick="handleRowDblClick('{{ v.reference_number or v.voucher_number }}', '{{ v.owner_details.store_name }}', {{ v.amount }}, '{{ v.entry_type }}', '{{ v.localized_entry_type }}')">
                             <td class="p-4 font-mono">
                                 <span class="block text-slate-900 font-black">{{ v.voucher_number or '-' }}</span>
                                 <span class="text-slate-400 text-[11px]">{{ v.reference_number or '-' }}</span>
@@ -128,16 +128,16 @@
             </table>
         </div>
 
-        <!-- الترقيم (Pagination) -->
+        <!-- الترقيم (Pagination) لتخفيف الضغط -->
         {% if total_pages > 1 %}
         <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
             <span class="text-slate-500">الصفحة {{ current_page }} من {{ total_pages }}</span>
             <div class="flex gap-2">
                 {% if current_page > 1 %}
-                <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-2xs">السابق</a>
+                <a href="/admin/treasury/?page={{ current_page - 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-sm">السابق</a>
                 {% endif %}
                 {% if current_page < total_pages %}
-                <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-2xs">التالي</a>
+                <a href="/admin/treasury/?page={{ current_page + 1 }}&q={{ filters.q }}&flow_type={{ filters.flow_type }}" class="bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-xl border border-slate-300 transition shadow-sm">التالي</a>
                 {% endif %}
             </div>
         </div>
@@ -151,7 +151,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-white border border-slate-300 p-4 rounded-3xl text-slate-800 shadow-2xl">
             <div class="modal-header border-b border-slate-200 pb-3 flex justify-between items-center">
-                <h5 class="modal-title font-bold text-purple-900 text-sm">معاينة سند القيد</h5>
+                <h5 class="modal-title font-bold text-[#4A154B] text-sm">معاينة سند القيد</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-6 text-center">
@@ -180,14 +180,14 @@
         amountEl.innerText = formattedAmt;
         amountEl.className = "text-3xl font-black font-mono mb-2 " + (isInflow ? 'text-emerald-600' : 'text-rose-600');
         
-        document.getElementById('modal-detail-link').href = 'detail/' + ref;
+        document.getElementById('modal-detail-link').href = '/admin/treasury/detail/' + ref;
         
         var modalElement = document.getElementById('quick-voucher-modal');
         if (modalElement && typeof bootstrap !== 'undefined') {
             var myModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
             myModal.show();
         } else {
-            window.location.href = 'detail/' + ref;
+            window.location.href = '/admin/treasury/detail/' + ref;
         }
     }
 </script>
