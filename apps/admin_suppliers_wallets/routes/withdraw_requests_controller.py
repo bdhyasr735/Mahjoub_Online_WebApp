@@ -75,12 +75,12 @@ def withdraw_requests_list():
         'admin/withdraw_requests.html',
         withdrawals=items,
         pagination=pagination_data,
-        total_withdraw_amount=total_withdraw_amount,  # ✅ تمرير إجمالي المبالغ للقالب
+        total_withdraw_amount=total_withdraw_amount,    # ✅ تمرير إجمالي المبالغ للقالب
         total_count=total_count,                        # ✅ تمرير إجمالي عدد الطلبات للقالب
         status_filter=status_filter,
         search_query=search_query,
         yemen_banks=yemen_banks,                        # ✅ تمرير قائمة البنوك
-        financial_companies=financial_companies        # ✅ تمرير قائمة الشركات المالية
+        financial_companies=financial_companies         # ✅ تمرير قائمة الشركات المالية
     )
 
 
@@ -109,30 +109,29 @@ def process_withdraw_request_post(request_id):
             payout_bank=payout_bank
         )
 
-        if result['success']:
-            flash(result['message'], 'success')
+        if result.get('success', False):
+            flash(result.get('message', 'تمت العملية بنجاح'), 'success')
             
-            # ✅ التقاط رقم الطلب الحقيقي (actual_id) من قاعدة البيانات لضمان عدم ظهوره كرقم ترقيم وهمي
+            # ✅ التقاط رقم الطلب الحقيقي (actual_id) من قاعدة البيانات إن وجد
             actual_id = result.get('actual_id', request_id)
             
-            if action == 'approve':
-                return redirect(url_for(
-                    'withdraw_requests_controller.withdraw_requests_list',
-                    page=request.args.get('page', 1, type=int),
-                    status=request.args.get('status', 'pending'),
-                    q=request.args.get('q', ''),
-                    modal='success',
-                    req_id=actual_id  # ✅ تم إزالة bank و tnum الزائدة لمنع خطأ الـ BuildError
-                ))
+            # ✅ إعادة التوجيه مع تمرير معامل النجاح لفتح نافذة النجاح المنبثقة تلقائياً
+            return redirect(url_for(
+                'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
+                page=request.args.get('page', 1, type=int),
+                status=request.args.get('status', 'pending'),
+                q=request.args.get('q', ''),
+                modal='success'
+            ))
         else:
-            flash(result['message'], 'danger')
+            flash(result.get('message', 'فشل تنفيذ العملية'), 'danger')
 
     except Exception as e:
         flash(f'حدث خطأ أثناء معالجة الطلب: {str(e)}', 'danger')
 
-    # ✅ الحفاظ على رقم الصفحة الحالية والبحث والفلترة عند إعادة التوجيه
+    # ✅ الحفاظ على رقم الصفحة الحالية والبحث والفلترة عند حدوث خطأ أو فشل
     return redirect(url_for(
-        'withdraw_requests_controller.withdraw_requests_list',
+        'admin_suppliers_wallets.withdraw_requests_controller.withdraw_requests_list',
         page=request.args.get('page', 1, type=int),
         status=request.args.get('status', 'pending'),
         q=request.args.get('q', '')
