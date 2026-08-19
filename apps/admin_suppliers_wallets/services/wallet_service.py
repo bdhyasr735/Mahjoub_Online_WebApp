@@ -190,7 +190,6 @@ def update_withdrawal_status(request_id, action, reason='', transfer_number=None
             message = f'تم رفض طلب السحب رقم {transaction.id} بسبب: {reason}'
             
             try:
-                from apps.models.notification_db::Notification # type: ignore
                 from apps.models.notification_db import Notification
                 if supplier_id:
                     notif = Notification(
