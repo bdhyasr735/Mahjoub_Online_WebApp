@@ -110,10 +110,21 @@ def process_withdraw_request_post(request_id):
         )
 
         if result.get('success', False):
-            flash(result.get('message', 'تمت العملية بنجاح'), 'success')
-            
-            # ✅ التقاط رقم الطلب الحقيقي (actual_id) من قاعدة البيانات إن وجد
+            # ✅ الحصول على معرف الطلب الحقيقي (أو كود السند المرجعي إن وجد في نموذج القاعدة)
             actual_id = result.get('actual_id', request_id)
+            
+            # ✅ صياغة نص رسالة إشعار دقيقة ومخصصة بناءً على نوع الإجراء (اعتماد أم رفض)
+            if action == 'approve':
+                bank_info = f" عبر ({payout_bank})" if payout_bank else ""
+                trans_info = f" برقم حوالة: ({transfer_number})" if transfer_number else ""
+                default_msg = f"تم اعتماد طلب السحب رقم ({actual_id}){bank_info}{trans_info} بنجاح وإرسال الإشعار للمورد."
+            elif action == 'reject':
+                reason_info = f" بسبب: ({reason})" if reason else ""
+                default_msg = f"تم رفض طلب السحب رقم ({actual_id}){reason_info} وإشعار المورد بذلك."
+            else:
+                default_msg = result.get('message', 'تمت العملية بنجاح وإرسال الإشعار للمورد.')
+
+            flash(default_msg, 'success')
             
             # ✅ إعادة التوجيه مع تمرير معامل النجاح لفتح نافذة النجاح المنبثقة تلقائياً
             return redirect(url_for(
