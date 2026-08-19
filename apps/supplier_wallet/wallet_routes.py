@@ -78,11 +78,20 @@ def wallet_dashboard():
 
     pagination_obj = query.order_by(WalletTransaction.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
 
+    # 🛡️ طبقة تجهيز البيانات وضمان الاستمرارية (Data Preparation Layer)
+    processed_transactions = []
+    for tx in pagination_obj.items:
+        # تجهيز الخصائص بأمان لضمان عدم ظهور أي أخطاء في القالب
+        tx.display_bank = getattr(tx, 'bank_name', None) or 'غير محدد'
+        tx.display_beneficiary = getattr(tx, 'beneficiary_name', None) or 'غير محدد'
+        tx.display_transfer_no = getattr(tx, 'transfer_number', None) or tx.reference_number or '-'
+        processed_transactions.append(tx)
+
     return render_template(
         'supplier_wallet/wallet.html',
         summary=summary,
         wallet=wallet_obj,
-        transactions=pagination_obj.items,
+        transactions=processed_transactions,
         pagination=pagination_obj,
         active_status=status_filter,
         active_type=type_filter
@@ -146,7 +155,14 @@ def wallet_print_statement():
         except ValueError:
             pass
 
-    transactions = query.order_by(WalletTransaction.created_at.desc()).all()
+    raw_transactions = query.order_by(WalletTransaction.created_at.desc()).all()
+    
+    # تجهيز المعاملات لصفحة الطباعة أيضاً
+    transactions = []
+    for tx in raw_transactions:
+        tx.display_bank = getattr(tx, 'bank_name', None) or 'غير محدد'
+        tx.display_beneficiary = getattr(tx, 'beneficiary_name', None) or 'غير محدد'
+        transactions.append(tx)
 
     return render_template(
         'supplier_wallet/wallet_pdf_print.html',
