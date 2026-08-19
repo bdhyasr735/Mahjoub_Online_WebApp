@@ -110,17 +110,18 @@ def process_withdraw_request_post(request_id):
         )
 
         if result.get('success', False):
-            # ✅ الحصول على معرف الطلب الحقيقي (أو كود السند المرجعي إن وجد في نموذج القاعدة)
-            actual_id = result.get('actual_id', request_id)
+            # ✅ جلب الكود النصي الحقيقي للسند (مثل VCH-1YV7C6) من نتيجة الخدمة، أو استعلامه مباشرة من القاعدة لضمان الدقة
+            tx_obj = WalletTransaction.query.get(request_id)
+            actual_code = getattr(tx_obj, 'reference_number', None) or getattr(tx_obj, 'code', None) or result.get('actual_id') or f"VCH-{request_id}"
             
-            # ✅ صياغة نص رسالة إشعار دقيقة ومخصصة بناءً على نوع الإجراء (اعتماد أم رفض)
+            # ✅ صياغة نص رسالة إشعار دقيقة ومخصصة بناءً على نوع الإجراء (اعتماد أم رفض) باستخدام الكود النصي
             if action == 'approve':
                 bank_info = f" عبر ({payout_bank})" if payout_bank else ""
                 trans_info = f" برقم حوالة: ({transfer_number})" if transfer_number else ""
-                default_msg = f"تم اعتماد طلب السحب رقم ({actual_id}){bank_info}{trans_info} بنجاح وإرسال الإشعار للمورد."
+                default_msg = f"تم اعتماد طلب السحب رقم ({actual_code}){bank_info}{trans_info} بنجاح وإرسال الإشعار للمورد."
             elif action == 'reject':
                 reason_info = f" بسبب: ({reason})" if reason else ""
-                default_msg = f"تم رفض طلب السحب رقم ({actual_id}){reason_info} وإشعار المورد بذلك."
+                default_msg = f"تم رفض طلب السحب رقم ({actual_code}){reason_info} وإشعار المورد بذلك."
             else:
                 default_msg = result.get('message', 'تمت العملية بنجاح وإرسال الإشعار للمورد.')
 
