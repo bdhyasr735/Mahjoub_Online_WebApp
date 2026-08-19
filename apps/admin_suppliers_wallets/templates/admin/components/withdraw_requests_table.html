@@ -17,7 +17,7 @@
             <tbody class="divide-y divide-gray-100">
                 {% for request in withdrawals %}
                 <tr class="hover:bg-purple-50/20 transition">
-                    <!-- الترقيم الديناميكي المستمر بين الصفحات (تم التعديل ليتوافق مع الـ dict) -->
+                    <!-- الترقيم الديناميكي المستمر بين الصفحات -->
                     <td class="py-3.5 px-4 font-mono font-bold text-gray-400">
                         {{ loop.index + (((pagination.get('page', 1) - 1) * 10) if pagination else 0) }}
                     </td>
@@ -30,26 +30,16 @@
                     <!-- اسم المتجر وتحته اسم المالك بشكل واضح ومترابط -->
                     <td class="py-3.5 px-4">
                         <div class="flex flex-col">
-                            {% set store_name = namespace(val='') %}
-                            {% if request.wallet and request.wallet.supplier %}
-                                {% if request.wallet.supplier.store_name %}
-                                    {% set store_name.val = request.wallet.supplier.store_name %}
-                                {% elif request.wallet.supplier.trade_name %}
-                                    {% set store_name.val = request.wallet.supplier.trade_name %}
-                                {% endif %}
-                            {% endif %}
+                            {% set store_val = (request.wallet.supplier.store_name if request.wallet and request.wallet.supplier and request.wallet.supplier.store_name else (request.wallet.supplier.trade_name if request.wallet and request.wallet.supplier and request.wallet.supplier.trade_name else '')) %}
 
-                            {% if store_name.val %}
-                                <span class="font-black text-gray-900 text-[13px]">{{ store_name.val }}</span>
+                            {% if store_val %}
+                                <span class="font-black text-gray-900 text-[13px]">{{ store_val }}</span>
                             {% else %}
                                 <span class="text-gray-400 font-normal">متجر غير مسجل</span>
                             {% endif %}
                             
                             <!-- اسم المالك أسفل اسم المتجر -->
-                            {% set owner_val = none %}
-                            {% if request.wallet and request.wallet.supplier %}
-                                {% set owner_val = request.wallet.supplier.owner_name or request.wallet.supplier.full_name or request.wallet.supplier.name %}
-                            {% endif %}
+                            {% set owner_val = (request.wallet.supplier.owner_name or request.wallet.supplier.full_name or request.wallet.supplier.name) if request.wallet and request.wallet.supplier else none %}
                             
                             <span class="text-[11px] text-purple-700 font-bold mt-0.5 flex items-center gap-1">
                                 <span class="text-gray-400 font-medium">المالك:</span> {{ owner_val if owner_val else 'غير متوفر' }}
