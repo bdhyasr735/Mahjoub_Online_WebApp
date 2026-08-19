@@ -2,7 +2,7 @@
 # 📂 apps/admin_treasury/routes/treasury_controller.py
 
 import os
-from flask import render_template, request, abort
+from flask import render_template, request, abort, jsonify
 from datetime import datetime
 from sqlalchemy import func, or_
 
@@ -15,13 +15,14 @@ from apps.models.financials_db import OrderFinancial
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
 
-# قاموس موحد لترجمة أنواع الحركات المالية إلى العربية
+# قاموس موحد لترجمة أنواع الحركات المالية إلى العربية (محدث ليشمل المصروفات وعمليات الصرف)
 ENTRY_TYPE_TRANSLATIONS = {
     'deposit': 'إيداع نقدي',
     'revenue_net': 'صافي إيرادات مبيعات',
     'supplier_settlement': 'تسوية مستحقات مورد',
     'affiliate_payout': 'عمولة مسوق بالعمولة',
-    'operational_cost': 'تكلفة تشغيلية'
+    'operational_cost': 'تكلفة تشغيلية',
+    'expense': 'صرف مستحقات وسحب رصيد'
 }
 
 def enrich_voucher_data(voucher):
@@ -104,7 +105,8 @@ def enrich_voucher_data(voucher):
 @admin_treasury_bp.route('/', methods=['GET'])
 def treasury_index():
     search_query = request.args.get('q', '').strip()
-    flow_type = request.args.get('flow_type', '').strip()
+    # دعم مرن لأسماء الفلاتر القادمة من القالب (flow_type أو type أو entry_type)
+    flow_type = request.args.get('flow_type', '').strip() or request.args.get('type', '').strip() or request.args.get('entry_type', '').strip()
     page = request.args.get('page', 1, type=int)
 
     try:
@@ -136,7 +138,7 @@ def treasury_index():
             total_platform_profit = 0.0
         
         total_inflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['revenue_net', 'deposit'])).scalar() or 0.0
-        total_outflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['supplier_settlement', 'affiliate_payout', 'operational_cost'])).scalar() or 0.0
+        total_outflow = db.session.query(func.sum(TreasuryEntry.amount)).filter(TreasuryEntry.entry_type.in_(['supplier_settlement', 'affiliate_payout', 'operational_cost', 'expense'])).scalar() or 0.0
         
         total_treasury_balance = float(total_inflow) - float(total_outflow)
 
@@ -150,6 +152,16 @@ def treasury_index():
         }
 
         bank_accounts = [] 
+
+        # ✅ دعم البحث اللحظي عبر طلبات الـ AJAX لتحديث جدول السجلات مباشرة بدون إعادة تحميل الصفحة
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return render_template(
+                'admin/components/treasury_table.html', # تأكد من اسم مكون الجدول الفرعي أو استبداله بالقالب المناسب
+                vouchers=vouchers,
+                current_page=page,
+                total_pages=pagination.pages if pagination.pages > 0 else 1,
+                filters={"q": search_query, "flow_type": flow_type}
+            )
 
         return render_template(
             'admin/admin_treasury.html',
@@ -165,6 +177,9 @@ def treasury_index():
         )
     except Exception as e:
         print(f"❌ [Treasury Error]: {str(e)}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return '<div class="alert alert-danger text-center">حدث خطأ أثناء جلب البيانات.</div>', 500
+
         return render_template(
             'admin/admin_treasury.html',
             kpi={"total_treasury_balance": 0.0, "total_inflow": 0.0, "total_outflow": 0.0, "escrow_reserve": 0.0, "net_platform_profit": 0.0, "currency": "SAR"},
