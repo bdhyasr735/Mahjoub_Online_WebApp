@@ -122,9 +122,7 @@ def process_withdraw_request_post(request_id):
                     status=request.args.get('status', 'pending'),
                     q=request.args.get('q', ''),
                     modal='success',
-                    req_id=actual_id,  # ✅ تمرير الرقم الحقيقي هنا
-                    bank=payout_bank,
-                    tnum=transfer_number
+                    req_id=actual_id  # ✅ تم إزالة bank و tnum الزائدة لمنع خطأ الـ BuildError
                 ))
         else:
             flash(result['message'], 'danger')
