@@ -1,7 +1,6 @@
 {# 📂 apps/supplier_wallet/templates/supplier_wallet/withdraw.html #}
 {% extends "suppliers/base.html" %}
 
-{% from "supplier_wallet/components/tables.html" import render_withdrawals_table %}
 {% from "supplier_wallet/components/pagination.html" import render_pagination %}
 
 {% block title %}محفظة المورد - تقديم ومتابعة طلبات السحب{% endblock %}
@@ -100,6 +99,7 @@
         </form>
     </div>
 
+    <!-- قسم الفلاتر والبحث -->
     {% set filter_title = 'تصفية والبحث في طلبات السحب' %}
     {% set action_url = url_for('supplier_wallet.submit_withdrawal') %}
     {% set show_status = true %}
@@ -107,10 +107,70 @@
     {% set show_dates = true %}
     {% include "supplier_wallet/components/filters.html" ignore missing %}
 
-    {% if render_withdrawals_table is defined %}
-        {{ render_withdrawals_table(transactions if transactions is defined else (pagination.items if pagination and pagination.items is defined else []), currency=summary.currency|default('SAR')) }}
-    {% endif %}
+    <!-- جدول عرض طلبات السحب والتسويات -->
+    <div class="bg-white rounded-2xl shadow-xs border border-gray-200/80 overflow-hidden mt-6">
+        <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-black text-gray-800 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#4A154B]"></span>
+                سجل طلبات السحب والتسويات المالية
+            </h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead class="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
+                    <tr>
+                        <th class="py-3 px-4">رقم القيد / المرجع</th>
+                        <th class="py-3 px-4">التاريخ والوقت</th>
+                        <th class="py-3 px-4">نوع الحركة</th>
+                        <th class="py-3 px-4">المبلغ</th>
+                        <th class="py-3 px-4">طريقة التحويل</th>
+                        <th class="py-3 px-4 text-center">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-gray-700">
+                    {% set txs = transactions if transactions is defined else (pagination.items if pagination and pagination.items is defined else []) %}
+                    {% if txs %}
+                        {% for tx in txs %}
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="py-3.5 px-4 font-mono font-bold text-gray-900">{{ tx.reference_number or tx.id or '-' }}</td>
+                            <td class="py-3.5 px-4 font-mono text-gray-500">{{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at is defined and tx.created_at else '-' }}</td>
+                            <td class="py-3.5 px-4 font-bold">
+                                <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-[#4A154B] text-[11px]">
+                                    {{ tx.type_display or tx.transaction_type or 'طلب سحب' }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono font-black text-emerald-600" dir="ltr">
+                                {{ "{:,.2f}".format(tx.amount) }} {{ summary.currency if summary and summary.currency is defined else 'SAR' }}
+                            </td>
+                            <td class="py-3.5 px-4 text-gray-600">
+                                {{ tx.payout_method_display or tx.payout_method or 'تحويل بنكي' }}
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                {% set status = tx.status | lower if tx.status is defined else 'pending' %}
+                                {% if status in ['approved', 'completed', 'success', 'مقبول', 'مكتمل'] %}
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">مكتمل</span>
+                                {% elif status in ['rejected', 'cancelled', 'مرفود', 'ملغي'] %}
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">مرفوض</span>
+                                {% else %}
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">قيد المراجعة</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-gray-400 font-medium">
+                                لا توجد طلبات سحب او تسويات مسجلة حتى الآن.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
+    <!-- التنقل بين الصفحات (Pagination) -->
     {% if pagination is defined and render_pagination is defined %}
         {{ render_pagination(pagination, endpoint='supplier_wallet.submit_withdrawal') }}
     {% endif %}
