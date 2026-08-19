@@ -11,7 +11,7 @@
             <thead>
                 <tr class="bg-gray-50/80 text-gray-500 text-[11px] font-bold border-b border-gray-100">
                     <th class="p-4 whitespace-nowrap">رقم السند / المرجع</th>
-                    <th class="p-4 min-w-[320px]">تفاصيل الحركة والبيان</th>
+                    <th class="p-4 min-w-[350px]">تفاصيل الحركة والبيان</th>
                     <th class="p-4 whitespace-nowrap">نوع الحركة</th>
                     <th class="p-4 whitespace-nowrap">المبلغ</th>
                     <th class="p-4 text-left whitespace-nowrap">التاريخ والوقت</th>
@@ -21,10 +21,17 @@
                 {% if transactions %}
                     {% for tx in transactions %}
                         {% set is_credit = tx.trans_type in ['credit', 'deposit', 'sale_revenue', 'adjustment_credit'] %}
+                        {% set voucher_code = tx.reference_number or tx.voucher_code or 'VCH-' ~ tx.id %}
                         <tr class="hover:bg-gray-50/60 transition-colors">
-                            <!-- 1. رقم السند -->
-                            <td class="p-4 font-mono font-bold text-gray-800 whitespace-nowrap">
-                                {{ tx.reference_number or tx.voucher_code or 'VCH-' ~ tx.id }}
+                            <!-- 1. رقم السند كرابط لصفحة التفاصيل المستقلة -->
+                            <td class="p-4 whitespace-nowrap">
+                                <a href="{{ url_for('treasury.view_transaction_detail', voucher_code=voucher_code) }}" 
+                                   class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#4A154B]/10 text-[#4A154B] hover:bg-[#4A154B] hover:text-white transition-all font-mono font-bold text-xs">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                    </svg>
+                                    <span>{{ voucher_code }}</span>
+                                </a>
                             </td>
                             
                             <!-- 2. البيان والتفاصيل المدمجة (الجهة، رقم الحوالة، المستفيد) -->
