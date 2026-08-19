@@ -95,11 +95,67 @@
     {% endif %}
 </div>
 
-<!-- 📦 تضمين نافذة النجاح والنسخ المنبثقة -->
+<!-- 📦 تضمين النوافذ المنبثقة (الاعتماد والنجاح) -->
+{% include 'admin/components/approval_modal.html' %}
 {% include 'admin/components/success_modal.html' %}
 
-<!-- سكريبت البحث اللحظي الصامت -->
+<!-- سكريبت إدارة النوافذ المنبثقة والبحث اللحظي -->
 <script>
+    // ✅ دالة فتح نافذة الاعتماد المالي وتوجيه الـ Form بالرقم الصحيح
+    function openApprovalModal(requestId) {
+        const form = document.getElementById('approvalForm');
+        if (form) {
+            form.action = `/withdraw-requests/${requestId}/action`;
+        }
+        const modal = document.getElementById('approvalModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    // ✅ دالة إغلاق نافذة الاعتماد
+    function closeApprovalModal() {
+        const modal = document.getElementById('approvalModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    // ✅ دالة رفض طلب السحب مع أخذ السبب
+    function rejectWithdrawRequest(requestId) {
+        const reason = prompt("يرجى إدخال سبب رفض طلب السحب:");
+        if (reason !== null && reason.trim() !== "") {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/withdraw-requests/${requestId}/action`;
+
+            // إضافة CSRF Token الأمني
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = "{{ csrf_token() }}";
+            form.appendChild(csrfInput);
+
+            // إجراء الرفض
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'reject';
+            form.appendChild(actionInput);
+
+            // سبب الرفض
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'reason';
+            reasonInput.value = reason;
+            form.appendChild(reasonInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // سكريبت البحث اللحظي الصامت عبر AJAX
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('liveSearchInput');
         const tableContainer = document.getElementById('tableContainer');
