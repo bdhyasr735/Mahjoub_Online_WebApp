@@ -1,20 +1,7 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/routes/__init__.py
-"""
-حزمة المسارات (Routes) الخاصة بموديول محفظة المورد
-يتم من خلالها تجميع مسارات لوحة المورد والإدارة
-"""
+# 📂 apps/supplier_wallet/__init__.py
 
-# استيراد ملفات المسارات لضمان تسجيلها وتفعيلها عند استدعاء المجلد
-try:
-    from . import wallet_routes
-except ImportError as e:
-    print(f"⚠️ [Wallet Routes Init]: تعذر استيراد wallet_routes: {e}")
+from .registry import supplier_wallet_bp, register_module
+from .routes.admin_routes import admin_wallet_bp
 
-try:
-    from . import admin_routes
-except ImportError as e:
-    # قد لا يكون ملف admin_routes موجوداً أو مستخدماً في كل الموديولات
-    pass
-
-__all__ = ['wallet_routes', 'admin_routes']
+__all__ = ['supplier_wallet_bp', 'admin_wallet_bp', 'register_module']
