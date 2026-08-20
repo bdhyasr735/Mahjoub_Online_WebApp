@@ -2,14 +2,15 @@
 """
 📂 apps/supplier_wallet/services/notification_service.py
 خدمة التنبيهات والإشعارات الفورية (Toast & Flash Notifications)
-ترسل تنبيهات فورية للمورد عند إيداع رصيد، قبول سحب، أو إضافة حساب بنكي.
+ترسل تنبيهات فورية للمورد عند إيداع رصيد، قبول/رفض سحب، أو إضافة حساب بنكي.
 """
 
 from flask import flash
 
+
 class NotificationService:
     """
-    إدارة التنبيهات الفورية الملكية في منصة محجوب أونلاين
+    إدارة التنبيهات الفورية في منصة محجوب أونلاين
     """
 
     @staticmethod
@@ -28,7 +29,7 @@ class NotificationService:
         flash({
             'type': 'info',
             'title': 'تم استلام طلب السحب',
-            'message': f'تم تسجيل طلب سحب بمبلغ {amount:,.2f} SAR بنجاح برقم {request_number}. الطلب قيد مراجعة الإدارة المالية.',
+            'message': f'تم تسجيل طلب سحب بمبلغ {amount:,.2f} ر.س بنجاح برقم {request_number}. الطلب قيد مراجعة الإدارة المالية.',
             'icon': 'clock'
         }, category='toast_info')
 
@@ -38,9 +39,22 @@ class NotificationService:
         flash({
             'type': 'success',
             'title': 'تمت الموافقة وصرف المستحقات',
-            'message': f'تمت الموافقة على تحويل مبلغ {amount:,.2f} SAR وإصدار سند الصرف رقم {voucher_number}.',
+            'message': f'تمت الموافقة على تحويل مبلغ {amount:,.2f} ر.س وإصدار سند الصرف رقم {voucher_number}.',
             'icon': 'dollar-sign'
         }, category='toast_success')
+
+    @staticmethod
+    def notify_withdrawal_rejected(amount: float, reason: str = ""):
+        """تنبيه فوري عند رفض طلب السحب وإعادة الرصيد للمورد"""
+        msg = f'تم رفض طلب السحب بمبلغ {amount:,.2f} ر.س وإعادة الرصيد للمحفظة.'
+        if reason:
+            msg += f' السبب: {reason}'
+        flash({
+            'type': 'warning',
+            'title': 'تم رفض طلب السحب',
+            'message': msg,
+            'icon': 'x-circle'
+        }, category='toast_warning')
 
     @staticmethod
     def notify_error(message: str, title: str = "تنبيه مالي"):
