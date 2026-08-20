@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/registry.py  (أو اسم المجلد لديك)
+# 📂 apps/supplier_wallet/registry.py
 
 import logging
 from flask import url_for, Blueprint, has_app_context
@@ -31,6 +31,7 @@ def register_module(app):
     """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
     try:
         if 'supplier_wallet' not in app.blueprints:
+            # استيراد مسارات البلوبرنت من مجلد routes الفرعي الصحيح
             try:
                 from .routes.wallet_routes import wallet_dashboard, index, withdraw
             except ImportError:
@@ -68,8 +69,8 @@ def get_module_stats():
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        # تم ضبط الاستيراد ليطابق بقية الملفات التي تحتوي على s
-        from apps.suppliers_wallet.utils import get_current_supplier_id, get_trx_type_attr
+        # تم ضبط الاستيراد بالمفرد ليطابق مجلد supplier_wallet
+        from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 
         supplier_id = get_current_supplier_id()
         if not supplier_id:
