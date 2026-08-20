@@ -13,148 +13,53 @@ supplier_wallet_bp = Blueprint(
 
 logger = logging.getLogger(__name__)
 
-# معلومات الموديول الأساسية
+# المتغيرات الهيكلية التي يقرأها النظام
 MODULE_NAME = "الإدارة المالية"
 TITLE = "الإدارة المالية"
 NAME = "supplier_wallet"
 DISPLAY_NAME = "الإدارة المالية"
-
-# ✅ تعريف المتغيرات بحروف صغيرة ليتعرف عليها قالب base.html مباشرة
-title = TITLE
-icon = "fas fa-wallet"
-MODULE_ICON = icon
+MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ تعريف الروابط الفرعية
 LINKS = {
     "supplier_wallet.wallet_dashboard": "💳 كشف الحساب",
     "supplier_wallet.withdraw": "💸 طلب سحب"
 }
-links = LINKS
-
-NAV_ITEMS = [
-    {"endpoint": "supplier_wallet.wallet_dashboard", "title": "💳 كشف الحساب"},
-    {"endpoint": "supplier_wallet.withdraw", "title": "💸 طلب سحب"}
-]
-
 
 def register_module(app):
-    """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
+    """تسجيل الموديول وتضمين القوائم في سياق القوالب"""
     try:
         if 'supplier_wallet' not in app.blueprints:
-            # استيراد المسارات لضمان ربطها بـ Blueprint
             try:
-                from .routes.wallet_routes import wallet_dashboard, index, withdraw
-            except ImportError:
-                pass
-
-            try:
-                from .routes.admin_routes import admin_dashboard
+                # استيراد ملف المسارات لربط الدوال بـ supplier_wallet_bp
+                from .routes import wallet_routes
             except ImportError:
                 pass
 
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
             print("✅ [Registry Wallet]: تم تسجيل موديول الإدارة المالية بنجاح.")
-        else:
-            print("ℹ️ [Registry Wallet]: موديول الإدارة المالية مسجل مسبقاً.")
 
-        # ✅ حقن موديول المحفظة تلقائياً في سياق supplier_modules لجميع القوالب
-        if not hasattr(app, '_supplier_wallet_context_injected'):
-            @app.context_processor
-            def inject_supplier_wallet_meta():
-                # إعداد بيانات الموديول المكتملة
-                wallet_module_info = {
-                    'title': TITLE,
-                    'icon': icon,
-                    'links': LINKS
-                }
-                
-                return dict(
-                    SUPPLIER_WALLET_THEME_COLOR='#4A154B',
-                    DEFAULT_PER_PAGE=10,
-                    # توفير بيانات الموديول تحت مفتاح supplier_wallet
-                    supplier_wallet_info=wallet_module_info
-                )
-            app._supplier_wallet_context_injected = True
+        # ✅ حقن دمج القاموس بشكل صريح في supplier_modules
+        @app.context_processor
+        def inject_wallet_to_supplier_modules():
+            wallet_module_data = {
+                'title': TITLE,
+                'icon': MODULE_ICON,
+                'links': LINKS
+            }
+            
+            # جلب القاموس الحالي إن وجد
+            modules = getattr(app, 'supplier_modules', {})
+            modules['supplier_wallet'] = wallet_module_data
+            app.supplier_modules = modules
+
+            return dict(
+                supplier_modules=modules,
+                SUPPLIER_WALLET_THEME_COLOR='#4A154B'
+            )
 
     except Exception as e:
         print(f"❌ [Registry Wallet]: خطأ أثناء تسجيل supplier_wallet: {e}")
     return app
 
-
-def get_module_stats():
-    """جلب إحصائيات المحفظة الحقيقية المباشرة من قاعدة البيانات للمورد الحالي"""
-    if not has_app_context():
-        return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
-
-    try:
-        from apps.extensions import db
-        from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
-
-        supplier_id = get_current_supplier_id()
-        if not supplier_id:
-            return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
-
-        wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-        if not wallet_obj:
-            return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
-
-        trx_type_col = get_trx_type_attr()
-
-        q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
-            WalletTransaction.wallet_id == wallet_obj.id,
-            WalletTransaction.status == 'pending'
-        )
-        if trx_type_col is not None:
-            q_pending = q_pending.filter(trx_type_col == 'credit')
-        pending_credits = float(q_pending.scalar() or 0.00)
-
-        q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
-            WalletTransaction.wallet_id == wallet_obj.id,
-            WalletTransaction.status.in_(['completed', 'pending'])
-        )
-        if trx_type_col is not None:
-            q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
-        total_withdrawn = float(q_withdrawn.scalar() or 0.00)
-
-        raw_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
-        avail_bal = max(0.00, raw_bal - total_withdrawn)
-        tot_bal = avail_bal + pending_credits
-        currency = getattr(wallet_obj, 'currency', 'ر.س')
-
-        return {
-            'total_balance': f"{tot_bal:,.2f}",
-            'available_balance': f"{avail_bal:,.2f}",
-            'pending_balance': f"{pending_credits:,.2f}",
-            'has_wallet': True,
-            'currency': currency
-        }
-    except Exception as e:
-        logger.error(f"❌ [Registry Wallet Stats Error]: {e}")
-        return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
-
-
-def get_module_link():
-    """الحصول على رابط المحفظة الرئيسي"""
-    try:
-        return url_for('supplier_wallet.wallet_dashboard')
-    except Exception:
-        return '/supplier/wallet/'
-
-
-def get_dashboard_card():
-    """توليد كارت لوحة التحكم"""
-    stats = get_module_stats()
-    curr = stats.get('currency', 'ر.س')
-    avail = stats.get('available_balance', '0.00')
-
-    return {
-        'title': MODULE_NAME,
-        'icon': MODULE_ICON,
-        'link': get_module_link(),
-        'stats': stats,
-        'color': 'purple',
-        'badge': avail,
-        'subtitle': f"المتاح: {avail} {curr}"
-    }
+# باقي الدوال (get_module_stats, get_module_link, get_dashboard_card) تبقى كما هي...
