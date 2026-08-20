@@ -10,7 +10,7 @@
 from decimal import Decimal
 import secrets
 from datetime import datetime, timezone, timedelta
-from models.wallet_models import (
+from apps.models.wallet_db import (
     SupplierWallet,
     WalletTransaction,
     WithdrawalRequest,
