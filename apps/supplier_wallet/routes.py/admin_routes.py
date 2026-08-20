@@ -6,8 +6,9 @@
 - إطلاق إشعارات Toasts الفورية للموردين
 """
 
-from flask import Blueprint, request, redirect, url_for, flash
-from flask_login import current_user
+from flask import Blueprint, request, redirect, url_for, flash, abort
+from flask_login import current_user, login_required
+from functools import wraps
 from apps.extensions import db
 from apps.models.wallet_db import WithdrawalRequest
 from apps.supplier_wallet.services.wallet_service import WalletService
@@ -15,12 +16,22 @@ from apps.supplier_wallet.services.notification_service import NotificationServi
 
 admin_wallet_bp = Blueprint('admin_wallet', __name__, url_prefix='/admin/financial')
 
+# ديكور لحماية مسارات الإدارة
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not getattr(current_user, 'isAdmin', False):
+            flash('غير مصرح لك بالوصول لهذه الصفحة.', 'danger')
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 @admin_wallet_bp.route('/requests/<int:request_id>/approve', methods=['POST'])
+@login_required
+@admin_required
 def approve_request(request_id):
     """اعتماد طلب السحب وإصدار سند الصرف البنكي"""
     try:
-        # جلب اسم المشرف الحالي تلقائياً من المستخدم المسجل أو من النموذج
         default_admin = getattr(current_user, 'name', getattr(current_user, 'username', 'مكتب المراجعة المالية'))
         admin_name = request.form.get('admin_name') or default_admin
         transfer_number = request.form.get('transfer_number')
@@ -35,7 +46,6 @@ def approve_request(request_id):
         )
         db.session.commit()
 
-        # إشعار فوري بنجاح الصرف
         NotificationService.notify_withdrawal_approved(float(abs(tx.amount)), tx.voucher_number)
         flash('تم اعتماد طلب السحب وإصدار السند بنجاح.', 'success')
 
@@ -48,6 +58,8 @@ def approve_request(request_id):
 
 
 @admin_wallet_bp.route('/requests/<int:request_id>/reject', methods=['POST'])
+@login_required
+@admin_required
 def reject_request(request_id):
     """رفض طلب السحب وإعادة المبلغ المحجوز إلى حساب المورد"""
     try:
