@@ -16,5 +16,19 @@ supplier_wallet_bp = Blueprint(
     url_prefix='/supplier/wallet'
 )
 
-# 2. استيراد المسارات في نهاية الملف حصراً لمنع حدوث الاستيراد الدائري (Circular Import)
-from apps.supplier_wallet.routes import wallet_routes, admin_routes
+# 2. استيراد المسارات بشكل صحيح من مجلد routes الفرعي
+try:
+    from apps.supplier_wallet.routes import wallet_routes
+except ImportError:
+    try:
+        from .routes import wallet_routes
+    except ImportError:
+        pass
+
+try:
+    from apps.supplier_wallet.routes import admin_routes
+except ImportError:
+    try:
+        from .routes import admin_routes
+    except ImportError:
+        pass
