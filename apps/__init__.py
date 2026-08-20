@@ -441,7 +441,7 @@ def create_app():
     except ImportError:
         pass
 
-    # 👇 **هذا هو الجزء الجديد الذي تم إضافته لتسجيل واتساب** 👇
+    # 👇 **تم إضافة الجزء المطلوب هنا (تسجيل webhook)** 👇
     try:
         from apps.admin_orders.routes.whatsapp_webhook import webhook_bp
         app.register_blueprint(webhook_bp)
