@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-📂 apps/suppliers_wallet/services/wallet_service.py
+📂 apps/supplier_wallet/services/wallet_service.py
 منطق الأعمال المالي الحاسم (Atomic Financial Engine)
 - عمليات محصنة داخل Transactions لمنع تعارض الأرصدة (Race Conditions & Deadlocks)
 - إصدار أرقام السندات تلقائياً (VCH-YYYYMMDD-XXXX)
