@@ -517,16 +517,15 @@
                 }
             });
 
-            // التحكم الديناميكي بفتح وإغلاق القوائم المنسدلة
+            // التحكم الديناميكي بفتح وإغلاق القوائم المنسدلة (تم التعديل للوصول المباشر للقائمة التالية)
             const dropdownToggles = document.querySelectorAll('.sidebar .nav-link.dropdown-toggle');
             dropdownToggles.forEach(toggle => {
                 toggle.addEventListener('click', function(e) {
                     e.preventDefault(); 
                     
-                    const targetId = this.getAttribute('href');
-                    const targetSubmenu = document.querySelector(targetId);
+                    const targetSubmenu = this.nextElementSibling;
                     
-                    if (targetSubmenu) {
+                    if (targetSubmenu && targetSubmenu.classList.contains('submenu')) {
                         const isOpen = targetSubmenu.classList.contains('show');
                         
                         // إغلاق بقية القوائم المفتوحة لحفظ المساحة
