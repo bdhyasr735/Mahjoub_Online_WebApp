@@ -224,3 +224,44 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
             .where(wallet_table.c.id == target.wallet_id)
             .values({attr: target.balance_after, 'updated_at': datetime.utcnow()})
         )
+
+
+class WithdrawalRequest(db.Model):
+    """جدول طلبات سحب الأرباح للموردين عبر البنوك والشركات المالية."""
+    __tablename__ = 'withdrawal_requests'
+
+    __table_args__ = (
+        db.Index('idx_withdrawal_supplier', 'supplier_id', 'status'),
+        {'extend_existing': True}
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_number = db.Column(db.String(50), unique=True, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
+    
+    amount = db.Column(db.Numeric(18, 2), nullable=False)
+    currency = db.Column(db.String(5), nullable=False, default='SAR')
+    
+    # الجهة المختارة (بنك أو شركة تحويل)
+    payout_method = db.Column(db.String(150), nullable=False)
+    
+    status = db.Column(db.String(30), default='pending', nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    wallet = db.relationship('SupplierWallet', backref=db.backref('withdrawal_requests', lazy='selectin'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'request_number': self.request_number,
+            'amount': float(self.amount or 0.0),
+            'currency': self.currency,
+            'payout_method': self.payout_method,
+            'status': self.status,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
