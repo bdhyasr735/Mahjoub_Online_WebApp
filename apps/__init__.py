@@ -184,7 +184,7 @@ def create_app():
     db.init_app(app)
 
     # ============================================================
-    # ⚙️ التحكم في تهيئة القاعدة (إعادة البناء مشروطة بمتغير البيئة)
+    # ⚙️ التحكم في تهيئة القاعدة وإعادة بناء الجداول تلقائياً عند التشغيل
     # ============================================================
     with app.app_context():
         import_all_models()
@@ -262,7 +262,6 @@ def create_app():
         elif user_type == 'supplier': 
             return db.session.get(Supplier, user_id_int)
         elif user_type == 'staff': 
-            # معالجة استباقية للجلسات القديمة التي تستخدم كلمة 'staff'
             staff_admin = db.session.get(AdminStaff, user_id_int)
             if staff_admin:
                 return staff_admin
@@ -294,13 +293,11 @@ def create_app():
 
         path = request.path
         
-        # 1. الاستثناء الفوري للملفات الاستاتيكية والأيقونات
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
             return
 
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        # 2. قائمة مسارات الاستثناء العامة المسموحة للجميع بدون تسجيل دخول
         exempt_prefixes = [
             '/static', 
             '/graphql', 
@@ -312,34 +309,28 @@ def create_app():
             '/supplier/forgot-password',
             admin_login_path, 
             '/auth',
-            '/api/whatsapp'  # 🟢 تم استثناء خدمة الواتساب للسماح لـ Meta للوصول إلى Webhook
+            '/api/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
-        # 3. التحقق للمستخدمين المسجلين (عزل تام بناءً على نوع الكائن في DB)
         if current_user.is_authenticated:
             is_admin_side = isinstance(current_user, (AdminUser, AdminStaff))
             is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff))
 
-            # محاولة الوصول لمسارات الإدارة والدشبورد
             if path.startswith('/admin') or path.startswith('/dashboard'):
                 if is_admin_side:
                     return
-                # إذا حاول مورد دخول الإدارة يتم طرده إلى بوابة الموردين
                 return redirect(url_for('suppliers_auth.login'))
 
-            # محاولة الوصول لمسارات الموردين
             if path.startswith('/supplier'):
                 if is_supplier_side:
                     return
-                # إذا حاول أدمن دخول مسارات المورد يتم تحويله للوحة الإدارة
                 return redirect(admin_login_path)
 
             return
 
-        # 4. الزوار غير المسجلين (Guests)
         if path.startswith('/supplier'):
             return redirect(url_for('suppliers_auth.login'))
 
@@ -405,9 +396,6 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
-    # ============================================================
-    # 🔀 توجيه المسار الرئيسي الذكي حسب رتبة الحساب
-    # ============================================================
     @app.route('/')
     def index():
         from apps.models.supplier_db import Supplier
@@ -421,7 +409,6 @@ def create_app():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         return redirect(admin_login_path)
 
-    # تسجيل البوابات الرئيسية
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
@@ -442,7 +429,6 @@ def create_app():
     except ImportError:
         pass
 
-    # 🟢 تسجيل موديول خدمات الواتساب مع إلغاء حماية CSRF عنه
     try:
         from apps.whatsapp_service.whatsapp_api import whatsapp_bp
         app.register_blueprint(whatsapp_bp)
@@ -451,9 +437,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل موديول الواتساب: {e}")
 
-    # ============================================================
-    # ✅ تسجيل الموديولات الديناميكية والأشرطة الجانبية
-    # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
     
@@ -543,7 +526,6 @@ def create_app():
 
     @app.after_request
     def set_csrf_header(response):
-        """إرفاق رمز CSRF تلقائياً في ترويسة جميع الاستجابات لتقرأها الاختبارات والواجهة Front-end"""
         if not response.headers.get('X-CSRF-Token'):
             response.headers['X-CSRF-Token'] = generate_csrf()
         return response
