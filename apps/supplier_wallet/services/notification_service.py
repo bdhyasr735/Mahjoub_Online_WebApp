@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-📂 apps/suppliers_wallet/services/notification_service.py
+📂 apps/supplier_wallet/services/notification_service.py
 خدمة التنبيهات والإشعارات الفورية (Toast & Flash Notifications)
 ترسل تنبيهات فورية للمورد عند إيداع رصيد، قبول سحب، أو إضافة حساب بنكي.
 """
