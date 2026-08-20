@@ -2,12 +2,11 @@
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
-import traceback
 from flask import Blueprint, has_app_context, url_for
 
 logger = logging.getLogger(__name__)
 
-# 1. إنشاء الـ Blueprint مباشرة في الـ registry
+# إنشاء الـ Blueprint المباشر
 supplier_wallet_bp = Blueprint(
     'supplier_wallet', 
     __name__,
@@ -22,9 +21,6 @@ DISPLAY_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-title = TITLE
-icon = MODULE_ICON
-
 NAV_ITEMS = [
     {"endpoint": "supplier_wallet.wallet_dashboard", "title": "💳 كشف الحساب"},
     {"endpoint": "supplier_wallet.withdraw", "title": "💸 طلب سحب"}
@@ -34,31 +30,27 @@ LINKS = {
     "supplier_wallet.wallet_dashboard": "💳 كشف الحساب",
     "supplier_wallet.withdraw": "💸 طلب سحب"
 }
-links = LINKS
-
 
 def register_module(app):
-    """تسجيل الموديول والـ Blueprints وتغذية القوائم لـ base.html"""
-    
-    # أ) تسجيل الـ Blueprint أولاً لضمان وجود supplier_wallet.static وعدم انهيار Jinja
+    """تسجيل الموديول والـ Blueprints وتغذية القوائم"""
+    # 1. تسجيل الـ Blueprint فوراً لحماية الـ Static والمسارات في Jinja
     try:
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-            print("✅ [Registry Wallet]: تم تسجيل الـ Blueprint الخاص بالمحفظة بنجاح.")
+            print("✅ [Registry Wallet]: تم تسجيل supplier_wallet_bp بنجاح.")
     except Exception as e:
         print(f"❌ [Registry Wallet BP Error]: {e}")
 
-    # ب) استيراد وتوصيل المسارات بعد ضمان تسجيل الـ Blueprint
+    # 2. استيراد ملفات المسارات الفرعية بحذر
     try:
-        try:
-            from apps.supplier_wallet.routes import wallet_routes
-        except ModuleNotFoundError:
-            # محاولة الاستيراد النسبي في حال التبسيط
-            from .routes import wallet_routes
+        from apps.supplier_wallet.routes import wallet_routes
     except Exception as e:
-        print(f"⚠️ [Registry Wallet Routes Warning]: تعذر تحميل ملف المسارات: {e}")
+        try:
+            from .routes import wallet_routes
+        except Exception as err:
+            print(f"⚠️ [Registry Wallet Routes Warning]: {err}")
 
-    # ج) حقن المتغيرات في سياق التطبيق
+    # 3. حقن القوائم في سياق التطبيق
     try:
         @app.context_processor
         def inject_supplier_wallet_meta():
@@ -85,12 +77,10 @@ def register_module(app):
 
     return app
 
-
 def get_module_stats():
-    """جلب إحصائيات المحفظة المباشرة من قاعدة البيانات للمورد الحالي"""
+    """جلب إحصائيات المحفظة المباشرة"""
     if not has_app_context():
         return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
-
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -138,17 +128,13 @@ def get_module_stats():
         logger.error(f"❌ [Registry Wallet Stats Error]: {e}")
         return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
 
-
 def get_module_link():
-    """الحصول على رابط المحفظة الرئيسي"""
     try:
         return url_for('supplier_wallet.wallet_dashboard')
     except Exception:
         return '/supplier/wallet/dashboard'
 
-
 def get_dashboard_card():
-    """توليد كارت لوحة التحكم"""
     stats = get_module_stats()
     curr = stats.get('currency', 'ر.س')
     avail = stats.get('available_balance', '0.00')
