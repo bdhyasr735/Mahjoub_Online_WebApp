@@ -32,11 +32,11 @@ def import_all_models():
                 try:
                     importlib.import_module(f"apps.models.{module_name}")
                 except Exception as e:
-                    print(f"⚠️ [Model Import Error] فشل استيراد النماذج من {module_name}: {e}")
+                    print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
 
 
 def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي في المحفظة والخزينة العامة (1,000,000 ر.س)"""
+    """زراعة البيانات المبدئية وتسجيل حركة الرصيد الافتتاحي بشكل ديناميكي وآمن"""
     try:
         from apps.models.admin_db import AdminUser
         from apps.models.admin_staff_db import AdminStaff
@@ -44,7 +44,7 @@ def seed_database():
         from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
         from apps.models.treasury_db import TreasuryEntry
     except ImportError as ie:
-        print(f"⚠️ [Seed Import Error]: تعذر استيراد بعض نماذج الزراعة: {ie}")
+        print(f"⚠️ [Seed Import Warning]: تعذر استيراد بعض النماذج أثناء الزراعة: {ie}")
         return
 
     # 1. زراعة المالك
@@ -188,7 +188,7 @@ def create_app():
     db.init_app(app)
 
     # ============================================================
-    # ⚙️ التحكم في تهيئة القاعدة وإعادة بناء الجداول تلقائياً عند التشغيل
+    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل بناءً على متغير البيئة
     # ============================================================
     with app.app_context():
         import_all_models()
@@ -211,7 +211,7 @@ def create_app():
                 print(f"❌ [Schema Create Error]: {e}")
 
     # ============================================================
-    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً عند الحاجة
+    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
     # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
@@ -240,9 +240,6 @@ def create_app():
     csrf = CSRFProtect(app)
     limiter.init_app(app)
 
-    # ============================================================
-    # 👤 محمل المستخدمين دقيق الفصل حسب user_type
-    # ============================================================
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
@@ -435,6 +432,9 @@ def create_app():
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل موديول الواتساب: {e}")
 
+    # ============================================================
+    # 🔄 التسجيل الديناميكي التلقائي للموديولات (يعمل تلقائياً لأي مجلد جديد)
+    # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
     
