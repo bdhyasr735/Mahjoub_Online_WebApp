@@ -5,34 +5,34 @@ import os
 
 class Config:
     """إعدادات النظام المركزية مع حماية للبيانات الحساسة."""
-    
+
     # 🛡️ مفتاح الأمان السيادي للمنصة
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    
+
     # 🔐 مفتاح التشفير المركزي (لـ AES-256)
     ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
-    
+
     # 🕵️‍♂️ مفتاح توقيع الويب هوك (للتحقق من مصدر الطلبات)
     WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
-    
+
     # 🌐 رابط المتجر الأساسي
     STORE_BASE_URL = os.environ.get('STORE_BASE_URL', 'https://mahjoub.online')
-    
+
     # 🔒 إعدادات الحماية الأمنية للـ Cookies
     IS_PRODUCTION = os.environ.get('ENV', 'production') == 'production'
     SESSION_COOKIE_SECURE = IS_PRODUCTION 
     REMEMBER_COOKIE_SECURE = IS_PRODUCTION
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    
+
     # 1. إعدادات قاعدة البيانات (مع التحقق من التوافق)
     _db_url = os.environ.get('DATABASE_URL')
     if _db_url and _db_url.startswith("postgres://"):
         _db_url = _db_url.replace("postgres://", "postgresql+psycopg2://", 1)
-        
+
     SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///mahjoub_online.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
+
     # 2. إعدادات Pool الاتصالات (لأداء سحابي مستقر)
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 15,
@@ -41,16 +41,22 @@ class Config:
         "pool_recycle": 1800,
         "pool_pre_ping": True
     }
-    
+
     # 3. إعدادات Qumra Cloud API
     QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
-    # ✅ التعديل الجذري رقم 1: ربط الرابط بالمتغير البيئي GRAPHQL_ENDPOINT (كما في صور Render)
+    # ✅ ربط الرابط بالمتغير البيئي GRAPHQL_ENDPOINT (كما في صور Render)
     QUMRA_API_URL = os.environ.get('GRAPHQL_ENDPOINT', 'https://mahjoub.online/admin/graphql')
 
-    # 4. إعدادات WhatsApp Cloud API
+    # ============================================================
+    # 📱 4. إعدادات WhatsApp Cloud API (Meta Official)
+    # ============================================================
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
-    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN')
-    WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN')
+    WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get('WHATSAPP_BUSINESS_ACCOUNT_ID') or os.environ.get('WHATSAPP_WABA_ID')
+    # ✅ توافق مزدوج لاسم المتغير البيئي (سواء تم تعريفه بـ WHATSAPP_ACCESS_TOKEN أو WHATSAPP_TOKEN)
+    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN') or os.environ.get('WHATSAPP_TOKEN')
+    WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
+    WHATSAPP_API_VERSION = os.environ.get('WHATSAPP_API_VERSION', 'v20.0')
+    WHATSAPP_API_URL = os.environ.get('WHATSAPP_API_URL', 'https://graph.facebook.com')
 
     # 5. إعدادات HyperSender
     HYPERSEND_API_KEY = os.environ.get('HYPERSEND_API_KEY')
@@ -70,16 +76,16 @@ class Config:
     DEEPSEEK_MODEL = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
     DEEPSEEK_MAX_TOKENS = int(os.environ.get('DEEPSEEK_MAX_TOKENS', 2048))
     DEEPSEEK_TEMPERATURE = float(os.environ.get('DEEPSEEK_TEMPERATURE', 0.7))
-    
+
     # ✅ تمكين الذكاء الاصطناعي
     AI_ENABLED = os.environ.get('AI_ENABLED', 'true').lower() == 'true'
-    
+
     # ============================================================
     # 🌐 إعدادات OpenRouter (بديل مجاني لـ DeepSeek)
     # ============================================================
     OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
     OPENROUTER_API_URL = os.environ.get('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
-    
+
     # ✅ نماذج مجانية - qwen أولاً لأنه النموذج العامل
     OPENROUTER_MODELS = {
         'qwen': 'qwen/qwen-2.5-7b-instruct',    # ✅ يعمل
@@ -88,7 +94,7 @@ class Config:
         'gemma': 'google/gemma-2-9b-it',
         'phi': 'microsoft/phi-3-mini-128k-instruct'
     }
-    
+
     # ✅ النموذج النشط - qwen افتراضياً
     OPENROUTER_MODEL_KEY = os.environ.get('OPENROUTER_MODEL_KEY', 'qwen')
     OPENROUTER_MODEL = OPENROUTER_MODELS.get(OPENROUTER_MODEL_KEY, OPENROUTER_MODELS['qwen'])
@@ -98,8 +104,10 @@ class Config:
     # ============================================================
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
     GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-    
-    # ✅ طباعة للتأكد من وجود المفاتيح (في السجلات)
+
+    # ✅ طباعة للتأكد من وجود المفاتيح في سجلات السيرفر (Logs)
+    print(f"📱 WHATSAPP_PHONE_NUMBER_ID: {WHATSAPP_PHONE_NUMBER_ID if WHATSAPP_PHONE_NUMBER_ID else '❌ غير موجود'}")
+    print(f"📱 WHATSAPP_ACCESS_TOKEN: {WHATSAPP_ACCESS_TOKEN[:10] if WHATSAPP_ACCESS_TOKEN else '❌ غير موجود'}...")
     print(f"🔑 DEEPSEEK_API_KEY: {DEEPSEEK_API_KEY[:10] if DEEPSEEK_API_KEY else '❌ غير موجود'}...")
     print(f"🌐 OPENROUTER_API_KEY: {OPENROUTER_API_KEY[:15] if OPENROUTER_API_KEY else '❌ غير موجود'}...")
     print(f"💎 GEMINI_API_KEY: {GEMINI_API_KEY[:10] if GEMINI_API_KEY else '❌ غير موجود'}...")
@@ -113,16 +121,21 @@ class Config:
         if cls.IS_PRODUCTION:
             required = ['SECRET_KEY', 'ENCRYPTION_KEY', 'WEBHOOK_SECRET', 'QUMRA_API_KEY']
             for var in required:
-                # ✅ التعديل الجذري رقم 2: إذا كان المتغير مفقوداً، لا توقف السيرفر، بل أظهر تحذيراً
                 if not getattr(cls, var):
                     print(f"⚠️ [Config Warning]: المتغير الحساس {var} مفقود في بيئة الإنتاج! سيتم استخدام القيم الافتراضية أو تجاهل الوظيفة المرتبطة به.")
-        
+
+        # ✅ التحقق من إعدادات WhatsApp Cloud API
+        if not cls.WHATSAPP_ACCESS_TOKEN or not cls.WHATSAPP_PHONE_NUMBER_ID:
+            print("⚠️ [WhatsApp]: بيانات إعدادات واتساب مفقودة (WHATSAPP_ACCESS_TOKEN أو WHATSAPP_PHONE_NUMBER_ID).")
+        else:
+            print("✅ [WhatsApp]: إعدادات WhatsApp Cloud API مكتملة ومفعلة.")
+
         # ✅ التحقق من مفتاح DeepSeek إذا كان مفعلاً
         if cls.AI_ENABLED and not cls.DEEPSEEK_API_KEY:
             print("⚠️ [AI]: DEEPSEEK_API_KEY غير موجود. سيتم تعطيل DeepSeek.")
         elif cls.AI_ENABLED and cls.DEEPSEEK_API_KEY:
             print(f"✅ [AI]: DEEPSEEK_API_KEY موجود ومفعل.")
-        
+
         # ✅ التحقق من مفتاح OpenRouter
         if cls.AI_ENABLED and not cls.OPENROUTER_API_KEY:
             print("⚠️ [OpenRouter]: OPENROUTER_API_KEY غير موجود.")
@@ -136,5 +149,5 @@ class Config:
         elif cls.AI_ENABLED and cls.GEMINI_API_KEY:
             print(f"✅ [Gemini]: GEMINI_API_KEY موجود ومفعل.")
             print(f"✅ [Gemini]: النموذج المستخدم: {cls.GEMINI_MODEL}")
-        
+
         return True
