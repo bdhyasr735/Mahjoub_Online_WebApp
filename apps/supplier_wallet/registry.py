@@ -31,19 +31,14 @@ def register_module(app):
     """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
     try:
         if 'supplier_wallet' not in app.blueprints:
-            # استيراد مسارات البلوبرنت من الملفات الفعلية الموجودة لدينا
+            # استيراد مسارات البلوبرنت من مجلد routes الفرعي الصحيح
             try:
-                from . import wallet_routes
+                from .routes.wallet_routes import wallet_dashboard, index, withdraw
             except ImportError:
                 pass
 
             try:
-                from . import withdraw_routes
-            except ImportError:
-                pass
-
-            try:
-                from . import export_routes
+                from .routes.admin_routes import admin_dashboard
             except ImportError:
                 pass
 
