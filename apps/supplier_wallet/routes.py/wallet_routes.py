@@ -68,7 +68,7 @@ def wallet_dashboard():
         transactions_list = []
 
     return render_template(
-        'supplier/wallet_transactions.html',
+        'supplier_wallet/wallet_transactions.html',  # تم التعديل للمسار المعتمد
         wallet=wallet,
         transactions=transactions_list,
         pagination=pagination
@@ -114,7 +114,7 @@ def withdraw():
             flash(f'فشل تقديم طلب السحب: {str(e)}', 'error')
 
     return render_template(
-        'supplier/withdrawal_form.html',
+        'supplier_wallet/withdrawal_form.html',     # تم التعديل للمسار المعتمد
         wallet=wallet,
         bank_accounts=bank_accounts
     )
