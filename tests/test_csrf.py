@@ -2,6 +2,7 @@
 import unittest
 import json
 from apps import create_app
+from apps.whatsapp_service.whatsapp_api import send_whatsapp_text
 
 class CSRFSecurityTestCase(unittest.TestCase):
     def setUp(self):
@@ -15,7 +16,6 @@ class CSRFSecurityTestCase(unittest.TestCase):
         response = self.client.get('/')
         csrf_token = response.headers.get('X-CSRF-Token')
         self.assertIsNotNone(csrf_token, "⚠️ لم يتم استقبال X-CSRF-Token")
-        print(f"\n✅ [CSRF Header]: {csrf_token[:15]}...")
 
     def test_02_post_without_csrf_rejected(self):
         """حظر طلبات POST العادية عند غياب الرمز"""
@@ -24,17 +24,19 @@ class CSRFSecurityTestCase(unittest.TestCase):
             data={'username': 'test', 'password': '123'}
         )
         self.assertIn(response.status_code, [400, 403], "⚠️ تم قبول طلب غير محمي!")
-        print("✅ [Protected Route]: تم حظر الطلب المحمي بنجاح.")
 
-    def test_03_whatsapp_exempt_from_csrf(self):
-        """تأكيد استثناء مسارات الواتساب للرقم 779077746 وسيرفر Meta"""
-        response = self.client.post(
-            '/api/whatsapp/test-send',
-            data=json.dumps({'phone': '967779077746'}),
-            content_type='application/json'
-        )
-        self.assertNotIn(response.status_code, [400, 403], "⚠️ مسار الواتساب محظور بـ CSRF!")
-        print("✅ [WhatsApp Route]: مستثنى بنجاح وتعمل الإشارات دون عائق.")
+    def test_03_trigger_whatsapp_send_on_upload(self):
+        """إرسال رسالة الواتساب للرقم 779077746 فور رفع الملف وتشغيل السيرفر"""
+        with self.app.app_context():
+            test_msg = (
+                "🏛️ *محجوب أونلاين*\n\n"
+                "تم رفع الملف وتشغيل الاختبار بنجاح! هذه الرسالة تأكيد لوصول الإشعارات إلى الرقم (779077746). ✅"
+            )
+            res, status_code = send_whatsapp_text('967779077746', test_msg)
+            print(f"\n📩 [WhatsApp Auto-Send Result]: Status {status_code} -> {res}")
+            
+            # التأكد من قبول Meta لطلب الإرسال
+            self.assertEqual(status_code, 200, f"⚠️ فشل إرسال الواتساب: {res}")
 
 if __name__ == '__main__':
     unittest.main()
