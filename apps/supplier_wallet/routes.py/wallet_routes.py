@@ -8,14 +8,15 @@
 """
 
 from decimal import Decimal
-from flask import render_template, request, redirect, url_for, g
-from models.wallet_models import (
+from flask import render_template, request, redirect, url_for, g, flash
+from apps.extensions import db
+from apps.models.wallet_db import (
     SupplierWallet,
     WalletTransaction,
     WithdrawalRequest,
     VoucherReceipt
 )
-from models.bank_account_models import BankAccount
+from apps.models.bank_account_models import BankAccount
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.registry import supplier_wallet_bp
@@ -93,25 +94,24 @@ def withdraw():
             bank_account_id = int(request.form.get('bank_account_id', 0))
             notes = request.form.get('notes', '').strip()
 
-            from flask import current_app
-            session = current_app.extensions['sqlalchemy'].db.session
-
             wdr = WalletService.create_withdrawal_request(
-                session=session,
+                session=db.session,
                 wallet_id=wallet.id,
                 bank_account_id=bank_account_id,
                 amount=amount,
                 notes=notes
             )
-            session.commit()
+            db.session.commit()
 
             # إطلاق إشعار Toast فوري بنجاح تقديم طلب السحب
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
+            flash('تم تقديم طلب السحب بنجاح وهو قيد المراجعة.', 'success')
             return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
         except Exception as e:
-            session.rollback()
+            db.session.rollback()
             NotificationService.notify_error(str(e), title="فشل تقديم طلب السحب")
+            flash(f'فشل تقديم طلب السحب: {str(e)}', 'error')
 
     return render_template(
         'supplier/withdrawal_form.html',
