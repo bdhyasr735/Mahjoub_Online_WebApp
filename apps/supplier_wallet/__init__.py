@@ -11,10 +11,8 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المتحكمات من مجلد/ملف routes.py بالشكل الصحيح لمنع أخطاء الاستيراد
+# 2. استيراد المتحكمات مباشرة من الملفات الموجودة في المجلد
 try:
-    from apps.supplier_wallet.routes.wallet_routes import *
-    # إذا كنت تريد تفعيل مسارات الإدارة أيضاً، يمكنك إلغاء تفعيل السطر التالي:
-    # from apps.supplier_wallet.routes.admin_routes import *
+    from apps.supplier_wallet import wallet_routes
 except Exception as e:
     print(f"⚠️ [Wallet Init Error]: تعذر استيراد مسارات المحفظة: {e}")
