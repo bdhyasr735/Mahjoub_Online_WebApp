@@ -6,7 +6,7 @@ from flask import Blueprint, has_app_context, url_for
 
 logger = logging.getLogger(__name__)
 
-# 1. إنشاء Blueprint للمورد
+# 1. إنشاء الـ Blueprint
 supplier_wallet_bp = Blueprint(
     'supplier_wallet', 
     __name__,
@@ -14,7 +14,6 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. الثوابت والمتغيرات الهيكلية للموديول
 MODULE_NAME = "الإدارة المالية"
 TITLE = "الإدارة المالية"
 NAME = "supplier_wallet"
@@ -40,9 +39,8 @@ links = LINKS
 def register_module(app):
     """تسجيل الموديول والـ Blueprints وتغذية القوائم لـ base.html"""
     try:
-        # استيراد المسارات داخل الدالة لتجنب الـ Circular Import
-        from .routes import wallet_routes
-        from .routes import admin_routes
+        # استيراد الملفات الفرعية مباشرة بالاسم لتفادي أخطاء الاستيراد
+        from .routes.wallet_routes import wallet_dashboard
         from .routes.admin_routes import admin_wallet_bp
 
         # تسجيل Blueprint المورد
@@ -55,14 +53,13 @@ def register_module(app):
             app.register_blueprint(admin_wallet_bp)
             print("✅ [Registry Wallet]: تم تسجيل مسارات الإدارة المالية (Admin) بنجاح.")
 
-        # حقن بيانات القوائم والروابط المنسدلة في سياق التطبيق لجميع القوالب
+        # حقن بيانات القوائم في سياق التطبيق
         @app.context_processor
         def inject_supplier_wallet_meta():
             modules = getattr(app, 'supplier_modules', {})
             if not isinstance(modules, dict):
                 modules = {}
 
-            # تجميع بيانات الموديول بما يتوافق مع شروط base.html
             modules['supplier_wallet'] = {
                 'title': TITLE,
                 'icon': MODULE_ICON,
@@ -79,6 +76,7 @@ def register_module(app):
             )
 
     except Exception as e:
+        logger.error(f"❌ [Registry Wallet Error]: {e}")
         print(f"❌ [Registry Wallet Error]: {e}")
     return app
 
