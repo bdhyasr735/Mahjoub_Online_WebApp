@@ -3,7 +3,7 @@
 
 from flask import Blueprint
 
-# 1. تعريف الـ Blueprint الأساسي للمحفظة
+# 1. تعريف الـ Blueprint الأساسي للمحفظة أولاً
 supplier_wallet_bp = Blueprint(
     'supplier_wallet',
     __name__,
@@ -11,8 +11,11 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المتحكمات مباشرة من الملفات الموجودة في المجلد
-try:
-    from apps.supplier_wallet import wallet_routes
-except Exception as e:
-    print(f"⚠️ [Wallet Init Error]: تعذر استيراد مسارات المحفظة: {e}")
+# 2. استيراد المسارات بشكل آمن بعد إنشاء الـ Blueprint لمنع الاستيراد الدائري
+def init_app():
+    try:
+        from apps.supplier_wallet import wallet_routes
+    except Exception as e:
+        print(f"⚠️ [Wallet Init Error]: تعذر استيراد مسارات المحفظة: {e}")
+
+init_app()
