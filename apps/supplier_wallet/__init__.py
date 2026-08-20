@@ -16,7 +16,7 @@ supplier_wallet_bp = Blueprint(
     url_prefix='/supplier/wallet'
 )
 
-# 2. استيراد المسارات بشكل صحيح من مجلد routes الفرعي
+# 2. استيراد المسارات بشكل صحيح وآمن من مجلد routes الفرعي
 try:
     from apps.supplier_wallet.routes import wallet_routes
 except ImportError:
