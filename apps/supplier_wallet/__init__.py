@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint
 
-# تعريف الـ Blueprint الأساسي للمحفظة
 supplier_wallet_bp = Blueprint(
     'supplier_wallet',
     __name__,
@@ -9,5 +8,11 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# استيراد المسارات لتفعيلها مع الـ Blueprint
-from . import wallet_routes
+# استيراد المسارات في نهاية الملف بعد إنشاء الـ Blueprint تماماً لتجنب أي تعارض
+try:
+    from apps.supplier_wallet.routes import wallet_routes
+except ImportError:
+    try:
+        from apps.supplier_wallet import wallet_routes
+    except ImportError:
+        pass
