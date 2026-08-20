@@ -2,10 +2,18 @@
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
-from flask import has_app_context, url_for
-from apps.supplier_wallet import supplier_wallet_bp
+import traceback
+from flask import Blueprint, has_app_context, url_for
 
 logger = logging.getLogger(__name__)
+
+# 1. إنشاء الـ Blueprint مباشرة في الـ registry
+supplier_wallet_bp = Blueprint(
+    'supplier_wallet', 
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
 
 MODULE_NAME = "الإدارة المالية"
 TITLE = "الإدارة المالية"
@@ -31,19 +39,27 @@ links = LINKS
 
 def register_module(app):
     """تسجيل الموديول والـ Blueprints وتغذية القوائم لـ base.html"""
+    
+    # أ) تسجيل الـ Blueprint أولاً لضمان وجود supplier_wallet.static وعدم انهيار Jinja
     try:
-        from apps.supplier_wallet.routes.admin_routes import admin_wallet_bp
-
-        # تسجيل Blueprint المورد
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-            print("✅ [Registry Wallet]: تم تسجيل موديول الإدارة المالية (المورد) بنجاح.")
+            print("✅ [Registry Wallet]: تم تسجيل الـ Blueprint الخاص بالمحفظة بنجاح.")
+    except Exception as e:
+        print(f"❌ [Registry Wallet BP Error]: {e}")
 
-        # تسجيل Blueprint الأدمن
-        if 'admin_wallet' not in app.blueprints:
-            app.register_blueprint(admin_wallet_bp)
-            print("✅ [Registry Wallet]: تم تسجيل مسارات الإدارة المالية (Admin) بنجاح.")
+    # ب) استيراد وتوصيل المسارات بعد ضمان تسجيل الـ Blueprint
+    try:
+        try:
+            from apps.supplier_wallet.routes import wallet_routes
+        except ModuleNotFoundError:
+            # محاولة الاستيراد النسبي في حال التبسيط
+            from .routes import wallet_routes
+    except Exception as e:
+        print(f"⚠️ [Registry Wallet Routes Warning]: تعذر تحميل ملف المسارات: {e}")
 
+    # ج) حقن المتغيرات في سياق التطبيق
+    try:
         @app.context_processor
         def inject_supplier_wallet_meta():
             modules = getattr(app, 'supplier_modules', {})
@@ -64,10 +80,9 @@ def register_module(app):
                 SUPPLIER_WALLET_THEME_COLOR='#4A154B',
                 DEFAULT_PER_PAGE=10
             )
-
     except Exception as e:
-        logger.error(f"❌ [Registry Wallet Error]: {e}")
-        print(f"❌ [Registry Wallet Error]: {e}")
+        print(f"❌ [Registry Wallet Context Error]: {e}")
+
     return app
 
 
