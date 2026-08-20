@@ -20,6 +20,18 @@ class Config:
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
     WHATSAPP_API_VERSION = os.environ.get('WHATSAPP_API_VERSION', 'v20.0')
 
+    @staticmethod
+    def validate_config():
+        """التحقق من صحة المتغيرات الأساسية عند التشغيل لضمان عدم وجود نقص حرج"""
+        missing = []
+        if not Config.SECRET_KEY:
+            missing.append('SECRET_KEY')
+        
+        if missing:
+            print(f"⚠️ [Config Warning]: متغيرات البيئة التالية مفقودة: {', '.join(missing)}")
+        else:
+            print("✅ [Config]: تم التحقق من سلامة إعدادات التكوين بنجاح.")
+
 class DevelopmentConfig(Config):
     DEBUG = True
 
