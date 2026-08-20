@@ -21,7 +21,7 @@ def create_admin_suppliers_wallets_blueprint():
         url_prefix='/admin/suppliers-wallets'
     )
 
-    # ✅ تسجيل مسارات المحافظ
+    # ✅ تسجيل مسارات المحافظ مع تفادي الاستيراد الدائري داخلياً
     from apps.admin_suppliers_wallets.routes import suppliers_wallets_controller
     bp.register_blueprint(suppliers_wallets_controller.bp)
 
@@ -29,5 +29,5 @@ def create_admin_suppliers_wallets_blueprint():
     from apps.admin_suppliers_wallets.routes import withdraw_requests_controller
     bp.register_blueprint(withdraw_requests_controller.bp)
 
-    print(f"🔧 [Blueprint]: تم إنشاء Blueprint '{bp.name}' مع {len(bp.deferred_functions)} مسار مسجل.")
+    print(f"🔧 [Blueprint]: تم إنشاء Blueprint '{bp.name}' بنجاح.")
     return bp
