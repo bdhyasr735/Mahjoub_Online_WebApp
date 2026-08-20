@@ -7,6 +7,5 @@
 """
 
 from .wallet_routes import supplier_wallet_bp
-from .admin_routes import admin_wallet_bp
 
 __all__ = ['supplier_wallet_bp', 'admin_wallet_bp']
