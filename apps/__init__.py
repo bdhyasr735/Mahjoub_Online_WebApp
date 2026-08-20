@@ -34,6 +34,7 @@ def import_all_models():
                 except Exception as e:
                     print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
 
+
 def seed_database():
     """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي في المحفظة والخزينة العامة (1,000,000 ر.س)"""
     from apps.models.admin_db import AdminUser
@@ -54,7 +55,7 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Admin]: {e}")
 
-    # 2. زراعة موظف إدارة مع فحص دقيق لمنع تكرار المفتاح الفريد
+    # 2. زراعة موظف إدارة
     try:
         existing_staff = AdminStaff.query.filter_by(username='admin_staff_test').first()
         if not existing_staff:
@@ -74,7 +75,7 @@ def seed_database():
         db.session.rollback()
         print(f"⚠️ [Seed Error - Staff]: {e}")
 
-    # 3. زراعة مورد، محفظته، حركة الإيداع، وقيد الخزينة العامة برصيد 1,000,000 ر.س
+    # 3. زراعة مورد ومحفظته وقيد الخزينة العامة
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
             supplier = Supplier(
@@ -89,7 +90,6 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
-            # إنشاء المحفظة برصيد 1,000,000.00
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
@@ -98,7 +98,6 @@ def seed_database():
             db.session.add(wallet)
             db.session.flush()
 
-            # --- 🛠️ توليد رقم مرجعي فريد متوافق مع التسلسل الجديد ---
             now = datetime.utcnow()
             date_str = now.strftime('%Y%m%d')
             time_stamp = now.strftime('%H%M%S%f')[:9]
@@ -108,7 +107,6 @@ def seed_database():
                 random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
                 candidate_ref = f"TRX-{supplier.supplier_code}-{date_str}-{time_stamp}-{random_6_code}"
                 
-                # فحص الفرادة لمنع التكرار
                 exists_ref = db.session.scalar(
                     select(WalletTransaction.id).where(WalletTransaction.reference_number == candidate_ref)
                 )
@@ -116,10 +114,8 @@ def seed_database():
                     seed_ref_number = candidate_ref
                     break
 
-            # --- 🛠️ توليد رقم سند فريد (6 خانات) باستخدام الدالة المعتمدة ---
             seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
 
-            # 📝 إنشاء حركة مالية للمحفظة
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
                 trans_type='deposit',
@@ -132,7 +128,6 @@ def seed_database():
             )
             db.session.add(initial_transaction)
 
-            # 📝 🌟 إنشاء قيد مطابق في الخزينة العامة
             treasury_entry = TreasuryEntry(
                 reference_number=seed_ref_number,
                 voucher_number=seed_voucher_number,
@@ -146,7 +141,7 @@ def seed_database():
             db.session.add(treasury_entry)
 
             db.session.commit()
-            print(f"✅ [Seed]: تم زرع المورد، المحفظة، وحركة الخزينة (1,000,000 SAR) بنجاح برقم: {seed_ref_number}.")
+            print(f"✅ [Seed]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
@@ -165,7 +160,6 @@ def create_app():
 
     app.jinja_env.globals.update(getattr=getattr)
 
-    # ✅ إعدادات CORS للسماح لـ Apollo Sandbox والأدوات الخارجية
     CORS(app, resources={
         r"/admin/graphql*": {
             "origins": [
@@ -190,30 +184,30 @@ def create_app():
     db.init_app(app)
 
     # ============================================================
-    # ✅ إعادة بناء كافة الجداول وزراعة البيانات (خاصة بمرحلة التطوير)
+    # ⚙️ التحكم في تهيئة القاعدة (إعادة البناء مشروطة بمتغير البيئة)
     # ============================================================
     with app.app_context():
         import_all_models()
         
-        try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
-            print("✅ [Schema Reset]: تم مسح وإعادة إنشاء قاعدة البيانات بنجاح (CASCADE).")
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [Schema Reset Error]: {e}")
-
-        try:
-            db.create_all()
-            print("✅ [Schema Create]: تم إعادة بناء جميع الجداول بنجاح.")
-        except Exception as e:
-            print(f"❌ [Schema Create Error]: {e}")
-
-        seed_database()
+        if os.environ.get('RESET_DB_ON_START') == 'true':
+            try:
+                db.session.execute(text("DROP SCHEMA public CASCADE;"))
+                db.session.execute(text("CREATE SCHEMA public;"))
+                db.session.commit()
+                db.create_all()
+                seed_database()
+                print("✅ [Schema Reset]: تم مسح وإعادة بناء القاعدة وزراعة البيانات بنجاح.")
+            except Exception as e:
+                db.session.rollback()
+                print(f"⚠️ [Schema Reset Error]: {e}")
+        else:
+            try:
+                db.create_all()
+            except Exception as e:
+                print(f"❌ [Schema Create Error]: {e}")
 
     # ============================================================
-    # ⚙️ تسجيل أوامر CLI لمرونة التحكم عند الحاجة يدوياً
+    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً عند الحاجة
     # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
@@ -313,7 +307,7 @@ def create_app():
             return redirect(admin_login_path)
 
     # ============================================================
-    # ✅ إعدادات Talisman
+    # ✅ إعدادات الحماية Talisman
     # ============================================================
     talisman = Talisman()
     talisman.init_app(app, 
@@ -397,7 +391,7 @@ def create_app():
         pass
 
     # ============================================================
-    # ✅ تسجيل الموديولات الديناميكية والنوافذ الشريطية
+    # ✅ تسجيل الموديولات الديناميكية والأشرطة الجانبية
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
