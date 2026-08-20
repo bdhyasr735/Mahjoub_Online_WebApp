@@ -20,6 +20,7 @@ from apps.models.wallet_db import (
     get_mecca_now
 )
 
+
 class WalletService:
     """
     محرك العمليات المالية والتدقيق المحاسبي لمحفظة محجوب أونلاين
@@ -113,7 +114,7 @@ class WalletService:
             changes_json={"amount": str(amount), "voucher": voucher_num, "balance_after": str(wallet.balance_sar)}
         )
         session.add(audit)
-        
+
         return tx
 
     @staticmethod
@@ -141,7 +142,7 @@ class WalletService:
         if amount > wallet.balance_sar:
             raise ValueError("الرصيد المتاح غير كافٍ لإتمام طلب السحب")
 
-        fee = Decimal('0.00') # سحب مجاني بدون رسوم
+        fee = Decimal('0.00')  # سحب مجاني بدون رسوم
         net_payout = amount - fee
 
         # حجز الرصيد
@@ -190,7 +191,7 @@ class WalletService:
             raise ValueError("طلب السحب غير صالح أو تمت معالجته مسبقاً")
 
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wdr.wallet_id).first()
-        
+
         # تحرير الرصيد المعلق وزيادة إجمالي المسحوبات
         wallet.balance_pending -= wdr.requested_amount
         wallet.total_withdrawn += wdr.requested_amount
@@ -242,3 +243,39 @@ class WalletService:
         session.add(audit)
 
         return tx
+
+    @staticmethod
+    def reject_withdrawal(
+        session,
+        request_id: int,
+        admin_name: str,
+        reason: str = None
+    ) -> WithdrawalRequest:
+        """
+        رفض طلب السحب وإلغاء حجز المبلغ وإعادته للرصيد المتاح بالمحفظة
+        """
+        wdr = session.query(WithdrawalRequest).with_for_update().filter_by(id=request_id).first()
+        if not wdr or wdr.status != 'pending':
+            raise ValueError("طلب السحب غير صالح أو تمت معالجته مسبقاً")
+
+        wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wdr.wallet_id).first()
+
+        # إعادة خصم المعلق وإضافته مجدداً للرصيد المتاح
+        wallet.balance_pending -= wdr.requested_amount
+        wallet.balance_sar += wdr.requested_amount
+        wallet.updated_at = get_mecca_now()
+
+        wdr.status = 'rejected'
+        wdr.approved_by = admin_name
+        wdr.approved_at = get_mecca_now()
+        wdr.admin_notes = reason or 'تم رفض طلب السحب من الإدارة'
+
+        audit = WalletAuditLog(
+            wallet_id=wallet.id,
+            action_type='WITHDRAWAL_REJECTED',
+            actor_name=admin_name,
+            changes_json={"amount": str(wdr.requested_amount), "reason": reason}
+        )
+        session.add(audit)
+
+        return wdr
