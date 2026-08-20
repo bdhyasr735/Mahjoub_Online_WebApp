@@ -1,3 +1,4 @@
+# 📂 apps/whatsapp_service/whatsapp_api.py
 import os
 import json
 import requests
@@ -13,7 +14,7 @@ whatsapp_bp = Blueprint('whatsapp', __name__, url_prefix='/api/whatsapp')
 PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID") or os.getenv("PHONE_NUMBER_ID")
 ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN") or os.getenv("ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token")
-VERSION = os.getenv("VERSION", "v18.0")
+VERSION = os.getenv("VERSION", "v20.0")  # تم تحديث الإصدار إلى v20.0 لضمان التوافق والأمان
 BASE_URL = os.getenv("BASE_URL", "https://graph.facebook.com")
 
 # ==========================================
@@ -74,3 +75,41 @@ def send_invoice_whatsapp(to_number, order_id, total_price):
         return response.json()
     except Exception as e:
         return {"error": str(e)}
+
+# ==========================================
+# 3. مسار اختبار الإرسال المباشر (للتأكد من عمل الربط)
+# ==========================================
+@whatsapp_bp.route('/send-test', methods=['GET'])
+def test_send_message():
+    """مسار مؤقت لفحص إرسال قالب hello_world والتأكد من استجابة ميتا"""
+    target_phone = "967779077746"
+    
+    if not PHONE_NUMBER_ID or not ACCESS_TOKEN:
+        return jsonify({
+            "status": "error", 
+            "message": "بيانات الاعتماد مفقودة (PHONE_NUMBER_ID أو ACCESS_TOKEN غير معرفة في بيئة العمل أو Render)"
+        }), 400
+
+    url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": target_phone,
+        "type": "template",
+        "template": {
+            "name": "hello_world",
+            "language": {"code": "en_US"}
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        return jsonify({
+            "status_code": response.status_code,
+            "meta_response": response.json() if response.content else response.text
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
