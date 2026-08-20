@@ -8,7 +8,7 @@
 """
 
 from decimal import Decimal
-from flask import render_template, request, redirect, url_for, g, flash
+from flask import render_template, request, redirect, url_for, flash
 from apps.extensions import db
 from apps.models.wallet_db import (
     SupplierWallet,
@@ -19,7 +19,8 @@ from apps.models.wallet_db import (
 from apps.models.bank_account_models import BankAccount
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
-from apps.supplier_wallet.registry import supplier_wallet_bp
+from apps.supplier_wallet.utils import get_current_supplier_id
+from apps.supplier_wallet import supplier_wallet_bp
 
 
 @supplier_wallet_bp.route('/', methods=['GET'])
@@ -31,7 +32,11 @@ def index():
 @supplier_wallet_bp.route('/dashboard', methods=['GET'])
 def wallet_dashboard():
     """لوحة القيادة الرئيسية وكشف الحساب لمحفظة المورد"""
-    supplier_id = getattr(g, 'current_supplier_id', 9634)
+    supplier_id = get_current_supplier_id()
+    if not supplier_id:
+        flash('تعذر تحديد حساب المورد الحالي، يرجى إعادة تسجيل الدخول.', 'error')
+        return redirect(url_for('suppliers_auth.login'))
+
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     # معايير البحث والفلترة
@@ -68,7 +73,7 @@ def wallet_dashboard():
         transactions_list = []
 
     return render_template(
-        'supplier_wallet/wallet_transactions.html',  # تم التعديل للمسار المعتمد
+        'supplier_wallet/wallet_transactions.html',
         wallet=wallet,
         transactions=transactions_list,
         pagination=pagination
@@ -84,7 +89,11 @@ def transactions():
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 def withdraw():
     """طلب سحب رصيد بنكي عبر نموذج POST فوري (Zero-JS)"""
-    supplier_id = getattr(g, 'current_supplier_id', 9634)
+    supplier_id = get_current_supplier_id()
+    if not supplier_id:
+        flash('تعذر تحديد حساب المورد الحالي، يرجى إعادة تسجيل الدخول.', 'error')
+        return redirect(url_for('suppliers_auth.login'))
+
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
     bank_accounts = BankAccount.query.filter_by(supplier_id=supplier_id).all()
 
@@ -114,7 +123,7 @@ def withdraw():
             flash(f'فشل تقديم طلب السحب: {str(e)}', 'error')
 
     return render_template(
-        'supplier_wallet/withdrawal_form.html',     # تم التعديل للمسار المعتمد
+        'supplier_wallet/withdrawal_form.html',
         wallet=wallet,
         bank_accounts=bank_accounts
     )
