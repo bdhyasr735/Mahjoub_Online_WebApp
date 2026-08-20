@@ -1,8 +1,3 @@
 # coding: utf-8
-"""
-مسارات ومتحكمات محفظة الموردين (Flask Route Blueprints)
-"""
-
-from apps.supplier_wallet.routes.wallet_routes import supplier_wallet_bp
-
-__all__ = ['supplier_wallet_bp']
+from .wallet_routes import wallet_bp
+from .admin_routes import admin_wallet_bp  # أو اسم البلوبرينت الخاص بالإدارة
