@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_wallet/__init__.py
-
 from flask import Blueprint
 
-# 1. تعريف الـ Blueprint الأساسي للمحفظة أولاً
+# تعريف الـ Blueprint الأساسي للمحفظة
 supplier_wallet_bp = Blueprint(
     'supplier_wallet',
     __name__,
@@ -11,11 +9,5 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المسارات بشكل آمن بعد إنشاء الـ Blueprint لمنع الاستيراد الدائري
-def init_app():
-    try:
-        from apps.supplier_wallet import wallet_routes
-    except Exception as e:
-        print(f"⚠️ [Wallet Init Error]: تعذر استيراد مسارات المحفظة: {e}")
-
-init_app()
+# استيراد المسارات لتفعيلها مع الـ Blueprint
+from . import wallet_routes
