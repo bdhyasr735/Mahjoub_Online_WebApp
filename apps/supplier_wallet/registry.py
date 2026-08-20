@@ -13,31 +13,36 @@ supplier_wallet_bp = Blueprint(
 
 logger = logging.getLogger(__name__)
 
+# معلومات الموديول الأساسية
 MODULE_NAME = "الإدارة المالية"
 TITLE = "الإدارة المالية"
-NAME = "الإدارة المالية"
+NAME = "supplier_wallet"
 DISPLAY_NAME = "الإدارة المالية"
 
-MODULE_ICON = "fas fa-wallet"
+# ✅ تعريف المتغيرات بحروف صغيرة ليتعرف عليها قالب base.html مباشرة
+title = TITLE
+icon = "fas fa-wallet"
+MODULE_ICON = icon
 SHOW_IN_SUPPLIER = True
 
-# تعريف الروابط للـ Registry بالنظامين لضمان الاكتشاف التلقائي
-NAV_ITEMS = [
-    {"endpoint": "supplier_wallet.wallet_dashboard", "title": "💳 كشف الحساب"},
-    {"endpoint": "supplier_wallet.withdraw", "title": "💸 طلب سحب"}
-]
-
+# ✅ تعريف الروابط الفرعية
 LINKS = {
     "supplier_wallet.wallet_dashboard": "💳 كشف الحساب",
     "supplier_wallet.withdraw": "💸 طلب سحب"
 }
+links = LINKS
+
+NAV_ITEMS = [
+    {"endpoint": "supplier_wallet.wallet_dashboard", "title": "💳 كشف الحساب"},
+    {"endpoint": "supplier_wallet.withdraw", "title": "💸 طلب سحب"}
+]
 
 
 def register_module(app):
     """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
     try:
         if 'supplier_wallet' not in app.blueprints:
-            # استيراد المسارات نسبياً لضمان ربطها بالمفرد
+            # استيراد المسارات لضمان ربطها بـ Blueprint
             try:
                 from .routes.wallet_routes import wallet_dashboard, index, withdraw
             except ImportError:
@@ -53,12 +58,22 @@ def register_module(app):
         else:
             print("ℹ️ [Registry Wallet]: موديول الإدارة المالية مسجل مسبقاً.")
 
+        # ✅ حقن موديول المحفظة تلقائياً في سياق supplier_modules لجميع القوالب
         if not hasattr(app, '_supplier_wallet_context_injected'):
             @app.context_processor
             def inject_supplier_wallet_meta():
+                # إعداد بيانات الموديول المكتملة
+                wallet_module_info = {
+                    'title': TITLE,
+                    'icon': icon,
+                    'links': LINKS
+                }
+                
                 return dict(
                     SUPPLIER_WALLET_THEME_COLOR='#4A154B',
-                    DEFAULT_PER_PAGE=10
+                    DEFAULT_PER_PAGE=10,
+                    # توفير بيانات الموديول تحت مفتاح supplier_wallet
+                    supplier_wallet_info=wallet_module_info
                 )
             app._supplier_wallet_context_injected = True
 
@@ -75,7 +90,6 @@ def get_module_stats():
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        # استيراد مباشر بالمفرد من مجلد supplier_wallet
         from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 
         supplier_id = get_current_supplier_id()
