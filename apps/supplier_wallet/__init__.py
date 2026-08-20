@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+📂 apps/supplier_wallet/__init__.py
+إدارة موديول محفظة المورد - منصة محجوب أونلاين
+"""
+
 from decimal import Decimal
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
@@ -75,7 +80,7 @@ def withdraw():
 
             wdr = WalletService.create_withdrawal_request(
                 session=db.session,
-                    wallet_id=wallet.id,
+                wallet_id=wallet.id,
                 bank_account_id=bank_account_id,
                 amount=amount,
                 notes=notes
