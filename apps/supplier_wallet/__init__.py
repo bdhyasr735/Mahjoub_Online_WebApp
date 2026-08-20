@@ -8,7 +8,8 @@ from decimal import Decimal
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet, WalletTransaction, BankAccount
+from apps.models import BankAccount
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id
