@@ -2,17 +2,10 @@
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
-from flask import Blueprint, has_app_context, url_for
+from flask import has_app_context, url_for
+from apps.supplier_wallet import supplier_wallet_bp
 
 logger = logging.getLogger(__name__)
-
-# 1. إنشاء الـ Blueprint
-supplier_wallet_bp = Blueprint(
-    'supplier_wallet', 
-    __name__,
-    template_folder='templates',
-    static_folder='static'
-)
 
 MODULE_NAME = "الإدارة المالية"
 TITLE = "الإدارة المالية"
@@ -39,21 +32,18 @@ links = LINKS
 def register_module(app):
     """تسجيل الموديول والـ Blueprints وتغذية القوائم لـ base.html"""
     try:
-        # استيراد الملفات الفرعية مباشرة بالاسم لتفادي أخطاء الاستيراد
-        from .routes.wallet_routes import wallet_dashboard
-        from .routes.admin_routes import admin_wallet_bp
+        from apps.supplier_wallet.routes.admin_routes import admin_wallet_bp
 
         # تسجيل Blueprint المورد
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
             print("✅ [Registry Wallet]: تم تسجيل موديول الإدارة المالية (المورد) بنجاح.")
 
-        # تسجيل Blueprint الإدارة المالية
+        # تسجيل Blueprint الأدمن
         if 'admin_wallet' not in app.blueprints:
             app.register_blueprint(admin_wallet_bp)
             print("✅ [Registry Wallet]: تم تسجيل مسارات الإدارة المالية (Admin) بنجاح.")
 
-        # حقن بيانات القوائم في سياق التطبيق
         @app.context_processor
         def inject_supplier_wallet_meta():
             modules = getattr(app, 'supplier_modules', {})
