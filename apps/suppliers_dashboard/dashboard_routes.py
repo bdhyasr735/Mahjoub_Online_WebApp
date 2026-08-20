@@ -9,7 +9,7 @@ import traceback
 
 from apps.models import db, Supplier, Order, OrderItem, SupplierWallet, Product
 
-# ✅ تعريف الـ Blueprint
+# ✅ تعريف الـ Blueprint بالاسم المعتمد في التطبيق
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
@@ -18,13 +18,13 @@ suppliers_dashboard_bp = Blueprint(
 
 
 def get_supplier_context():
-    """جلب بيانات المورد والمحفظة مع التحقق من الصلاحية"""
+    """جلب بيانات المورد والمحفظة مع التحقق الشامل من الصلاحية ونوع الجلسة"""
     try:
         user_type = session.get('user_type')
-        if user_type not in ['supplier', 'staff']:
+        if user_type not in ['supplier', 'staff', 'supplier_staff']:
             return None
 
-        if user_type == 'staff':
+        if user_type in ['staff', 'supplier_staff']:
             supplier_id = getattr(current_user, 'supplier_id', None)
         else:
             supplier_id = getattr(current_user, 'id', None)
@@ -36,7 +36,7 @@ def get_supplier_context():
         if not supplier:
             return None
 
-        # جلب المحفظة
+        # جلب المحفظة وربطها بنفس الكائن
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         supplier.wallet = wallet
 
@@ -54,13 +54,13 @@ def dashboard():
     لوحة تحكم المورد – عرض إحصائيات حقيقية وتفاعلية
     """
     try:
-        # ✅ جلب المورد
+        # ✅ 1. جلب المورد
         supplier = get_supplier_context()
         if not supplier:
             flash('❌ يرجى تسجيل الدخول أولاً', 'danger')
             return redirect(url_for('suppliers_auth.login'))
 
-        # ✅ جلب المحفظة بشكل منفصل لضمان وجودها
+        # ✅ 2. جلب المحفظة أو إنشاؤها تلقائياً إن لم تكن موجودة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         if not wallet:
             wallet = SupplierWallet(
@@ -72,7 +72,7 @@ def dashboard():
             db.session.add(wallet)
             db.session.commit()
 
-        # ✅ 1. إحصائيات الطلبات
+        # ✅ 3. إحصائيات الطلبات
         total_orders = Order.query.filter_by(supplier_id=supplier.id).count()
         pending_orders = Order.query.filter_by(
             supplier_id=supplier.id,
@@ -87,7 +87,7 @@ def dashboard():
             status='cancelled'
         ).count()
 
-        # ✅ 2. إجمالي المبيعات (من عناصر الطلبات المكتملة)
+        # ✅ 4. إجمالي المبيعات (من عناصر الطلبات المكتملة)
         total_sales = db.session.query(
             func.sum(OrderItem.price * OrderItem.quantity)
         ).join(Order, Order.id == OrderItem.order_id)\
@@ -96,7 +96,7 @@ def dashboard():
              Order.status == 'completed'
          ).scalar() or 0.0
 
-        # ✅ 3. مبيعات اليوم والأمس والأسبوع
+        # ✅ 5. مبيعات اليوم والأمس والأسبوع
         today = datetime.now().date()
         yesterday = today - timedelta(days=1)
         week_ago = today - timedelta(days=7)
@@ -133,20 +133,20 @@ def dashboard():
         if sales_yesterday > 0:
             sales_change_percent = ((sales_today - sales_yesterday) / sales_yesterday) * 100
 
-        # ✅ 4. عدد المنتجات النشطة
+        # ✅ 6. عدد المنتجات النشطة
         active_products = Product.query.filter(
             Product.supplier_id == supplier.id,
             Product.status == 'active'
         ).count() if hasattr(Product, 'status') else Product.query.filter_by(supplier_id=supplier.id).count()
 
-        # ✅ 5. أحدث 5 طلبات
+        # ✅ 7. أحدث 5 طلبات
         recent_orders = Order.query.filter_by(
             supplier_id=supplier.id
         ).order_by(
             Order.created_at.desc()
         ).limit(5).all()
 
-        # ✅ 6. مبيعات الشهر الحالي (للشريط البياني)
+        # ✅ 8. مبيعات الشهر الحالي (للشريط البياني)
         current_month = datetime.now().month
         current_year = datetime.now().year
 
@@ -165,10 +165,10 @@ def dashboard():
              func.extract('day', Order.created_at)
          ).all()
 
-        chart_days = [str(record.day) for record in monthly_sales]
+        chart_days = [str(int(record.day)) for record in monthly_sales]
         chart_values = [float(record.total) for record in monthly_sales]
 
-        # ✅ 7. أحدث 3 طلبات معلقة
+        # ✅ 9. أحدث 3 طلبات معلقة
         quick_orders = Order.query.filter_by(
             supplier_id=supplier.id,
             status='pending'
@@ -176,7 +176,7 @@ def dashboard():
             Order.created_at.desc()
         ).limit(3).all()
 
-        # ✅ 8. تقييمات المورد
+        # ✅ 10. تقييمات المورد
         try:
             from apps.models.review_db import Review
             avg_rating = db.session.query(
@@ -189,7 +189,7 @@ def dashboard():
             avg_rating = 0.0
             total_reviews = 0
 
-        # ✅ 9. إشعارات المورد الآمنة
+        # ✅ 11. إشعارات المورد الآمنة
         notifications = []
         if pending_orders > 0:
             notifications.append({
@@ -207,13 +207,14 @@ def dashboard():
                 'link': '/supplier/wallet'
             })
 
-        # ✅ 10. عرض القالب
+        # ✅ 12. عرض القالب مع ربط المسميات المتوافقة مع HTML
         return render_template(
             'suppliers/dashboard.html',
             supplier=supplier,
             wallet=wallet,
             total_orders=total_orders,
             pending_orders=pending_orders,
+            pending_orders_count=pending_orders,  # مطابقة الحقل في dashboard.html
             completed_orders=completed_orders,
             cancelled_orders=cancelled_orders,
             total_sales=total_sales,
@@ -301,7 +302,11 @@ def api_ask_ai():
             return jsonify({'success': False, 'answer': 'يرجى كتابة سؤال صحيح.'}), 400
 
         # الرد التفاعلي المبني على سياق متجر المورد
-        answer_text = f"أهلاً بك يا أخي الكريم في متجر **{supplier.trade_name}**.\nلقد تلقيت استفسارك حول: ({question}).\nمتجرك يعمل بكفاءة ونحن مستعدون دائماً لدعمك في إدارة منتجاتك ومبيعاتك."
+        answer_text = (
+            f"أهلاً بك في متجر **{supplier.trade_name or 'المورد'}**.\n"
+            f"لقد تلقيت استفسارك حول: ({question}).\n"
+            f"متجرك يعمل بكفاءة ونحن مستعدون دائماً لدعمك في إدارة منتجاتك ومبيعاتك."
+        )
 
         return jsonify({
             'success': True,
