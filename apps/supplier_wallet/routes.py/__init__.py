@@ -7,6 +7,3 @@ supplier_wallet_bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
-
-# استيراد مجلد المسارات في نهاية الملف لتسجيلها بعد إنشاء الـ Blueprint
-from .routes import wallet_routes
