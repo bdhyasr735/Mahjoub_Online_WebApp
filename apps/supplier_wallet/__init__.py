@@ -11,11 +11,9 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد مسارات المحفظة (يتم في النهاية لتفادي التداخل الدائري)
+# 2. استيراد المسارات لضمان ربطها بالـ Blueprint
+# ملاحظة: يجب أن تحتوي ملفات الـ routes على ديكورات مثل @supplier_wallet_bp.route
 try:
-    from apps.supplier_wallet.routes import wallet_routes
-except ImportError:
-    try:
-        from apps.supplier_wallet import routes
-    except ImportError:
-        pass
+    from apps.supplier_wallet import routes
+except ImportError as e:
+    print(f"⚠️ [Wallet Init]: تعذر استيراد المسارات: {e}")
