@@ -311,7 +311,8 @@ def create_app():
             '/supplier/register',
             '/supplier/forgot-password',
             admin_login_path, 
-            '/auth'
+            '/auth',
+            '/api/whatsapp'  # 🟢 تم استثناء خدمة الواتساب للسماح لـ Meta للوصول إلى Webhook
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -441,11 +442,20 @@ def create_app():
     except ImportError:
         pass
 
+    # 🟢 تسجيل موديول خدمات الواتساب مع إلغاء حماية CSRF عنه
+    try:
+        from apps.whatsapp_service.whatsapp_api import whatsapp_bp
+        app.register_blueprint(whatsapp_bp)
+        csrf.exempt(whatsapp_bp)
+        print("✅ [Portal]: تم تسجيل موديول خدمات الواتساب (WhatsApp Service) بنجاح.")
+    except Exception as e:
+        print(f"❌ [Portal]: خطأ في تسجيل موديول الواتساب: {e}")
+
     # ============================================================
     # ✅ تسجيل الموديولات الديناميكية والأشرطة الجانبية
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
