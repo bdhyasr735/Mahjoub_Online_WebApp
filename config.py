@@ -1,153 +1,58 @@
-# coding: utf-8
-# ⚙️ مهندس الإعدادات المركزية السحابية - منصة محجوب أونلاين 2026
+# 📂 tests/test_csrf.py
+import unittest
+import json
+import requests
+from apps import create_app
 
-import os
+class CSRFSecurityTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app()
+        self.app.config['TESTING'] = True
+        self.app.config['WTF_CSRF_ENABLED'] = True
+        self.client = self.app.test_client()
 
-class Config:
-    """إعدادات النظام المركزية مع حماية للبيانات الحساسة."""
+    def test_01_get_route_returns_csrf_header(self):
+        response = self.client.get('/')
+        csrf_token = response.headers.get('X-CSRF-Token')
+        self.assertIsNotNone(csrf_token)
 
-    # 🛡️ مفتاح الأمان السيادي للمنصة
-    SECRET_KEY = os.environ.get('SECRET_KEY')
+    def test_02_post_without_csrf_rejected(self):
+        response = self.client.post('/auth/login', data={'username': 'test', 'password': '123'})
+        self.assertIn(response.status_code, [400, 403])
 
-    # 🔐 مفتاح التشفير المركزي (لـ AES-256)
-    ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
+    def test_03_trigger_whatsapp_send_on_upload(self):
+        """إرسال الاختبار مع مطابقة أسماء المفاتيح من config.py"""
+        with self.app.app_context():
+            # 🎯 المطابقة الدقيقة لأسماء المتغيرات من config.py
+            token = self.app.config.get('WHATSAPP_ACCESS_TOKEN')
+            phone_id = self.app.config.get('WHATSAPP_PHONE_NUMBER_ID')
+            api_version = self.app.config.get('WHATSAPP_API_VERSION', 'v20.0')
+            target_phone = "967779077746"
 
-    # 🕵️‍♂️ مفتاح توقيع الويب هوك (للتحقق من مصدر الطلبات)
-    WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
+            print(f"\n🔍 [Check] Phone ID: {phone_id} | Token Status: {'✅ Present' if token else '❌ Missing'}")
 
-    # 🌐 رابط المتجر الأساسي
-    STORE_BASE_URL = os.environ.get('STORE_BASE_URL', 'https://mahjoub.online')
+            if not token or not phone_id:
+                print("❌ [Error]: المتغيرات مفقودة في البيئة الحالية (Render / Server Environment).")
+                return
 
-    # 🔒 إعدادات الحماية الأمنية للـ Cookies
-    IS_PRODUCTION = os.environ.get('ENV', 'production') == 'production'
-    SESSION_COOKIE_SECURE = IS_PRODUCTION 
-    REMEMBER_COOKIE_SECURE = IS_PRODUCTION
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
+            url = f"https://graph.facebook.com/{api_version}/{phone_id}/messages"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": target_phone,
+                "type": "template",
+                "template": {
+                    "name": "hello_world",
+                    "language": {"code": "en_US"}
+                }
+            }
 
-    # 1. إعدادات قاعدة البيانات (مع التحقق من التوافق)
-    _db_url = os.environ.get('DATABASE_URL')
-    if _db_url and _db_url.startswith("postgres://"):
-        _db_url = _db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            res = requests.post(url, json=payload, headers=headers)
+            print(f"\n📩 [Meta Status Code]: {res.status_code}")
+            print(f"📩 [Meta API Response]: {res.text}\n")
 
-    SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///mahjoub_online.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    # 2. إعدادات Pool الاتصالات (لأداء سحابي مستقر)
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_size": 15,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-        "pool_recycle": 1800,
-        "pool_pre_ping": True
-    }
-
-    # 3. إعدادات Qumra Cloud API
-    QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
-    # ✅ ربط الرابط بالمتغير البيئي GRAPHQL_ENDPOINT (كما في صور Render)
-    QUMRA_API_URL = os.environ.get('GRAPHQL_ENDPOINT', 'https://mahjoub.online/admin/graphql')
-
-    # ============================================================
-    # 📱 4. إعدادات WhatsApp Cloud API (Meta Official)
-    # ============================================================
-    WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
-    WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get('WHATSAPP_BUSINESS_ACCOUNT_ID') or os.environ.get('WHATSAPP_WABA_ID')
-    # ✅ توافق مزدوج لاسم المتغير البيئي (سواء تم تعريفه بـ WHATSAPP_ACCESS_TOKEN أو WHATSAPP_TOKEN)
-    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN') or os.environ.get('WHATSAPP_TOKEN')
-    WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
-    WHATSAPP_API_VERSION = os.environ.get('WHATSAPP_API_VERSION', 'v20.0')
-    WHATSAPP_API_URL = os.environ.get('WHATSAPP_API_URL', 'https://graph.facebook.com')
-
-    # 5. إعدادات HyperSender
-    HYPERSEND_API_KEY = os.environ.get('HYPERSEND_API_KEY')
-    HYPERSEND_INSTANCE_ID = os.environ.get('HYPERSEND_INSTANCE_ID')
-
-    # 6. إعدادات المزامنة
-    SYNC_MODE = os.environ.get('SYNC_MODE', 'live')
-
-    # 7. ترميز النصوص
-    JSON_AS_ASCII = False
-
-    # ============================================================
-    # 🤖 إعدادات DeepSeek AI (الذكاء الاصطناعي)
-    # ============================================================
-    DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
-    DEEPSEEK_API_URL = os.environ.get('DEEPSEEK_API_URL', 'https://api.deepseek.com/v1/chat/completions')
-    DEEPSEEK_MODEL = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
-    DEEPSEEK_MAX_TOKENS = int(os.environ.get('DEEPSEEK_MAX_TOKENS', 2048))
-    DEEPSEEK_TEMPERATURE = float(os.environ.get('DEEPSEEK_TEMPERATURE', 0.7))
-
-    # ✅ تمكين الذكاء الاصطناعي
-    AI_ENABLED = os.environ.get('AI_ENABLED', 'true').lower() == 'true'
-
-    # ============================================================
-    # 🌐 إعدادات OpenRouter (بديل مجاني لـ DeepSeek)
-    # ============================================================
-    OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
-    OPENROUTER_API_URL = os.environ.get('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
-
-    # ✅ نماذج مجانية - qwen أولاً لأنه النموذج العامل
-    OPENROUTER_MODELS = {
-        'qwen': 'qwen/qwen-2.5-7b-instruct',    # ✅ يعمل
-        'mistral': 'mistralai/mistral-7b-instruct-v0.1',
-        'llama': 'meta-llama/llama-3-8b-instruct',
-        'gemma': 'google/gemma-2-9b-it',
-        'phi': 'microsoft/phi-3-mini-128k-instruct'
-    }
-
-    # ✅ النموذج النشط - qwen افتراضياً
-    OPENROUTER_MODEL_KEY = os.environ.get('OPENROUTER_MODEL_KEY', 'qwen')
-    OPENROUTER_MODEL = OPENROUTER_MODELS.get(OPENROUTER_MODEL_KEY, OPENROUTER_MODELS['qwen'])
-
-    # ============================================================
-    # 💎 إعدادات Google Gemini AI
-    # ============================================================
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-
-    # ✅ طباعة للتأكد من وجود المفاتيح في سجلات السيرفر (Logs)
-    print(f"📱 WHATSAPP_PHONE_NUMBER_ID: {WHATSAPP_PHONE_NUMBER_ID if WHATSAPP_PHONE_NUMBER_ID else '❌ غير موجود'}")
-    print(f"📱 WHATSAPP_ACCESS_TOKEN: {WHATSAPP_ACCESS_TOKEN[:10] if WHATSAPP_ACCESS_TOKEN else '❌ غير موجود'}...")
-    print(f"🔑 DEEPSEEK_API_KEY: {DEEPSEEK_API_KEY[:10] if DEEPSEEK_API_KEY else '❌ غير موجود'}...")
-    print(f"🌐 OPENROUTER_API_KEY: {OPENROUTER_API_KEY[:15] if OPENROUTER_API_KEY else '❌ غير موجود'}...")
-    print(f"💎 GEMINI_API_KEY: {GEMINI_API_KEY[:10] if GEMINI_API_KEY else '❌ غير موجود'}...")
-    print(f"🤖 OPENROUTER_MODEL: {OPENROUTER_MODEL}")
-    print(f"💎 GEMINI_MODEL: {GEMINI_MODEL}")
-    print(f"🤖 AI_ENABLED: {AI_ENABLED}")
-
-    @classmethod
-    def validate_config(cls):
-        """التحقق من وجود المفاتيح الحساسة في بيئة الإنتاج."""
-        if cls.IS_PRODUCTION:
-            required = ['SECRET_KEY', 'ENCRYPTION_KEY', 'WEBHOOK_SECRET', 'QUMRA_API_KEY']
-            for var in required:
-                if not getattr(cls, var):
-                    print(f"⚠️ [Config Warning]: المتغير الحساس {var} مفقود في بيئة الإنتاج! سيتم استخدام القيم الافتراضية أو تجاهل الوظيفة المرتبطة به.")
-
-        # ✅ التحقق من إعدادات WhatsApp Cloud API
-        if not cls.WHATSAPP_ACCESS_TOKEN or not cls.WHATSAPP_PHONE_NUMBER_ID:
-            print("⚠️ [WhatsApp]: بيانات إعدادات واتساب مفقودة (WHATSAPP_ACCESS_TOKEN أو WHATSAPP_PHONE_NUMBER_ID).")
-        else:
-            print("✅ [WhatsApp]: إعدادات WhatsApp Cloud API مكتملة ومفعلة.")
-
-        # ✅ التحقق من مفتاح DeepSeek إذا كان مفعلاً
-        if cls.AI_ENABLED and not cls.DEEPSEEK_API_KEY:
-            print("⚠️ [AI]: DEEPSEEK_API_KEY غير موجود. سيتم تعطيل DeepSeek.")
-        elif cls.AI_ENABLED and cls.DEEPSEEK_API_KEY:
-            print(f"✅ [AI]: DEEPSEEK_API_KEY موجود ومفعل.")
-
-        # ✅ التحقق من مفتاح OpenRouter
-        if cls.AI_ENABLED and not cls.OPENROUTER_API_KEY:
-            print("⚠️ [OpenRouter]: OPENROUTER_API_KEY غير موجود.")
-        elif cls.AI_ENABLED and cls.OPENROUTER_API_KEY:
-            print(f"✅ [OpenRouter]: OPENROUTER_API_KEY موجود ومفعل.")
-            print(f"✅ [OpenRouter]: النموذج المستخدم: {cls.OPENROUTER_MODEL}")
-
-        # ✅ التحقق من مفتاح Gemini
-        if cls.AI_ENABLED and not cls.GEMINI_API_KEY:
-            print("⚠️ [Gemini]: GEMINI_API_KEY غير موجود. سيتم تعطيل Gemini.")
-        elif cls.AI_ENABLED and cls.GEMINI_API_KEY:
-            print(f"✅ [Gemini]: GEMINI_API_KEY موجود ومفعل.")
-            print(f"✅ [Gemini]: النموذج المستخدم: {cls.GEMINI_MODEL}")
-
-        return True
+if __name__ == '__main__':
+    unittest.main()
