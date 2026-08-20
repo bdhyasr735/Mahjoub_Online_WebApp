@@ -1,18 +1,23 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py
 
+import os
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, jsonify, session, url_for, redirect
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import or_
-from datetime import datetime, timedelta
+from werkzeug.routing import BuildError
+
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 
-# ✅ تعريف الـ Blueprint بالاسم الصحيح
+# ✅ تعريف الـ Blueprint بالاسم المعتمد في التطبيق
 suppliers_bp = Blueprint('suppliers_auth', __name__, template_folder='templates')
 
+
 def get_wait_time(attempts):
-    if attempts <= 5: return 0
+    if attempts <= 5:
+        return 0
     return 2 ** (attempts - 6)
 
 
@@ -23,11 +28,11 @@ def get_wait_time(attempts):
 def test_login():
     if request.method == 'GET':
         return '''
-        <h2>🔍 اختبار الدخول</h2>
+        <h2>🔍 اختبار الدخول لموردين المنصة</h2>
         <form method="POST" style="direction: rtl; font-family: Tahoma; padding: 20px;">
             <div style="margin-bottom: 10px;">
-                <label>اسم المستخدم:</label><br>
-                <input type="text" name="username" placeholder="أدخل اسم المستخدم" style="padding: 8px; width: 250px;">
+                <label>اسم المستخدم أو الهاتف:</label><br>
+                <input type="text" name="username" placeholder="أدخل اسم المستخدم أو الهاتف" style="padding: 8px; width: 250px;">
             </div>
             <div style="margin-bottom: 10px;">
                 <label>كلمة المرور:</label><br>
@@ -38,25 +43,27 @@ def test_login():
         <hr>
         <p><strong>المستخدم الافتراضي:</strong> test_supplier / 123</p>
         '''
-    
-    username = request.form.get('username')
-    password = request.form.get('password')
-    
-    user = Supplier.query.filter_by(username=username).first()
-    
+
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '')
+
+    user = Supplier.query.filter(
+        or_(Supplier.username == username, Supplier.search_phone == username)
+    ).first()
+
     if not user:
         return f"""
         <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
             <h2 style="color: #d9534f;">❌ المستخدم غير موجود</h2>
-            <p>المستخدم <strong>'{username}'</strong> غير موجود في قاعدة البيانات.</p>
+            <p>المستخدم <strong>'{username}'</strong> غير موجود في قاعدة بيانات الموردين.</p>
             <p>المستخدمون المسجلون:</p>
             <ul>
-            {''.join([f"<li>{u.username}</li>" for u in Supplier.query.all()])}
+            {''.join([f"<li>{u.username} ({u.trade_name or 'بدون اسم تجاري'})</li>" for u in Supplier.query.all()])}
             </ul>
             <a href="/supplier/test-login">محاولة مرة أخرى</a>
         </div>
         """
-    
+
     try:
         if user.check_password(password):
             return f"""
@@ -91,7 +98,7 @@ def test_login():
 
 
 # ============================================================
-# 🟣 مسار تسجيل الدخول الأساسي (مصحح لتجنب إعادة التوجيه الحلقي)
+# 🟣 مسار تسجيل الدخول الأساسي
 # ============================================================
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -99,7 +106,6 @@ def login():
         return render_template('suppliers_auth_portal/login.html')
 
     try:
-        # قراءة البيانات سواء كانت JSON أو Form Data
         if request.is_json:
             json_data = request.get_json() or {}
             username = json_data.get('username', '').strip()
@@ -108,7 +114,7 @@ def login():
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '')
 
-        # 1. التحقق من الحظر
+        # 1. التحقق من الحظر المؤقت
         block_until = session.get('block_until')
         if block_until and datetime.now() < datetime.fromisoformat(block_until):
             remaining = int((datetime.fromisoformat(block_until) - datetime.now()).total_seconds() / 60) + 1
@@ -117,17 +123,21 @@ def login():
                 return jsonify({"status": "error", "message": msg}), 429
             return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 2. البحث الشامل في الجدولين
-        target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
+        # 2. البحث الشامل في جدول الموردين والموظفين التابعين لهم
+        target_user = Supplier.query.filter(
+            or_(Supplier.search_phone == username, Supplier.username == username)
+        ).first()
         found_as = 'supplier' if target_user else None
 
         if not target_user:
-            target_user = SupplierStaff.query.filter(or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)).first()
-            found_as = 'staff' if target_user else None
+            target_user = SupplierStaff.query.filter(
+                or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)
+            ).first()
+            found_as = 'supplier_staff' if target_user else None
 
-        # 3. التحقق من وجود المستخدم
+        # 3. التحقق من وجود الحساب
         if not target_user:
-            msg = "المستخدم غير مسجل في المنصة اللامركزية"
+            msg = "المستخدم غير مسجل في منصة الموردين"
             if request.is_json:
                 return jsonify({"status": "error", "message": msg}), 404
             return render_template('suppliers_auth_portal/login.html', error=msg)
@@ -139,7 +149,7 @@ def login():
             if attempts >= 5:
                 wait_minutes = get_wait_time(attempts)
                 session['block_until'] = (datetime.now() + timedelta(minutes=wait_minutes)).isoformat()
-            
+
             msg = "كلمة المرور غير صحيحة"
             if request.is_json:
                 return jsonify({"status": "error", "message": msg}), 401
@@ -152,27 +162,28 @@ def login():
                 return jsonify({"status": "error", "message": msg}), 403
             return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 6. تثبيت الجلسة وتسجيل الدخول بنجاح
+        # 6. تثبيت الجلسة وتسجيل الدخول
         session.permanent = True
         session['user_type'] = found_as
-        
-        # تفريغ عداد محاولات الدخول الفاشلة
+
         session.pop('login_attempts', None)
         session.pop('block_until', None)
 
         login_user(target_user, remember=True)
-        
-        redirect_url = url_for('suppliers_dashboard.dashboard')
-        
-        # إذا كان الطلب AJAX/JSON نرجع رابط التحويل، وإلا نعمل Redirect مباشر للمتصفح
+
+        try:
+            redirect_url = url_for('suppliers_dashboard.dashboard')
+        except BuildError:
+            redirect_url = '/supplier/dashboard'
+
         if request.is_json:
             return jsonify({"status": "success", "redirect": redirect_url})
-            
+
         return redirect(redirect_url)
 
     except Exception as e:
-        print(f"❌ [Login Error]: {str(e)}")
-        msg = "حدث خطأ تقني في النظام"
+        print(f"❌ [Supplier Login Error]: {str(e)}")
+        msg = "حدث خطأ تقني في النظام أثناء تسجيل الدخول"
         if request.is_json:
             return jsonify({"status": "error", "message": msg}), 500
         return render_template('suppliers_auth_portal/login.html', error=msg)
@@ -192,26 +203,26 @@ def logout():
 # ============================================================
 # ⚡ نافذة اختبار معمارية الحالة الصفرية المستقلة (ZSA Engine Window)
 # ============================================================
-from apps.zsa_engine.engine import zsa_core
-
 def fallback_standard_method(supplier_id):
     return {"status": "fallback", "data": [0.0]}
 
-@suppliers_bp.route('/supplier/zsa-window/<int:supplier_id>', methods=['GET'])
+
+@suppliers_bp.route('/zsa-window/<int:supplier_id>', methods=['GET'])
 @login_required
 def supplier_zsa_window(supplier_id):
     sample_raw_data = [[10.0, 20.0], [30.0, 40.0], [50.0, 60.0]]
-    
+
     try:
+        from apps.zsa_engine.engine import zsa_core
         processed_results = zsa_core.process_window_data(sample_raw_data)
-        
+
         return jsonify({
             "status": "success",
             "engine": "ZSA-State-Zero",
             "supplier_id": supplier_id,
             "results": processed_results
         }), 200
-        
+
     except Exception as e:
         fallback_data = fallback_standard_method(supplier_id)
         return jsonify({
