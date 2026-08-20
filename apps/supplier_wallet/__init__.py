@@ -7,28 +7,16 @@ Mahjoub Online WebApp
 
 from flask import Blueprint
 
-# 1. إنشاء الـ Blueprint الرئيسي للمورد أولاً
+# 1. إنشاء الـ Blueprint الموحد للمورد
 supplier_wallet_bp = Blueprint(
     'supplier_wallet',
     __name__,
     template_folder='templates',
-    static_folder='static',
-    url_prefix='/supplier/wallet'
+    static_folder='static'
 )
 
-# 2. استيراد المسارات بشكل صحيح وآمن من مجلد routes الفرعي
+# 2. استيراد المسارات لربط الديكوريتورز بالـ Blueprint
 try:
-    from apps.supplier_wallet.routes import wallet_routes
+    from .routes import wallet_routes, admin_routes
 except ImportError:
-    try:
-        from .routes import wallet_routes
-    except ImportError:
-        pass
-
-try:
-    from apps.supplier_wallet.routes import admin_routes
-except ImportError:
-    try:
-        from .routes import admin_routes
-    except ImportError:
-        pass
+    pass
