@@ -1,12 +1,9 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/__init__.py
 
-import logging
 from flask import Blueprint
 
-logger = logging.getLogger(__name__)
-
-# 1. إنشاء الـ Blueprint الرئيسي لموديول المحفظة
+# 1. تعريف الـ Blueprint الخاص بمحفظة المورد
 supplier_wallet_bp = Blueprint(
     'supplier_wallet',
     __name__,
@@ -14,9 +11,11 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد حزمة المسارات (routes) لربطها بالـ Blueprint بعد إنشائه مباشرة
+# 2. استيراد مسارات المحفظة (يتم في النهاية لتفادي التداخل الدائري)
 try:
-    from . import routes
-    logger.info("✅ [Supplier Wallet]: تم تحميل مسارات المحفظة بنجاح.")
-except Exception as e:
-    logger.error(f"❌ [Supplier Wallet]: خطأ أثناء تحميل مسارات المحفظة: {e}")
+    from apps.supplier_wallet.routes import wallet_routes
+except ImportError:
+    try:
+        from apps.supplier_wallet import routes
+    except ImportError:
+        pass
