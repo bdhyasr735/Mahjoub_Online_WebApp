@@ -82,7 +82,7 @@ def seed_database():
                 username='test_supplier',
                 trade_name='متجر تجريبي',
                 owner_name='المورد التجريبي',
-                phone='0500000000',
+                phone='779077746',
                 status='active',
                 supplier_code='SUP9631'
             )
@@ -540,5 +540,12 @@ def create_app():
             'safe_url_for': safe_url_for,
             **supplier_context
         }
+
+    @app.after_request
+    def set_csrf_header(response):
+        """إرفاق رمز CSRF تلقائياً في ترويسة جميع الاستجابات لتقرأها الاختبارات والواجهة Front-end"""
+        if not response.headers.get('X-CSRF-Token'):
+            response.headers['X-CSRF-Token'] = generate_csrf()
+        return response
 
     return app
