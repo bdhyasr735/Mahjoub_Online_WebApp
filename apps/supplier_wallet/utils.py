@@ -5,7 +5,8 @@
 """
 
 from flask import session, g
-from models.wallet_models import WalletTransaction
+# تصحيح مسار استيراد نموذج المعاملات ليتوافق مع هيكل المجلدات الرئيسي
+from apps.models.wallet_db import WalletTransaction
 
 def get_current_supplier_id():
     """الحصول على معرّف المورد الحالي من الجلسة أو السياق"""
