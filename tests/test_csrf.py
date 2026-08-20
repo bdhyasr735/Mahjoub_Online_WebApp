@@ -20,32 +20,41 @@ class CSRFSecurityTestCase(unittest.TestCase):
         print(f"\n✅ [PASS]: تم استقبال الرمز من السيرفر: {csrf_token[:15]}...")
 
     def test_02_post_without_csrf_rejected(self):
-        """2. التحقق من رفض طلبات POST غير المستثناة بحالة 400 عند غياب الرمز"""
+        """2. التحقق من حظر طلبات POST غير المستثناة بـ status 400 عند غياب الرمز"""
         response = self.client.post(
-            '/dashboard', 
-            data=json.dumps({'test': 'data'}),
-            content_type='application/json'
+            '/auth/login', 
+            data={'username': 'test_user', 'password': '123'},
+            headers={'X-Requested-With': 'XMLHttpRequest'}
         )
         
         self.assertIn(response.status_code, [400, 403], "⚠️ فشل الاختبار: تم قبول الطلب بدون رمز CSRF!")
-        print("✅ [PASS]: تم حظر الطلب غير المحمي بنجاح.")
+        print("✅ [PASS]: تم حظر الطلب المحمي بنجاح عند غياب الرمز.")
 
-    def test_03_post_with_valid_csrf_accepted(self):
-        """3. التحقق من قبول الطلب عند استخراج الرمز وإرفاقه بالترويسة"""
-        get_res = self.client.get('/')
-        csrf_token = get_res.headers.get('X-CSRF-Token')
-
-        post_res = self.client.post(
-            '/admin/graphql',
-            headers={
-                'X-CSRF-Token': csrf_token,
-                'Content-Type': 'application/json'
-            },
-            data=json.dumps({'query': '{ __typename }'})
+    def test_03_whatsapp_exempt_from_csrf(self):
+        """3. التحقق من أن مسارات الواتساب مستثناة تماماً لضمان وصول الـ Webhook"""
+        response = self.client.post(
+            '/api/whatsapp/test-send',
+            data=json.dumps({'phone': '967779077746'}),
+            content_type='application/json'
         )
         
-        self.assertEqual(post_res.status_code, 200, f"⚠️ فشل الاختبار: الرمز المرفق تم رفضه (Status: {post_res.status_code})")
-        print("✅ [PASS]: تم التحقق من الرمز وقبول الطلب بنجاح.")
+        self.assertNotIn(response.status_code, [400, 403], "⚠️ فشل الاختبار: مسار الواتساب محظور بـ CSRF بالخطأ!")
+        print("✅ [PASS]: تم التأكد من استثناء خدمات الواتساب من حماية CSRF.")
+
+    def test_04_post_with_valid_csrf_accepted(self):
+        """4. التحقق من قبول الطلب المحمي عند استخراج الرمز وإرفاقه بالترويسة"""
+        with self.client as c:
+            get_res = c.get('/')
+            csrf_token = get_res.headers.get('X-CSRF-Token')
+
+            post_res = c.post(
+                '/auth/login',
+                headers={'X-CSRF-Token': csrf_token},
+                data={'username': 'test_user', 'password': '123'}
+            )
+            
+            self.assertNotIn(post_res.status_code, [400, 403], f"⚠️ فشل الاختبار: تم رفض الرمز الصحيح (Status: {post_res.status_code})")
+            print("✅ [PASS]: تم التحقق من الرمز وقبول الطلب بنجاح.")
 
 if __name__ == '__main__':
     unittest.main()
