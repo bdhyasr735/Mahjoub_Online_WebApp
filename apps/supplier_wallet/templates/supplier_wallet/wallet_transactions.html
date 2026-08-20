@@ -1,1 +1,120 @@
-ال
+{% extends "supplier/base.html" %}
+
+{% block title %}كشف الحساب وسندات الحركات المالية - منصة محجوب أونلاين{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- 1. شريط البحث والفلترة المتقدم (GET Form - Zero-JS) -->
+    <div style="background: var(--royal-purple-card); border: 1px solid var(--royal-border); border-radius: 16px; padding: 18px;">
+        <form method="GET" action="{{ url_for('supplier_wallet.wallet_dashboard') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
+            <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">بحث بالكلمة المفتاحية أو السند:</label>
+                <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="VCH-XXXXXX، رقم الحوالة، المستفيد..."
+                       style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;">
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">نوع الحركة المالية:</label>
+                <select name="trans_type" style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;">
+                    <option value="">جميع الحركات</option>
+                    <option value="deposit" {% if request.args.get('trans_type') == 'deposit' %}selected{% endif %}>تعزيز مبيعات (Deposit)</option>
+                    <option value="withdraw" {% if request.args.get('trans_type') == 'withdraw' %}selected{% endif %}>سحب رصيد (Withdraw)</option>
+                    <option value="commission" {% if request.args.get('trans_type') == 'commission' %}selected{% endif %}>عمولة منصة (Commission)</option>
+                    <option value="adjustment" {% if request.args.get('trans_type') == 'adjustment' %}selected{% endif %}>تسوية مالية (Adjustment)</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">حالة المعاملة:</label>
+                <select name="status" style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;">
+                    <option value="">جميع الحالات</option>
+                    <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتملة</option>
+                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+                    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوضة</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn-gold" style="flex: 1; justify-content: center;">
+                    بحث وتصفية
+                </button>
+                <a href="{{ url_for('supplier_wallet.wallet_dashboard') }}" style="padding: 10px 16px; background: #1f2937; color: #d1d5db; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center;">
+                    إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 2. جدول المعاملات والسندات الرسمية -->
+    <div style="background: var(--royal-purple-card); border: 1px solid var(--royal-border); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; text-align: right; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background: #0f0717; color: #9ca3af; border-bottom: 1px solid var(--royal-border); font-weight: 700;">
+                        <th style="padding: 14px 16px;">رقم السند</th>
+                        <th style="padding: 14px 16px;">المرجع البنكي</th>
+                        <th style="padding: 14px 16px;">نوع الحركة</th>
+                        <th style="padding: 14px 16px;">المبلغ</th>
+                        <th style="padding: 14px 16px;">الرصيد بعد</th>
+                        <th style="padding: 14px 16px;">البيان المحاسبي</th>
+                        <th style="padding: 14px 16px;">التوقيت (+3)</th>
+                        <th style="padding: 14px 16px;">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 14px 16px; color: var(--royal-gold); font-weight: bold;" class="font-mono">
+                            {{ tx.voucher_number }}
+                        </td>
+                        <td style="padding: 14px 16px; color: #9ca3af;" class="font-mono">
+                            {{ tx.transfer_number or tx.reference_number or '—' }}
+                        </td>
+                        <td style="padding: 14px 16px;">
+                            {% if tx.trans_type == 'deposit' %}
+                                <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.4);">تعزيز مبيعات</span>
+                            {% elif tx.trans_type == 'withdraw' %}
+                                <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid rgba(168, 85, 247, 0.4);">سحب رصيد</span>
+                            {% else %}
+                                <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid rgba(59, 130, 246, 0.4);">تسوية</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 16px; font-weight: bold; font-size: 13px;" class="font-mono">
+                            <span style="color: {% if tx.amount > 0 %}#34d399{% else %}white{% endif %};">
+                                {{ "%.2f"|format(tx.amount) }} SAR
+                            </span>
+                        </td>
+                        <td style="padding: 14px 16px; color: #d1d5db;" class="font-mono">
+                            {{ "%.2f"|format(tx.balance_after) }} SAR
+                        </td>
+                        <td style="padding: 14px 16px; color: #e5e7eb; max-width: 250px;">
+                            {{ tx.description }}
+                        </td>
+                        <td style="padding: 14px 16px; color: #9ca3af; font-size: 11px;" class="font-mono">
+                            {{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '' }}
+                        </td>
+                        <td style="padding: 14px 16px;">
+                            {% if tx.status == 'completed' %}
+                                <span style="color: #34d399; font-weight: 700;">● مكتملة</span>
+                            {% elif tx.status == 'pending' %}
+                                <span style="color: #fbbf24; font-weight: 700;">● قيد المراجعة</span>
+                            {% else %}
+                                <span style="color: #f87171; font-weight: 700;">● مرفوضة</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" style="padding: 36px; text-align: center; color: #9ca3af;">
+                            لا توجد سندات أو حركات مالية مطابقة لمعايير البحث المحددة.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
