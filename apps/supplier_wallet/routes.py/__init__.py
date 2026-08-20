@@ -1,11 +1,5 @@
-# coding: utf-8
-# 📂 apps/supplier_wallet/routes/__init__.py
+# -*- coding: utf-8 -*-
+from flask import Blueprint
 
-"""
-حزمة مسارات موديول المحفظة (Supplier Wallet Routes Package)
-- تقوم بتجميع مسارات الموردين ومسارات الإدارة وتصديرها تلقائياً.
-"""
-
+# تعريف الـ Blueprint الخاص بالمورد هنا أو استيراده من wallet_routes
 from .wallet_routes import supplier_wallet_bp
-
-__all__ = ['supplier_wallet_bp', 'admin_wallet_bp']
