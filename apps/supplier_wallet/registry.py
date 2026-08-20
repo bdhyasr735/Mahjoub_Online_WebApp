@@ -11,10 +11,11 @@ LINKS = {
 }
 
 def register_module(app):
-    # بما أن routes مجلد، يجب أن يحتوي على ملف __init__.py يجمع الـ Blueprint
-    # أو نستورده مباشرة من الحزمة
-    from apps.supplier_wallet.routes import supplier_wallet_bp
+    # نقوم بالاستيراد مباشرة من ملف wallet_routes الموجود عندك في المجلد
+    from apps.supplier_wallet.wallet_routes import supplier_wallet_bp
     
     if 'supplier_wallet' not in app.blueprints:
         app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-        print("✅ [Registry]: تم تسجيل موديول المحفظة (بنية المجلد) بنجاح.")
+        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
+    else:
+        print("ℹ️ [Registry]: موديول 'supplier_wallet' مسجل مسبقاً.")
