@@ -21,6 +21,12 @@ DISPLAY_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
+# تعريف الروابط للـ Registry بالنظامين لضمان الاكتشاف التلقائي
+NAV_ITEMS = [
+    {"endpoint": "supplier_wallet.wallet_dashboard", "title": "💳 كشف الحساب"},
+    {"endpoint": "supplier_wallet.withdraw", "title": "💸 طلب سحب"}
+]
+
 LINKS = {
     "supplier_wallet.wallet_dashboard": "💳 كشف الحساب",
     "supplier_wallet.withdraw": "💸 طلب سحب"
@@ -31,7 +37,7 @@ def register_module(app):
     """تسجيل الموديول وسياق القوالب وآلية حماية التكرار"""
     try:
         if 'supplier_wallet' not in app.blueprints:
-            # استيراد مسارات البلوبرنت من مجلد routes الفرعي الصحيح
+            # استيراد المسارات نسبياً لضمان ربطها بالمفرد
             try:
                 from .routes.wallet_routes import wallet_dashboard, index, withdraw
             except ImportError:
@@ -69,7 +75,7 @@ def get_module_stats():
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        # تم ضبط الاستيراد بالمفرد ليطابق مجلد supplier_wallet
+        # استيراد مباشر بالمفرد من مجلد supplier_wallet
         from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 
         supplier_id = get_current_supplier_id()
@@ -119,7 +125,7 @@ def get_module_link():
     """الحصول على رابط المحفظة الرئيسي"""
     try:
         return url_for('supplier_wallet.wallet_dashboard')
-    except:
+    except Exception:
         return '/supplier/wallet/'
 
 
