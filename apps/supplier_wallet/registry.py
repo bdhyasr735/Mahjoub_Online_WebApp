@@ -13,6 +13,7 @@ DISPLAY_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
+# الـ endpoints المعتمدة للملاحة والروابط
 NAV_ITEMS = [
     {"endpoint": "supplier_wallet.wallet_dashboard", "title": "💳 كشف الحساب"},
     {"endpoint": "supplier_wallet.withdraw", "title": "💸 طلب سحب"}
@@ -23,12 +24,13 @@ LINKS = {
     "supplier_wallet.withdraw": "💸 طلب سحب"
 }
 
+
 def register_module(app):
     """تسجيل الموديول والـ Blueprints وتغذية القوائم"""
     try:
         # استيراد الـ Blueprint المركزي المعرّف في الحزمة الرئيسية للمحفظة
         from apps.supplier_wallet import supplier_wallet_bp
-        
+
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
             print("✅ [Registry Wallet]: تم تسجيل supplier_wallet_bp والمسارات المربوطة بنجاح.")
@@ -64,10 +66,17 @@ def register_module(app):
 
     return app
 
+
 def get_module_stats():
     """جلب إحصائيات المحفظة المباشرة"""
     if not has_app_context():
-        return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
+        return {
+            'total_balance': '0.00',
+            'available_balance': '0.00',
+            'pending_balance': '0.00',
+            'has_wallet': False,
+            'currency': 'ر.س'
+        }
     try:
         from apps.extensions import db
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -75,11 +84,23 @@ def get_module_stats():
 
         supplier_id = get_current_supplier_id()
         if not supplier_id:
-            return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
+            return {
+                'total_balance': '0.00',
+                'available_balance': '0.00',
+                'pending_balance': '0.00',
+                'has_wallet': False,
+                'currency': 'ر.س'
+            }
 
         wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
         if not wallet_obj:
-            return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
+            return {
+                'total_balance': '0.00',
+                'available_balance': '0.00',
+                'pending_balance': '0.00',
+                'has_wallet': False,
+                'currency': 'ر.س'
+            }
 
         trx_type_col = get_trx_type_attr()
 
@@ -113,13 +134,21 @@ def get_module_stats():
         }
     except Exception as e:
         logger.error(f"❌ [Registry Wallet Stats Error]: {e}")
-        return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False, 'currency': 'ر.س'}
+        return {
+            'total_balance': '0.00',
+            'available_balance': '0.00',
+            'pending_balance': '0.00',
+            'has_wallet': False,
+            'currency': 'ر.س'
+        }
+
 
 def get_module_link():
     try:
         return url_for('supplier_wallet.wallet_dashboard')
     except Exception:
         return '/supplier/wallet/dashboard'
+
 
 def get_dashboard_card():
     stats = get_module_stats()
