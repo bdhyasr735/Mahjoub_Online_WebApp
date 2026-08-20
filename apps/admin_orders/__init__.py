@@ -3,6 +3,7 @@
 
 from .routes.orders import admin_orders_bp
 from .routes.items_controller import items_bp
+from .routes import webhook_bp  # 👈 تم استيراد الـ webhook من مجلد routes
 
 # إذا كان لديك ملف actions آخر، تأكد من وجوده أو استبدله بما يناسب مشروعك
 try:
@@ -10,4 +11,4 @@ try:
 except ImportError:
     actions_bp = None
 
-__all__ = ['admin_orders_bp', 'items_bp', 'actions_bp']
+__all__ = ['admin_orders_bp', 'items_bp', 'actions_bp', 'webhook_bp'] # 👈 تم إضافته هنا
