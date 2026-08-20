@@ -11,7 +11,7 @@ from flask import Flask, redirect, session, url_for, request, jsonify, render_te
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
-from flask_cors import CORS 
+from flask_cors import CORS
 from werkzeug.routing import BuildError
 from sqlalchemy import text, select
 import config
@@ -152,7 +152,6 @@ def seed_database():
         print(f"⚠️ [Seed Error - Supplier]: {e}")
 
 
-
 def create_app():
     app = Flask(__name__, static_folder='../static')
     app.config.from_object('config.Config')
@@ -191,13 +190,12 @@ def create_app():
     db.init_app(app)
 
     # ============================================================
-    # ✅ إعادة بناء كافة الجداول وزراعة البيانات والحركات عند الرفع / التشغيل
+    # ✅ إعادة بناء كافة الجداول وزراعة البيانات (خاصة بمرحلة التطوير)
     # ============================================================
     with app.app_context():
         import_all_models()
         
         try:
-            # إجبار PostgreSQL على حذف الـ Schema والعلاقات بالكامل لتفادي خطأ المفاتيح الأجنبية
             db.session.execute(text("DROP SCHEMA public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
