@@ -236,6 +236,9 @@ def create_app():
     csrf = CSRFProtect(app)
     limiter.init_app(app)
 
+    # ============================================================
+    # 👤 محمل المستخدمين دقيق الفصل حسب user_type
+    # ============================================================
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
@@ -243,71 +246,106 @@ def create_app():
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         
-        user_id_int = int(user_id)
+        try:
+            user_id_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
+            
         user_type = session.get('user_type')
         
         if user_type == 'admin': 
             return db.session.get(AdminUser, user_id_int)
+        elif user_type == 'admin_staff':
+            return db.session.get(AdminStaff, user_id_int)
+        elif user_type == 'supplier_staff':
+            return db.session.get(SupplierStaff, user_id_int)
+        elif user_type == 'supplier': 
+            return db.session.get(Supplier, user_id_int)
         elif user_type == 'staff': 
+            # معالجة استباقية للجلسات القديمة التي تستخدم كلمة 'staff'
             staff_admin = db.session.get(AdminStaff, user_id_int)
             if staff_admin:
                 return staff_admin
             return db.session.get(SupplierStaff, user_id_int)
-        elif user_type == 'supplier': 
-            return db.session.get(Supplier, user_id_int)
+
         return (
-            db.session.get(Supplier, user_id_int) or
-            db.session.get(SupplierStaff, user_id_int) or
             db.session.get(AdminUser, user_id_int) or 
-            db.session.get(AdminStaff, user_id_int)
+            db.session.get(AdminStaff, user_id_int) or
+            db.session.get(Supplier, user_id_int) or
+            db.session.get(SupplierStaff, user_id_int)
         )
 
     @login_manager.unauthorized_handler
     def unauthorized():
         if request.path.startswith('/supplier'):
             return redirect(url_for('suppliers_auth.login'))
-        return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        return redirect(admin_login_path)
 
     # ============================================================
-    # ✅ حماية المسارات
+    # 🔒 حماية المسارات الصارمة والعزل التام بين البوابات
     # ============================================================
     @app.before_request
     def protect_routes():
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
+
         path = request.path
         
+        # 1. الاستثناء الفوري للملفات الاستاتيكية والأيقونات
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
             return
 
-        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection', '/admin/graphql']
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+
+        # 2. قائمة مسارات الاستثناء العامة المسموحة للجميع بدون تسجيل دخول
+        exempt_prefixes = [
+            '/static', 
+            '/graphql', 
+            '/admin/graphql', 
+            '/favicon.ico', 
+            '/m7jb_test_connection', 
+            '/supplier/login', 
+            '/supplier/register',
+            '/supplier/forgot-password',
+            admin_login_path, 
+            '/auth'
+        ]
+
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
+        # 3. التحقق للمستخدمين المسجلين (عزل تام بناءً على نوع الكائن في DB)
         if current_user.is_authenticated:
-            user_type = session.get('user_type')
-            if path.startswith('/admin') or path.startswith('/dashboard'):
-                if user_type in ['admin', 'staff']:
-                    return  
-                else:
-                    return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
-            if path.startswith('/supplier'):
-                if user_type in ['supplier', 'staff']:
-                    return  
-                else:
-                    return redirect(url_for('suppliers_auth.login'))
-            return  
+            is_admin_side = isinstance(current_user, (AdminUser, AdminStaff))
+            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff))
 
+            # محاولة الوصول لمسارات الإدارة والدشبورد
+            if path.startswith('/admin') or path.startswith('/dashboard'):
+                if is_admin_side:
+                    return
+                # إذا حاول مورد دخول الإدارة يتم طرده إلى بوابة الموردين
+                return redirect(url_for('suppliers_auth.login'))
+
+            # محاولة الوصول لمسارات الموردين
+            if path.startswith('/supplier'):
+                if is_supplier_side:
+                    return
+                # إذا حاول أدمن دخول مسارات المورد يتم تحويله للوحة الإدارة
+                return redirect(admin_login_path)
+
+            return
+
+        # 4. الزوار غير المسجلين (Guests)
         if path.startswith('/supplier'):
             return redirect(url_for('suppliers_auth.login'))
-        if path.startswith('/admin') or path.startswith('/dashboard'):
-            admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-            return redirect(admin_login_path)
-        
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if not path.startswith(admin_login_path):
-            return redirect(admin_login_path)
+
+        return redirect(admin_login_path)
 
     # ============================================================
-    # ✅ إعدادات الحماية Talisman
+    # ⚙️ إعدادات الحماية Talisman
     # ============================================================
     talisman = Talisman()
     talisman.init_app(app, 
@@ -366,10 +404,23 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
+    # ============================================================
+    # 🔀 توجيه المسار الرئيسي الذكي حسب رتبة الحساب
+    # ============================================================
     @app.route('/')
     def index():
-        return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
+        
+        if current_user.is_authenticated:
+            if isinstance(current_user, (Supplier, SupplierStaff)):
+                return redirect('/supplier/dashboard')
+            return redirect('/dashboard')
+            
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        return redirect(admin_login_path)
 
+    # تسجيل البوابات الرئيسية
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
@@ -454,8 +505,8 @@ def create_app():
         if current_user.is_authenticated:
             try:
                 user_type = session.get('user_type')
-                if user_type in ['supplier', 'staff']:
-                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type == 'staff' else getattr(current_user, 'id', None)
+                if user_type in ['supplier', 'supplier_staff', 'staff']:
+                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type != 'supplier' else getattr(current_user, 'id', None)
                     if supplier_id:
                         from apps.models.supplier_db import Supplier
                         from apps.models.wallet_db import SupplierWallet
