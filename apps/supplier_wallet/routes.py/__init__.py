@@ -1,5 +1,8 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/routes/__init__.py
+"""
+📂 apps/supplier_wallet/routes/__init__.py
+حزمة مسارات محفظة المورد (Supplier Wallet Routes Package)
+- ربط واستيراد كافة ملفات التحكم والمسارات التابعة لمحفظة المورد
+"""
 
-from . import wallet_routes
-from . import admin_routes
+from .wallet_routes import *
