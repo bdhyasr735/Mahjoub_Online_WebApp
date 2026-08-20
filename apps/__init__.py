@@ -441,6 +441,14 @@ def create_app():
     except ImportError:
         pass
 
+    # 👇 **هذا هو الجزء الجديد الذي تم إضافته لتسجيل واتساب** 👇
+    try:
+        from apps.admin_orders.routes.whatsapp_webhook import webhook_bp
+        app.register_blueprint(webhook_bp)
+        print("✅ [Webhook]: تم تسجيل مسار واتساب /test-whatsapp بنجاح.")
+    except Exception as e:
+        print(f"❌ [Webhook]: خطأ في تسجيل مسار واتساب: {e}")
+
     # ============================================================
     # ✅ تسجيل الموديولات الديناميكية والأشرطة الجانبية
     # ============================================================
