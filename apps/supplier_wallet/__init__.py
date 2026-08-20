@@ -15,8 +15,5 @@ supplier_wallet_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المسارات لربط الديكوريتورز بالـ Blueprint
-try:
-    from .routes import wallet_routes, admin_routes
-except ImportError:
-    pass
+# 2. استيراد المسارات مباشرة لتسجيلها على الـ Blueprint
+from apps.supplier_wallet.routes import wallet_routes
