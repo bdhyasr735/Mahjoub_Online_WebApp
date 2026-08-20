@@ -1,15 +1,20 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/__init__.py
 """
-Mahjoub Online WebApp - Supplier Wallet Module
-Package initialization for apps/supplier_wallet
+حزمة محفظة المورد ومنظومة الحركات المالية
+Mahjoub Online WebApp
 """
-from .registry import supplier_wallet_bp, register_module
 
-# ✅ استيراد ملف المسارات الرئيسي فقط (يحتوي على كل الوظائف: dashboard, withdraw, export-pdf)
-from apps.supplier_wallet import wallet_routes
+from flask import Blueprint
 
-# ❌ تم إزالة withdraw_routes و export_routes لتجنب تضارب نقاط النهاية (endpoint) 
-#    حيث أن wallet_routes.py يغطي جميع المسارات المطلوبة بشكل كامل وآمن.
+# 1. إنشاء الـ Blueprint الرئيسي للمورد أولاً
+supplier_wallet_bp = Blueprint(
+    'supplier_wallet',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/supplier/wallet'
+)
 
-__all__ = ['supplier_wallet_bp', 'register_module']
+# 2. استيراد المسارات في نهاية الملف حصراً لمنع حدوث الاستيراد الدائري (Circular Import)
+from apps.supplier_wallet.routes import wallet_routes, admin_routes
