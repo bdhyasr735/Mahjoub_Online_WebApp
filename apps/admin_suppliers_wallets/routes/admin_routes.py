@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-📂 apps/supplier_wallet/routes/admin_routes.py
+📂 apps/admin_suppliers_wallets/routes/admin_routes.py
 متحكم الإدارة المالية للمنصة (Admin Approvals & Auditing)
 - اعتماد وقبول طلبات السحب وصرف المبالغ بنكياً
 - إطلاق إشعارات Toasts الفورية للموردين
@@ -8,8 +8,9 @@
 
 from flask import Blueprint, request, redirect, url_for, flash
 from models.wallet_models import WithdrawalRequest
-from apps.supplier_wallet.services.wallet_service import WalletService
-from apps.supplier_wallet.services.notification_service import NotificationService
+# ✅ تم تصحيح مسارات الاستيراد لتطابق المجلد الحالي
+from apps.admin_suppliers_wallets.services.wallet_service import WalletService
+from apps.admin_suppliers_wallets.services.notification_service import NotificationService
 
 admin_wallet_bp = Blueprint('admin_wallet', __name__, url_prefix='/admin/financial')
 
@@ -40,4 +41,4 @@ def approve_request(request_id):
         session.rollback()
         NotificationService.notify_error(f"خطأ أثناء اعتماد الطلب: {str(e)}")
 
-    return redirect(request.referrer or url_for('supplier_wallet.wallet_dashboard'))
+    return redirect(request.referrer or url_for('admin_suppliers_wallets.index'))
