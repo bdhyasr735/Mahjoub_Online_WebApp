@@ -1,40 +1,30 @@
 # coding: utf-8
 """
 📂 apps/supplier_wallet/routes/wallet_routes.py
-متحكم محفظة المورد الرئيسي (Supplier Wallet Flask Controller)
-- عرض كشف الحساب وسندات الحركات المالية مع البحث المفهرس
-- تقديم طلبات السحب المالي عبر POST المباشر (Zero-JS)
-- إرسال التنبيهات الفورية (Toasts)
 """
 
 from decimal import Decimal
 from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required # إضافة للتحقق من الجلسة
 from apps.extensions import db
-from apps.models.wallet_db import (
-    SupplierWallet,
-    WalletTransaction,
-    WithdrawalRequest,
-    VoucherReceipt
-)
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.bank_account_models import BankAccount
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id
 from apps.supplier_wallet import supplier_wallet_bp
 
-
 @supplier_wallet_bp.route('/', methods=['GET'])
+@login_required
 def index():
-    """التحويل المباشر للوحة القيادة"""
     return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
-
 @supplier_wallet_bp.route('/dashboard', methods=['GET'])
+@login_required
 def wallet_dashboard():
-    """لوحة القيادة الرئيسية وكشف الحساب لمحفظة المورد"""
     supplier_id = get_current_supplier_id()
     if not supplier_id:
-        flash('تعذر تحديد حساب المورد الحالي، يرجى إعادة تسجيل الدخول.', 'error')
+        flash('تعذر تحديد حساب المورد الحالي.', 'error')
         return redirect(url_for('suppliers_auth.login'))
 
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
@@ -46,54 +36,31 @@ def wallet_dashboard():
     trans_type = request.args.get('trans_type', '').strip()
     status = request.args.get('status', '').strip()
 
-    if wallet:
-        tx_query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
-        if query_search:
-            tx_query = tx_query.filter(
-                (WalletTransaction.description.ilike(f'%{query_search}%')) |
-                (WalletTransaction.voucher_number.ilike(f'%{query_search}%')) |
-                (WalletTransaction.reference_number.ilike(f'%{query_search}%')) |
-                (WalletTransaction.transfer_number.ilike(f'%{query_search}%')) |
-                (WalletTransaction.order_id.ilike(f'%{query_search}%')) |
-                (WalletTransaction.approval_ref.ilike(f'%{query_search}%')) |
-                (WalletTransaction.display_beneficiary.ilike(f'%{query_search}%')) |
-                (WalletTransaction.display_bank.ilike(f'%{query_search}%'))
-            )
-        if trans_type:
-            tx_query = tx_query.filter_by(trans_type=trans_type)
-        if status:
-            tx_query = tx_query.filter_by(status=status)
+    tx_query = WalletTransaction.query.filter_by(wallet_id=wallet.id) if wallet else WalletTransaction.query.filter(False)
 
-        pagination = tx_query.order_by(WalletTransaction.created_at.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
+    if query_search:
+        tx_query = tx_query.filter(
+            (WalletTransaction.description.ilike(f'%{query_search}%')) |
+            (WalletTransaction.voucher_number.ilike(f'%{query_search}%'))
         )
-        transactions_list = pagination.items
-    else:
-        pagination = None
-        transactions_list = []
+    if trans_type: tx_query = tx_query.filter_by(trans_type=trans_type)
+    if status: tx_query = tx_query.filter_by(status=status)
+
+    pagination = tx_query.order_by(WalletTransaction.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
     return render_template(
         'supplier_wallet/wallet_transactions.html',
         wallet=wallet,
-        transactions=transactions_list,
+        transactions=pagination.items,
         pagination=pagination
     )
 
-
-@supplier_wallet_bp.route('/transactions', methods=['GET'])
-def transactions():
-    """اسم مسار بديل لكشف الحساب"""
-    return wallet_dashboard()
-
-
 @supplier_wallet_bp.route('/withdraw', methods=['GET', 'POST'])
+@login_required
 def withdraw():
-    """طلب سحب رصيد بنكي عبر نموذج POST فوري (Zero-JS)"""
     supplier_id = get_current_supplier_id()
-    if not supplier_id:
-        flash('تعذر تحديد حساب المورد الحالي، يرجى إعادة تسجيل الدخول.', 'error')
-        return redirect(url_for('suppliers_auth.login'))
-
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
     bank_accounts = BankAccount.query.filter_by(supplier_id=supplier_id).all()
 
@@ -111,15 +78,11 @@ def withdraw():
                 notes=notes
             )
             db.session.commit()
-
-            # إطلاق إشعار Toast فوري بنجاح تقديم طلب السحب
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
-            flash('تم تقديم طلب السحب بنجاح وهو قيد المراجعة.', 'success')
+            flash('تم تقديم طلب السحب بنجاح.', 'success')
             return redirect(url_for('supplier_wallet.wallet_dashboard'))
-
         except Exception as e:
             db.session.rollback()
-            NotificationService.notify_error(str(e), title="فشل تقديم طلب السحب")
             flash(f'فشل تقديم طلب السحب: {str(e)}', 'error')
 
     return render_template(
