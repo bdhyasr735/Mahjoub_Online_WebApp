@@ -2,17 +2,9 @@
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
-from flask import Blueprint, has_app_context, url_for
+from flask import has_app_context, url_for
 
 logger = logging.getLogger(__name__)
-
-# إنشاء الـ Blueprint المباشر
-supplier_wallet_bp = Blueprint(
-    'supplier_wallet', 
-    __name__,
-    template_folder='templates',
-    static_folder='static'
-)
 
 MODULE_NAME = "الإدارة المالية"
 TITLE = "الإدارة المالية"
@@ -33,24 +25,19 @@ LINKS = {
 
 def register_module(app):
     """تسجيل الموديول والـ Blueprints وتغذية القوائم"""
-    # 1. تسجيل الـ Blueprint فوراً لحماية الـ Static والمسارات في Jinja
     try:
+        # استيراد الـ Blueprint المركزي المعرّف في الحزمة الرئيسية للمحفظة
+        from apps.supplier_wallet import supplier_wallet_bp
+        
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-            print("✅ [Registry Wallet]: تم تسجيل supplier_wallet_bp بنجاح.")
-    except Exception as e:
-        print(f"❌ [Registry Wallet BP Error]: {e}")
+            print("✅ [Registry Wallet]: تم تسجيل supplier_wallet_bp والمسارات المربوطة بنجاح.")
 
-    # 2. استيراد ملفات المسارات الفرعية بحذر
-    try:
-        from apps.supplier_wallet.routes import wallet_routes
     except Exception as e:
-        try:
-            from .routes import wallet_routes
-        except Exception as err:
-            print(f"⚠️ [Registry Wallet Routes Warning]: {err}")
+        print(f"❌ [Registry Wallet Error]: فشل تسجيل موديول المحفظة: {e}")
+        logger.error(f"Registry Wallet Error: {e}")
 
-    # 3. حقن القوائم في سياق التطبيق
+    # حقن القوائم والبيانات في سياق القوالب
     try:
         @app.context_processor
         def inject_supplier_wallet_meta():
