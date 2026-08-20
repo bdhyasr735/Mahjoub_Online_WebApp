@@ -1,6 +1,5 @@
 # 📂 tests/test_csrf.py
 import unittest
-import json
 import requests
 from apps import create_app
 
@@ -21,31 +20,38 @@ class CSRFSecurityTestCase(unittest.TestCase):
         self.assertIn(response.status_code, [400, 403])
 
     def test_03_trigger_whatsapp_send_on_upload(self):
-        """قراءة المفاتيح من config.py أو استخدام قيم الاختبار المباشرة"""
+        """إرسال رسالة نصية مباشرة للرقم 779077746"""
         with self.app.app_context():
-            # يقرأ من config.py الخاص بـ Flask، وفي حال عدم وجوده يضع المفتاح الحقيقي للاختبار
-            token = self.app.config.get('WHATSAPP_TOKEN') or "ضع_التوكن_الخاص_بـMeta_هنا"
-            phone_id = self.app.config.get('WHATSAPP_PHONE_ID') or "ضع_Phone_Number_ID_هنا"
+            token = self.app.config.get('WHATSAPP_ACCESS_TOKEN')
+            phone_id = self.app.config.get('WHATSAPP_PHONE_NUMBER_ID')
+            api_version = self.app.config.get('WHATSAPP_API_VERSION', 'v20.0')
             target_phone = "967779077746"
 
-            url = f"https://graph.facebook.com/v19.0/{phone_id}/messages"
+            if not token or not phone_id:
+                print("❌ [Error]: المتغيرات مفقودة في البيئة الحالية.")
+                return
+
+            url = f"https://graph.facebook.com/{api_version}/{phone_id}/messages"
             headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
             }
+            
+            # 🎯 تم التغيير إلى رسالة نصية عادية وبنص مخصص
             payload = {
                 "messaging_product": "whatsapp",
+                "recipient_type": "individual",
                 "to": target_phone,
-                "type": "template",
-                "template": {
-                    "name": "hello_world",
-                    "language": {"code": "en_US"}
+                "type": "text",
+                "text": {
+                    "preview_url": False,
+                    "body": "🏛️ *محجوب أونلاين*\n\nتم رفع الملف وتشغيل الاختبارات بنجاح! هذه الرسالة تأكيد لوصول الإشعارات المباشرة إلى رقمك. ✅"
                 }
             }
 
             res = requests.post(url, json=payload, headers=headers)
-            print(f"\n📩 [Meta Status]: {res.status_code}")
-            print(f"📩 [Meta Response]: {res.text}\n")
+            print(f"\n📩 [Meta Status Code]: {res.status_code}")
+            print(f"📩 [Meta API Response]: {res.text}\n")
 
 if __name__ == '__main__':
     unittest.main()
