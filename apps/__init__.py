@@ -32,16 +32,20 @@ def import_all_models():
                 try:
                     importlib.import_module(f"apps.models.{module_name}")
                 except Exception as e:
-                    print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
+                    print(f"⚠️ [Model Import Error] فشل استيراد النماذج من {module_name}: {e}")
 
 
 def seed_database():
     """زراعة البيانات المبدئية وتسجيل حركة وسند الرصيد الافتتاحي في المحفظة والخزينة العامة (1,000,000 ر.س)"""
-    from apps.models.admin_db import AdminUser
-    from apps.models.admin_staff_db import AdminStaff
-    from apps.models.supplier_db import Supplier
-    from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
-    from apps.models.treasury_db import TreasuryEntry
+    try:
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
+        from apps.models.supplier_db import Supplier
+        from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
+        from apps.models.treasury_db import TreasuryEntry
+    except ImportError as ie:
+        print(f"⚠️ [Seed Import Error]: تعذر استيراد بعض نماذج الزراعة: {ie}")
+        return
 
     # 1. زراعة المالك
     try:
@@ -281,9 +285,6 @@ def create_app():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         return redirect(admin_login_path)
 
-    # ============================================================
-    # 🔒 حماية المسارات الصارمة والعزل التام بين البوابات
-    # ============================================================
     @app.before_request
     def protect_routes():
         from apps.models.admin_db import AdminUser
@@ -336,9 +337,6 @@ def create_app():
 
         return redirect(admin_login_path)
 
-    # ============================================================
-    # ⚙️ إعدادات الحماية Talisman
-    # ============================================================
     talisman = Talisman()
     talisman.init_app(app, 
         content_security_policy={
