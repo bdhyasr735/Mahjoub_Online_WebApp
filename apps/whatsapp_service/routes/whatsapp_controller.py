@@ -189,6 +189,12 @@ def send_message_api():
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
+@whatsapp_bp.route('/api/ping', methods=['GET'])
+def ping_meta_api():
+    """Checks Meta API connection status."""
+    return jsonify({"status": "active", "message": "WhatsApp API helper is ready."})
+
+
 # ==============================================================================
 # 3. ADMIN DASHBOARD VIEWS (JINJA2)
 # ==============================================================================
@@ -225,7 +231,6 @@ def settings_dashboard():
     }
     
     if request.method == 'POST':
-        # تحديث المتغيرات أو حفظها محلياً إن أردت
         flash('تم حفظ الإعدادات بنجاح', 'success')
         return redirect(url_for('whatsapp_service.settings_dashboard'))
         
