@@ -5,7 +5,7 @@
 {% block content %}
 <div style="display: flex; flex-direction: column; gap: 20px;">
 
-    <!-- 1. شريط البحث والفلترة المتقدم -->
+    <!-- 1. شريط البحث والفلترة المتقدم (زر واحد فقط) -->
     <div style="background: #1a0b2e; border: 1px solid #332155; border-radius: 16px; padding: 18px;">
         <form method="GET" action="{{ url_for('supplier_wallet.transactions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
             <div>
@@ -35,13 +35,10 @@
                 </select>
             </div>
 
-            <div style="display: flex; gap: 8px;">
-                <button type="submit" style="flex: 1; justify-content: center; background: #D4AF37; color: #1a0b2e; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer;">
+            <div>
+                <button type="submit" style="width: 100%; background: #D4AF37; color: #1a0b2e; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 12px;">
                     بحث وتصفية
                 </button>
-                <a href="{{ url_for('supplier_wallet.transactions') }}" style="padding: 10px 16px; background: #1f2937; color: #d1d5db; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center;">
-                    إلغاء
-                </a>
             </div>
         </form>
     </div>
@@ -53,7 +50,7 @@
                 <thead>
                     <tr style="background: #0f0717; color: #9ca3af; border-bottom: 1px solid #332155; font-weight: 700;">
                         <th style="padding: 14px 16px;">رقم السند</th>
-                        <th style="padding: 14px 16px;">المرجع البنكي</th>
+                        <th style="padding: 14px 16px;">الجهة (البنك / الشركة)</th>
                         <th style="padding: 14px 16px;">نوع الحركة</th>
                         <th style="padding: 14px 16px;">المبلغ</th>
                         <th style="padding: 14px 16px;">الرصيد بعد</th>
@@ -68,8 +65,8 @@
                         <td style="padding: 14px 16px; color: #D4AF37; font-weight: bold;" class="font-mono">
                             {{ tx.voucher_number }}
                         </td>
-                        <td style="padding: 14px 16px; color: #9ca3af;" class="font-mono">
-                            {{ tx.transfer_number or tx.reference_number or '—' }}
+                        <td style="padding: 14px 16px; color: #D4AF37; font-weight: 600;">
+                            {{ tx.bank_name or tx.company_name or wallet.bank_name or wallet.company_name or 'محجوب أونلاين' }}
                         </td>
                         <td style="padding: 14px 16px;">
                             {% if tx.trans_type == 'deposit' %}
