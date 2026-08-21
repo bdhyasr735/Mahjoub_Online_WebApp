@@ -10,7 +10,7 @@ from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, W
 
 logger = logging.getLogger(__name__)
 
-whatsapp_bp = Blueprint('whatsapp_service', __name__)
+whatsapp_bp = Blueprint('whatsapp_service', __name__, url_prefix='/admin/whatsapp')
 api_client = WhatsAppApiClient()
 
 VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026')
