@@ -26,20 +26,17 @@
                 <span style="display: block; font-size: 11px; color: #9ca3af; margin-top: 6px;">الحد الأدنى للسحب 50.00 ريال سعودي. التحويل معفى من الرسوم.</span>
             </div>
 
+            <!-- عرض جهة التحويل أو الحساب البنكي المسجل تلقائياً -->
             <div>
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #e5e7eb; margin-bottom: 8px;">
-                    الحساب البنكي المعتمد <span style="color: #ef4444;">*</span>
+                    جهة التحويل (الحساب البنكي المعتمد عند الاشتراك)
                 </label>
-                <select name="bank_account_id" required style="width: 100%; background: #0f0717; border: 1px solid var(--royal-border); border-radius: 12px; padding: 12px 16px; color: white; font-size: 13px; outline: none;">
-                    {% if bank_accounts %}
-                        {% for bank in bank_accounts %}
-                            <option value="{{ bank.id }}">{{ bank.bank_name }} - {{ bank.beneficiary_name }} ({{ bank.iban_masked }})</option>
-                        {% endfor %}
-                    {% else %}
-                        <option value="1">مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921) [رئيسي]</option>
-                        <option value="2">البنك الأهلي السعودي - مؤسسة محجوب (SA44 1000 **** **** 8812)</option>
-                    {% endif %}
-                </select>
+                <div style="width: 100%; background: #0f0717; border: 1px solid var(--royal-border); border-radius: 12px; padding: 12px 16px; color: var(--royal-gold); font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: space-between;">
+                    <span>{{ wallet.bank_name or active_bank.bank_name or 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)' }}</span>
+                    <span style="font-size: 11px; background: rgba(212, 175, 55, 0.15); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold);">معتمد تلقائياً</span>
+                </div>
+                <!-- حقل خفي لتمرير معرف الحساب أو اسم البنك تلقائياً مع الـ POST -->
+                <input type="hidden" name="bank_account_id" value="{{ wallet.bank_account_id or active_bank.id or 1 }}">
             </div>
 
             <div>
