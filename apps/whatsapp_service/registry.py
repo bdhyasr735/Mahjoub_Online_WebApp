@@ -44,11 +44,14 @@ MODULE_NAME = SERVICE_METADATA["display_name"]
 MODULE_ICON = SERVICE_METADATA["icon"]
 SHOW_IN_SUPPLIER = False
 
-# تحويل قائمة القنوات الإدارية إلى قاموس (Links) ليتوافق مع الفحص الديناميكي في __init__.py
+# تحويل قائمة القنوات الإدارية إلى قاموس (Links) ليتوافق مع الفحص الديناميكي في القالب
 LINKS = {
     item["endpoint"]: item["title"] 
     for item in SERVICE_METADATA.get("admin_menu", [])
 }
+
+# حقن الـ links داخل الـ Metadata ليتوافق مع ما يبحث عنه admin_base.html
+SERVICE_METADATA["links"] = LINKS
 
 def register_module(app):
     """
