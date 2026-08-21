@@ -10,7 +10,8 @@ from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, W
 
 logger = logging.getLogger(__name__)
 
-whatsapp_bp = Blueprint('whatsapp_service', __name__, url_prefix='/admin/whatsapp')
+# إزالة الـ url_prefix وكتابة المسارات كاملة لتجنب أي تداخل
+whatsapp_bp = Blueprint('whatsapp_service', __name__)
 api_client = WhatsAppApiClient()
 
 VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026')
@@ -19,7 +20,7 @@ VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
 # ==============================================================================
 
-@whatsapp_bp.route('/webhook', methods=['GET'])
+@whatsapp_bp.route('/admin/whatsapp/webhook', methods=['GET'])
 def verify_webhook():
     """
     Handles Meta's Hub Challenge verification handshake.
@@ -35,7 +36,7 @@ def verify_webhook():
     logger.warning("❌ [Webhook Verify] Token mismatch or invalid mode.")
     return "Verification token mismatch", 403
 
-@whatsapp_bp.route('/webhook', methods=['POST'])
+@whatsapp_bp.route('/admin/whatsapp/webhook', methods=['POST'])
 def handle_webhook():
     """
     Receives real-time incoming messages, delivery receipts (sent, delivered, read),
@@ -60,7 +61,6 @@ def handle_webhook():
                         name = contact_profile.get('name', 'عميل متجر محجوب')
 
                         # Save inbound message log in DB
-                        # WhatsAppMessageLog.create(...)
                         logger.info(f"💬 [Incoming Message] From: {name} ({sender}): {text}")
 
                 # 2. Process Status Updates (sent / delivered / read / failed)
@@ -82,7 +82,7 @@ def handle_webhook():
 # 2. INTERNAL API ENDPOINTS (SENDING & SYNC)
 # ==============================================================================
 
-@whatsapp_bp.route('/api/send-message', methods=['POST'])
+@whatsapp_bp.route('/admin/whatsapp/api/send-message', methods=['POST'])
 def send_message_api():
     """
     Sends message to a customer and logs record in database.
@@ -101,7 +101,7 @@ def send_message_api():
     return jsonify(result), 200 if result.get('success') else 500
 
 
-@whatsapp_bp.route('/api/ping', methods=['GET'])
+@whatsapp_bp.route('/admin/whatsapp/api/ping', methods=['GET'])
 def ping_meta_api():
     """Checks Meta API connection and token validity."""
     res = api_client.ping_connection()
@@ -112,14 +112,14 @@ def ping_meta_api():
 # 3. ADMIN DASHBOARD TEMPLATES (JINJA2)
 # ==============================================================================
 
-@whatsapp_bp.route('/dashboard')
+@whatsapp_bp.route('/admin/whatsapp/dashboard', methods=['GET'])
 def chat_dashboard():
     return render_template('admin/whatsapp_dashboard.html', active_tab='chat')
 
-@whatsapp_bp.route('/logs')
+@whatsapp_bp.route('/admin/whatsapp/logs', methods=['GET'])
 def logs_dashboard():
     return render_template('admin/whatsapp_dashboard.html', active_tab='logs')
 
-@whatsapp_bp.route('/settings')
+@whatsapp_bp.route('/admin/whatsapp/settings', methods=['GET'])
 def settings_dashboard():
     return render_template('admin/whatsapp_dashboard.html', active_tab='settings')
