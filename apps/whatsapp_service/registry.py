@@ -64,14 +64,17 @@ def register_module(app):
         if 'whatsapp_service' not in app.blueprints:
             app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         
-        # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً
+        # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً وضمان تفعيلها
         with app.app_context():
             from apps.whatsapp_service.models import whatsapp_models
             try:
                 from app import db
                 db.create_all()
+                print("✅ [WhatsApp Module]: تم التحقق من إنشاء جداول قاعدة البيانات بنجاح.")
             except ImportError:
                 pass
+            except Exception as db_err:
+                print(f"⚠️ [WhatsApp DB Creation Warning]: {db_err}")
 
         # تسجيل بيانات الموديول والخدمة في التطبيق
         if not hasattr(app, 'registered_services'):
