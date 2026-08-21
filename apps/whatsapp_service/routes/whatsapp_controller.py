@@ -83,13 +83,11 @@ def handle_webhook():
     """
     مستقبل آمن للرسائل يدعم كافة المسارات مع أدوات تشخيص متقدمة لمعرفة سبب خطأ 400.
     """
-    # --- أدوات التشخيص (Debug Spy) ---
     logger.info("📡 [Webhook Debug] Received POST request from Meta")
     logger.info(f"Headers: {dict(request.headers)}")
     
     raw_data = request.get_data(as_text=True)
     logger.info(f"Raw Data Body: {raw_data}")
-    # ---------------------------------
 
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
