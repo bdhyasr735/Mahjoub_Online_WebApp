@@ -424,19 +424,11 @@ def create_app():
     except ImportError:
         pass
 
-    try:
-        from apps.whatsapp_service.whatsapp_api import whatsapp_bp
-        app.register_blueprint(whatsapp_bp)
-        csrf.exempt(whatsapp_bp)
-        print("✅ [Portal]: تم تسجيل موديول خدمات الواتساب (WhatsApp Service) بنجاح.")
-    except Exception as e:
-        print(f"❌ [Portal]: خطأ في تسجيل موديول الواتساب: {e}")
-
     # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي للموديولات (يعمل تلقائياً لأي مجلد جديد)
+    # 🔄 التسجيل الديناميكي التلقائي للموديولات عبر ملف الـ registry.py
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
