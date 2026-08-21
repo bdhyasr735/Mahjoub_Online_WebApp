@@ -1,52 +1,36 @@
 # coding: utf-8
-# 📂 apps/whatsapp_service/models/whatsapp_models.py
+# 📂 apps/models/whatsapp_models.py
 
 """
 SQLAlchemy Database Models for WhatsApp Integration
-===================================================
-Linked with Mahgoob Online Core Database Models (Order, User)
+Moved to global apps/models for automatic discovery by db.create_all()
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON
-from sqlalchemy.orm import relationship
+from app import db 
 
-# Import db base from core app or define standalone
-try:
-    from app import db
-    BaseModel = db.Model
-except Exception:
-    from sqlalchemy.ext.declarative import declarative_base
-    BaseModel = declarative_base()
-
-class WhatsAppMessageLog(BaseModel):
+class WhatsAppMessageLog(db.Model):
     """
     Stores all outbound & inbound messages with delivery receipts and Order links.
     """
     __tablename__ = 'whatsapp_message_logs'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    wamid = Column(String(128), unique=True, index=True, nullable=True, comment="Meta Message ID")
-    direction = Column(String(16), nullable=False, default='outbound', comment="inbound or outbound")
-    sender_number = Column(String(32), nullable=False, index=True)
-    recipient_number = Column(String(32), nullable=False, index=True)
-    customer_name = Column(String(128), nullable=True)
-    
-    # ForeignKey relation to core Order table
-    order_id = Column(String(64), nullable=True, index=True, comment="e.g. ORD-2409")
-    
-    message_type = Column(String(32), default='text', comment="text, template, image, document")
-    content = Column(Text, nullable=False)
-    template_name = Column(String(64), nullable=True)
-    
-    # Status: sent, delivered, read, received, failed
-    status = Column(String(32), default='sent', index=True)
-    error_message = Column(Text, nullable=True)
-    
-    raw_payload = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)  # حقل مضاف للتوافق التام مع الكنترولر
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    wamid = db.Column(db.String(128), unique=True, index=True, nullable=True)
+    direction = db.Column(db.String(16), nullable=False, default='outbound')
+    sender_number = db.Column(db.String(32), nullable=False, index=True)
+    recipient_number = db.Column(db.String(32), nullable=False, index=True)
+    customer_name = db.Column(db.String(128), nullable=True)
+    order_id = db.Column(db.String(64), nullable=True, index=True)
+    message_type = db.Column(db.String(32), default='text')
+    content = db.Column(db.Text, nullable=False)
+    template_name = db.Column(db.String(64), nullable=True)
+    status = db.Column(db.String(32), default='sent', index=True)
+    error_message = db.Column(db.Text, nullable=True)
+    raw_payload = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
         time_val = self.timestamp or self.created_at
@@ -66,28 +50,28 @@ class WhatsAppMessageLog(BaseModel):
             "timestamp": time_val.isoformat() if time_val else None
         }
 
-class WhatsAppWebhookEvent(BaseModel):
+class WhatsAppWebhookEvent(db.Model):
     """
-    Raw logs of all inbound Webhook payloads from Meta for audit and debugging.
+    Raw logs of all inbound Webhook payloads.
     """
     __tablename__ = 'whatsapp_webhook_events'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    event_type = Column(String(64), default='messages', comment="messages, statuses, error")
-    payload = Column(JSON, nullable=False)
-    processed = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    event_type = db.Column(db.String(64), default='messages')
+    payload = db.Column(db.JSON, nullable=False)
+    processed = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class WhatsAppCustomerContact(BaseModel):
+class WhatsAppCustomerContact(db.Model):
     """
-    Active customer threads with last message snippet and unread badges.
+    Active customer threads.
     """
     __tablename__ = 'whatsapp_customer_contacts'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    phone = Column(String(32), unique=True, index=True, nullable=False)
-    name = Column(String(128), nullable=False)
-    active_order_id = Column(String(64), nullable=True)
-    unread_count = Column(Integer, default=0)
-    last_message = Column(Text, nullable=True)
-    last_timestamp = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    phone = db.Column(db.String(32), unique=True, index=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    active_order_id = db.Column(db.String(64), nullable=True)
+    unread_count = db.Column(db.Integer, default=0)
+    last_message = db.Column(db.Text, nullable=True)
+    last_timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
