@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/routes/whatsapp_controller.py
+
 """
 WhatsApp Routes and Webhook Controllers for Mahgoob Online
 """
@@ -6,7 +9,8 @@ from flask import Blueprint, request, jsonify, render_template, current_app
 import os
 import logging
 from ..whatsapp_api import WhatsAppApiClient
-from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
+# من المفترض أن تكون النماذج جاهزة لديك في ملف models
+# from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
 
 logger = logging.getLogger(__name__)
 
@@ -86,12 +90,21 @@ def ping_meta_api():
 
 @whatsapp_bp.route('/dashboard', methods=['GET'])
 def chat_dashboard():
-    return render_template('admin/whatsapp_dashboard.html', active_tab='chat')
+    """لوحة محادثات العملاء - العرض السيادي"""
+    # هنا سيتم لاحقاً جلب بيانات المحادثات من قاعدة البيانات
+    mock_contacts = [] 
+    return render_template(
+        'admin/chat_view.html', 
+        active_tab='chat',
+        contacts=mock_contacts
+    )
 
 @whatsapp_bp.route('/logs', methods=['GET'])
 def logs_dashboard():
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs')
+    """لوحة سجل الرسائل"""
+    return render_template('admin/whatsapp_logs.html', active_tab='logs')
 
 @whatsapp_bp.route('/settings', methods=['GET'])
 def settings_dashboard():
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings')
+    """لوحة إعدادات Meta Cloud API"""
+    return render_template('admin/whatsapp_settings.html', active_tab='settings')
