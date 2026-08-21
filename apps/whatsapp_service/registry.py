@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/registry.py
+
 """
 Service Registry & Permissions Module for WhatsApp Service
 """
@@ -34,6 +37,17 @@ SERVICE_METADATA = {
         "whatsapp.view_logs",
         "whatsapp.admin_settings"
     ]
+}
+
+# المتغيرات المطلوبة ليتعرف عليها نظام التسجيل الديناميكي بسلاسة
+MODULE_NAME = SERVICE_METADATA["display_name"]
+MODULE_ICON = SERVICE_METADATA["icon"]
+SHOW_IN_SUPPLIER = False
+
+# تحويل قائمة القنوات الإدارية إلى قاموس (Links) ليتوافق مع الفحص الديناميكي في __init__.py
+LINKS = {
+    item["endpoint"]: item["title"] 
+    for item in SERVICE_METADATA.get("admin_menu", [])
 }
 
 def register_module(app):
