@@ -69,17 +69,37 @@ def verify_webhook():
     logger.warning("❌ [Webhook Verify] Token mismatch.")
     return "Verification token mismatch", 403
 
+@whatsapp_bp.route('/webhook', methods=['POST'])
 @whatsapp_bp.route('/webhook-admin', methods=['POST'])
 def handle_webhook():
     """
-    Receives real-time incoming messages and saves them directly into PostgreSQL/SQLite with safe JSON parsing.
+    مستقبل آمن للرسائل يدعم كافة المسارات ويمنع خطأ 400 نهائياً عبر استقبال البيانات كـ JSON أو Form أو Raw Text.
     """
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
 
+    # استقبال آمن للبيانات حتى لو لم تُرسل كـ JSON صريح لتجنب خطأ 400
+    data = None
+    if request.is_json:
+        data = request.get_json(silent=True)
+    
+    if not data:
+        data = request.form.to_dict()
+        
+    if not data:
+        try:
+            raw_data = request.get_data(as_text=True)
+            if raw_data:
+                import json
+                data = json.loads(raw_data)
+        except Exception:
+            data = {}
+            
+    if not data:
+        data = {}
+
     try:
-        # 1. Save raw webhook event for debugging/audit
+        # 1. حفظ الحدث الخام في قاعدة البيانات للمراجعة والتدقيق
         if db:
             raw_event = WhatsAppWebhookEvent(
                 event_type="incoming_payload",
@@ -94,10 +114,10 @@ def handle_webhook():
             for change in entry.get('changes', []):
                 value = change.get('value', {})
 
-                # Process Inbound Messages from Customers
+                # معالجة الرسائل الواردة من العملاء
                 if 'messages' in value:
                     for msg in value['messages']:
-                        sender = msg.get('from')  # Customer Phone Number
+                        sender = msg.get('from')  # رقم هاتف العميل
                         msg_type = msg.get('type', 'text')
                         
                         if msg_type == 'text':
@@ -107,7 +127,7 @@ def handle_webhook():
                             
                         wamid = msg.get('id')
                         
-                        # Get sender name from contact profile if available
+                        # جلب اسم المرسل من ملف التعريف إذا كان متوفراً
                         contacts_list = value.get('contacts', [])
                         customer_name = f"عميل ({sender})"
                         if contacts_list:
@@ -115,7 +135,7 @@ def handle_webhook():
                             if profile_name:
                                 customer_name = profile_name
 
-                        # Save Inbound Message to DB Log
+                        # حفظ رسالة الوارد في سجل قاعدة البيانات
                         if db:
                             log_entry = WhatsAppMessageLog(
                                 wamid=wamid,
@@ -129,7 +149,7 @@ def handle_webhook():
                             )
                             db.session.add(log_entry)
 
-                            # Update or create customer contact thread to prevent UI freezing
+                            # تحديث أو إنشاء محادثة العميل لمنع تجمد الواجهة
                             contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
                             if contact:
                                 contact.name = customer_name
@@ -149,7 +169,7 @@ def handle_webhook():
                             db.session.commit()
                             logger.info(f"📥 [Inbound Saved] From {customer_name} ({sender}): {text}")
 
-                # Process Status Updates (sent, delivered, read)
+                # معالجة تحديثات حالة الرسائل (تم الإرسال، الاستلام، القراءة)
                 elif 'statuses' in value:
                     for st in value['statuses']:
                         wamid = st.get('id')
@@ -165,6 +185,7 @@ def handle_webhook():
         if db:
             db.session.rollback()
 
+    # الرد دائماً بـ 200 لتأكيد استلام الطلب لميتا ومنع إعادة الإرسال المتكرر
     return jsonify({"status": "EVENT_RECEIVED"}), 200
 
 
