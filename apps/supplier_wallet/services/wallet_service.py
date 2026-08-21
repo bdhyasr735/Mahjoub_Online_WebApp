@@ -10,20 +10,45 @@
 from decimal import Decimal
 import secrets
 from datetime import datetime, timezone, timedelta
-from apps.models.wallet_db import (
-    SupplierWallet,
-    WalletTransaction,
-    WithdrawalRequest,
-    WalletAuditLog,
-    generate_voucher_number,
-    get_mecca_now
-)
+from apps.extensions import db
 
-# استيراد آمن لكلاس السندات لضمان عدم توقف السيرفر إذا لم يكن معرّفاً
+# استيراد النماذج الأساسية المطلوبة جزئياً مع حماية كاملة
+try:
+    from apps.models.wallet_db import SupplierWallet
+except ImportError:
+    SupplierWallet = None
+
+try:
+    from apps.models.wallet_db import WalletTransaction
+except ImportError:
+    WalletTransaction = None
+
+try:
+    from apps.models.wallet_db import WithdrawalRequest
+except ImportError:
+    WithdrawalRequest = None
+
 try:
     from apps.models.wallet_db import VoucherReceipt
 except ImportError:
     VoucherReceipt = None
+
+try:
+    from apps.models.wallet_db import WalletAuditLog
+except ImportError:
+    WalletAuditLog = None
+
+try:
+    from apps.models.wallet_db import generate_voucher_number
+except ImportError:
+    def generate_voucher_number():
+        return f"VCH-{datetime.now().strftime('%Y%m%d')}-{secrets.token_hex(2).upper()}"
+
+try:
+    from apps.models.wallet_db import get_mecca_now
+except ImportError:
+    def get_mecca_now():
+        return datetime.now(timezone(timedelta(hours=3)))
 
 
 class WalletService:
@@ -32,8 +57,11 @@ class WalletService:
     """
 
     @staticmethod
-    def get_or_create_wallet(session, supplier_id: int, store_name: str, supplier_code: str = None) -> SupplierWallet:
+    def get_or_create_wallet(session, supplier_id: int, store_name: str, supplier_code: str = None):
         """جلب المحفظة أو إنشاؤها فورياً برقم تسلسلي موحد"""
+        if not SupplierWallet:
+            raise ValueError("نموذج SupplierWallet غير معرّف في قاعدة البيانات")
+            
         wallet = session.query(SupplierWallet).filter_by(supplier_id=supplier_id).first()
         if not wallet:
             if not supplier_code:
@@ -61,10 +89,13 @@ class WalletService:
         description: str,
         order_id: str = None,
         reference_number: str = None
-    ) -> WalletTransaction:
+    ):
         """
         إضافة رصيد مبيعات أو تعزيز مالي للمحفظة مع قفل القيد (Row Locking)
         """
+        if not SupplierWallet or not WalletTransaction:
+            raise ValueError("نماذج المحفظة الأساسية غير متوفرة")
+
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wallet_id).first()
         if not wallet:
             raise ValueError("المحفظة غير موجودة")
@@ -112,14 +143,15 @@ class WalletService:
             )
             session.add(receipt)
 
-        # تسجيل التدقيق الأمني
-        audit = WalletAuditLog(
-            wallet_id=wallet.id,
-            action_type='DEPOSIT_REVENUE',
-            actor_name='SYSTEM_AUTOMATION',
-            changes_json={"amount": str(amount), "voucher": voucher_num, "balance_after": str(wallet.balance_sar)}
-        )
-        session.add(audit)
+        # تسجيل التدقيق الأمني إن وجد النموذج
+        if WalletAuditLog:
+            audit = WalletAuditLog(
+                wallet_id=wallet.id,
+                action_type='DEPOSIT_REVENUE',
+                actor_name='SYSTEM_AUTOMATION',
+                changes_json={"amount": str(amount), "voucher": voucher_num, "balance_after": str(wallet.balance_sar)}
+            )
+            session.add(audit)
 
         return tx
 
@@ -130,10 +162,13 @@ class WalletService:
         bank_account_id: int,
         amount: Decimal,
         notes: str = None
-    ) -> WithdrawalRequest:
+    ):
         """
         طلب سحب رصيد: حجز المبلغ في الرصيد المعلق (Pending) وخصمه من المتاح
         """
+        if not SupplierWallet or not WithdrawalRequest:
+            raise ValueError("نماذج المحفظة أو السحب غير متوفرة")
+
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wallet_id).first()
         if not wallet:
             raise ValueError("المحفظة غير موجودة")
@@ -148,7 +183,7 @@ class WalletService:
         if amount > wallet.balance_sar:
             raise ValueError("الرصيد المتاح غير كافٍ لإتمام طلب السحب")
 
-        fee = Decimal('0.00')  # سحب مجاني بدون رسوم
+        fee = Decimal('0.00')
         net_payout = amount - fee
 
         # حجز الرصيد
@@ -171,13 +206,14 @@ class WalletService:
         session.add(wdr)
         session.flush()
 
-        audit = WalletAuditLog(
-            wallet_id=wallet.id,
-            action_type='WITHDRAWAL_REQUEST_CREATED',
-            actor_name=wallet.store_name,
-            changes_json={"amount": str(amount), "request_number": req_number}
-        )
-        session.add(audit)
+        if WalletAuditLog:
+            audit = WalletAuditLog(
+                wallet_id=wallet.id,
+                action_type='WITHDRAWAL_REQUEST_CREATED',
+                actor_name=wallet.store_name,
+                changes_json={"amount": str(amount), "request_number": req_number}
+            )
+            session.add(audit)
 
         return wdr
 
@@ -188,17 +224,19 @@ class WalletService:
         admin_name: str,
         transfer_number: str = None,
         notes: str = None
-    ) -> WalletTransaction:
+    ):
         """
         اعتماد وقبول طلب السحب من الإدارة: تحويل المبلغ من المعلق إلى المنفذ
         """
+        if not WithdrawalRequest or not SupplierWallet or not WalletTransaction:
+            raise ValueError("النماذج المالية المطلوبة غير متوفرة")
+
         wdr = session.query(WithdrawalRequest).with_for_update().filter_by(id=request_id).first()
         if not wdr or wdr.status != 'pending':
             raise ValueError("طلب السحب غير صالح أو تمت معالجته مسبقاً")
 
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wdr.wallet_id).first()
 
-        # تحرير الرصيد المعلق وزيادة إجمالي المسحوبات
         wallet.balance_pending -= wdr.requested_amount
         wallet.total_withdrawn += wdr.requested_amount
         wallet.updated_at = get_mecca_now()
@@ -208,7 +246,6 @@ class WalletService:
         wdr.approved_at = get_mecca_now()
         wdr.admin_notes = notes
 
-        # إنشاء قيد الصرف وسند الصرف
         voucher_num = generate_voucher_number()
         tx = WalletTransaction(
             wallet_id=wallet.id,
@@ -241,13 +278,14 @@ class WalletService:
             )
             session.add(receipt)
 
-        audit = WalletAuditLog(
-            wallet_id=wallet.id,
-            action_type='WITHDRAWAL_APPROVED',
-            actor_name=admin_name,
-            changes_json={"amount": str(wdr.requested_amount), "voucher": voucher_num}
-        )
-        session.add(audit)
+        if WalletAuditLog:
+            audit = WalletAuditLog(
+                wallet_id=wallet.id,
+                action_type='WITHDRAWAL_APPROVED',
+                actor_name=admin_name,
+                changes_json={"amount": str(wdr.requested_amount), "voucher": voucher_num}
+            )
+            session.add(audit)
 
         return tx
 
@@ -257,17 +295,19 @@ class WalletService:
         request_id: int,
         admin_name: str,
         reason: str = None
-    ) -> WithdrawalRequest:
+    ):
         """
         رفض طلب السحب وإلغاء حجز المبلغ وإعادته للرصيد المتاح بالمحفظة
         """
+        if not WithdrawalRequest or not SupplierWallet:
+            raise ValueError("النماذج المالية غير متوفرة")
+
         wdr = session.query(WithdrawalRequest).with_for_update().filter_by(id=request_id).first()
         if not wdr or wdr.status != 'pending':
             raise ValueError("طلب السحب غير صالح أو تمت معالجته مسبقاً")
 
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wdr.wallet_id).first()
 
-        # إعادة خصم المعلق وإضافته مجدداً للرصيد المتاح
         wallet.balance_pending -= wdr.requested_amount
         wallet.balance_sar += wdr.requested_amount
         wallet.updated_at = get_mecca_now()
@@ -277,12 +317,13 @@ class WalletService:
         wdr.approved_at = get_mecca_now()
         wdr.admin_notes = reason or 'تم رفض طلب السحب من الإدارة'
 
-        audit = WalletAuditLog(
-            wallet_id=wallet.id,
-            action_type='WITHDRAWAL_REJECTED',
-            actor_name=admin_name,
-            changes_json={"amount": str(wdr.requested_amount), "reason": reason}
-        )
-        session.add(audit)
+        if WalletAuditLog:
+            audit = WalletAuditLog(
+                wallet_id=wallet.id,
+                action_type='WITHDRAWAL_REJECTED',
+                actor_name=admin_name,
+                changes_json={"amount": str(wdr.requested_amount), "reason": reason}
+            )
+            session.add(audit)
 
         return wdr
