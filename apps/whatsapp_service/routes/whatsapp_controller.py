@@ -36,10 +36,11 @@ def get_db():
 # ==============================================================================
 
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
+@whatsapp_bp.route('/webhook-admin', methods=['GET', 'POST'])
 def direct_webhook():
     """
     مسار مباشر لاستقبال طلبات ميتا (GET للتحقق و POST للرسائل) 
-    لتجنب أي تضارب مع بادئة مسارات لوحة التحكم.
+    لدعم كافة المسارات المحتملة للوحة التحكم وخارجها.
     """
     if request.method == 'GET':
         return verify_webhook()
@@ -49,7 +50,6 @@ def direct_webhook():
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
 # ==============================================================================
 
-@whatsapp_bp.route('/webhook-admin', methods=['GET'])
 def verify_webhook():
     """
     Handles Meta's Hub Challenge verification handshake with high flexibility.
@@ -313,7 +313,6 @@ def settings_dashboard():
     
     saved_success = False
     if request.method == 'POST':
-        # يمكنك هنا إضافة كود حفظ الإعدادات في قاعدة البيانات أو ملف الـ Config إن أردت
         flash('تم حفظ الإعدادات بنجاح', 'success')
         saved_success = True
         
