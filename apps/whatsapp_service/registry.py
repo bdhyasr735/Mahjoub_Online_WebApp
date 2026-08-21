@@ -66,13 +66,12 @@ def register_module(app):
         
         # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً وضمان تفعيلها
         with app.app_context():
-            from apps.whatsapp_service.models import whatsapp_models
             try:
+                # ملاحظة: تم تعديل المسار ليتماشى مع الهيكل الجديد
+                from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
                 from app import db
                 db.create_all()
                 print("✅ [WhatsApp Module]: تم التحقق من إنشاء جداول قاعدة البيانات بنجاح.")
-            except ImportError:
-                pass
             except Exception as db_err:
                 print(f"⚠️ [WhatsApp DB Creation Warning]: {db_err}")
 
