@@ -4,7 +4,7 @@
 مسارات واجهات محفظة المورد (Supplier Wallet Routes)
 """
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -36,10 +36,10 @@ def wallet_dashboard():
     )
 
 
-@wallet_bp.route('/withdraw', methods=['POST'])
+@wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
-def request_withdrawal():
-    """معالجة طلب سحب أرباح جديد من المورد"""
+def withdraw():
+    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST)"""
     supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
@@ -47,20 +47,24 @@ def request_withdrawal():
         NotificationService.notify_error("المحفظة غير موجودة")
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
-    try:
-        amount = Decimal(request.form.get('amount', '0'))
-        bank_account = request.form.get('bank_account_id', 'التحويل العام')
-        notes = request.form.get('notes', '')
+    if request.method == 'POST':
+        try:
+            amount = Decimal(request.form.get('amount', '0'))
+            bank_account = request.form.get('bank_account_id', 'التحويل العام')
+            notes = request.form.get('notes', '')
 
-        wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
-        db.session.commit()
+            wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
+            db.session.commit()
 
-        NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
-    except ValueError as e:
-        db.session.rollback()
-        NotificationService.notify_error(str(e))
-    except Exception as e:
-        db.session.rollback()
-        NotificationService.notify_error("حدث خطأ غير متوقع أثناء معالجة طلب السحب")
+            NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
+        except ValueError as e:
+            db.session.rollback()
+            NotificationService.notify_error(str(e))
+        except Exception as e:
+            db.session.rollback()
+            NotificationService.notify_error("حدث خطأ غير متوقع أثناء معالجة طلب السحب")
 
-    return redirect(url_for('supplier_wallet.wallet_dashboard'))
+        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    # عرض صفحة نموذج السحب
+    return render_template('supplier_wallet/withdraw_form.html', wallet=wallet)
