@@ -11,12 +11,17 @@ SHOW_IN_SUPPLIER = True  # ليظهر في بوابة الموردين
 NAV_ITEMS = [
     {
         "endpoint": "supplier_wallet.wallet_dashboard",
-        "title": "محفظة الأرباح والسندات",
+        "title": "المحفظة والسندات",
         "icon": "fa-file-invoice-dollar"
+    },
+    {
+        "endpoint": "supplier_wallet.withdraw",
+        "title": "طلب تسوية مالية",
+        "icon": "fa-hand-holding-usd"
     }
 ]
 
 def register_module(app):
     from apps.supplier_wallet.routes import wallet_bp
     app.register_blueprint(wallet_bp)
-    print("✅ [Registry]: تم تسجيل موديول 'محفظة الموردين' بنجاح.")
+    print("✅ [Registry]: تم تسجيل موديول 'محفظة الموردين' (مع خيار التسوية) بنجاح.")
