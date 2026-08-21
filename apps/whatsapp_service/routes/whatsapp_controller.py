@@ -10,7 +10,7 @@ from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, W
 
 logger = logging.getLogger(__name__)
 
-whatsapp_bp = Blueprint('whatsapp_service', __name__)
+whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='../templates')
 
 VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
 
@@ -53,7 +53,7 @@ def handle_webhook():
                 if 'messages' in value:
                     for msg in value['messages']:
                         sender = msg.get('from')
-                        text = msg.get('text', {}).get('body', '') if msg.get('type') == 'text' else '[وسائط/مرفق]'
+                        text = msg.get('text', {}).get('body', '') if msg.get('type'] == 'text' else '[وسائط/مرفق]'
                         wamid = msg.get('id')
                         contact_profile = value.get('contacts', [{}])[0].get('profile', {})
                         name = contact_profile.get('name', 'عميل متجر محجوب')
