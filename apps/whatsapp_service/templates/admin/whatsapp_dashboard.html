@@ -257,8 +257,10 @@
         document.getElementById('send-btn').removeAttribute('disabled');
         document.getElementById('message-input').focus();
 
-        // جلب الرسائل من الـ API
-        fetch(`/admin/whatsapp/api/contacts/${phone}/messages`)
+        // استخدام رابط آمن ديناميكي يتكيف مع مسارات الفلاسك
+        const fetchUrl = "{{ url_for('whatsapp_service.get_customer_messages', phone='REPLACE_PHONE') }}".replace('REPLACE_PHONE', phone);
+
+        fetch(fetchUrl)
             .then(res => res.json())
             .then(data => {
                 const container = document.getElementById('chat-messages');
@@ -298,7 +300,9 @@
 
         if (!phone || !message) return;
 
-        fetch('/admin/whatsapp/api/send-message', {
+        const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
+
+        fetch(sendUrl, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
