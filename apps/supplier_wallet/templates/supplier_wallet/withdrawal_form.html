@@ -35,8 +35,8 @@
                     <span>{{ wallet.bank_name or active_bank.bank_name or 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)' }}</span>
                     <span style="font-size: 11px; background: rgba(212, 175, 55, 0.15); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold);">معتمد تلقائياً</span>
                 </div>
-                <!-- حقل خفي لتمرير معرف الحساب أو اسم البنك تلقائياً مع الـ POST -->
-                <input type="hidden" name="bank_account_id" value="{{ wallet.bank_account_id or active_bank.id or 1 }}">
+                <!-- حقل خفي لتمرير اسم الحساب أو البنك المسجل تلقائياً مع الـ POST -->
+                <input type="hidden" name="bank_account_id" value="{{ wallet.bank_name or active_bank.bank_name or 'الحساب البنكي المعتمد للمتجر' }}">
             </div>
 
             <div>
