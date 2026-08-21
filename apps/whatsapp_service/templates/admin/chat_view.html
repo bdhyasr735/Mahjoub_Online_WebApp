@@ -1,19 +1,19 @@
 <!-- Chat View Jinja2 Component -->
 <div class="flex-1 flex overflow-hidden w-full h-full">
-  <!-- Contacts list sidebar -->
+  <!-- Contacts list sidebar (Right) -->
   <div class="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
     <div class="p-4 border-b border-slate-100 flex items-center justify-between">
       <h2 class="text-sm font-bold text-slate-800">محادثات العملاء النشطة</h2>
-      <button class="bg-emerald-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold">
+      <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
         + محادثة جديدة
       </button>
     </div>
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% for contact in contacts|default([]) %}
-      <div class="p-4 hover:bg-slate-50 cursor-pointer">
+      <div class="p-4 hover:bg-slate-50 cursor-pointer transition {% if loop.first %}bg-emerald-50/40 border-r-4 border-emerald-500{% endif %}">
         <div class="flex justify-between font-bold text-sm text-slate-900">
           <span>{{ contact.name }}</span>
-          <span class="text-xs text-slate-400 font-mono">{{ contact.phone }}</span>
+          <span class="text-xs text-slate-400 font-mono" dir="ltr">{{ contact.phone }}</span>
         </div>
         <p class="text-xs text-slate-500 truncate mt-1">{{ contact.last_message }}</p>
       </div>
@@ -23,17 +23,62 @@
     </div>
   </div>
 
-  <!-- Messages conversation canvas -->
-  <div class="flex-1 flex flex-col bg-slate-50">
-    <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-      <div class="text-center">
-        <span class="text-xs bg-slate-200 text-slate-600 px-3 py-1 rounded-full">اليوم</span>
+  <!-- Messages conversation canvas (Center/Left) -->
+  <div class="flex-1 flex flex-col bg-[#efeae2]"> <!-- خلفية تشبه واتساب ويب -->
+    
+    <!-- Chat Header -->
+    <div class="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between shadow-xs">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-sm">
+          ع
+        </div>
+        <div>
+          <h3 class="text-xs font-bold text-slate-900">علي أحمد المنصوري <span class="ml-2 font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600">ORD-8821</span></h3>
+          <span class="text-[10px] text-emerald-600 font-medium">● متصل الآن</span>
+        </div>
       </div>
-      <!-- Messages stream rendered here -->
+      <button class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-100 transition">
+        ⚡ قوالب الرد السريع
+      </button>
     </div>
-    <div class="p-4 bg-white border-t border-slate-200 flex gap-2">
-      <input type="text" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs">
-      <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold">إرسال</button>
+
+    <!-- Messages stream -->
+    <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-3">
+      <div class="text-center my-2">
+        <span class="text-[10px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full shadow-2xs">اليوم</span>
+      </div>
+      
+      <!-- رسالة واردة -->
+      <div class="max-w-[70%] bg-white p-3 rounded-xl shadow-2xs text-xs text-slate-800">
+        السلام عليكم ورحمة الله، هل تم شحن الطلب رقم ORD-8821؟
+        <span class="block text-[9px] text-slate-400 mt-1 text-left">11:17 ص</span>
+      </div>
+
+      <!-- رسالة صادرة -->
+      <div class="max-w-[70%] bg-[#d9fdd3] p-3 rounded-xl shadow-2xs text-xs text-slate-800 mr-auto">
+        <div class="text-[10px] text-emerald-800 font-bold mb-1">قالب: order_shipping_update</div>
+        أهلاً بك أخي علي! نعم تم تجهيز طلبك #ORD-8821 وهو الآن مع مندوب شركة الشحن (رقم التتبع: SA-99882).
+        <div class="flex justify-between items-center mt-1 pt-1 border-t border-emerald-200/50">
+          <span class="text-blue-600 text-[10px]">✓✓</span>
+          <span class="text-[9px] text-slate-500">11:29 ص</span>
+        </div>
+      </div>
     </div>
+
+    <!-- Message Input Footer -->
+    <div class="p-3 bg-white border-t border-slate-200">
+      <div class="flex items-center gap-2 mb-2 text-[11px] text-slate-500">
+        <span>ربط برقم طلب:</span>
+        <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono text-slate-700 font-bold">ORD-8821</span>
+      </div>
+      <div class="flex gap-2">
+        <input type="text" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 transition">
+        <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+          <span>إرسال</span>
+          <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
