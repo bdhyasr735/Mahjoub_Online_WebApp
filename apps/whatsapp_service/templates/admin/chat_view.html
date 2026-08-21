@@ -93,7 +93,10 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+let currentActiveContactName = 'عميل محجوب';
+
 function loadChat(phone, name) {
+    currentActiveContactName = name;
     // تحديث الهيدر بالاسم ورقم الهاتف
     document.getElementById('active-chat-name').innerHTML = `${name} <span class="ml-2 font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600" dir="ltr">${phone}</span>`;
     document.getElementById('active-chat-status').innerHTML = '<span class="text-emerald-600 font-medium">● متصل وجاهز للمراسلة</span>';
@@ -155,15 +158,18 @@ function sendDashboardMessage(event) {
 
     fetch('/admin/whatsapp/api/send-message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}'
+        },
         body: JSON.stringify({ recipient_number: phone, message: message })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
             inputField.value = '';
-            // إعادة تحميل محتوى الشات لتحديث السجل
-            loadChat(phone, document.getElementById('active-chat-name').innerText.split(' ')[0]);
+            // إعادة تحميل محتوى الشات لتحديث السجل باستخدام الاسم المحفوظ
+            loadChat(phone, currentActiveContactName);
         } else {
             alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
         }
