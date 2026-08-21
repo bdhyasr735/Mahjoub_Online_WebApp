@@ -1,3 +1,5 @@
-from .whatsapp_controller import whatsapp_bp
+"""
+Routes package initializer for WhatsApp Service
+"""
 
-__all__ = ['whatsapp_bp']
+from .whatsapp_controller import whatsapp_bp
