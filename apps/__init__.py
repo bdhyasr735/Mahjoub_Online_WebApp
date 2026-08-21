@@ -308,7 +308,7 @@ def create_app():
             admin_login_path, 
             '/auth',
             '/api/whatsapp',
-            '/admin/whatsapp'  # تم إضافة هذا السطر بنجاح لاستثناء مسارات الواتساب من إعادة التوجيه
+            '/admin/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -429,7 +429,7 @@ def create_app():
     try:
         from apps.whatsapp_service.routes.whatsapp_controller import whatsapp_bp
         app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
-        csrf.exempt(whatsapp_bp)  # استثناء مسارات الواتساب من الـ CSRF
+        csrf.exempt(whatsapp_bp) 
     except ImportError:
         pass
 
@@ -437,7 +437,7 @@ def create_app():
     # 🔄 التسجيل الديناميكي التلقائي للموديولات عبر ملف الـ registry.py
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
