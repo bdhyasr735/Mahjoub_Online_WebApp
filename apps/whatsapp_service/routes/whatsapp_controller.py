@@ -47,7 +47,6 @@ def verify_webhook():
     verify_token = get_verify_token()
     logger.info(f"🔍 [Webhook GET] Received verification request - mode: {mode}, token: {token}")
 
-    # السماح بالتحقق إذا كان التوكن مطابقاً أو تم إرسال الـ challenge مباشرة
     if token == verify_token or challenge:
         if challenge:
             logger.info("✅ [Webhook Verify] Success! Returning challenge.")
@@ -96,9 +95,11 @@ def handle_webhook():
                         
                         # Get sender name from contact profile if available
                         contacts_list = value.get('contacts', [])
-                        customer_name = "عميل محجوب"
+                        customer_name = f"عميل ({sender})"
                         if contacts_list:
-                            customer_name = contacts_list[0].get('profile', {}).get('name', 'عميل محجوب')
+                            profile_name = contacts_list[0].get('profile', {}).get('name')
+                            if profile_name:
+                                customer_name = profile_name
 
                         # Save Inbound Message to DB Log
                         if db:
@@ -114,7 +115,7 @@ def handle_webhook():
                             )
                             db.session.add(log_entry)
 
-                            # Update or create customer contact thread
+                            # Update or create customer contact thread to prevent UI freezing
                             contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
                             if contact:
                                 contact.name = customer_name
@@ -126,6 +127,7 @@ def handle_webhook():
                                     phone=sender,
                                     name=customer_name,
                                     last_message=text,
+                                    last_timestamp=datetime.utcnow(),
                                     unread_count=1
                                 )
                                 db.session.add(new_contact)
@@ -196,6 +198,22 @@ def send_message_api():
             error_message=None if success else str(response_data)
         )
         db.session.add(outbound_log)
+        
+        # Update or create contact thread on outbound message too
+        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=recipient).first()
+        if contact:
+            contact.last_message = f"إلى: {text}"
+            contact.last_timestamp = datetime.utcnow()
+        else:
+            new_contact = WhatsAppCustomerContact(
+                phone=recipient,
+                name=f"عميل ({recipient})",
+                last_message=f"إلى: {text}",
+                last_timestamp=datetime.utcnow(),
+                unread_count=0
+            )
+            db.session.add(new_contact)
+
         db.session.commit()
 
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
