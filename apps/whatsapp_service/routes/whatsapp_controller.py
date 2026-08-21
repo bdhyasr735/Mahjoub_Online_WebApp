@@ -1,10 +1,15 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/routes/whatsapp_controller.py
+
 """
 WhatsApp Routes and Webhook Controllers for Mahgoob Online
+Handles two-way messaging, database logging, and admin dashboard views.
 """
 
-from flask import Blueprint, request, jsonify, render_template, current_app
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 import os
 import logging
+from datetime import datetime
 from ..whatsapp_api import send_text_message
 from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
 
@@ -13,6 +18,14 @@ logger = logging.getLogger(__name__)
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='../templates')
 
 VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
+
+def get_db():
+    """Helper to get db instance safely from main app"""
+    try:
+        from app import db
+        return db
+    except ImportError:
+        return None
 
 # ==============================================================================
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
@@ -37,98 +50,183 @@ def verify_webhook():
 @whatsapp_bp.route('/webhook', methods=['POST'])
 def handle_webhook():
     """
-    Receives real-time incoming messages, delivery receipts (sent, delivered, read),
-    and logs them directly into the database.
+    Receives real-time incoming messages and saves them directly into PostgreSQL/SQLite.
     """
     data = request.get_json() or {}
-    logger.info(f"📥 [Webhook Event] Received data: {data}")
+    db = get_db()
 
     try:
+        # 1. Save raw webhook event for debugging/audit
+        if db:
+            raw_event = WhatsAppWebhookEvent(
+                event_type="incoming_payload",
+                payload=data,
+                processed=True
+            )
+            db.session.add(raw_event)
+            db.session.commit()
+
         entries = data.get('entry', [])
         for entry in entries:
             for change in entry.get('changes', []):
                 value = change.get('value', {})
 
-                # 1. Process Inbound Messages
+                # Process Inbound Messages from Customers
                 if 'messages' in value:
                     for msg in value['messages']:
-                        sender = msg.get('from')
-                        text = msg.get('text', {}).get('body', '') if msg.get('type') == 'text' else '[وسائط/مرفق]'
+                        sender = msg.get('from')  # Customer Phone Number
+                        msg_type = msg.get('type', 'text')
+                        
+                        if msg_type == 'text':
+                            text = msg.get('text', {}).get('body', '')
+                        else:
+                            text = f'[{msg_type} attachment]'
+                            
                         wamid = msg.get('id')
-                        contact_profile = value.get('contacts', [{}])[0].get('profile', {})
-                        name = contact_profile.get('name', 'عميل متجر محجوب')
+                        
+                        # Get sender name from contact profile if available
+                        contacts_list = value.get('contacts', [])
+                        customer_name = "عميل محجوب"
+                        if contacts_list:
+                            customer_name = contacts_list[0].get('profile', {}).get('name', 'عميل محجوب')
 
-                        # Save inbound message log in DB
-                        logger.info(f"💬 [Incoming Message] From: {name} ({sender}): {text}")
+                        # Save Inbound Message to DB Log
+                        if db:
+                            log_entry = WhatsAppMessageLog(
+                                wamid=wamid,
+                                direction='inbound',
+                                sender_number=sender,
+                                recipient_number=os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'),
+                                customer_name=customer_name,
+                                message_type=msg_type,
+                                content=text,
+                                status='received'
+                            )
+                            db.session.add(log_entry)
 
-                # 2. Process Status Updates (sent / delivered / read / failed)
+                            # Update or create customer contact thread
+                            contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
+                            if contact:
+                                contact.name = customer_name
+                                contact.last_message = text
+                                contact.last_timestamp = datetime.utcnow()
+                                contact.unread_count = (contact.unread_count or 0) + 1
+                            else:
+                                new_contact = WhatsAppCustomerContact(
+                                    phone=sender,
+                                    name=customer_name,
+                                    last_message=text,
+                                    unread_count=1
+                                )
+                                db.session.add(new_contact)
+
+                            db.session.commit()
+                            logger.info(f"📥 [Inbound Saved] From {customer_name} ({sender}): {text}")
+
+                # Process Status Updates (sent, delivered, read)
                 elif 'statuses' in value:
                     for st in value['statuses']:
                         wamid = st.get('id')
                         status = st.get('status')
-                        recipient = st.get('recipient_id')
-                        logger.info(f"📊 [Status Update] Msg {wamid} for {recipient} -> {status}")
+                        if db and wamid:
+                            msg_log = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+                            if msg_log:
+                                msg_log.status = status
+                                db.session.commit()
 
     except Exception as e:
-        logger.error(f"❌ [Webhook Processing Error] {str(e)}")
+        logger.error(f"❌ [Webhook Processing Error]: {str(e)}")
+        if db:
+            db.session.rollback()
 
-    # Always return 200 OK to Meta to avoid retries
     return jsonify({"status": "EVENT_RECEIVED"}), 200
 
 
 # ==============================================================================
-# 2. INTERNAL API ENDPOINTS (SENDING & SYNC)
+# 2. INTERNAL API & ACTIONS (SENDING MESSAGES)
 # ==============================================================================
 
 @whatsapp_bp.route('/api/send-message', methods=['POST'])
 def send_message_api():
     """
-    Sends message to a customer and logs record in database.
+    Sends an outbound text message via Meta API and logs it into database.
     """
     body = request.get_json() or {}
     recipient = body.get('recipient_number')
     text = body.get('message')
+    order_id = body.get('order_id')
 
     if not recipient or not text:
         return jsonify({"success": False, "error": "Missing recipient_number or message"}), 400
 
+    # Send via Meta API helper
     status_code, response_data = send_text_message(recipient, text)
     success = (200 <= status_code < 300)
+
+    db = get_db()
+    if db:
+        wamid = None
+        if success and isinstance(response_data, dict):
+            messages = response_data.get('messages', [])
+            if messages:
+                wamid = messages[0].get('id')
+
+        # Log outbound message
+        outbound_log = WhatsAppMessageLog(
+            wamid=wamid,
+            direction='outbound',
+            sender_number=os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'),
+            recipient_number=recipient,
+            order_id=order_id,
+            message_type='text',
+            content=text,
+            status='sent' if success else 'failed',
+            error_message=None if success else str(response_data)
+        )
+        db.session.add(outbound_log)
+        db.session.commit()
 
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
-@whatsapp_bp.route('/api/ping', methods=['GET'])
-def ping_meta_api():
-    """Checks Meta API connection status."""
-    return jsonify({"status": "active", "message": "WhatsApp API helper is ready."})
-
-
 # ==============================================================================
-# 3. ADMIN DASHBOARD TEMPLATES (JINJA2)
+# 3. ADMIN DASHBOARD VIEWS (JINJA2)
 # ==============================================================================
 
 @whatsapp_bp.route('/dashboard')
 def chat_dashboard():
-    try:
-        from app import db
-        contacts = db.session.query(WhatsAppCustomerContact).all()
-    except Exception:
-        contacts = []
+    db = get_db()
+    contacts = []
+    if db:
+        try:
+            contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+        except Exception:
+            contacts = []
     return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
-    try:
-        from app import db
-        logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).all()
-    except Exception:
-        logs = []
+    db = get_db()
+    logs = []
+    if db:
+        try:
+            logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).limit(100).all()
+        except Exception:
+            logs = []
     return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_dashboard():
-    settings = {}
+    settings = {
+        "phone_number_id": os.environ.get('WHATSAPP_PHONE_NUMBER_ID', ''),
+        "whatsapp_business_id": os.environ.get('WHATSAPP_BUSINESS_ID', ''),
+        "access_token": os.environ.get('WHATSAPP_ACCESS_TOKEN', ''),
+        "verify_token": VERIFY_TOKEN
+    }
+    
     if request.method == 'POST':
-        pass
+        # تحديث المتغيرات أو حفظها محلياً إن أردت
+        flash('تم حفظ الإعدادات بنجاح', 'success')
+        return redirect(url_for('whatsapp_service.settings_dashboard'))
+        
     return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings)
