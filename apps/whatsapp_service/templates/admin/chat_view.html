@@ -1,84 +1,175 @@
 <!-- Chat View Jinja2 Component -->
-<div class="flex-1 flex overflow-hidden w-full h-full">
+<div class="flex-1 flex overflow-hidden w-full h-[600px] border border-slate-200 rounded-2xl shadow-sm bg-white">
   <!-- Contacts list sidebar (Right) -->
   <div class="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
-    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-      <h2 class="text-sm font-bold text-slate-800">محادثات العملاء النشطة</h2>
-      <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
-        + محادثة جديدة
-      </button>
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <h2 class="text-xs font-bold text-slate-800">
+        <i class="fab fa-whatsapp text-emerald-600 me-1"></i> محادثات العملاء النشطة
+      </h2>
+      <span class="badge bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">مباشر</span>
     </div>
-    <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
-      {% for contact in contacts|default([]) %}
-      <div class="p-4 hover:bg-slate-50 cursor-pointer transition {% if loop.first %}bg-emerald-50/40 border-r-4 border-emerald-500{% endif %}">
-        <div class="flex justify-between font-bold text-sm text-slate-900">
-          <span>{{ contact.name }}</span>
-          <span class="text-xs text-slate-400 font-mono" dir="ltr">{{ contact.phone }}</span>
+    
+    <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contacts-list-container">
+      {% if contacts %}
+        {% for contact in contacts %}
+        <div onclick="loadChat('{{ contact.phone }}', '{{ contact.name or 'عميل محجوب' }}')" 
+             class="contact-card p-3 hover:bg-emerald-50/30 cursor-pointer transition border-r-4 border-transparent hover:border-emerald-500 {% if loop.first %}bg-emerald-50/55 border-emerald-600{% endif %}"
+             data-phone="{{ contact.phone }}">
+          <div class="flex justify-between items-center font-bold text-xs text-slate-900">
+            <span class="truncate max-w-[140px]">{{ contact.name or 'عميل محجوب' }}</span>
+            <span class="text-[10px] text-slate-400 font-mono" dir="ltr">{{ contact.phone }}</span>
+          </div>
+          <p class="text-[11px] text-slate-500 truncate mt-1">{{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
+          <div class="text-[9px] text-slate-400 text-end mt-1">
+            {{ contact.last_timestamp.strftime('%H:%M') if contact.last_timestamp else '' }}
+          </div>
         </div>
-        <p class="text-xs text-slate-500 truncate mt-1">{{ contact.last_message }}</p>
-      </div>
+        {% endfor %}
       {% else %}
-      <div class="p-8 text-center text-slate-400 text-xs">لا توجد محادثات نشطة حالياً</div>
-      {% endfor %}
+        <div class="p-8 text-center text-slate-400 text-xs my-auto">
+          <i class="fab fa-whatsapp text-slate-300 fa-2x mb-2 block"></i>
+          لا توجد محادثات نشطة حالياً
+        </div>
+      {% endif %}
     </div>
   </div>
 
   <!-- Messages conversation canvas (Center/Left) -->
-  <div class="flex-1 flex flex-col bg-[#efeae2]"> <!-- خلفية تشبه واتساب ويب -->
+  <div class="flex-1 flex flex-col bg-[#efeae2] relative">
     
     <!-- Chat Header -->
-    <div class="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between shadow-xs">
+    <div id="chat-header" class="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between shadow-2xs z-10">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-sm">
-          ع
+        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs shadow-2xs">
+          <i class="fab fa-whatsapp"></i>
         </div>
         <div>
-          <h3 class="text-xs font-bold text-slate-900">علي أحمد المنصوري <span class="ml-2 font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600">ORD-8821</span></h3>
-          <span class="text-[10px] text-emerald-600 font-medium">● متصل الآن</span>
+          <h3 id="active-chat-name" class="text-xs font-bold text-slate-900">اختر عميلاً من القائمة</h3>
+          <span id="active-chat-status" class="text-[10px] text-slate-400 font-medium">● غير متصل</span>
         </div>
       </div>
-      <button class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-100 transition">
-        ⚡ قوالب الرد السريع
+      <button class="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-100 transition flex items-center gap-1">
+        <span>⚡ قوالب الرد السريع</span>
       </button>
     </div>
 
     <!-- Messages stream -->
-    <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-3">
-      <div class="text-center my-2">
-        <span class="text-[10px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full shadow-2xs">اليوم</span>
-      </div>
-      
-      <!-- رسالة واردة -->
-      <div class="max-w-[70%] bg-white p-3 rounded-xl shadow-2xs text-xs text-slate-800">
-        السلام عليكم ورحمة الله، هل تم شحن الطلب رقم ORD-8821؟
-        <span class="block text-[9px] text-slate-400 mt-1 text-left">11:17 ص</span>
-      </div>
-
-      <!-- رسالة صادرة -->
-      <div class="max-w-[70%] bg-[#d9fdd3] p-3 rounded-xl shadow-2xs text-xs text-slate-800 mr-auto">
-        <div class="text-[10px] text-emerald-800 font-bold mb-1">قالب: order_shipping_update</div>
-        أهلاً بك أخي علي! نعم تم تجهيز طلبك #ORD-8821 وهو الآن مع مندوب شركة الشحن (رقم التتبع: SA-99882).
-        <div class="flex justify-between items-center mt-1 pt-1 border-t border-emerald-200/50">
-          <span class="text-blue-600 text-[10px]">✓✓</span>
-          <span class="text-[9px] text-slate-500">11:29 ص</span>
+    <div id="chat-messages-stream" class="flex-1 p-6 overflow-y-auto flex flex-col gap-3" style="background-image: radial-gradient(#e5ddd5 0.75px, transparent 0.75px); background-size: 15px 15px;">
+      <div class="text-center my-auto text-slate-500 text-xs">
+        <div class="bg-white/80 p-4 rounded-xl shadow-2xs inline-block">
+          <i class="fab fa-whatsapp text-emerald-600 fa-3x mb-2"></i>
+          <p class="font-bold text-slate-700">مرحباً بك في لوحة محادثات محجوب أونلاين</p>
+          <p class="text-[11px] text-slate-400 mt-1">انقر على أي محادثة في القائمة الجانبية لعرض السجل وإرسال الرسائل.</p>
         </div>
       </div>
     </div>
 
     <!-- Message Input Footer -->
     <div class="p-3 bg-white border-t border-slate-200">
-      <div class="flex items-center gap-2 mb-2 text-[11px] text-slate-500">
-        <span>ربط برقم طلب:</span>
-        <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono text-slate-700 font-bold">ORD-8821</span>
-      </div>
-      <div class="flex gap-2">
-        <input type="text" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 transition">
-        <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+      <form id="whatsapp-send-form" onsubmit="sendDashboardMessage(event)" class="flex gap-2">
+        <input type="hidden" id="current-target-phone" value="">
+        <input type="text" id="whatsapp-message-input" placeholder="اكتب رسالتك للعميل هنا..." disabled
+               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed">
+        <button type="submit" id="whatsapp-submit-btn" disabled
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
           <span>إرسال</span>
-          <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
         </button>
-      </div>
+      </form>
     </div>
 
   </div>
 </div>
+
+<!-- Scripts for Dynamic Chat Loading -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // تحديد أول عميل افتراضياً إن وجد
+    const firstContact = document.querySelector('.contact-card');
+    if (firstContact) {
+        firstContact.click();
+    }
+});
+
+function loadChat(phone, name) {
+    // تحديث الهيدر بالاسم ورقم الهاتف
+    document.getElementById('active-chat-name').innerHTML = `${name} <span class="ml-2 font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600" dir="ltr">${phone}</span>`;
+    document.getElementById('active-chat-status').innerHTML = '<span class="text-emerald-600 font-medium">● متصل وجاهز للمراسلة</span>';
+    document.getElementById('current-target-phone').value = phone;
+
+    // تمكين حقول الإدخال
+    document.getElementById('whatsapp-message-input').removeAttribute('disabled');
+    document.getElementById('whatsapp-submit-btn').removeAttribute('disabled');
+    document.getElementById('whatsapp-message-input').focus();
+
+    // جلب الرسائل من السيرفر
+    fetch(`/admin/whatsapp/api/contacts/${phone}/messages`)
+        .then(res => res.json())
+        .then(data => {
+            const stream = document.getElementById('chat-messages-stream');
+            stream.innerHTML = '';
+
+            if (data.success && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    const isOutbound = msg.direction === 'outbound';
+                    const bubbleClasses = isOutbound 
+                        ? 'max-w-[70%] bg-[#d9fdd3] p-3 rounded-xl shadow-2xs text-xs text-slate-800 mr-auto' 
+                        : 'max-w-[70%] bg-white p-3 rounded-xl shadow-2xs text-xs text-slate-800 ml-auto';
+
+                    const html = `
+                        <div class="${bubbleClasses}">
+                            <div class="content">${msg.content}</div>
+                            <div class="flex justify-between items-center mt-1 pt-1 ${isOutbound ? 'border-t border-emerald-200/50' : 'border-t border-slate-100'}">
+                                <span class="${isOutbound ? 'text-blue-600 text-[10px]' : 'hidden'}">${msg.status === 'read' ? '✓✓' : '✓'}</span>
+                                <span class="text-[9px] text-slate-400 ms-auto">${msg.timestamp}</span>
+                            </div>
+                        </div>
+                    `;
+                    stream.insertAdjacentHTML('beforeend', html);
+                });
+                stream.scrollTop = stream.scrollHeight;
+            } else {
+                stream.innerHTML = `
+                    <div class="text-center my-auto text-slate-400 text-xs">
+                        <div class="bg-white/80 p-3 rounded-lg shadow-2xs inline-block">
+                            لا توجد رسائل سابقة مع هذا العميل. ابدأ المحادثة الآن!
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching messages:', err);
+        });
+}
+
+function sendDashboardMessage(event) {
+    event.preventDefault();
+    const phone = document.getElementById('current-target-phone').value;
+    const inputField = document.getElementById('whatsapp-message-input');
+    const message = inputField.value.trim();
+
+    if (!phone || !message) return;
+
+    fetch('/admin/whatsapp/api/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipient_number: phone, message: message })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            inputField.value = '';
+            // إعادة تحميل محتوى الشات لتحديث السجل
+            loadChat(phone, document.getElementById('active-chat-name').innerText.split(' ')[0]);
+        } else {
+            alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
+        }
+    })
+    .catch(err => {
+        console.error('Error sending message:', err);
+    });
+}
+</script>
