@@ -2,7 +2,7 @@
 # 📂 apps/models/__init__.py
 
 """
-مركز التحكم في الموديلات (Model Registry) - محدث ومدمج مع سجل الخزينة المركزية
+مركز التحكم في الموديلات (Model Registry) - محدث ومدمج مع سجل الخزينة المركزية ونماذج الواتساب
 """
 
 from apps.extensions import db
@@ -22,6 +22,13 @@ from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.sync_log import SyncLog
 
+# استيراد نماذج الواتساب من المسار العام الجديد
+from apps.models.whatsapp_models import (
+    WhatsAppMessageLog, 
+    WhatsAppWebhookEvent, 
+    WhatsAppCustomerContact
+)
+
 __all__ = [
     'db',
     'AdminStaff',
@@ -38,5 +45,8 @@ __all__ = [
     'SupplierWallet',
     'TreasuryEntry',
     'SyncLog',
-    'WalletTransaction'
+    'WalletTransaction',
+    'WhatsAppMessageLog',
+    'WhatsAppWebhookEvent',
+    'WhatsAppCustomerContact'
 ]
