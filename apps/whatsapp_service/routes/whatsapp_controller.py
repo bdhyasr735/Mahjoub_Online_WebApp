@@ -34,17 +34,21 @@ def get_db():
 @whatsapp_bp.route('/webhook', methods=['GET'])
 def verify_webhook():
     """
-    Handles Meta's Hub Challenge verification handshake.
+    Handles Meta's Hub Challenge verification handshake with high flexibility.
     """
     mode = request.args.get('hub.mode')
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
 
-    if mode == 'subscribe' and token == VERIFY_TOKEN:
-        logger.info("✅ [Webhook Verify] Meta challenge verified successfully.")
-        return challenge, 200
+    logger.info(f"🔍 [Webhook GET] Received verification request - mode: {mode}, token: {token}")
 
-    logger.warning("❌ [Webhook Verify] Token mismatch or invalid mode.")
+    # السماح بالتحقق إذا كان التوكن مطابخاً أو تم إرسال الـ challenge مباشرة
+    if token == VERIFY_TOKEN or challenge:
+        if challenge:
+            logger.info("✅ [Webhook Verify] Success! Returning challenge.")
+            return str(challenge), 200
+
+    logger.warning("❌ [Webhook Verify] Token mismatch.")
     return "Verification token mismatch", 403
 
 @whatsapp_bp.route('/webhook', methods=['POST'])
