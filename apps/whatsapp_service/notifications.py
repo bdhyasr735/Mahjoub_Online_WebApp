@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def get_db():
     """Helper to get db instance safely from main app"""
     try:
-        from app import db
+        from apps.extensions import db
         return db
     except ImportError:
         return None
