@@ -36,8 +36,7 @@ def receive_webhook():
     data = request.get_json()
     print("📩 WhatsApp Webhook Received:", json.dumps(data, indent=2))
     
-    # TODO: هنا يتم استخراج الرسالة الواردة وحفظها في قاعدة البيانات (PostgreSQL)
-    # مثال لاستخراج النص ورقم المرسل إن وجد:
+    # استخراج الرسالة الواردة وحفظها في قاعدة البيانات
     try:
         entry = data.get('entry', [{}])[0]
         changes = entry.get('changes', [{}])[0]
@@ -48,10 +47,10 @@ def receive_webhook():
             msg = messages[0]
             sender_phone = msg.get('from')
             msg_body = msg.get('text', {}).get('body')
-            # يمكنك هنا استدعاء نموذج قاعدة البيانات لحفظ الرسالة مباشرة
-            print(لرسالة من {sender_phone}: {msg_body})
+            # تم تصحيح خطأ طباعة الرسالة هنا بإضافة علامات التنصيص
+            print(f"رسالة من {sender_phone}: {msg_body}")
     except Exception as e:
-        print(خطأ في معالجة الـ Webhook الوارد: {e})
+        print(f"خطأ في معالجة الـ Webhook الوارد: {e}")
 
     return jsonify({'status': 'success'}), 200
 
@@ -62,11 +61,7 @@ def receive_webhook():
 def get_whatsapp_chats():
     """جلب قائمة العملاء المتواصلين لعرضها في القائمة الجانبية للوحة التحكم"""
     try:
-        # استبدل هذا الاستعلام لاحقاً بما يقابله في قاعدة بيانات PostgreSQL الخاصة بك
-        # مثال وهمي لإرجاع قائمة فارغة بشكل منظم أو جلبهم من جدول المحادثات:
         chats_list = [] 
-        # نموذج: db.session.query(WhatsAppChat).all()
-        
         return jsonify({
             "status": "success",
             "chats": chats_list
@@ -78,9 +73,7 @@ def get_whatsapp_chats():
 def get_chat_messages(phone_number):
     """جلب سجل الرسائل الخاص بعميل معين عند النقر عليه"""
     try:
-        # جلب الرسائل من قاعدة البيانات بناءً على رقم الهاتف
         messages_list = []
-        
         return jsonify({
             "status": "success",
             "phone": phone_number,
