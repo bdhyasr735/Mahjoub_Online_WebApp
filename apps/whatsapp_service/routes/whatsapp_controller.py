@@ -8,17 +8,13 @@ WhatsApp Routes and Webhook Controllers for Mahgoob Online
 from flask import Blueprint, request, jsonify, render_template, current_app
 import os
 import logging
-from ..whatsapp_api import WhatsAppApiClient
-# من المفترض أن تكون النماذج جاهزة لديك في ملف models
-# from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
+# استيراد الدوال مباشرة من ملف whatsapp_api
+from ..whatsapp_api import send_text_message, send_invoice_whatsapp, VERIFY_TOKEN
 
 logger = logging.getLogger(__name__)
 
 # نضع الـ prefix هنا ليتكفل ببادئة الإدارة والخدمة تلقائياً
 whatsapp_bp = Blueprint('whatsapp_service', __name__, url_prefix='/admin/whatsapp')
-api_client = WhatsAppApiClient()
-
-VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026')
 
 # ==============================================================================
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
@@ -74,14 +70,21 @@ def send_message_api():
     if not recipient or not text:
         return jsonify({"success": False, "error": "Missing recipient_number or message"}), 400
 
-    result = api_client.send_text_message(recipient, text)
-    return jsonify(result), 200 if result.get('success') else 500
+    status_code, resp_data = send_text_message(recipient, text)
+    
+    success = (200 <= status_code < 300)
+    return jsonify({"success": success, "status_code": status_code, "response": resp_data}), 200 if success else 500
 
 
 @whatsapp_bp.route('/api/ping', methods=['GET'])
 def ping_meta_api():
-    res = api_client.ping_connection()
-    return jsonify(res)
+    # فحص بسيط للاتصال بناءً على توفر المفاتيح
+    phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID") or os.getenv("PHONE_NUMBER_ID")
+    token = os.getenv("WHATSAPP_ACCESS_TOKEN") or os.getenv("ACCESS_TOKEN")
+    
+    if phone_id and token:
+        return jsonify({"status": "connected", "message": "Meta Cloud API credentials configured."})
+    return jsonify({"status": "disconnected", "message": "Missing API credentials."}), 400
 
 
 # ==============================================================================
@@ -91,7 +94,6 @@ def ping_meta_api():
 @whatsapp_bp.route('/dashboard', methods=['GET'])
 def chat_dashboard():
     """لوحة محادثات العملاء - العرض السيادي"""
-    # هنا سيتم لاحقاً جلب بيانات المحادثات من قاعدة البيانات
     mock_contacts = [] 
     return render_template(
         'admin/chat_view.html', 
