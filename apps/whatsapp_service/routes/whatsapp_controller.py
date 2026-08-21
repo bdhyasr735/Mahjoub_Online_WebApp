@@ -32,10 +32,24 @@ def get_db():
         return None
 
 # ==============================================================================
+# 0. DIRECT WEBHOOK ROUTE (FIXES META 400 ERROR)
+# ==============================================================================
+
+@whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
+def direct_webhook():
+    """
+    مسار مباشر لاستقبال طلبات ميتا (GET للتحقق و POST للرسائل) 
+    لتجنب أي تضارب مع بادئة مسارات لوحة التحكم.
+    """
+    if request.method == 'GET':
+        return verify_webhook()
+    return handle_webhook()
+
+# ==============================================================================
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
 # ==============================================================================
 
-@whatsapp_bp.route('/webhook', methods=['GET'])
+@whatsapp_bp.route('/webhook-admin', methods=['GET'])
 def verify_webhook():
     """
     Handles Meta's Hub Challenge verification handshake with high flexibility.
@@ -55,7 +69,7 @@ def verify_webhook():
     logger.warning("❌ [Webhook Verify] Token mismatch.")
     return "Verification token mismatch", 403
 
-@whatsapp_bp.route('/webhook', methods=['POST'])
+@whatsapp_bp.route('/webhook-admin', methods=['POST'])
 def handle_webhook():
     """
     Receives real-time incoming messages and saves them directly into PostgreSQL/SQLite with safe JSON parsing.
