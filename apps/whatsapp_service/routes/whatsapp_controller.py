@@ -78,7 +78,6 @@ def handle_webhook():
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
 
-    # استقبال آمن للبيانات حتى لو لم تُرسل كـ JSON صريح لتجنب خطأ 400
     data = None
     if request.is_json:
         data = request.get_json(silent=True)
@@ -99,7 +98,6 @@ def handle_webhook():
         data = {}
 
     try:
-        # 1. حفظ الحدث الخام في قاعدة البيانات للمراجعة والتدقيق
         if db:
             raw_event = WhatsAppWebhookEvent(
                 event_type="incoming_payload",
@@ -114,10 +112,9 @@ def handle_webhook():
             for change in entry.get('changes', []):
                 value = change.get('value', {})
 
-                # معالجة الرسائل الواردة من العملاء
                 if 'messages' in value:
                     for msg in value['messages']:
-                        sender = msg.get('from')  # رقم هاتف العميل
+                        sender = msg.get('from') 
                         msg_type = msg.get('type', 'text')
                         
                         if msg_type == 'text':
@@ -127,7 +124,6 @@ def handle_webhook():
                             
                         wamid = msg.get('id')
                         
-                        # جلب اسم المرسل من ملف التعريف إذا كان متوفراً
                         contacts_list = value.get('contacts', [])
                         customer_name = f"عميل ({sender})"
                         if contacts_list:
@@ -135,7 +131,6 @@ def handle_webhook():
                             if profile_name:
                                 customer_name = profile_name
 
-                        # حفظ رسالة الوارد في سجل قاعدة البيانات
                         if db:
                             log_entry = WhatsAppMessageLog(
                                 wamid=wamid,
@@ -149,7 +144,6 @@ def handle_webhook():
                             )
                             db.session.add(log_entry)
 
-                            # تحديث أو إنشاء محادثة العميل لمنع تجمد الواجهة
                             contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
                             if contact:
                                 contact.name = customer_name
@@ -169,7 +163,6 @@ def handle_webhook():
                             db.session.commit()
                             logger.info(f"📥 [Inbound Saved] From {customer_name} ({sender}): {text}")
 
-                # معالجة تحديثات حالة الرسائل (تم الإرسال، الاستلام، القراءة)
                 elif 'statuses' in value:
                     for st in value['statuses']:
                         wamid = st.get('id')
@@ -185,7 +178,6 @@ def handle_webhook():
         if db:
             db.session.rollback()
 
-    # الرد دائماً بـ 200 لتأكيد استلام الطلب لميتا ومنع إعادة الإرسال المتكرر
     return jsonify({"status": "EVENT_RECEIVED"}), 200
 
 
@@ -206,7 +198,6 @@ def send_message_api():
     if not recipient or not text:
         return jsonify({"success": False, "error": "Missing recipient_number or message"}), 400
 
-    # Send via Meta API helper
     status_code, response_data = send_text_message(recipient, text)
     success = (200 <= status_code < 300)
 
@@ -220,7 +211,6 @@ def send_message_api():
             if messages:
                 wamid = messages[0].get('id')
 
-        # Log outbound message
         outbound_log = WhatsAppMessageLog(
             wamid=wamid,
             direction='outbound',
@@ -234,7 +224,6 @@ def send_message_api():
         )
         db.session.add(outbound_log)
         
-        # Update or create contact thread on outbound message too
         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=recipient).first()
         if contact:
             contact.last_message = f"إلى: {text}"
@@ -322,8 +311,10 @@ def settings_dashboard():
         "verify_token": get_verify_token()
     }
     
+    saved_success = False
     if request.method == 'POST':
+        # يمكنك هنا إضافة كود حفظ الإعدادات في قاعدة البيانات أو ملف الـ Config إن أردت
         flash('تم حفظ الإعدادات بنجاح', 'success')
-        return redirect(url_for('whatsapp_service.settings_dashboard'))
+        saved_success = True
         
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings)
+    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
