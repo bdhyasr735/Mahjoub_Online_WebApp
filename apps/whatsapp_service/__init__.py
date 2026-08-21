@@ -1,3 +1,7 @@
-from .whatsapp_api import send_invoice_whatsapp
+"""
+WhatsApp Service Package Initialization
+"""
 
-__all__ = ["send_invoice_whatsapp"]
+from .registry import register_module, SERVICE_METADATA
+
+__all__ = ['register_module', 'SERVICE_METADATA']
