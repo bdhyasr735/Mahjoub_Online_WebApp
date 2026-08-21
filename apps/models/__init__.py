@@ -22,10 +22,10 @@ from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.sync_log import SyncLog
 
-# استيراد نماذج الواتساب من المسار العام الجديد
+# استيراد نماذج الواتساب بشكل صحيح ودون مشاكل في مسارات الاستيراد
 from apps.models.whatsapp_models import (
-    WhatsAppMessageLog, 
-    WhatsAppWebhookEvent, 
+    WhatsAppMessageLog,
+    WhatsAppWebhookEvent,
     WhatsAppCustomerContact
 )
 
