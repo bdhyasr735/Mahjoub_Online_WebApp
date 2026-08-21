@@ -115,7 +115,7 @@ def chat_dashboard():
         contacts = db.session.query(WhatsAppCustomerContact).all()
     except Exception:
         contacts = []
-    return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
+    return render_template('admin/chat_view.html', active_tab='chat', contacts=contacts)
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
@@ -124,11 +124,11 @@ def logs_dashboard():
         logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).all()
     except Exception:
         logs = []
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
+    return render_template('admin/logs_view.html', active_tab='logs', logs=logs)
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_dashboard():
     settings = {}
     if request.method == 'POST':
         pass
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings)
+    return render_template('admin/settings_view.html', active_tab='settings', settings=settings)
