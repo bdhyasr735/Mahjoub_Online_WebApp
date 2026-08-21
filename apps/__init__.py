@@ -307,7 +307,8 @@ def create_app():
             '/supplier/forgot-password',
             admin_login_path, 
             '/auth',
-            '/api/whatsapp'
+            '/api/whatsapp',
+            '/admin/whatsapp'  # تم إضافة هذا السطر بنجاح لتستثني مسارات الواتساب من إعادة التوجيه
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
