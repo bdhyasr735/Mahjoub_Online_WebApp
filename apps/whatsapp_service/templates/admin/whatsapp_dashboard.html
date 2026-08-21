@@ -219,6 +219,7 @@
                 </div>
 
                 <form method="POST" class="needs-validation">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">معرف رقم الهاتف (Phone Number ID)</label>
                         <input type="text" name="phone_number_id" class="form-control" value="{{ settings.phone_number_id }}" placeholder="مثال: 105938...">
@@ -299,7 +300,10 @@
 
         fetch('/admin/whatsapp/api/send-message', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}' 
+            },
             body: JSON.stringify({ recipient_number: phone, message: message })
         })
         .then(res => res.json())
