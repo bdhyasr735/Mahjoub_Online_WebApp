@@ -107,8 +107,10 @@ function loadChat(phone, name) {
     document.getElementById('whatsapp-submit-btn').removeAttribute('disabled');
     document.getElementById('whatsapp-message-input').focus();
 
-    // جلب الرسائل من السيرفر
-    fetch(`/admin/whatsapp/api/contacts/${phone}/messages`)
+    // جلب الرسائل من السيرفر باستخدام الرابط الديناميكي الآمن
+    const fetchUrl = "{{ url_for('whatsapp_service.get_customer_messages', phone='PHONE_PLACEHOLDER') }}".replace('PHONE_PLACEHOLDER', phone);
+
+    fetch(fetchUrl)
         .then(res => res.json())
         .then(data => {
             const stream = document.getElementById('chat-messages-stream');
@@ -156,7 +158,10 @@ function sendDashboardMessage(event) {
 
     if (!phone || !message) return;
 
-    fetch('/admin/whatsapp/api/send-message', {
+    // استخدام الرابط الديناميكي لإرسال الرسائل
+    const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
+
+    fetch(sendUrl, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
