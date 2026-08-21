@@ -37,6 +37,7 @@ def get_db():
 
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 @whatsapp_bp.route('/webhook-admin', methods=['GET', 'POST'])
+@whatsapp_bp.route('/admin/whatsapp/webhook', methods=['GET', 'POST'])
 def direct_webhook():
     """
     مسار مباشر لاستقبال طلبات ميتا (GET للتحقق و POST للرسائل) 
@@ -71,28 +72,36 @@ def verify_webhook():
 
 @whatsapp_bp.route('/webhook', methods=['POST'])
 @whatsapp_bp.route('/webhook-admin', methods=['POST'])
+@whatsapp_bp.route('/admin/whatsapp/webhook', methods=['POST'])
 def handle_webhook():
     """
-    مستقبل آمن للرسائل يدعم كافة المسارات ويمنع خطأ 400 نهائياً عبر استقبال البيانات كـ JSON أو Form أو Raw Text.
+    مستقبل آمن للرسائل يدعم كافة المسارات مع أدوات تشخيص متقدمة لمعرفة سبب خطأ 400.
     """
+    # --- أدوات التشخيص (Debug Spy) ---
+    logger.info("📡 [Webhook Debug] Received POST request from Meta")
+    logger.info(f"Headers: {dict(request.headers)}")
+    
+    raw_data = request.get_data(as_text=True)
+    logger.info(f"Raw Data Body: {raw_data}")
+    # ---------------------------------
+
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
 
     data = None
-    if request.is_json:
-        data = request.get_json(silent=True)
-    
-    if not data:
-        data = request.form.to_dict()
+    try:
+        if request.is_json:
+            data = request.get_json(silent=True)
         
-    if not data:
-        try:
-            raw_data = request.get_data(as_text=True)
-            if raw_data:
-                import json
-                data = json.loads(raw_data)
-        except Exception:
-            data = {}
+        if not data and raw_data:
+            import json
+            data = json.loads(raw_data)
+            
+        if not data:
+            data = request.form.to_dict()
+    except Exception as e:
+        logger.error(f"❌ [Webhook Parse Error]: {str(e)}")
+        data = {}
             
     if not data:
         data = {}
