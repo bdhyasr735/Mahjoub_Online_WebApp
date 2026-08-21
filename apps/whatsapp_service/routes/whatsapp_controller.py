@@ -200,7 +200,7 @@ def send_message_api():
     Sends an outbound text message via Meta API and logs it into database.
     """
     body = request.get_json(silent=True) or {}
-    recipient = body.get('recipient_number')
+    recipient = body.get('recipient_number') or body.get('phone')
     text = body.get('message')
     order_id = body.get('order_id')
 
