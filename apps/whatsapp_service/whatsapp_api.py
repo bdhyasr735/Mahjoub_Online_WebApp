@@ -47,9 +47,9 @@ def receive_webhook():
     phone_id = PHONE_NUMBER_ID or 'system'
 
     try:
-        # حفظ الحدث الخام للتدقيق
+        # حفظ الحدث الخام للتدقيق (استخدام المسار العام الجديد للنماذج)
         if db:
-            from .models.whatsapp_models import WhatsAppWebhookEvent, WhatsAppMessageLog, WhatsAppCustomerContact
+            from apps.models.whatsapp_models import WhatsAppWebhookEvent, WhatsAppMessageLog, WhatsAppCustomerContact
             raw_event = WhatsAppWebhookEvent(
                 event_type="incoming_payload",
                 payload=data,
@@ -130,7 +130,7 @@ def get_whatsapp_chats():
     if not db:
         return jsonify({"status": "error", "message": "Database unavailable"}), 500
     try:
-        from .models.whatsapp_models import WhatsAppCustomerContact
+        from apps.models.whatsapp_models import WhatsAppCustomerContact
         contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
         chats_list = [{
             "phone": c.phone,
@@ -153,7 +153,7 @@ def get_chat_messages(phone_number):
     if not db:
         return jsonify({"status": "error", "message": "Database unavailable"}), 500
     try:
-        from .models.whatsapp_models import WhatsAppMessageLog
+        from apps.models.whatsapp_models import WhatsAppMessageLog
         messages = db.session.query(WhatsAppMessageLog).filter(
             (WhatsAppMessageLog.sender_number == phone_number) | (WhatsAppMessageLog.recipient_number == phone_number)
         ).order_by(WhatsAppMessageLog.id.asc()).all()
@@ -232,7 +232,7 @@ def send_dashboard_message():
 
         if status_code in [200, 201]:
             if db:
-                from .models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
+                from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
                 
                 wamid = None
                 try:
