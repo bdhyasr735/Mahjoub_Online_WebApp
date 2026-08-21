@@ -86,7 +86,6 @@
 <!-- Scripts for Dynamic Chat Loading -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // تحديد أول عميل افتراضياً إن وجد
     const firstContact = document.querySelector('.contact-card');
     if (firstContact) {
         firstContact.click();
@@ -97,17 +96,14 @@ let currentActiveContactName = 'عميل محجوب';
 
 function loadChat(phone, name) {
     currentActiveContactName = name;
-    // تحديث الهيدر بالاسم ورقم الهاتف
     document.getElementById('active-chat-name').innerHTML = `${name} <span class="ml-2 font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600" dir="ltr">${phone}</span>`;
     document.getElementById('active-chat-status').innerHTML = '<span class="text-emerald-600 font-medium">● متصل وجاهز للمراسلة</span>';
     document.getElementById('current-target-phone').value = phone;
 
-    // تمكين حقول الإدخال
     document.getElementById('whatsapp-message-input').removeAttribute('disabled');
     document.getElementById('whatsapp-submit-btn').removeAttribute('disabled');
     document.getElementById('whatsapp-message-input').focus();
 
-    // جلب الرسائل من السيرفر باستخدام الرابط الديناميكي الآمن
     const fetchUrl = "{{ url_for('whatsapp_service.get_customer_messages', phone='PHONE_PLACEHOLDER') }}".replace('PHONE_PLACEHOLDER', phone);
 
     fetch(fetchUrl)
@@ -158,7 +154,6 @@ function sendDashboardMessage(event) {
 
     if (!phone || !message) return;
 
-    // استخدام الرابط الديناميكي لإرسال الرسائل
     const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
 
     fetch(sendUrl, {
@@ -173,7 +168,6 @@ function sendDashboardMessage(event) {
     .then(data => {
         if (data.success) {
             inputField.value = '';
-            // إعادة تحميل محتوى الشات لتحديث السجل باستخدام الاسم المحفوظ
             loadChat(phone, currentActiveContactName);
         } else {
             alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
