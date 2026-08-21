@@ -11,7 +11,13 @@ import os
 import logging
 from datetime import datetime
 from ..whatsapp_api import send_text_message
-from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
+
+# ✨ تم تحديث مسار الاستيراد هنا ليتطابق مع النقل إلى المجلد العام
+from apps.models.whatsapp_models import (
+    WhatsAppMessageLog, 
+    WhatsAppWebhookEvent, 
+    WhatsAppCustomerContact
+)
 
 logger = logging.getLogger(__name__)
 
