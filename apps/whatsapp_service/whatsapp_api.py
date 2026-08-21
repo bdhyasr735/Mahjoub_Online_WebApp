@@ -4,8 +4,9 @@
 import os
 import json
 import requests
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -19,8 +20,16 @@ VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token"
 VERSION = os.getenv("VERSION", "v20.0")
 BASE_URL = "https://graph.facebook.com"
 
+def get_db():
+    """Helper to get db instance safely from main app"""
+    try:
+        from app import db
+        return db
+    except ImportError:
+        return None
+
 # ==========================================
-# 1. مسار الـ Webhook
+# 1. مسار الـ Webhook (مع الحفظ في قاعدة البيانات)
 # ==========================================
 @whatsapp_bp.route('/webhook', methods=['GET'])
 def verify_webhook():
@@ -33,22 +42,82 @@ def verify_webhook():
 
 @whatsapp_bp.route('/webhook', methods=['POST'])
 def receive_webhook():
-    data = request.get_json()
-    print("📩 WhatsApp Webhook Received:", json.dumps(data, indent=2))
-    
+    data = request.get_json() or {}
+    db = get_db()
+    phone_id = PHONE_NUMBER_ID or 'system'
+
     try:
-        entry = data.get('entry', [{}])[0]
-        changes = entry.get('changes', [{}])[0]
-        value = changes.get('value', {})
-        messages = value.get('messages')
-        
-        if messages:
-            msg = messages[0]
-            sender_phone = msg.get('from')
-            msg_body = msg.get('text', {}).get('body')
-            print(f"رسالة من {sender_phone}: {msg_body}")
+        # حفظ الحدث الخام للتدقيق
+        if db:
+            from .models.whatsapp_models import WhatsAppWebhookEvent, WhatsAppMessageLog, WhatsAppCustomerContact
+            raw_event = WhatsAppWebhookEvent(
+                event_type="incoming_payload",
+                payload=data,
+                processed=True
+            )
+            db.session.add(raw_event)
+            db.session.commit()
+
+        entries = data.get('entry', [])
+        for entry in entries:
+            for change in entry.get('changes', []):
+                value = change.get('value', {})
+                messages = value.get('messages')
+                
+                if messages:
+                    for msg in messages:
+                        sender = msg.get('from')
+                        msg_type = msg.get('type', 'text')
+                        
+                        if msg_type == 'text':
+                            text = msg.get('text', {}).get('body', '')
+                        else:
+                            text = f'[{msg_type} attachment]'
+                            
+                        wamid = msg.get('id')
+                        
+                        # جلب اسم العميل من ملف البروفایل إن وجد
+                        contacts_list = value.get('contacts', [])
+                        customer_name = "عميل محجوب"
+                        if contacts_list:
+                            customer_name = contacts_list[0].get('profile', {}).get('name', 'عميل محجوب')
+
+                        if db:
+                            # تسجيل الرسالة الواردة
+                            log_entry = WhatsAppMessageLog(
+                                wamid=wamid,
+                                direction='inbound',
+                                sender_number=sender,
+                                recipient_number=phone_id,
+                                customer_name=customer_name,
+                                message_type=msg_type,
+                                content=text,
+                                status='received'
+                            )
+                            db.session.add(log_entry)
+
+                            # تحديث أو إنشاء جهة اتصال العميل
+                            contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
+                            if contact:
+                                contact.name = customer_name
+                                contact.last_message = text
+                                contact.last_timestamp = datetime.utcnow()
+                                contact.unread_count = (contact.unread_count or 0) + 1
+                            else:
+                                new_contact = WhatsAppCustomerContact(
+                                    phone=sender,
+                                    name=customer_name,
+                                    last_message=text,
+                                    unread_count=1
+                                )
+                                db.session.add(new_contact)
+
+                            db.session.commit()
+
     except Exception as e:
-        print(f"خطأ في معالجة الـ Webhook الوارد: {e}")
+        print(f"❌ [Webhook Processing Error]: {str(e)}")
+        if db:
+            db.session.rollback()
 
     return jsonify({'status': 'success'}), 200
 
@@ -57,8 +126,20 @@ def receive_webhook():
 # ==========================================
 @whatsapp_bp.route('/chats', methods=['GET'])
 def get_whatsapp_chats():
+    db = get_db()
+    if not db:
+        return jsonify({"status": "error", "message": "Database unavailable"}), 500
     try:
-        chats_list = [] 
+        from .models.whatsapp_models import WhatsAppCustomerContact
+        contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+        chats_list = [{
+            "phone": c.phone,
+            "name": c.name or "عميل محجوب",
+            "last_message": c.last_message or "",
+            "last_timestamp": c.last_timestamp.strftime('%H:%M') if c.last_timestamp else "",
+            "unread_count": c.unread_count or 0
+        } for c in contacts]
+        
         return jsonify({
             "status": "success",
             "chats": chats_list
@@ -68,8 +149,23 @@ def get_whatsapp_chats():
 
 @whatsapp_bp.route('/messages/<phone_number>', methods=['GET'])
 def get_chat_messages(phone_number):
+    db = get_db()
+    if not db:
+        return jsonify({"status": "error", "message": "Database unavailable"}), 500
     try:
-        messages_list = []
+        from .models.whatsapp_models import WhatsAppMessageLog
+        messages = db.session.query(WhatsAppMessageLog).filter(
+            (WhatsAppMessageLog.sender_number == phone_number) | (WhatsAppMessageLog.recipient_number == phone_number)
+        ).order_by(WhatsAppMessageLog.id.asc()).all()
+
+        messages_list = [{
+            "id": m.id,
+            "direction": m.direction,
+            "content": m.content,
+            "timestamp": m.timestamp.strftime('%Y-%m-%d %H:%M') if m.timestamp else '',
+            "status": m.status
+        } for m in messages]
+
         return jsonify({
             "status": "success",
             "phone": phone_number,
@@ -99,7 +195,7 @@ def send_text_message(to_number, message_body):
 # ==========================================
 # 4. مسار اختبار الإرسال
 # ==========================================
-@whatsapp_bp.route('/send-test', methods=['GET'])
+@whatsapp_bp.route('/send-send-test', methods=['GET'])
 def test_send_message():
     target_phone = "967779077746"
     message_content = "مرحباً علي محجوب! تم الربط بنجاح مع سيرفر محجوب أونلاين. 🚀"
@@ -123,8 +219,8 @@ def send_invoice_whatsapp(to_number, order_id, total_price):
     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}", "Content-Type": "application/json"}
     payload = {
         "messaging_product": "whatsapp",
-        "to": to_number,
         "type": "template",
+        "to": to_number,
         "template": {
             "name": "order_invoice", 
             "language": {"code": "ar"},
