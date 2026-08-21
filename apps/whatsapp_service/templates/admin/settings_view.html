@@ -14,7 +14,7 @@
 
   <!-- Settings Form Card -->
   <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-    <form method="POST" action="{{ url_for('whatsapp_service.settings_dashboard') }}" class="space-y-5">
+    <form method="POST" action="{{ url_for('whatsapp.settings_dashboard') }}" class="space-y-5">
       
       <!-- CSRF Token Hidden Field -->
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -84,7 +84,6 @@ function closeSuccessModal() {
     }, 300);
 }
 
-// يمكنك إظهار النافذة برمجياً عند الحاجة عبر استدعاء هذه الدالة
 function showSuccessModal() {
     const modal = document.getElementById('success-modal');
     modal.classList.remove('hidden');
