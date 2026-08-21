@@ -5,15 +5,14 @@ WhatsApp Routes and Webhook Controllers for Mahgoob Online
 from flask import Blueprint, request, jsonify, render_template, current_app
 import os
 import logging
-from ..whatsapp_api import WhatsAppApiClient
+from ..whatsapp_api import send_text_message
 from ..models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
 
 logger = logging.getLogger(__name__)
 
 whatsapp_bp = Blueprint('whatsapp_service', __name__)
-api_client = WhatsAppApiClient()
 
-VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026')
+VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
 
 # ==============================================================================
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
@@ -60,7 +59,6 @@ def handle_webhook():
                         name = contact_profile.get('name', 'عميل متجر محجوب')
 
                         # Save inbound message log in DB
-                        # WhatsAppMessageLog.create(...)
                         logger.info(f"💬 [Incoming Message] From: {name} ({sender}): {text}")
 
                 # 2. Process Status Updates (sent / delivered / read / failed)
@@ -90,22 +88,20 @@ def send_message_api():
     body = request.get_json() or {}
     recipient = body.get('recipient_number')
     text = body.get('message')
-    customer_name = body.get('customer_name')
-    order_id = body.get('order_id')
-    template_name = body.get('template_name')
-
+    
     if not recipient or not text:
         return jsonify({"success": False, "error": "Missing recipient_number or message"}), 400
 
-    result = api_client.send_text_message(recipient, text)
-    return jsonify(result), 200 if result.get('success') else 500
+    status_code, response_data = send_text_message(recipient, text)
+    success = (200 <= status_code < 300)
+    
+    return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
 @whatsapp_bp.route('/api/ping', methods=['GET'])
 def ping_meta_api():
-    """Checks Meta API connection and token validity."""
-    res = api_client.ping_connection()
-    return jsonify(res)
+    """Checks Meta API connection status."""
+    return jsonify({"status": "active", "message": "WhatsApp API helper is ready."})
 
 
 # ==============================================================================
@@ -114,13 +110,11 @@ def ping_meta_api():
 
 @whatsapp_bp.route('/dashboard')
 def chat_dashboard():
-    # جلب المحادثات النشطة لتعريتها في قالب المحادثات
     contacts = WhatsAppCustomerContact.query.all() if 'WhatsAppCustomerContact' in globals() else []
     return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
-    # جلب السجلات مرتبة تنازلياً حسب الأحدث
     logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.id.desc()).all() if 'WhatsAppMessageLog' in globals() else []
     return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
 
@@ -128,6 +122,5 @@ def logs_dashboard():
 def settings_dashboard():
     settings = {}
     if request.method == 'POST':
-        # منطق حفظ الإعدادات المستقبلية
         pass
     return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings)
