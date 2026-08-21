@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مركز مراسلات واتساب | محجوب أونلاين</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Tajawal', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
 
+  <!-- Main Top Navigation -->
+  <header class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-xs">
+        <img src="https://images.unsplash.com/photo-1577563908411-5077b6dc7624?w=120&auto=format&fit=crop&q=80" alt="Logo" class="w-full h-full object-contain rounded-lg">
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <span>مركز مراسلات واتساب</span>
+          <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded">محجوب أونلاين</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="flex items-center gap-2 text-xs font-bold">
+      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'chat' else 'text-slate-600 hover:bg-slate-100' }}">
+        المحادثات المباشرة
+      </a>
+      <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'logs' else 'text-slate-600 hover:bg-slate-100' }}">
+        سجل الرسائل
+      </a>
+      <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'settings' else 'text-slate-600 hover:bg-slate-100' }}">
+        إعدادات الربط
+      </a>
+    </nav>
+  </header>
+
+  <!-- Content Container -->
+  <main class="flex-1 flex overflow-hidden">
+    {% if active_tab == 'chat' %}
+      {% include 'admin/chat_view.html' %}
+    {% elif active_tab == 'logs' %}
+      {% include 'admin/logs_view.html' %}
+    {% elif active_tab == 'settings' %}
+      {% include 'admin/settings_view.html' %}
+    {% endif %}
+  </main>
+
+</body>
+</html>
