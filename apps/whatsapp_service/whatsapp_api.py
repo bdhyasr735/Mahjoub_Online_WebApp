@@ -4,7 +4,7 @@
 import os
 import json
 import requests
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, render_template, current_app
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -26,7 +26,11 @@ def get_db():
         from app import db
         return db
     except ImportError:
-        return None
+        try:
+            from apps.extensions import db
+            return db
+        except ImportError:
+            return None
 
 # ==========================================
 # 1. مسار الـ Webhook (مع الحفظ في قاعدة البيانات)
@@ -47,7 +51,6 @@ def receive_webhook():
     phone_id = PHONE_NUMBER_ID or 'system'
 
     try:
-        # حفظ الحدث الخام للتدقيق (استخدام المسار العام الجديد للنماذج)
         if db:
             from apps.models.whatsapp_models import WhatsAppWebhookEvent, WhatsAppMessageLog, WhatsAppCustomerContact
             raw_event = WhatsAppWebhookEvent(
@@ -76,14 +79,12 @@ def receive_webhook():
                             
                         wamid = msg.get('id')
                         
-                        # جلب اسم العميل من ملف البروفايل إن وجد
                         contacts_list = value.get('contacts', [])
                         customer_name = "عميل محجوب"
                         if contacts_list:
                             customer_name = contacts_list[0].get('profile', {}).get('name', 'عميل محجوب')
 
                         if db:
-                            # تسجيل الرسالة الواردة
                             log_entry = WhatsAppMessageLog(
                                 wamid=wamid,
                                 direction='inbound',
@@ -96,7 +97,6 @@ def receive_webhook():
                             )
                             db.session.add(log_entry)
 
-                            # تحديث أو إنشاء جهة اتصال العميل
                             contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
                             if contact:
                                 contact.name = customer_name
@@ -122,7 +122,7 @@ def receive_webhook():
     return jsonify({'status': 'success'}), 200
 
 # ==========================================
-# 2. مسارات جلب المحادثات والرسائل للوحة التحكم
+# 2. مسارات جلب المحادثات والرسائل لوحة التحكم
 # ==========================================
 @whatsapp_bp.route('/chats', methods=['GET'])
 def get_whatsapp_chats():
@@ -292,3 +292,18 @@ def send_invoice_whatsapp(to_number, order_id, total_price):
     }
     response = requests.post(url, headers=headers, json=payload)
     return response.json()
+
+# ==========================================
+# 7. مسارات عرض واجهة لوحة التحكم (Dashboard UI Views)
+# ==========================================
+@whatsapp_bp.route('/dashboard', methods=['GET'])
+def chat_dashboard():
+    return render_template('admin/whatsapp_dashboard.html')
+
+@whatsapp_bp.route('/logs-view', methods=['GET'])
+def logs_dashboard():
+    return render_template('admin/whatsapp_logs.html')
+
+@whatsapp_bp.route('/settings-view', methods=['GET'])
+def settings_dashboard():
+    return render_template('admin/whatsapp_settings.html')
