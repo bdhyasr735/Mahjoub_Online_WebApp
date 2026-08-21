@@ -1,3 +1,4 @@
+# coding: utf-8
 # 📂 config.py
 import os
 
@@ -16,8 +17,10 @@ class Config:
     WTF_CSRF_TIME_LIMIT = None
 
     # 💬 إعدادات API الخاصة بـ Meta WhatsApp
-    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN')
-    WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
+    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
+    WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
+    WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get('WHATSAPP_BUSINESS_ACCOUNT_ID', '')
+    WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
     WHATSAPP_API_VERSION = os.environ.get('WHATSAPP_API_VERSION', 'v20.0')
 
     @staticmethod
