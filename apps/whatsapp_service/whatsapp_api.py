@@ -76,7 +76,7 @@ def receive_webhook():
                             
                         wamid = msg.get('id')
                         
-                        # جلب اسم العميل من ملف البروفایل إن وجد
+                        # جلب اسم العميل من ملف البروفايل إن وجد
                         contacts_list = value.get('contacts', [])
                         customer_name = "عميل محجوب"
                         if contacts_list:
@@ -212,7 +212,64 @@ def test_send_message():
     })
 
 # ==========================================
-# 5. دالة إرسال الفاتورة
+# 5. مسار إرسال الرسالة من لوحة التحكم (Dashboard API)
+# ==========================================
+@whatsapp_bp.route('/send-message', methods=['POST'])
+def send_dashboard_message():
+    db = get_db()
+    data = request.get_json() or {}
+    recipient_phone = data.get('phone')
+    message_content = data.get('message')
+
+    if not recipient_phone or not message_content:
+        return jsonify({"status": "error", "message": "رقم الهاتف ونَص الرسالة مطلوبان"}), 400
+
+    if not PHONE_NUMBER_ID or not ACCESS_TOKEN:
+        return jsonify({"status": "error", "message": "بيانات اعتماد واتساب مفقودة في الخادم"}), 500
+
+    try:
+        status_code, meta_response = send_text_message(recipient_phone, message_content)
+
+        if status_code in [200, 201]:
+            if db:
+                from .models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
+                
+                wamid = None
+                try:
+                    wamid = meta_response.get('messages', [{}])[0].get('id')
+                except Exception:
+                    pass
+
+                log_entry = WhatsAppMessageLog(
+                    wamid=wamid,
+                    direction='outbound',
+                    sender_number=PHONE_NUMBER_ID,
+                    recipient_number=recipient_phone,
+                    customer_name="مشرف النظام",
+                    message_type='text',
+                    content=message_content,
+                    status='sent'
+                )
+                db.session.add(log_entry)
+
+                contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=recipient_phone).first()
+                if contact:
+                    contact.last_message = f"أنت: {message_content}"
+                    contact.last_timestamp = datetime.utcnow()
+                
+                db.session.commit()
+
+            return jsonify({"status": "success", "message": "تم إرسال الرسالة بنجاح", "meta": meta_response}), 200
+        else:
+            return jsonify({"status": "error", "message": "فشل الإرسال من قبل ميتا", "meta": meta_response}), status_code
+
+    except Exception as e:
+        if db:
+            db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ==========================================
+# 6. دالة إرسال الفاتورة
 # ==========================================
 def send_invoice_whatsapp(to_number, order_id, total_price):
     url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
