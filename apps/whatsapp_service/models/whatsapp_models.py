@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/models/whatsapp_models.py
+
 """
 SQLAlchemy Database Models for WhatsApp Integration
 ===================================================
@@ -42,9 +45,11 @@ class WhatsAppMessageLog(BaseModel):
     
     raw_payload = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)  # حقل مضاف للتوافق التام مع الكنترولر
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
+        time_val = self.timestamp or self.created_at
         return {
             "id": self.id,
             "wamid": self.wamid,
@@ -58,7 +63,7 @@ class WhatsAppMessageLog(BaseModel):
             "template_name": self.template_name,
             "status": self.status,
             "error_message": self.error_message,
-            "timestamp": self.created_at.isoformat() if self.created_at else None
+            "timestamp": time_val.isoformat() if time_val else None
         }
 
 class WhatsAppWebhookEvent(BaseModel):
