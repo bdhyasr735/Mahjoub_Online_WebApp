@@ -50,7 +50,8 @@ def withdraw():
     if request.method == 'POST':
         try:
             amount = Decimal(request.form.get('amount', '0'))
-            bank_account = request.form.get('bank_account_id', 'التحويل العام')
+            # استقبال جهة التحويل أو الحساب البنكي المسجل تلقائياً
+            bank_account = request.form.get('bank_account_id', getattr(wallet, 'bank_name', 'الحساب البنكي المعتمد للمتجر'))
             notes = request.form.get('notes', '')
 
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
@@ -66,7 +67,7 @@ def withdraw():
 
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
-    # تم تصحيح اسم القالب هنا ليتطابق مع اسم الملف الصحيح withdrawal_form.html
+    # تمرير المحفظة وجهة التحويل للقالب
     return render_template('supplier_wallet/withdrawal_form.html', wallet=wallet)
 
 
