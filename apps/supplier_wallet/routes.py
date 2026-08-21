@@ -51,7 +51,7 @@ def withdraw():
         try:
             amount = Decimal(request.form.get('amount', '0'))
             # استقبال جهة التحويل أو الحساب البنكي المسجل تلقائياً
-            bank_account = request.form.get('bank_account_id', getattr(wallet, 'bank_name', 'الحساب البنكي المعتمد للمتجر'))
+            bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)')
             notes = request.form.get('notes', '')
 
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
@@ -67,8 +67,13 @@ def withdraw():
 
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
-    # تمرير المحفظة وجهة التحويل للقالب
-    return render_template('supplier_wallet/withdrawal_form.html', wallet=wallet)
+    # تعريف الحساب الافتراضي وتمريره للقالب لتجنب خطأ UndefinedError
+    active_bank = {
+        'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)',
+        'id': 1
+    }
+
+    return render_template('supplier_wallet/withdrawal_form.html', wallet=wallet, active_bank=active_bank)
 
 
 @wallet_bp.route('/transactions')
