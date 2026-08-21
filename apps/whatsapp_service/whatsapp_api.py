@@ -36,7 +36,6 @@ def receive_webhook():
     data = request.get_json()
     print("📩 WhatsApp Webhook Received:", json.dumps(data, indent=2))
     
-    # استخراج الرسالة الواردة وحفظها في قاعدة البيانات
     try:
         entry = data.get('entry', [{}])[0]
         changes = entry.get('changes', [{}])[0]
@@ -47,7 +46,6 @@ def receive_webhook():
             msg = messages[0]
             sender_phone = msg.get('from')
             msg_body = msg.get('text', {}).get('body')
-            # تم تصحيح خطأ طباعة الرسالة هنا بإضافة علامات التنصيص
             print(f"رسالة من {sender_phone}: {msg_body}")
     except Exception as e:
         print(f"خطأ في معالجة الـ Webhook الوارد: {e}")
@@ -55,11 +53,10 @@ def receive_webhook():
     return jsonify({'status': 'success'}), 200
 
 # ==========================================
-# 2. مسارات جلب المحادثات والرسائل للوحة التحكم (Dashboard APIs)
+# 2. مسارات جلب المحادثات والرسائل للوحة التحكم
 # ==========================================
 @whatsapp_bp.route('/chats', methods=['GET'])
 def get_whatsapp_chats():
-    """جلب قائمة العملاء المتواصلين لعرضها في القائمة الجانبية للوحة التحكم"""
     try:
         chats_list = [] 
         return jsonify({
@@ -71,7 +68,6 @@ def get_whatsapp_chats():
 
 @whatsapp_bp.route('/messages/<phone_number>', methods=['GET'])
 def get_chat_messages(phone_number):
-    """جلب سجل الرسائل الخاص بعميل معين عند النقر عليه"""
     try:
         messages_list = []
         return jsonify({
@@ -83,7 +79,7 @@ def get_chat_messages(phone_number):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # ==========================================
-# 3. دالة إرسال الرسالة النصية المباشرة (حل سريع للاختبار)
+# 3. دالة إرسال الرسالة النصية المباشرة
 # ==========================================
 def send_text_message(to_number, message_body):
     url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
@@ -105,8 +101,7 @@ def send_text_message(to_number, message_body):
 # ==========================================
 @whatsapp_bp.route('/send-test', methods=['GET'])
 def test_send_message():
-    """يرسل رسالة نصية مباشرة بدلاً من قالب hello_world لتجاوز قيود ميتا"""
-    target_phone = "967779077746"  # رقمك الشخصي
+    target_phone = "967779077746"
     message_content = "مرحباً علي محجوب! تم الربط بنجاح مع سيرفر محجوب أونلاين. 🚀"
     
     if not PHONE_NUMBER_ID or not ACCESS_TOKEN:
@@ -121,7 +116,7 @@ def test_send_message():
     })
 
 # ==========================================
-# 5. دالة إرسال الفاتورة (للقوالب المعتمدة)
+# 5. دالة إرسال الفاتورة
 # ==========================================
 def send_invoice_whatsapp(to_number, order_id, total_price):
     url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
