@@ -7,55 +7,99 @@
 
     <!-- ترويسة المتجر والأرصدة -->
     <div style="background: #1a0b2e; border: 1px solid #D4AF37; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-        <!-- ... (الترويسة كما هي) ... -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 20px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.4);">
+                    محفظة نشطة وموثقة
+                </span>
+                <h1 style="font-size: 22px; font-weight: 900; margin-top: 8px; color: white;">{{ wallet.store_name if wallet else 'متجر الأناقة الفاخرة' }}</h1>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;" class="font-mono">
+                    رمز المورد: <span style="color: #D4AF37; font-weight: bold;">{{ wallet.supplier_code if wallet else 'SUP-9634' }}</span> |
+                    رمز المحفظة: <span style="color: white; font-weight: bold;">{{ wallet.wallet_code if wallet else 'WEL-9634' }}</span>
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{{ url_for('supplier_wallet.withdraw') }}" class="btn-gold" style="display: inline-flex; align-items: center; gap: 8px; background: #D4AF37; color: #1a0b2e; padding: 10px 20px; border-radius: 10px; font-weight: 700; text-decoration: none;">
+                    <span>طلب سحب أرباح</span>
+                    <span>←</span>
+                </a>
+            </div>
+        </div>
 
         <!-- شبكة بطاقات الأرصدة الثلاثية المحدثة للألوان -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px;">
-            <!-- الرصيد المتاح -->
             <div style="background: #2a1545; border: 1px solid #D4AF37; border-radius: 16px; padding: 18px;">
                 <div style="font-size: 12px; color: #D4AF37;">الرصيد المتاح للسحب الفوري</div>
-                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;">{{ "%.2f"|format(wallet.balance_sar if wallet else 42850.00) }} <span style="font-size: 14px;">SAR</span></div>
+                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
+                    {{ "%.2f"|format(wallet.balance_sar if wallet else 42850.00) }} <span style="font-size: 14px;">SAR</span>
+                </div>
             </div>
-            <!-- الرصيد المعلق -->
+
             <div style="background: #2a1545; border: 1px solid #D4AF37; border-radius: 16px; padding: 18px;">
                 <div style="font-size: 12px; color: #D4AF37;">الرصيد المعلق (قيد المراجعة)</div>
-                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;">{{ "%.2f"|format(wallet.balance_pending if wallet else 3500.00) }} <span style="font-size: 14px;">SAR</span></div>
+                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
+                    {{ "%.2f"|format(wallet.balance_pending if wallet else 3500.00) }} <span style="font-size: 14px;">SAR</span>
+                </div>
             </div>
-            <!-- إجمالي المسحوبات -->
+
             <div style="background: #2a1545; border: 1px solid #D4AF37; border-radius: 16px; padding: 18px;">
                 <div style="font-size: 12px; color: #D4AF37;">إجمالي الأرباح المسحوبة</div>
-                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;">{{ "%.2f"|format(wallet.total_withdrawn if wallet else 89400.00) }} <span style="font-size: 14px;">SAR</span></div>
+                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
+                    {{ "%.2f"|format(wallet.total_withdrawn if wallet else 89400.00) }} <span style="font-size: 14px;">SAR</span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- جدول كشف الحساب (الحركات) -->
-    <div style="background: #1a0b2e; border: 1px solid #332155; border-radius: 20px; padding: 24px;">
-        <h2 style="color: #D4AF37; margin-bottom: 16px; font-size: 18px;">آخر العمليات المالية</h2>
-        <table style="width: 100%; border-collapse: collapse; color: white;">
-            <thead>
-                <tr style="border-bottom: 1px solid #332155; text-align: right;">
-                    <th style="padding: 12px;">التاريخ</th>
-                    <th style="padding: 12px;">العملية</th>
-                    <th style="padding: 12px;">المبلغ</th>
-                    <th style="padding: 12px;">الحالة</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for transaction in transactions %}
-                <tr style="border-bottom: 1px solid #332155;">
-                    <td style="padding: 12px;">{{ transaction.date }}</td>
-                    <td style="padding: 12px;">{{ transaction.description }}</td>
-                    <td style="padding: 12px;" class="font-mono">{{ transaction.amount }} SAR</td>
-                    <td style="padding: 12px;">{{ transaction.status }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" style="text-align: center; padding: 20px; color: #9ca3af;">لا توجد عمليات مالية حالياً.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div style="background: #1a0b2e; border: 1px solid #332155; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: #D4AF37; font-size: 18px; margin: 0;">آخر العمليات المالية</h2>
+            <a href="{{ url_for('supplier_wallet.transactions') }}" style="color: #D4AF37; font-size: 13px; text-decoration: none; font-weight: 700;">عرض كافة الحركات السندات ←</a>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; color: white; text-align: right; font-size: 12px;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #332155; color: #9ca3af;">
+                        <th style="padding: 12px;">رقم السند / التاريخ</th>
+                        <th style="padding: 12px;">البيان المحاسبي / العملية</th>
+                        <th style="padding: 12px;">المبلغ</th>
+                        <th style="padding: 12px;">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 12px;">
+                            <div style="color: #D4AF37; font-weight: bold;" class="font-mono">{{ tx.voucher_number }}</div>
+                            <div style="color: #9ca3af; font-size: 11px;" class="font-mono">{{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '' }}</div>
+                        </td>
+                        <td style="padding: 12px; color: #e5e7eb;">{{ tx.description }}</td>
+                        <td style="padding: 12px; font-weight: bold;" class="font-mono">
+                            <span style="color: {% if tx.amount > 0 %}#34d399{% else %}white{% endif %};">
+                                {{ "%.2f"|format(tx.amount) }} SAR
+                            </span>
+                        </td>
+                        <td style="padding: 12px;">
+                            {% if tx.status == 'completed' %}
+                                <span style="color: #34d399; font-weight: 700;">● مكتملة</span>
+                            {% elif tx.status == 'pending' %}
+                                <span style="color: #fbbf24; font-weight: 700;">● قيد المراجعة</span>
+                            {% else %}
+                                <span style="color: #f87171; font-weight: 700;">● مرفوضة</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 30px; color: #9ca3af;">لا توجد عمليات مالية مسجلة حالياً.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
