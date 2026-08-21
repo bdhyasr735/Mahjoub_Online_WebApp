@@ -35,10 +35,62 @@ def verify_webhook():
 def receive_webhook():
     data = request.get_json()
     print("📩 WhatsApp Webhook Received:", json.dumps(data, indent=2))
+    
+    # TODO: هنا يتم استخراج الرسالة الواردة وحفظها في قاعدة البيانات (PostgreSQL)
+    # مثال لاستخراج النص ورقم المرسل إن وجد:
+    try:
+        entry = data.get('entry', [{}])[0]
+        changes = entry.get('changes', [{}])[0]
+        value = changes.get('value', {})
+        messages = value.get('messages')
+        
+        if messages:
+            msg = messages[0]
+            sender_phone = msg.get('from')
+            msg_body = msg.get('text', {}).get('body')
+            # يمكنك هنا استدعاء نموذج قاعدة البيانات لحفظ الرسالة مباشرة
+            print(لرسالة من {sender_phone}: {msg_body})
+    except Exception as e:
+        print(خطأ في معالجة الـ Webhook الوارد: {e})
+
     return jsonify({'status': 'success'}), 200
 
 # ==========================================
-# 2. دالة إرسال الرسالة النصية المباشرة (حل سريع للاختبار)
+# 2. مسارات جلب المحادثات والرسائل للوحة التحكم (Dashboard APIs)
+# ==========================================
+@whatsapp_bp.route('/chats', methods=['GET'])
+def get_whatsapp_chats():
+    """جلب قائمة العملاء المتواصلين لعرضها في القائمة الجانبية للوحة التحكم"""
+    try:
+        # استبدل هذا الاستعلام لاحقاً بما يقابله في قاعدة بيانات PostgreSQL الخاصة بك
+        # مثال وهمي لإرجاع قائمة فارغة بشكل منظم أو جلبهم من جدول المحادثات:
+        chats_list = [] 
+        # نموذج: db.session.query(WhatsAppChat).all()
+        
+        return jsonify({
+            "status": "success",
+            "chats": chats_list
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@whatsapp_bp.route('/messages/<phone_number>', methods=['GET'])
+def get_chat_messages(phone_number):
+    """جلب سجل الرسائل الخاص بعميل معين عند النقر عليه"""
+    try:
+        # جلب الرسائل من قاعدة البيانات بناءً على رقم الهاتف
+        messages_list = []
+        
+        return jsonify({
+            "status": "success",
+            "phone": phone_number,
+            "messages": messages_list
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ==========================================
+# 3. دالة إرسال الرسالة النصية المباشرة (حل سريع للاختبار)
 # ==========================================
 def send_text_message(to_number, message_body):
     url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
@@ -56,12 +108,12 @@ def send_text_message(to_number, message_body):
     return response.status_code, response.json()
 
 # ==========================================
-# 3. مسار اختبار الإرسال (تم تحديثه لإرسال نص مباشر)
+# 4. مسار اختبار الإرسال
 # ==========================================
 @whatsapp_bp.route('/send-test', methods=['GET'])
 def test_send_message():
     """يرسل رسالة نصية مباشرة بدلاً من قالب hello_world لتجاوز قيود ميتا"""
-    target_phone = "967779077746" # رقمك الشخصي
+    target_phone = "967779077746"  # رقمك الشخصي
     message_content = "مرحباً علي محجوب! تم الربط بنجاح مع سيرفر محجوب أونلاين. 🚀"
     
     if not PHONE_NUMBER_ID or not ACCESS_TOKEN:
@@ -76,12 +128,12 @@ def test_send_message():
     })
 
 # ==========================================
-# 4. دالة إرسال الفاتورة (للقوالب المعتمدة)
+# 5. دالة إرسال الفاتورة (للقوالب المعتمدة)
 # ==========================================
 def send_invoice_whatsapp(to_number, order_id, total_price):
     url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}", "Content-Type": "application/json"}
-    data = {
+    payload = {
         "messaging_product": "whatsapp",
         "to": to_number,
         "type": "template",
@@ -97,5 +149,5 @@ def send_invoice_whatsapp(to_number, order_id, total_price):
             }]
         }
     }
-    response = requests.post(url, headers=headers, json=json.dumps(data))
+    response = requests.post(url, headers=headers, json=payload)
     return response.json()
