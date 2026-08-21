@@ -1,12 +1,17 @@
 <!-- Logs View Jinja2 Component -->
 <div class="max-w-7xl mx-auto w-full p-6 space-y-6">
+  <!-- Header Card -->
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
     <div>
       <h2 class="text-base font-bold text-slate-900">سجل رسائل واتساب (WhatsApp Messages Log)</h2>
       <p class="text-xs text-slate-500 mt-0.5">سجلات الإرسال والاستقبال المباشرة المرتبطة بطلبات متجر محجوب أونلاين</p>
     </div>
+    <div class="p-3 bg-purple-50 text-purple-700 rounded-xl">
+      <i class="fas fa-database text-xl"></i>
+    </div>
   </div>
 
+  <!-- Logs Table Card -->
   <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
     <table class="w-full text-right text-xs">
       <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
@@ -25,7 +30,6 @@
         <tr class="hover:bg-slate-50/80 transition">
           <td class="px-4 py-3 font-mono text-slate-600">#{{ log.id }}</td>
           <td class="px-4 py-3">
-            <!-- تم إضافة outbound لضمان التوافق مع الكود السابق -->
             {% if log.direction in ['outgoing', 'outbound', 'صادر'] %}
               <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-[10px]">صادر 📤</span>
             {% else %}
@@ -33,22 +37,20 @@
             {% endif %}
           </td>
           <td class="px-4 py-3 font-bold text-slate-900">
-            <!-- عرض اسم العميل إن وجد، وإلا يتم عرض رقم المستلم أو المرسل كبديل آمن -->
-            {{ log.customer_name if log.customer_name else (log.recipient_number if log.direction in ['outgoing', 'outbound'] else log.sender_number) }}
+            {{ log.customer_name if log.customer_name else (log.recipient_number if log.direction in ['outgoing', 'outbound', 'صادر'] else log.sender_number) }}
           </td>
           <td class="px-4 py-3 font-mono text-slate-700">
             {% if log.order_id %}
-              <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ log.order_id }}</span>
+              <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">#{{ log.order_id }}</span>
             {% else %}
               <span class="text-slate-400">-</span>
             {% endif %}
           </td>
           <td class="px-4 py-3 max-w-xs truncate text-slate-600" title="{{ log.content }}">{{ log.content }}</td>
           <td class="px-4 py-3">
-            <span class="text-slate-700 font-medium badge bg-slate-100 px-2 py-1 rounded">{{ log.status }}</span>
+            <span class="text-slate-700 font-medium bg-slate-100 px-2 py-1 rounded text-[11px] border border-slate-200">{{ log.status }}</span>
           </td>
           <td class="px-4 py-3 text-slate-400 font-mono text-[11px]" dir="ltr">
-            <!-- تنسيق التاريخ لتجنب ظهور كائن Datetime خام، مع دعم created_at أو timestamp -->
             {% set log_date = log.created_at if log.created_at else log.timestamp %}
             {{ log_date.strftime('%Y-%m-%d %H:%M') if log_date else '-' }}
           </td>
