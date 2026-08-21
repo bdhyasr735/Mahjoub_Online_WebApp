@@ -270,6 +270,12 @@ def settings_dashboard():
     }
     
     if request.method == 'POST':
+        # استقبال البيانات المُرسلة من النموذج وحفظها إذا لزم الأمر
+        phone_number_id = request.form.get('phone_number_id')
+        whatsapp_business_id = request.form.get('whatsapp_business_id')
+        access_token = request.form.get('access_token')
+        verify_token = request.form.get('verify_token')
+        
         flash('تم حفظ الإعدادات بنجاح', 'success')
         return redirect(url_for('whatsapp_service.settings_dashboard'))
         
