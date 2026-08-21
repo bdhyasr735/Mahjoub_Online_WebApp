@@ -6,7 +6,7 @@ WhatsApp Routes and Webhook Controllers for Mahgoob Online
 Handles two-way messaging, database logging, and admin dashboard views.
 """
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, current_app
 import os
 import logging
 from datetime import datetime
@@ -17,7 +17,11 @@ logger = logging.getLogger(__name__)
 
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='../templates')
 
-VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
+def get_verify_token():
+    try:
+        return current_app.config.get('WHATSAPP_VERIFY_TOKEN', os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token'))
+    except RuntimeError:
+        return os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
 
 def get_db():
     """Helper to get db instance safely from main app"""
@@ -40,10 +44,11 @@ def verify_webhook():
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
 
+    verify_token = get_verify_token()
     logger.info(f"🔍 [Webhook GET] Received verification request - mode: {mode}, token: {token}")
 
-    # السماح بالتحقق إذا كان التوكن مطابخاً أو تم إرسال الـ challenge مباشرة
-    if token == VERIFY_TOKEN or challenge:
+    # السماح بالتحقق إذا كان التوكن مطابقاً أو تم إرسال الـ challenge مباشرة
+    if token == verify_token or challenge:
         if challenge:
             logger.info("✅ [Webhook Verify] Success! Returning challenge.")
             return str(challenge), 200
@@ -58,6 +63,7 @@ def handle_webhook():
     """
     data = request.get_json() or {}
     db = get_db()
+    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
 
     try:
         # 1. Save raw webhook event for debugging/audit
@@ -100,7 +106,7 @@ def handle_webhook():
                                 wamid=wamid,
                                 direction='inbound',
                                 sender_number=sender,
-                                recipient_number=os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'),
+                                recipient_number=phone_id,
                                 customer_name=customer_name,
                                 message_type=msg_type,
                                 content=text,
@@ -168,6 +174,8 @@ def send_message_api():
     success = (200 <= status_code < 300)
 
     db = get_db()
+    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
+
     if db:
         wamid = None
         if success and isinstance(response_data, dict):
@@ -179,7 +187,7 @@ def send_message_api():
         outbound_log = WhatsAppMessageLog(
             wamid=wamid,
             direction='outbound',
-            sender_number=os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'),
+            sender_number=phone_id,
             recipient_number=recipient,
             order_id=order_id,
             message_type='text',
@@ -228,10 +236,10 @@ def logs_dashboard():
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_dashboard():
     settings = {
-        "phone_number_id": os.environ.get('WHATSAPP_PHONE_NUMBER_ID', ''),
-        "whatsapp_business_id": os.environ.get('WHATSAPP_BUSINESS_ID', ''),
-        "access_token": os.environ.get('WHATSAPP_ACCESS_TOKEN', ''),
-        "verify_token": VERIFY_TOKEN
+        "phone_number_id": current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', ''),
+        "whatsapp_business_id": current_app.config.get('WHATSAPP_BUSINESS_ACCOUNT_ID', ''),
+        "access_token": current_app.config.get('WHATSAPP_ACCESS_TOKEN', ''),
+        "verify_token": get_verify_token()
     }
     
     if request.method == 'POST':
