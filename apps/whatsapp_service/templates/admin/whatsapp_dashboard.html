@@ -1,43 +1,42 @@
+<!-- coding: utf-8 -->
+<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_dashboard.html -->
+
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_dashboard.html -->
-
-<div class="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden">
-
-  <!-- شريط التنقل الفرعي الخاص بموديول الواتساب -->
-  <div class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 shadow-xs">
+<div class="max-w-7xl mx-auto w-full p-4 md:p-6 space-y-6 flex flex-col h-[calc(100vh-5rem)]">
+  
+  <!-- شريط التنقل العلوي للخدمة (Service Navigation Tabs) -->
+  <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-4 shrink-0">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-sm border border-amber-500/30">
-        <i class="fab fa-whatsapp text-lg"></i>
+      <div class="w-10 h-10 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-md border border-amber-500/30">
+        <i class="fab fa-whatsapp text-xl"></i>
       </div>
       <div>
-        <h1 class="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <span>مركز مراسلات واتساب</span>
-          <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">محجوب أونلاين</span>
-        </h1>
+        <h2 class="text-base font-black text-slate-900 tracking-tight">إدارة محجوب أونلاين - واتساب</h2>
+        <span class="text-xs text-slate-500 font-medium">نظام الربط السحابي المباشر مع Meta API</span>
       </div>
     </div>
 
-    <!-- أزرار التنقل بين تبويبات الموديول -->
-    <nav class="flex items-center gap-2 text-xs font-bold">
-      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-3.5 py-2 rounded-xl transition {{ 'bg-slate-900 text-white shadow-sm' if active_tab == 'chat' else 'text-slate-600 hover:bg-slate-100' }}">
-        <i class="fas fa-comments ml-1.5 text-[11px]"></i>
+    <!-- التبويبات الداخلية -->
+    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {{ 'bg-white text-slate-900 shadow-sm' if active_tab == 'chat' else 'text-slate-600 hover:text-slate-900' }}">
+        <i class="fas fa-comments text-emerald-600"></i>
         <span>المحادثات المباشرة</span>
       </a>
-      <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-3.5 py-2 rounded-xl transition {{ 'bg-slate-900 text-white shadow-sm' if active_tab == 'logs' else 'text-slate-600 hover:bg-slate-100' }}">
-        <i class="fas fa-database ml-1.5 text-[11px]"></i>
+      <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {{ 'bg-white text-slate-900 shadow-sm' if active_tab == 'logs' else 'text-slate-600 hover:text-slate-900' }}">
+        <i class="fas fa-database text-amber-600"></i>
         <span>سجل الرسائل</span>
       </a>
-      <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-3.5 py-2 rounded-xl transition {{ 'bg-slate-900 text-white shadow-sm' if active_tab == 'settings' else 'text-slate-600 hover:bg-slate-100' }}">
-        <i class="fas fa-cog ml-1.5 text-[11px]"></i>
-        <span>إعدادات الربط</span>
+      <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 {{ 'bg-white text-slate-900 shadow-sm' if active_tab == 'settings' else 'text-slate-600 hover:text-slate-900' }}">
+        <i class="fas fa-cog text-slate-700"></i>
+        <span>الإعدادات</span>
       </a>
-    </nav>
+    </div>
   </div>
 
-  <!-- محتوى التبويبات المتغير -->
-  <div class="flex-1 overflow-hidden p-4 flex flex-col">
+  <!-- محتوى التبويب النشط -->
+  <div class="flex-1 flex flex-col overflow-hidden bg-white border border-slate-200 rounded-2xl shadow-xs">
     {% if active_tab == 'chat' %}
       {% include 'admin/chat_view.html' %}
     {% elif active_tab == 'logs' %}
