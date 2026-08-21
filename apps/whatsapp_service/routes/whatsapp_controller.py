@@ -30,7 +30,7 @@ def verify_webhook():
     if mode == 'subscribe' and token == VERIFY_TOKEN:
         logger.info("✅ [Webhook Verify] Meta challenge verified successfully.")
         return challenge, 200
-    
+
     logger.warning("❌ [Webhook Verify] Token mismatch or invalid mode.")
     return "Verification token mismatch", 403
 
@@ -48,12 +48,11 @@ def handle_webhook():
         for entry in entries:
             for change in entry.get('changes', []):
                 value = change.get('value', {})
-                
+
                 # 1. Process Inbound Messages
                 if 'messages' in value:
                     for msg in value['messages']:
                         sender = msg.get('from')
-                        # تم تصحيح الخطأ هنا بقوس دائري صحيح بدلاً من القوس المربع
                         text = msg.get('text', {}).get('body', '') if msg.get('type') == 'text' else '[وسائط/مرفق]'
                         wamid = msg.get('id')
                         contact_profile = value.get('contacts', [{}])[0].get('profile', {})
@@ -89,13 +88,13 @@ def send_message_api():
     body = request.get_json() or {}
     recipient = body.get('recipient_number')
     text = body.get('message')
-    
+
     if not recipient or not text:
         return jsonify({"success": False, "error": "Missing recipient_number or message"}), 400
 
     status_code, response_data = send_text_message(recipient, text)
     success = (200 <= status_code < 300)
-    
+
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
