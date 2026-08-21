@@ -110,12 +110,20 @@ def ping_meta_api():
 
 @whatsapp_bp.route('/dashboard')
 def chat_dashboard():
-    contacts = WhatsAppCustomerContact.query.all() if 'WhatsAppCustomerContact' in globals() else []
+    try:
+        from app import db
+        contacts = db.session.query(WhatsAppCustomerContact).all()
+    except Exception:
+        contacts = []
     return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
-    logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.id.desc()).all() if 'WhatsAppMessageLog' in globals() else []
+    try:
+        from app import db
+        logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).all()
+    except Exception:
+        logs = []
     return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
