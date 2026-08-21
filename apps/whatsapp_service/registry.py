@@ -1,3 +1,58 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/registry.py
+
+"""
+Service Registry & Permissions Module for WhatsApp Service
+"""
+
+SERVICE_METADATA = {
+    "name": "whatsapp_service",
+    "display_name": "خدمة مراسلات واتساب محجوب أونلاين",
+    "version": "1.2.0",
+    "author": "Mahgoob Online Dev Team",
+    "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v21.0 لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات ORD-#",
+    "icon": "fab fa-whatsapp",
+    "admin_menu": [
+        {
+            "title": "محادثات العملاء",
+            "endpoint": "whatsapp_service.chat_dashboard",
+            "icon": "fas fa-comments",
+            "badge": "unread_count"
+        },
+        {
+            "title": "سجل الرسائل",
+            "endpoint": "whatsapp_service.logs_dashboard",
+            "icon": "fas fa-database"
+        },
+        {
+            "title": "إعدادات Meta Cloud API",
+            "endpoint": "whatsapp_service.settings_dashboard",
+            "icon": "fas fa-cog"
+        }
+    ],
+    "permissions": [
+        "whatsapp.view_chat",
+        "whatsapp.send_message",
+        "whatsapp.manage_templates",
+        "whatsapp.view_logs",
+        "whatsapp.admin_settings"
+    ]
+}
+
+# المتغيرات المطلوبة ليتعرف عليها نظام التسجيل الديناميكي بسلاسة
+MODULE_NAME = SERVICE_METADATA["display_name"]
+MODULE_ICON = SERVICE_METADATA["icon"]
+SHOW_IN_SUPPLIER = False
+
+# تحويل قائمة القنوات الإدارية إلى قاموس (Links) ليتوافق مع الفحص الديناميكي في القالب
+LINKS = {
+    item["endpoint"]: item["title"] 
+    for item in SERVICE_METADATA.get("admin_menu", [])
+}
+
+# حقن الـ links داخل الـ Metadata ليتوافق مع ما يبحث عنه admin_base.html
+SERVICE_METADATA["links"] = LINKS
+
 def register_module(app):
     """
     تسجيل موديول الواتساب ومساراته تلقائياً في التطبيق الرئيسي
@@ -11,8 +66,7 @@ def register_module(app):
         
         # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً
         with app.app_context():
-            from apps.whatsapp_service.models import whatsapp_models  # أو المسار الصحيح لاستيراد الموديلات
-            # إذا كنت تستخدم db المعرفة في app الرئيسي:
+            from apps.whatsapp_service.models import whatsapp_models
             try:
                 from app import db
                 db.create_all()
