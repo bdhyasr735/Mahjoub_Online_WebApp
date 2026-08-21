@@ -13,7 +13,7 @@
         <tr>
           <th class="px-4 py-3.5">المعرف</th>
           <th class="px-4 py-3.5">الاتجاه</th>
-          <th class="px-4 py-3.5">العميل</th>
+          <th class="px-4 py-3.5">العميل / الرقم</th>
           <th class="px-4 py-3.5">رقم الطلب</th>
           <th class="px-4 py-3.5">الرسالة</th>
           <th class="px-4 py-3.5">الحالة</th>
@@ -25,29 +25,40 @@
         <tr class="hover:bg-slate-50/80 transition">
           <td class="px-4 py-3 font-mono text-slate-600">#{{ log.id }}</td>
           <td class="px-4 py-3">
-            {% if log.direction == 'outgoing' or log.direction == 'صادر' %}
-              <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-[10px]">صادر</span>
+            <!-- تم إضافة outbound لضمان التوافق مع الكود السابق -->
+            {% if log.direction in ['outgoing', 'outbound', 'صادر'] %}
+              <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-[10px]">صادر 📤</span>
             {% else %}
-              <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[10px]">وارد</span>
+              <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[10px]">وارد 📥</span>
             {% endif %}
           </td>
-          <td class="px-4 py-3 font-bold text-slate-900">{{ log.customer_name }}</td>
+          <td class="px-4 py-3 font-bold text-slate-900">
+            <!-- عرض اسم العميل إن وجد، وإلا يتم عرض رقم المستلم أو المرسل كبديل آمن -->
+            {{ log.customer_name if log.customer_name else (log.recipient_number if log.direction in ['outgoing', 'outbound'] else log.sender_number) }}
+          </td>
           <td class="px-4 py-3 font-mono text-slate-700">
             {% if log.order_id %}
               <span class="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{{ log.order_id }}</span>
             {% else %}
-              -
+              <span class="text-slate-400">-</span>
             {% endif %}
           </td>
-          <td class="px-4 py-3 max-w-xs truncate text-slate-600">{{ log.content }}</td>
+          <td class="px-4 py-3 max-w-xs truncate text-slate-600" title="{{ log.content }}">{{ log.content }}</td>
           <td class="px-4 py-3">
-            <span class="text-slate-700 font-medium">{{ log.status }}</span>
+            <span class="text-slate-700 font-medium badge bg-slate-100 px-2 py-1 rounded">{{ log.status }}</span>
           </td>
-          <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">{{ log.created_at }}</td>
+          <td class="px-4 py-3 text-slate-400 font-mono text-[11px]" dir="ltr">
+            <!-- تنسيق التاريخ لتجنب ظهور كائن Datetime خام، مع دعم created_at أو timestamp -->
+            {% set log_date = log.created_at if log.created_at else log.timestamp %}
+            {{ log_date.strftime('%Y-%m-%d %H:%M') if log_date else '-' }}
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" class="px-4 py-8 text-center text-slate-400 text-xs">لا توجد سجلات رسائل متاحة حالياً</td>
+          <td colspan="7" class="px-4 py-8 text-center text-slate-400 text-xs">
+            <i class="fas fa-database mb-2 text-slate-300 fa-2x block"></i>
+            لا توجد سجلات رسائل متاحة حالياً
+          </td>
         </tr>
         {% endfor %}
       </tbody>
