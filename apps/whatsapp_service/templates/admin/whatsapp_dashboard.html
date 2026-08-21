@@ -252,12 +252,10 @@
         document.getElementById('active-chat-phone').innerText = phone;
         document.getElementById('target-phone').value = phone;
         
-        // تفعيل حقول الإدخال
         document.getElementById('message-input').removeAttribute('disabled');
         document.getElementById('send-btn').removeAttribute('disabled');
         document.getElementById('message-input').focus();
 
-        // استخدام رابط آمن ديناميكي يتكيف مع مسارات الفلاسك
         const fetchUrl = "{{ url_for('whatsapp_service.get_customer_messages', phone='REPLACE_PHONE') }}".replace('REPLACE_PHONE', phone);
 
         fetch(fetchUrl)
