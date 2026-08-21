@@ -1,21 +1,22 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 # 📂 apps/supplier_wallet/registry.py
 
-MODULE_NAME = "الإدارة المالية"
-MODULE_ICON = "bi-wallet2"
-SHOW_IN_SUPPLIER = True
+from flask import Blueprint
 
-LINKS = {
-    'supplier_wallet.wallet_dashboard': '💳 نظرة عامة على المحفظة',
-    'supplier_wallet.transactions': '📜 سجل الحركات المالية',
-    'supplier_wallet.withdraw': '💸 طلب سحب أرباح'
-}
+MODULE_NAME = "الإدارة المالية للمحفظة"
+MODULE_ICON = "fa-wallet"
+SHOW_IN_SUPPLIER = True  # ليظهر في بوابة الموردين
+
+# تعريف الروابط التي ستظهر في السيردبار
+NAV_ITEMS = [
+    {
+        "endpoint": "supplier_wallet.wallet_dashboard",
+        "title": "محفظة الأرباح والسندات",
+        "icon": "fa-file-invoice-dollar"
+    }
+]
 
 def register_module(app):
-    from apps.supplier_wallet import supplier_wallet_bp
-    
-    if 'supplier_wallet' not in app.blueprints:
-        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
-    else:
-        print("ℹ️ [Registry]: موديول 'supplier_wallet' مسجل مسبقاً.")
+    from apps.supplier_wallet.routes import wallet_bp
+    app.register_blueprint(wallet_bp)
+    print("✅ [Registry]: تم تسجيل موديول 'محفظة الموردين' بنجاح.")
