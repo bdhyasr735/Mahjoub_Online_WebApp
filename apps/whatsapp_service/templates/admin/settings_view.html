@@ -14,35 +14,34 @@
 
   <!-- Settings Form Card -->
   <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-    <form method="POST" action="{{ url_for('whatsapp.settings_dashboard') }}" class="space-y-5">
+    <form method="POST" action="{{ url_for('whatsapp.settings_dashboard') }}" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').innerText='جاري الحفظ...';" class="space-y-5">
       
-      <!-- CSRF Token Hidden Field -->
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <!-- Phone Number ID -->
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">معرف رقم الهاتف (Phone Number ID)</label>
-        <input type="text" name="phone_number_id" value="{{ settings.phone_number_id|default('') }}" placeholder="مثال: 105938492810234" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
-        <p class="text-[11px] text-slate-400 mt-1">المعرف الخاص برقم الهاتف المسجل في لوحة تحكم Meta Developer (تم ربطه بمتغيرات البيئة تلقائياً).</p>
+        <input type="text" name="phone_number_id" value="{{ settings.phone_number_id|default('') }}" autocomplete="off" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
       </div>
 
       <!-- WhatsApp Business Account ID (WABA ID) -->
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">معرف حساب تجارة واتساب (WABA ID)</label>
-        <input type="text" name="whatsapp_business_id" value="{{ settings.whatsapp_business_id|default('') }}" placeholder="مثال: 112233445566778" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
+        <input type="text" name="whatsapp_business_id" value="{{ settings.whatsapp_business_id|default('') }}" autocomplete="off" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
       </div>
 
       <!-- Access Token -->
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز الدائم للوصول (Permanent Access Token)</label>
-        <textarea name="access_token" rows="3" placeholder="EAAG..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">{{ settings.access_token|default('') }}</textarea>
+        <!-- تم تغيير النوع لـ password للحماية -->
+        <input type="password" name="access_token" value="{{ settings.access_token|default('') }}" placeholder="••••••••••••••••" autocomplete="new-password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
         <p class="text-[11px] text-slate-400 mt-1">رمز المصادقة طويل الأجل المستخدم لإرسال الرسائل عبر الـ API.</p>
       </div>
 
       <!-- Webhook Verify Token -->
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز التحقق من الـ Webhook (Verify Token)</label>
-        <input type="text" name="verify_token" value="{{ settings.verify_token|default('mahjoub_secure_webhook_token') }}" placeholder="mahjoub_secure_verify_token" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
+        <input type="text" name="verify_token" value="{{ settings.verify_token|default('mahjoub_secure_webhook_token') }}" autocomplete="off" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
       </div>
 
       <!-- Submit Button -->
@@ -56,39 +55,27 @@
     </form>
   </div>
 
-  <!-- Success Notification Modal (Popup) -->
-  <div id="success-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 transition-opacity duration-300 {% if not saved_success %}hidden opacity-0{% else %}opacity-100{% endif %}">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl text-center transform transition-all scale-100 space-y-4 border border-slate-100">
-      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+  <!-- Success Notification Modal -->
+  <div id="success-modal" onclick="if(event.target==this) closeSuccessModal()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 transition-all duration-300 {% if not saved_success %}hidden opacity-0{% else %}opacity-100{% endif %}">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl text-center space-y-4 border border-slate-100">
+      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl">
         <i class="fas fa-check-circle"></i>
       </div>
       <div>
         <h3 class="text-sm font-bold text-slate-900">تم الحفظ بنجاح!</h3>
-        <p class="text-xs text-slate-500 mt-1">تم تحديث إعدادات الاتصال بنجاح والتحقق من سلامة مفاتيح Meta API.</p>
+        <p class="text-xs text-slate-500 mt-1">تم تحديث إعدادات الاتصال والتحقق من سلامة مفاتيح Meta API.</p>
       </div>
-      <button onclick="closeSuccessModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-xs">
+      <button onclick="closeSuccessModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">
         إغلاق واستمرار
       </button>
     </div>
   </div>
-
 </div>
 
-<!-- Script to handle modal interaction -->
 <script>
 function closeSuccessModal() {
     const modal = document.getElementById('success-modal');
     modal.classList.add('opacity-0');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-    }, 300);
-}
-
-function showSuccessModal() {
-    const modal = document.getElementById('success-modal');
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-    }, 10);
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
 }
 </script>
