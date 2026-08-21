@@ -66,5 +66,47 @@ def withdraw():
 
         return redirect(url_for('supplier_wallet.wallet_dashboard'))
 
-    # عرض صفحة نموذج السحب
-    return render_template('supplier_wallet/withdraw_form.html', wallet=wallet)
+    # تم تصحيح اسم القالب هنا ليتطابق مع اسم الملف الصحيح withdrawal_form.html
+    return render_template('supplier_wallet/withdrawal_form.html', wallet=wallet)
+
+
+@wallet_bp.route('/transactions')
+@login_required
+def transactions():
+    """عرض كشف الحساب وسندات الحركات المالية مع الفلترة (Zero-JS)"""
+    supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    
+    if not wallet:
+        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+
+    query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
+
+    # استقبال معاملات الفلترة عبر الرابط (GET Parameters)
+    search_query = request.args.get('q', '').strip()
+    trans_type = request.args.get('trans_type', '').strip()
+    status = request.args.get('status', '').strip()
+
+    if search_query:
+        query = query.filter(
+            db.or_(
+                WalletTransaction.voucher_number.ilike(f'%{search_query}%'),
+                WalletTransaction.transfer_number.ilike(f'%{search_query}%'),
+                WalletTransaction.reference_number.ilike(f'%{search_query}%'),
+                WalletTransaction.description.ilike(f'%{search_query}%')
+            )
+        )
+
+    if trans_type:
+        query = query.filter_by(trans_type=trans_type)
+
+    if status:
+        query = query.filter_by(status=status)
+
+    transactions = query.order_by(WalletTransaction.created_at.desc()).all()
+
+    return render_template(
+        'supplier_wallet/wallet_transactions.html',
+        wallet=wallet,
+        transactions=transactions
+    )
