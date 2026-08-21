@@ -201,6 +201,29 @@ def send_message_api():
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
+@whatsapp_bp.route('/api/contacts', methods=['GET'])
+def get_dashboard_contacts():
+    """جلب قائمة المحادثات والجهات النشطة بصيغة JSON لعرضها في القائمة الجانبية"""
+    db = get_db()
+    if not db:
+        return jsonify({"success": False, "error": "Database unavailable"}), 500
+    
+    try:
+        contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+        contacts_data = []
+        for c in contacts:
+            contacts_data.append({
+                "phone": c.phone,
+                "name": c.name or "عميل محجوب",
+                "last_message": c.last_message or "",
+                "last_timestamp": c.last_timestamp.strftime('%H:%M') if c.last_timestamp else "",
+                "unread_count": c.unread_count or 0
+            })
+        return jsonify({"success": True, "contacts": contacts_data}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @whatsapp_bp.route('/api/contacts/<phone>/messages', methods=['GET'])
 def get_customer_messages(phone):
     """جلب سجل الرسائل المتبادلة مع رقم معين لعرضها في صندوق الشات باللوحة"""
