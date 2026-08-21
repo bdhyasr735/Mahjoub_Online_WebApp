@@ -8,13 +8,22 @@ WhatsApp Routes and Webhook Controllers for Mahgoob Online
 from flask import Blueprint, request, jsonify, render_template, current_app
 import os
 import logging
+
 # استيراد الدوال مباشرة من ملف whatsapp_api
 from ..whatsapp_api import send_text_message, send_invoice_whatsapp, VERIFY_TOKEN
 
 logger = logging.getLogger(__name__)
 
-# نضع الـ prefix هنا ليتكفل ببادئة الإدارة والخدمة تلقائياً
-whatsapp_bp = Blueprint('whatsapp_service', __name__, url_prefix='/admin/whatsapp')
+# تحديد مسار مجلد templates داخل الموديول لكي يتمكن فلاسك من إيجاد القوالب بنجاح
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../templates'))
+
+# تعريف الـ Blueprint مع ربط مسار القوالب والـ prefix الخاص بالإدارة
+whatsapp_bp = Blueprint(
+    'whatsapp_service', 
+    __name__, 
+    url_prefix='/admin/whatsapp',
+    template_folder=template_dir
+)
 
 # ==============================================================================
 # 1. META WEBHOOK VERIFICATION (GET) & EVENT INGESTION (POST)
@@ -78,7 +87,6 @@ def send_message_api():
 
 @whatsapp_bp.route('/api/ping', methods=['GET'])
 def ping_meta_api():
-    # فحص بسيط للاتصال بناءً على توفر المفاتيح
     phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID") or os.getenv("PHONE_NUMBER_ID")
     token = os.getenv("WHATSAPP_ACCESS_TOKEN") or os.getenv("ACCESS_TOKEN")
     
@@ -104,9 +112,9 @@ def chat_dashboard():
 @whatsapp_bp.route('/logs', methods=['GET'])
 def logs_dashboard():
     """لوحة سجل الرسائل"""
-    return render_template('admin/whatsapp_logs.html', active_tab='logs')
+    return render_template('admin/logs_view.html', active_tab='logs')
 
 @whatsapp_bp.route('/settings', methods=['GET'])
 def settings_dashboard():
     """لوحة إعدادات Meta Cloud API"""
-    return render_template('admin/whatsapp_settings.html', active_tab='settings')
+    return render_template('admin/settings_view.html', active_tab='settings')
