@@ -308,7 +308,7 @@ def create_app():
             admin_login_path, 
             '/auth',
             '/api/whatsapp',
-            '/admin/whatsapp'  # تم إضافة هذا السطر بنجاح لتستثني مسارات الواتساب من إعادة التوجيه
+            '/admin/whatsapp'  # تم إضافة هذا السطر بنجاح لاستثناء مسارات الواتساب من إعادة التوجيه
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -344,7 +344,7 @@ def create_app():
             'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
             'img-src': ["'self'", "data:", "https://*"],
             'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com"]
+            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.apollographql.com"]
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
@@ -425,11 +425,19 @@ def create_app():
     except ImportError:
         pass
 
+    # تسجيل موديول الواتساب مع استثنائه تلقائياً من حماية الـ CSRF
+    try:
+        from apps.whatsapp_service.routes.whatsapp_controller import whatsapp_bp
+        app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
+        csrf.exempt(whatsapp_bp)  # استثناء مسارات الواتساب من الـ CSRF
+    except ImportError:
+        pass
+
     # ============================================================
     # 🔄 التسجيل الديناميكي التلقائي للموديولات عبر ملف الـ registry.py
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
