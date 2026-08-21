@@ -262,21 +262,28 @@ def logs_dashboard():
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_dashboard():
+    # جلب القيم تلقائياً من إعدادات التطبيق أو متغيرات البيئة
     settings = {
-        "phone_number_id": current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', ''),
-        "whatsapp_business_id": current_app.config.get('WHATSAPP_BUSINESS_ACCOUNT_ID', ''),
-        "access_token": current_app.config.get('WHATSAPP_ACCESS_TOKEN', ''),
+        "phone_number_id": current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')),
+        "whatsapp_business_id": current_app.config.get('WHATSAPP_BUSINESS_ACCOUNT_ID', os.environ.get('WHATSAPP_BUSINESS_ACCOUNT_ID', '')),
+        "access_token": current_app.config.get('WHATSAPP_ACCESS_TOKEN', os.environ.get('WHATSAPP_ACCESS_TOKEN', '')),
         "verify_token": get_verify_token()
     }
     
     if request.method == 'POST':
-        # استقبال البيانات المُرسلة من النموذج وحفظها إذا لزم الأمر
+        # استقبال البيانات المُرسلة من النموذج
         phone_number_id = request.form.get('phone_number_id')
         whatsapp_business_id = request.form.get('whatsapp_business_id')
         access_token = request.form.get('access_token')
         verify_token = request.form.get('verify_token')
         
-        flash('تم حفظ الإعدادات بنجاح', 'success')
+        # تحديث إعدادات التطبيق برمجياً لتنعكس بشكل فوري
+        current_app.config['WHATSAPP_PHONE_NUMBER_ID'] = phone_number_id
+        current_app.config['WHATSAPP_BUSINESS_ACCOUNT_ID'] = whatsapp_business_id
+        current_app.config['WHATSAPP_ACCESS_TOKEN'] = access_token
+        current_app.config['WHATSAPP_VERIFY_TOKEN'] = verify_token
+        
+        flash('تم تحديث وحفظ الإعدادات تلقائياً بنجاح', 'success')
         return redirect(url_for('whatsapp_service.settings_dashboard'))
         
     return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings)
