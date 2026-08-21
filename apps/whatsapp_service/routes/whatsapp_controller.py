@@ -153,7 +153,7 @@ def handle_webhook():
 
 
 # ==============================================================================
-# 2. INTERNAL API & ACTIONS (SENDING MESSAGES)
+# 2. INTERNAL API & ACTIONS (SENDING MESSAGES & FETCHING CHATS)
 # ==============================================================================
 
 @whatsapp_bp.route('/api/send-message', methods=['POST'])
@@ -199,6 +199,33 @@ def send_message_api():
         db.session.commit()
 
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
+
+
+@whatsapp_bp.route('/api/contacts/<phone>/messages', methods=['GET'])
+def get_customer_messages(phone):
+    """جلب سجل الرسائل المتبادلة مع رقم معين لعرضها في صندوق الشات باللوحة"""
+    db = get_db()
+    if not db:
+        return jsonify({"success": False, "error": "Database unavailable"}), 500
+    
+    try:
+        messages = db.session.query(WhatsAppMessageLog).filter(
+            (WhatsAppMessageLog.sender_number == phone) | (WhatsAppMessageLog.recipient_number == phone)
+        ).order_by(WhatsAppMessageLog.id.asc()).all()
+
+        logs_data = []
+        for m in messages:
+            logs_data.append({
+                "id": m.id,
+                "direction": m.direction,
+                "content": m.content,
+                "timestamp": m.timestamp.strftime('%Y-%m-%d %H:%M') if m.timestamp else '',
+                "status": m.status
+            })
+            
+        return jsonify({"success": True, "messages": logs_data}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @whatsapp_bp.route('/api/ping', methods=['GET'])
