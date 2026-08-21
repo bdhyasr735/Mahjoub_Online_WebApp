@@ -58,9 +58,9 @@ def verify_webhook():
 @whatsapp_bp.route('/webhook', methods=['POST'])
 def handle_webhook():
     """
-    Receives real-time incoming messages and saves them directly into PostgreSQL/SQLite.
+    Receives real-time incoming messages and saves them directly into PostgreSQL/SQLite with safe JSON parsing.
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
 
@@ -69,13 +69,13 @@ def handle_webhook():
         if db:
             raw_event = WhatsAppWebhookEvent(
                 event_type="incoming_payload",
-                payload=data,
+                payload=data if isinstance(data, dict) else {"raw": str(data)},
                 processed=True
             )
             db.session.add(raw_event)
             db.session.commit()
 
-        entries = data.get('entry', [])
+        entries = data.get('entry', []) if isinstance(data, dict) else []
         for entry in entries:
             for change in entry.get('changes', []):
                 value = change.get('value', {})
@@ -163,7 +163,7 @@ def send_message_api():
     """
     Sends an outbound text message via Meta API and logs it into database.
     """
-    body = request.get_json() or {}
+    body = request.get_json(silent=True) or {}
     recipient = body.get('recipient_number')
     text = body.get('message')
     order_id = body.get('order_id')
