@@ -3,7 +3,7 @@
   {% if contact %}
   <div class="flex items-center gap-3 mb-4">
     <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#632C8F] to-[#570575] text-white font-bold flex items-center justify-center text-lg shadow-sm">
-      {{ contact.name|first|upper or contact.phone|first|upper }}
+      {{ (contact.name or contact.phone)|first|upper }}
     </div>
     <div>
       <h3 class="text-base font-bold text-slate-800">{{ contact.name|default:contact.phone }}</h3>
