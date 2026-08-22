@@ -107,7 +107,7 @@ def handle_webhook():
                         # تحديث أو إنشاء جهة اتصال
                         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
                         if contact:
-                            contact.name = customer_name if not contact.name.startswith("عميل (") else contact.name
+                            contact.name = customer_name if not contact.name or contact.name.startswith("عميل (") else contact.name
                             contact.last_message = text
                             contact.last_timestamp = datetime.utcnow()
                             contact.unread_count = (contact.unread_count or 0) + 1
@@ -187,26 +187,121 @@ def chat_dashboard():
 
 
 # =============================================================================
-# 3. ACTION ENDPOINTS (إرسال الرسائل الفردية)
+# 3. ACTION ENDPOINTS (إرسال الرسائل الفردية والتحديث الديناميكي)
 # =============================================================================
 
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
-    """إرسال رسالة فردية لعميل من لوحة التحكم وإعادة التوجيه للمحادثة"""
+    """إرسال رسالة عبر HTMX لإضافتها فوراً بدون وميض وبدون إعادة تحميل الصفحة"""
     phone = request.form.get('phone')
-    message = request.form.get('message')
-    if not phone or not message:
-        return redirect(url_for('whatsapp_service.chat_dashboard'))
+    message_content = request.form.get('message')
+    
+    if not phone or not message_content:
+        return '<div class="text-red-500 text-xs p-2">رقم الهاتف أو نص الرسالة مفقود.</div>', 400
 
-    success, response_data = send_text_message(phone, message)
+    # إرسال الرسالة عبر Meta API
+    success, response_data = send_text_message(phone, message_content)
+    
+    wamid = None
+    if success and isinstance(response_data, dict):
+        messages_meta = response_data.get('messages', [])
+        if messages_meta:
+            wamid = messages_meta[0].get('id')
 
+    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
+    
+    # حفظ سجل الرسالة الصادرة
+    outbound_log = WhatsAppMessageLog(
+        wamid=wamid,
+        direction='outbound',
+        sender_number=phone_id,
+        recipient_number=phone,
+        message_type='text',
+        content=message_content,
+        status='sent' if success else 'failed'
+    )
+    db.session.add(outbound_log)
+
+    # تحديث بيانات الاتصال للعميل
     contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
     if contact:
-        contact.last_message = message
+        contact.last_message = message_content
         contact.last_timestamp = datetime.utcnow()
+    
+    db.session.commit()
+
+    # إرجاع فقرة HTML المصغرة للرسالة ليتم حقنها مباشرة في واجهة المحادثة
+    current_time_str = datetime.utcnow().strftime('%I:%M %p')
+    return f"""
+    <div class="flex flex-col items-end mb-3 message-bubble">
+      <div class="max-w-[70%] bg-[#632C8F] text-white rounded-2xl px-4 py-3 shadow-sm text-sm">
+        <p class="leading-relaxed">{message_content}</p>
+        <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-purple-200">
+          <span>{current_time_str}</span>
+          <i class="fa-solid fa-check-double text-[#D4AF37] text-[10px]"></i>
+        </div>
+      </div>
+    </div>
+    """
+
+
+@whatsapp_bp.route('/update_contact_name/<int:contact_id>', methods=['POST'])
+def update_contact_name(contact_id):
+    """تعديل اسم العميل مباشرة من لوحة التحكم وحفظه"""
+    contact = db.session.query(WhatsAppCustomerContact).get_or_404(contact_id)
+    new_name = request.form.get('name')
+    
+    if new_name:
+        contact.name = new_name.strip()
+        db.session.commit()
+        
+    return f'<span class="text-sm font-bold text-slate-800">{contact.name}</span>'
+
+
+@whatsapp_bp.route('/get_latest_messages/<int:contact_id>', methods=['GET'])
+def get_latest_messages(contact_id):
+    """جلب الرسائل الجديدة لتحديث الشاشة تلقائياً عبر HTMX Polling"""
+    contact = db.session.query(WhatsAppCustomerContact).get_or_404(contact_id)
+    
+    if contact.unread_count > 0:
+        contact.unread_count = 0
         db.session.commit()
 
-    return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=contact.id if contact else None))
+    messages = db.session.query(WhatsAppMessageLog).filter(
+        or_(
+            WhatsAppMessageLog.sender_number == contact.phone,
+            WhatsAppMessageLog.recipient_number == contact.phone
+        )
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+
+    html_output = ""
+    for m in messages:
+        is_outgoing = m.direction == 'outbound'
+        time_str = m.timestamp.strftime('%I:%M %p') if m.timestamp else ''
+        if is_outgoing:
+            html_output += f"""
+            <div class="flex flex-col items-end mb-3">
+              <div class="max-w-[70%] bg-[#632C8F] text-white rounded-2xl px-4 py-3 shadow-sm text-sm">
+                <p class="leading-relaxed">{m.content}</p>
+                <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-purple-200">
+                  <span>{time_str}</span>
+                  <i class="fa-solid fa-check-double text-[#D4AF37] text-[10px]"></i>
+                </div>
+              </div>
+            </div>
+            """
+        else:
+            html_output += f"""
+            <div class="flex flex-col items-start mb-3">
+              <div class="max-w-[70%] bg-white border border-slate-200 text-slate-800 rounded-2xl px-4 py-3 shadow-sm text-sm">
+                <p class="leading-relaxed">{m.content}</p>
+                <div class="flex items-center gap-1 mt-1 text-[10px] text-slate-400">
+                  <span>{time_str}</span>
+                </div>
+              </div>
+            </div>
+            """
+    return html_output
 
 
 # =============================================================================
@@ -316,7 +411,6 @@ def settings_dashboard():
     access_token = current_app.config.get('WHATSAPP_ACCESS_TOKEN', '') or os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', '') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
     
-    # تحديد حالة الاتصال الفعلية بناءً على توفر المفاتيح المعيارية
     is_connected = bool(access_token and phone_id)
 
     if request.method == 'POST':
