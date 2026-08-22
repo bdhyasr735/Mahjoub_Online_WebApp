@@ -84,8 +84,12 @@
       {% if active_tab == 'chat' or not active_tab %}
         <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
           
-          <!-- 1. قائمة المحادثات (يمين داخل اللوحة) -->
-          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" id="sidebar-contacts-container">
+          <!-- 1. قائمة المحادثات (يمين داخل اللوحة) - يتم تحديثها ديناميكياً كل 3 ثوانٍ بدون إعادة تحميل الصفحة -->
+          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" 
+               id="sidebar-contacts-container"
+               hx-get="{{ url_for('whatsapp_service.partials_contacts', contact_id=current_contact.id if current_contact else none) }}" 
+               hx-trigger="every 3s" 
+               hx-swap="outerHTML">
             <div class="p-4 border-b border-slate-100 flex items-center justify-between">
               <h2 class="text-xs font-bold text-slate-700 flex items-center gap-2">
                 <span>المحادثات النشطة</span>
@@ -137,7 +141,7 @@
             </div>
           </div>
 
-          <!-- 2. منطقة الدردشة (منتصف) -->
+          <!-- 2. منطقة الدردشة (منتصف) - يتم تحديث رسائل المحادثة المفتوحة فقط ديناميكياً كل 3 ثوانٍ -->
           <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
             {% if current_contact %}
               <!-- رأس المحادثة -->
@@ -164,8 +168,12 @@
                 </div>
               </div>
 
-              <!-- صندوق الرسائل -->
-              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" id="message-box-scroll">
+              <!-- صندوق الرسائل (يتم جلب الرسائل ديناميكياً عبر المسار المخصص دون فتح دردشات أخرى) -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" 
+                   id="message-box-scroll"
+                   hx-get="{{ url_for('whatsapp_service.partials_messages', contact_id=current_contact.id) }}"
+                   hx-trigger="every 3s"
+                   hx-swap="innerHTML">
                 {% if messages %}
                   {% for msg in messages %}
                     {% if msg.direction == 'outbound' %}
@@ -346,7 +354,7 @@
       {% endif %}
     </main>
 
-    <!-- القائمة الجانبية للأيقونات (أقصى اليسار كما في تصميم النظام) -->
+    <!-- القائمة الجانبية للأيقونات (أقصى اليسار) -->
     <aside class="w-16 bg-[#1a0b2e] flex flex-col items-center justify-between py-5 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
       <div class="flex flex-col items-center gap-5 w-full">
         <div class="w-10 h-10 rounded-xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center p-1 shadow-md">
@@ -372,11 +380,20 @@
   </div>
 
   <script>
-    // التمرير التلقائي لصندوق الرسائل إلى الأسفل عند فتح المحادثة
-    window.addEventListener('DOMContentLoaded', () => {
+    // التمرير التلقائي لصندوق الرسائل إلى الأسفل عند فتح المحادثة أو تحديثها
+    function scrollToBottom() {
       const msgBox = document.getElementById('message-box-scroll');
       if (msgBox) {
         msgBox.scrollTop = msgBox.scrollHeight;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', scrollToBottom);
+    
+    // إعادة التمرير بعد أي تحديث ديناميكي لـ HTMX في صندوق الرسائل
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+      if(evt.detail.target.id === 'message-box-scroll') {
+        scrollToBottom();
       }
     });
   </script>
