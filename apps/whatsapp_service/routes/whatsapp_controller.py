@@ -26,8 +26,11 @@ from apps.models.whatsapp_models import (
 
 logger = logging.getLogger(__name__)
 
-# تحديث مسار القوالب ليتوافق مع المجلد الجديد apps/whatsapp_service/templates/
-whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='../templates')
+# استخدام المسار المطلق لمجلد القوالب لضمان عمله بسلاسة على سيرفرات الإنتاج مثل Render
+basedir = os.path.abspath(os.path.dirname(__file__))
+template_dir = os.path.abspath(os.path.join(basedir, '../templates'))
+
+whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder=template_dir)
 
 def get_verify_token():
     """جلب رمز التحقق الخاص بووك هوك ميتا بشكل آمن"""
