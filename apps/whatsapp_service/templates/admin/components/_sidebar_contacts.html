@@ -30,7 +30,7 @@
            hx-trigger="click">
         <div class="avatar-wrapper position-relative flex-shrink-0" style="width: 44px; height: 44px;">
           <div class="avatar-placeholder rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:100%;height:100%;font-size:20px;">
-            {{ (contact.name or contact.phone)|first|upper }}
+            {{ (contact.name|default(contact.phone))[0]|upper }}
           </div>
           {% if contact.is_online %}
           <span class="status-dot online position-absolute bottom-0 end-0 border border-2 border-white rounded-circle" style="width:12px;height:12px;background:#28a745;"></span>
@@ -40,7 +40,7 @@
         </div>
         <div class="contact-info flex-grow-1 min-w-0">
           <div class="d-flex justify-content-between align-items-center">
-            <span class="contact-name fw-semibold text-truncate">{{ contact.name|default:contact.phone }}</span>
+            <span class="contact-name fw-semibold text-truncate">{{ contact.name|default(contact.phone) }}</span>
             <small class="text-muted time">{{ contact.last_timestamp.strftime('%H:%M') if contact.last_timestamp else '' }}</small>
           </div>
           <div class="d-flex justify-content-between align-items-center">
