@@ -1,83 +1,87 @@
-<!-- Settings View Jinja2 Component -->
-<div class="max-w-4xl mx-auto w-full p-6 space-y-6 relative" dir="rtl">
-  
+<!-- Logs View Jinja2 Component (Enhanced) -->
+<div class="max-w-7xl mx-auto w-full p-6 space-y-6">
   <!-- Header Card -->
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
-    <div>
-      <h2 class="text-base font-bold text-slate-900">إعدادات ربط واتساب (WhatsApp API Settings)</h2>
-      <p class="text-xs text-slate-500 mt-0.5">إدارة مفاتيح الربط وتوكن المصادقة الخاص بواجهة برمجة تطبيقات واتساب لمتجر محجوب أونلاين</p>
+    <div class="flex items-center space-x-4 space-x-reverse">
+      <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl">
+        <i class="fab fa-whatsapp"></i>
+      </div>
+      <div>
+        <h2 class="text-base font-bold text-slate-900">سجل رسائل واتساب (WhatsApp Messages Log)</h2>
+        <p class="text-xs text-slate-500">سجلات الإرسال والاستقبال المباشرة المرتبطة بطلبات متجر محجوب أونلاين</p>
+      </div>
     </div>
-    <div class="p-3 bg-purple-50 text-purple-700 rounded-xl">
-      <i class="fas fa-cog text-xl"></i>
+    <div class="hidden sm:flex items-center space-x-2 space-x-reverse text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <span>النظام متصل</span>
     </div>
   </div>
 
-  <!-- Settings Form Card -->
-  <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-    <form method="POST" action="{{ url_for('whatsapp_service.settings_dashboard') }}" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').innerText='جاري الحفظ...';" class="space-y-5">
-      
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-      <!-- Phone Number ID -->
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">معرف رقم الهاتف (Phone Number ID)</label>
-        <input type="text" name="phone_number_id" value="{{ settings.phone_number_id|default('') }}" autocomplete="off" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
-      </div>
-
-      <!-- WhatsApp Business Account ID (WABA ID) -->
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">معرف حساب تجارة واتساب (WABA ID)</label>
-        <input type="text" name="whatsapp_business_id" value="{{ settings.whatsapp_business_id|default('') }}" autocomplete="off" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
-      </div>
-
-      <!-- Access Token -->
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز الدائم للوصول (Permanent Access Token)</label>
-        <input type="password" name="access_token" value="{{ settings.access_token|default('') }}" placeholder="••••••••••••••••" autocomplete="new-password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
-        <p class="text-[11px] text-slate-400 mt-1">رمز المصادقة طويل الأجل المستخدم لإرسال الرسائل عبر الـ API.</p>
-      </div>
-
-      <!-- Webhook Verify Token -->
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز التحقق من الـ Webhook (Verify Token)</label>
-        <input type="text" name="verify_token" value="{{ settings.verify_token|default('mahjoub_secure_webhook_token') }}" autocomplete="off" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-purple-600 transition">
-      </div>
-
-      <!-- Submit Button -->
-      <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
-        <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="text-xs font-bold text-slate-600 hover:text-purple-700 transition flex items-center gap-1.5">
-          <i class="fas fa-arrow-right"></i> العودة لمركز المراسلات والدعم
-        </a>
-        <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2">
-          <i class="fas fa-save"></i>
-          حفظ التغييرات وإحداث التفعيل
-        </button>
-      </div>
-
-    </form>
-  </div>
-
-  <!-- Success Notification Modal -->
-  <div id="success-modal" onclick="if(event.target==this) closeSuccessModal()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 transition-all duration-300 {% if not saved_success %}hidden opacity-0{% else %}opacity-100{% endif %}">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl text-center space-y-4 border border-slate-100">
-      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl">
-        <i class="fas fa-check-circle"></i>
-      </div>
-      <div>
-        <h3 class="text-sm font-bold text-slate-900">تم الحفظ بنجاح!</h3>
-        <p class="text-xs text-slate-500 mt-1">تم تحديث إعدادات الاتصال والتحقق من سلامة مفاتيح Meta API.</p>
-      </div>
-      <button onclick="closeSuccessModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition">
-        إغلاق واستمرار
-      </button>
+  <!-- Table Container -->
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-right text-xs">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+          <tr>
+            <th class="px-4 py-3.5">المعرف</th>
+            <th class="px-4 py-3.5">الاتجاه</th>
+            <th class="px-4 py-3.5">العميل</th>
+            <th class="px-4 py-3.5">رقم الطلب</th>
+            <th class="px-4 py-3.5">الرسالة</th>
+            <th class="px-4 py-3.5">الحالة</th>
+            <th class="px-4 py-3.5">التاريخ</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for log in logs|default([]) %}
+          <tr class="hover:bg-slate-50/50 transition-colors">
+            <td class="px-4 py-3.5 font-mono text-slate-500">#{{ log.id }}</td>
+            <td class="px-4 py-3.5">
+              {% if log.direction == 'inbound' or log.direction == 'وارد' %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700">
+                  وارد
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-purple-50 text-purple-700">
+                  صادر
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5 font-bold text-slate-900">{{ log.customer_name }}</td>
+            <td class="px-4 py-3.5 font-mono text-slate-600">
+              {% if log.order_id %}
+                <a href="/admin/orders/{{ log.order_id }}" class="text-indigo-600 hover:underline">#{{ log.order_id }}</a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5 max-w-xs truncate text-slate-700" title="{{ log.content }}">{{ log.content }}</td>
+            <td class="px-4 py-3.5">
+              {% if log.status in ['sent', 'delivered', 'ناجح', 'مرسل'] %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
+                  {{ log.status }}
+                </span>
+              {% elif log.status in ['failed', 'فشل', 'خطأ'] %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700">
+                  {{ log.status }}
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">
+                  {{ log.status }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5 text-slate-400 font-mono text-[11px]">{{ log.created_at }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-4 py-8 text-center text-slate-400">
+              لا توجد سجلات رسائل متاحة حالياً.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
-
-<script>
-function closeSuccessModal() {
-    const modal = document.getElementById('success-modal');
-    modal.classList.add('opacity-0');
-    setTimeout(() => { modal.classList.add('hidden'); }, 300);
-}
-</script>
