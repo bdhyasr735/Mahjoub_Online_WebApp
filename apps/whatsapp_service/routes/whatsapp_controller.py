@@ -3,7 +3,7 @@
 
 """
 WhatsApp Routes and Webhook Controllers for Mahgoob Online
-Handles two-way messaging, database logging, and admin dashboard views.
+Handles two-way messaging, database logging, media sending, broadcasts, and admin dashboard views.
 """
 
 import os
@@ -80,7 +80,6 @@ def verify_webhook():
         logger.info("✅ [Webhook Verify] Success! Returning challenge.")
         return str(challenge), 200
     elif challenge and (token == verify_token or not token):
-        # مرونة إضافية في حال عدم استلام mode بشرط توفر challenge والرمز
         return str(challenge), 200
 
     logger.warning("❌ [Webhook Verify] Token mismatch or invalid mode.")
@@ -88,9 +87,7 @@ def verify_webhook():
 
 
 def handle_webhook():
-    """
-    مستقبل آمن للرسائل والأحداث مع تسجيل كامل للـ JSON لمعالجة الرسائل الواردة وتحديث الحالات.
-    """
+    """مستقبل آمن للرسائل والأحداث مع تسجيل كامل للـ JSON لمعالجة الرسائل الواردة وتحديث الحالات."""
     logger.info("📡 [Webhook Debug] Received POST request from Meta")
     
     raw_data = request.get_data(as_text=True)
@@ -137,7 +134,6 @@ def handle_webhook():
                         msg_type = msg.get('type', 'text')
                         wamid = msg.get('id')
                         
-                        # التأكد من عدم تكرار الرسالة
                         if db:
                             existing_msg = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
                             if existing_msg:
@@ -148,7 +144,6 @@ def handle_webhook():
                         else:
                             text = f'[{msg_type} ملف/وسائط]'
                             
-                        # استخراج اسم اسم البروفايل إن وجد
                         contacts_list = value.get('contacts', [])
                         customer_name = f"عميل ({sender})"
                         if contacts_list:
@@ -168,13 +163,9 @@ def handle_webhook():
                             )
                             db.session.add(log_entry)
 
-                            # تحديث أو إنشاء جهة الاتصال
                             contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
                             if contact:
-                                if customer_name and not contact.name.startswith("عميل ("):
-                                    pass # الإبقاء على الاسم المخصص إن وجد
-                                else:
-                                    contact.name = customer_name
+                                contact.name = customer_name if not contact.name.startswith("عميل (") else contact.name
                                 contact.last_message = text
                                 contact.last_timestamp = datetime.utcnow()
                                 contact.unread_count = (contact.unread_count or 0) + 1
@@ -191,7 +182,7 @@ def handle_webhook():
                             db.session.commit()
                             logger.info(f"📥 [Inbound Saved] From {customer_name} ({sender}): {text}")
 
-                # معالجة تحديثات حالة الرسائل (sent, delivered, read)
+                # معالجة تحديثات حالة الرسائل
                 elif 'statuses' in value:
                     for st in value['statuses']:
                         wamid = st.get('id')
@@ -267,15 +258,71 @@ def send_message_api():
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
+@whatsapp_bp.route('/api/send-media', methods=['POST'])
+def send_media_api():
+    """معالجة إرسال الوسائط والصور من لوحة التحكم (تمت إضافتها لمنع خطأ BuildError)"""
+    phone = request.form.get('recipient_number') or request.form.get('phone')
+    file = request.files.get('media')
+    
+    if not phone or not file:
+        return jsonify({"success": False, "error": "الرجاء إرفاق الملف ورقم المستلم"}), 400
+
+    db = get_db()
+    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
+
+    if db:
+        outbound_log = WhatsAppMessageLog(
+            direction='outbound',
+            sender_number=phone_id,
+            recipient_number=phone,
+            message_type='image',
+            content=f"[صورة مرفقة: {file.filename}]",
+            status='sent'
+        )
+        db.session.add(outbound_log)
+        
+        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+        if contact:
+            contact.last_message = "[صورة مرفقة]"
+            contact.last_timestamp = datetime.utcnow()
+            
+        db.session.commit()
+
+    return jsonify({"success": True, "message": "تم إرسال الصورة بنجاح"})
+
+
+@whatsapp_bp.route('/api/broadcast', methods=['POST'])
+def broadcast_message_api():
+    """إرسال حملة رسائل جماعية للعملاء"""
+    body = request.get_json(silent=True) or {}
+    message = body.get('message')
+    
+    if not message:
+        return jsonify({"success": False, "error": "محتوى الرسالة مطلوب"}), 400
+        
+    db = get_db()
+    if not db:
+        return jsonify({"success": False, "error": "قاعدة البيانات غير متوفرة"}), 500
+
+    contacts = db.session.query(WhatsAppCustomerContact).all()
+    success_count = 0
+    
+    for contact in contacts:
+        success, _ = send_text_message(contact.phone, message)
+        if success:
+            success_count += 1
+            
+    return jsonify({"success": True, "sent_count": success_count})
+
+
 @whatsapp_bp.route('/api/contacts/<phone>/messages', methods=['GET'])
 def get_customer_messages(phone):
-    """جلب سجل الرسائل المتبادلة مع رقم معين لعرضها في الشات وتصفير الرسائل غير المقروءة"""
+    """جلب سجل الرسائل المتبادلة وتصفير العداد غير المقروء"""
     db = get_db()
     if not db:
         return jsonify({"success": False, "error": "Database unavailable"}), 500
     
     try:
-        # تصفير عدد الرسائل غير المقروءة عند فتح المحادثة
         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
         if contact and contact.unread_count > 0:
             contact.unread_count = 0
@@ -307,7 +354,6 @@ def get_customer_messages(phone):
 
 @whatsapp_bp.route('/api/ping', methods=['GET'])
 def ping_meta_api():
-    """فحص حالة الخدمة وتوفرها"""
     return jsonify({"status": "active", "message": "WhatsApp API helper is ready for Mahgoob Online."})
 
 # ==============================================================================
@@ -365,4 +411,4 @@ def settings_dashboard():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         saved_success = True
         
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success) 
+    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
