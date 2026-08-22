@@ -29,115 +29,19 @@
   <!-- الحاوية الرئيسية -->
   <div class="flex-1 flex flex-row overflow-hidden">
     
-    <!-- المحتوى الرئيسي -->
+    <!-- المحتوى الرئيسي (الشات والأقسام الثلاثة) -->
     <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
       {% if active_tab == 'chat' %}
         <div class="flex-1 flex flex-row overflow-hidden">
           
-          <!-- 1. قائمة المحادثات والبحث (يمين) -->
-          <div class="w-80 bg-white border-l border-slate-200 flex flex-col h-full shrink-0">
-            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-              <span class="font-bold text-slate-800 text-sm">المحادثات النشطة</span>
-              <span class="bg-purple-100 text-[#570575] px-2 py-0.5 rounded-full text-xs font-bold" id="contacts-count">{{ contacts|length }}</span>
-            </div>
-            <div class="p-3 border-b border-slate-100">
-              <input type="text" id="search-contacts" placeholder="بحث عن عميل أو رقم..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none" oninput="filterContacts(this.value)">
-            </div>
-            <div class="flex-1 overflow-y-auto" id="contacts-list">
-              {% for c in contacts %}
-              <div onclick="loadConversation('{{ c.phone_number }}', this)" 
-                   class="contact-item p-3 border-b border-slate-50 hover:bg-purple-50/50 cursor-pointer transition-colors flex items-center gap-3 {% if loop.first %}bg-purple-50/80 border-r-4 border-r-[#570575]{% endif %}"
-                   data-phone="{{ c.phone_number }}" data-name="{{ c.name }}">
-                <div class="w-10 h-10 rounded-full bg-slate-200 font-bold text-slate-700 flex items-center justify-center shrink-0">
-                  {{ c.name[0] if c.name else 'ع' }}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between">
-                    <h4 class="text-xs font-bold text-slate-800 truncate">{{ c.name or c.phone_number }}</h4>
-                    <span class="text-[10px] text-slate-400">نشط</span>
-                  </div>
-                  <p class="text-[11px] text-slate-500 truncate mt-0.5" dir="ltr">{{ c.phone_number }}</p>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-          </div>
+          <!-- 1. قائمة المحادثات والبحث (يمين الشاشة) -->
+          {% include 'whatsapp/components/_sidebar_contacts.html' %}
 
-          <!-- 2. صندوق محادثات الشات ومنطقة الرسائل (المنتصف) -->
-          <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden">
-            {% if contacts and contacts|length > 0 %}
-              {% set client = contacts[0] %}
-              
-              <!-- رأس المحادثة -->
-              <div class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 shadow-sm">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center" id="active-avatar">
-                    {{ client.name[0] if client.name else 'ع' }}
-                  </div>
-                  <div>
-                    <h3 class="font-bold text-slate-800 text-sm" id="active-name">{{ client.name or client.phone_number }}</h3>
-                    <p class="text-[11px] text-emerald-600 font-medium">متصل الآن • <span dir="ltr" id="active-phone">{{ client.phone_number }}</span></p>
-                  </div>
-                </div>
-                <div>
-                  <button onclick="openTemplatesModal()" class="bg-purple-50 text-[#570575] border border-purple-200 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-purple-100 transition-colors">⚡ قوالب الرد السريع</button>
-                </div>
-              </div>
+          <!-- 2. صندوق محادثات الشات ومنطقة الرسائل (منتصف الشاشة) -->
+          {% include 'whatsapp/components/_chat_area.html' %}
 
-              <!-- صندوق استعراض الرسائل الديناميكي -->
-              <div id="chat-messages-box" class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-                <div class="text-center"><span class="bg-slate-200 text-slate-600 text-[10px] px-3 py-1 rounded-full">سجل المحادثة</span></div>
-                <!-- يتم جلب الرسائل وعرضها هنا ديناميكياً -->
-              </div>
-
-              <!-- صندوق كتابة وإرسال الرسالة -->
-              <div class="bg-white border-t border-slate-200 p-4 shrink-0 flex items-center gap-3 relative">
-                
-                <!-- زر المرفقات (+) -->
-                <div class="relative">
-                  <button type="button" onclick="toggleAttachmentsMenu()" class="text-slate-400 hover:text-[#570575] transition-colors p-1" title="إرفاق ملف أو صورة">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                  </button>
-
-                  <div id="attachments-menu" class="hidden absolute bottom-12 right-0 bg-white border border-slate-200 shadow-xl rounded-2xl py-2 w-48 z-50">
-                    <label class="flex items-center gap-3 px-4 py-2 text-xs text-slate-700 hover:bg-purple-50 cursor-pointer transition-colors">
-                      <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      <span>الصور ومقاطع الفيديو</span>
-                      <input type="file" accept="image/*,video/*" class="hidden" onchange="handleMediaUpload(this)">
-                    </label>
-                    <label class="flex items-center gap-3 px-4 py-2 text-xs text-slate-700 hover:bg-purple-50 cursor-pointer transition-colors">
-                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                      <span>مستند</span>
-                      <input type="file" class="hidden" onchange="handleDocumentUpload(this)">
-                    </label>
-                  </div>
-                </div>
-
-                <!-- حقل إدخال الرسالة -->
-                <input type="text" id="message-input" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#570575]" onkeypress="if(event.key === 'Enter') sendMessage()">
-                
-                <!-- زر الإرسال -->
-                <button onclick="sendMessage()" class="bg-[#570575] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#1a0b2e] transition-colors flex items-center gap-2 shadow-md">
-                  <span>إرسال</span>
-                  <svg class="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </button>
-              </div>
-
-            {% else %}
-              <div class="flex flex-col items-center justify-center h-full text-slate-400 p-6 text-center">
-                <p class="text-sm">لا توجد محادثات نشطة حالياً في النظام</p>
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- 3. لوحة تفاصيل العميل الجانبية (يسار) -->
-          <div id="client-details-sidebar" class="w-80 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 p-4 overflow-y-auto">
-            <h4 class="font-bold text-slate-800 text-xs mb-3">تفاصيل العميل والطلبات</h4>
-            <div id="client-info-content" class="space-y-4">
-              <!-- يتم تحديث تفاصيل العميل والطلبات المرتبطة هنا ديناميكياً -->
-              <p class="text-xs text-slate-400 text-center py-10">اختر عميلاً لعرض التفاصيل</p>
-            </div>
-          </div>
+          <!-- 3. لوحة تفاصيل العميل والطلبات (يسار الشاشة) -->
+          {% include 'whatsapp/components/_client_details.html' %}
 
         </div>
       {% elif active_tab == 'logs' %}
@@ -162,27 +66,24 @@
 
   </div>
 
+  <!-- الدوال البرمجية العامة للتفاعل وجلب المحادثات -->
   <script>
     let currentActivePhone = "{{ contacts[0].phone_number if contacts and contacts|length > 0 else '' }}";
 
-    // عند تحميل الصفحة، جلب محادثة العميل الأول تلقائياً
     window.addEventListener('DOMContentLoaded', () => {
       if (currentActivePhone) {
         loadConversation(currentActivePhone);
       }
     });
 
-    // تبديل قائمة المرفقات
     function toggleAttachmentsMenu() {
       const menu = document.getElementById('attachments-menu');
-      menu.classList.toggle('hidden');
+      if(menu) menu.classList.toggle('hidden');
     }
 
-    // جلب محادثة العميل عند النقر عليه من القائمة الجانبية
     function loadConversation(phone, element = null) {
       currentActivePhone = phone;
       
-      // تحديث الشكل المرئي للعنصر النشط في القائمة
       document.querySelectorAll('.contact-item').forEach(item => {
         item.classList.remove('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
       });
@@ -190,61 +91,66 @@
         element.classList.add('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
       }
 
-      // طلب بيانات المحادثة والرسائل عبر API
       fetch(`/api/whatsapp/conversation/${phone}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            // تحديث رأس الشات
-            document.getElementById('active-name').innerText = data.client.name || phone;
-            document.getElementById('active-phone').innerText = phone;
-            document.getElementById('active-avatar').innerText = (data.client.name ? data.client.name[0] : 'ع');
-
-            // تحديث صندوق الرسائل
-            const box = document.getElementById('chat-messages-box');
-            box.innerHTML = '';
+            // تحديث بيانات رأس الشات في المكون الأوسط
+            const activeNameEl = document.getElementById('active-name');
+            const activePhoneEl = document.getElementById('active-phone');
+            const activeAvatarEl = document.getElementById('active-avatar');
             
-            if (data.messages && data.messages.length > 0) {
-              data.messages.forEach(msg => {
-                let isOutgoing = msg.direction === 'outbound';
-                let html = `
-                  <div class="flex items-start gap-2 max-w-lg ${isOutgoing ? 'mr-auto flex-row-reverse' : ''}">
-                    <div class="${isOutgoing ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-800'} p-3.5 rounded-2xl shadow-sm text-sm">
-                      ${msg.message_body}
-                      <span class="block text-[10px] ${isOutgoing ? 'text-emerald-200' : 'text-slate-400'} mt-1 text-left">${msg.timestamp || ''}</span>
-                    </div>
-                  </div>
-                `;
-                box.innerHTML += html;
-              });
-            } else {
-              box.innerHTML = '<div class="text-center text-slate-400 text-xs py-10">لا توجد رسائل مسجلة مع هذا العميل بعد</div>';
-            }
-            box.scrollTop = box.scrollHeight;
+            if(activeNameEl) activeNameEl.innerText = data.client.name || phone;
+            if(activePhoneEl) activePhoneEl.innerText = phone;
+            if(activeAvatarEl) activeAvatarEl.innerText = (data.client.name ? data.client.name[0] : 'ع');
 
-            // تحديث لوحة تفاصيل العميل والطلبات الجانبية
+            // تحديث رسائل الشات
+            const box = document.getElementById('chat-messages-box');
+            if(box) {
+              box.innerHTML = '';
+              if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                  let isOutgoing = msg.direction === 'outbound';
+                  box.innerHTML += `
+                    <div class="flex items-start gap-2 max-w-lg ${isOutgoing ? 'mr-auto flex-row-reverse' : ''}">
+                      <div class="${isOutgoing ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-800'} p-3.5 rounded-2xl shadow-sm text-sm">
+                        ${msg.message_body}
+                        <span class="block text-[10px] ${isOutgoing ? 'text-emerald-200' : 'text-slate-400'} mt-1 text-left">${msg.timestamp || ''}</span>
+                      </div>
+                    </div>
+                  `;
+                });
+              } else {
+                box.innerHTML = '<div class="text-center text-slate-400 text-xs py-10">لا توجد رسائل مسجلة مع هذا العميل بعد</div>';
+              }
+              box.scrollTop = box.scrollHeight;
+            }
+
+            // تحديث لوحة تفاصيل العميل الجانبية (اليسار)
             const detailsBox = document.getElementById('client-info-content');
-            detailsBox.innerHTML = `
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span class="text-[10px] text-slate-400 block">رقم الهاتف</span>
-                <span class="text-xs font-bold text-slate-700" dir="ltr">${phone}</span>
-              </div>
-              <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span class="text-[10px] text-slate-400 block">إجمالي الرسائل</span>
-                <span class="text-xs font-bold text-slate-700">${data.messages ? data.messages.length : 0} رسالة</span>
-              </div>
-              <div class="p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span class="text-[10px] text-purple-600 block font-bold">الطلبات المرتبطة</span>
-                <span class="text-xs font-bold text-[#570575]">${data.order_id || 'لا توجد طلبات مرتبطة حالياً'}</span>
-              </div>
-            `;
+            if(detailsBox) {
+              detailsBox.innerHTML = `
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span class="text-[10px] text-slate-400 block">رقم الهاتف</span>
+                  <span class="text-xs font-bold text-slate-700" dir="ltr">${phone}</span>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span class="text-[10px] text-slate-400 block">إجمالي الرسائل</span>
+                  <span class="text-xs font-bold text-slate-700">${data.messages ? data.messages.length : 0} رسالة</span>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-xl border border-purple-200">
+                  <span class="text-[10px] text-purple-600 block font-bold">الطلبات المرتبطة</span>
+                  <span class="text-xs font-bold text-[#570575]">${data.order_id || 'لا توجد طلبات مرتبطة حالياً'}</span>
+                </div>
+              `;
+            }
           }
         });
     }
 
-    // إرسال الرسالة النصية للعميل النشط حالياً
     function sendMessage() {
       const input = document.getElementById('message-input');
+      if(!input) return;
       const text = input.value.trim();
       if (!text || !currentActivePhone) return;
 
@@ -257,33 +163,20 @@
       .then(data => {
         if (data.success) {
           input.value = '';
-          loadConversation(currentActivePhone); // إعادة تحميل المحادثة لتحديث الرسائل فوراً
+          loadConversation(currentActivePhone);
         } else {
           alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
         }
       });
     }
 
-    // فلترة وبحث العملاء في القائمة الجانبية
     function filterContacts(query) {
-      const items = document.querySelectorAll('.contact-item');
-      items.forEach(item => {
+      document.querySelectorAll('.contact-item').forEach(item => {
         const name = item.getAttribute('data-name') || '';
         const phone = item.getAttribute('data-phone') || '';
-        if (name.includes(query) || phone.includes(query)) {
-          item.style.display = 'flex';
-        } else {
-          item.style.display = 'none';
-        }
+        item.style.display = (name.includes(query) || phone.includes(query)) ? 'flex' : 'none';
       });
     }
-
-    // التحديث التلقائي للمحادثة النشطة كل 5 ثوانٍ لضمان التفاعل الحي والحقيقي
-    setInterval(() => {
-      if (currentActivePhone) {
-        // يمكن تفعيل استدعاء صامت لتحديث الرسائل الواردة هنا دون إعادة تعيين التمرير
-      }
-    }, 5000);
   </script>
 </body>
 </html>
