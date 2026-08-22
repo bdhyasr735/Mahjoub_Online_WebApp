@@ -2,7 +2,7 @@
 # 📂 apps/whatsapp_service/routes/api.py
 
 import os
-from flask import request, jsonify, render_template, current_app, redirect, url_for, flash
+from flask import request, jsonify, current_app
 from sqlalchemy import or_
 
 try:
@@ -82,47 +82,6 @@ def send_message_api():
 
     success, response_data = send_text_message(phone, message)
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
-
-
-@whatsapp_bp.route('/logs')
-def logs_dashboard():
-    logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).limit(150).all()
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
-
-
-@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
-def settings_dashboard():
-    access_token = current_app.config.get('WHATSAPP_ACCESS_TOKEN', '') or os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
-    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', '') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
-    
-    is_connected = bool(access_token and phone_id)
-
-    if request.method == 'POST':
-        phone_number_id = request.form.get('phone_number_id')
-        business_account_id = request.form.get('business_account_id')
-        whatsapp_phone_number = request.form.get('whatsapp_phone_number')
-        api_version = request.form.get('api_version')
-        access_token_val = request.form.get('access_token')
-
-        if phone_number_id:
-            current_app.config['WHATSAPP_PHONE_NUMBER_ID'] = phone_number_id
-        if business_account_id:
-            current_app.config['WHATSAPP_BUSINESS_ACCOUNT_ID'] = business_account_id
-        if whatsapp_phone_number:
-            current_app.config['WHATSAPP_PHONE_NUMBER'] = whatsapp_phone_number
-        if api_version:
-            current_app.config['WHATSAPP_API_VERSION'] = api_version
-        if access_token_val:
-            current_app.config['WHATSAPP_ACCESS_TOKEN'] = access_token_val
-
-        flash("✅ تم حفظ إعدادات الربط وتحديث الحالة بنجاح!", "success")
-        return redirect(url_for('whatsapp_service.settings_dashboard'))
-
-    return render_template(
-        'admin/whatsapp_dashboard.html',
-        active_tab='settings',
-        is_connected=is_connected
-    )
 
 
 @whatsapp_bp.route('/ping')
