@@ -1,1 +1,27 @@
-
+<div class="w-80 bg-white border-l border-slate-200 flex flex-col h-full shrink-0">
+  <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+    <span class="font-bold text-slate-800 text-sm">المحادثات النشطة</span>
+    <span class="bg-purple-100 text-[#570575] px-2 py-0.5 rounded-full text-xs font-bold" id="contacts-count">{{ contacts|length }}</span>
+  </div>
+  <div class="p-3 border-b border-slate-100">
+    <input type="text" id="search-contacts" placeholder="بحث عن عميل أو رقم..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none" oninput="filterContacts(this.value)">
+  </div>
+  <div class="flex-1 overflow-y-auto" id="contacts-list">
+    {% for c in contacts %}
+    <div onclick="loadConversation('{{ c.phone_number }}', this)" 
+         class="contact-item p-3 border-b border-slate-50 hover:bg-purple-50/50 cursor-pointer transition-colors flex items-center gap-3 {% if loop.first %}bg-purple-50/80 border-r-4 border-r-[#570575]{% endif %}"
+         data-phone="{{ c.phone_number }}" data-name="{{ c.name }}">
+      <div class="w-10 h-10 rounded-full bg-slate-200 font-bold text-slate-700 flex items-center justify-center shrink-0">
+        {{ c.name[0] if c.name else 'ع' }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-slate-800 truncate">{{ c.name or c.phone_number }}</h4>
+          <span class="text-[10px] text-slate-400">نشط</span>
+        </div>
+        <p class="text-[11px] text-slate-500 truncate mt-0.5" dir="ltr">{{ c.phone_number }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
