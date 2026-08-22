@@ -28,7 +28,14 @@ def get_verify_token():
 def direct_webhook():
     if request.method == 'GET':
         return verify_webhook()
-    return handle_webhook()
+    
+    # استخدام force=True لتجنب أي رفض من Flask بسبب اختلاف ترويسة Content-Type ومنع خطأ 400
+    data = request.get_json(silent=True, force=True) or {}
+    
+    if not data:
+        return jsonify({"status": "ok", "note": "empty_payload_received"}), 200
+        
+    return handle_webhook_data(data)
 
 
 def verify_webhook():
@@ -43,13 +50,7 @@ def verify_webhook():
     return "Verification token mismatch", 403
 
 
-def handle_webhook():
-    data = request.get_json(silent=True) or {}
-    
-    # إذا كانت البيانات فارغة تماماً، نُرجع 200 لتجنب إعادة إرسال الطلب من ميتا
-    if not data:
-        return jsonify({"status": "ignored", "reason": "empty_payload"}), 200
-
+def handle_webhook_data(data):
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
 
     try:
@@ -131,7 +132,6 @@ def handle_webhook():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Webhook processing error: {e}")
-        # نرجع 200 حتى في حالة الخطأ الداخلي لمنع تكرار طلبات الإخفاق من خوادم ميتا
         return jsonify({"status": "error", "message": str(e)}), 200
 
     return jsonify({"status": "EVENT_RECEIVED"}), 200
