@@ -124,9 +124,15 @@ function loadChat(phone, name) {
                         ? 'max-w-[70%] bg-[#d9fdd3] p-3 rounded-xl shadow-2xs text-xs text-slate-800 mr-auto' 
                         : 'max-w-[70%] bg-white p-3 rounded-xl shadow-2xs text-xs text-slate-800 ml-auto';
 
+                    // دعم عرض محتوى مختلف إذا كانت الرسالة تحتوي على وسائط أو ملفات
+                    let contentHtml = `<div class="content">${msg.content}</div>`;
+                    if (msg.message_type && msg.message_type !== 'text') {
+                        contentHtml = `<div class="content font-bold text-emerald-700"><i class="fas fa-paperclip mr-1"></i> ${msg.content}</div>`;
+                    }
+
                     const html = `
                         <div class="${bubbleClasses}">
-                            <div class="content">${msg.content}</div>
+                            ${contentHtml}
                             <div class="flex justify-between items-center mt-1 pt-1 ${isOutbound ? 'border-t border-emerald-200/50' : 'border-t border-slate-100'}">
                                 <span class="${isOutbound ? 'text-blue-600 text-[10px]' : 'hidden'}">${msg.status === 'read' ? '✓✓' : '✓'}</span>
                                 <span class="text-[9px] text-slate-400 ms-auto">${msg.timestamp}</span>
