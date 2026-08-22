@@ -26,13 +26,13 @@ class WhatsAppMessageLog(db.Model):
     sender_number = db.Column(db.String(30), nullable=False)
     recipient_number = db.Column(db.String(30), nullable=False)
     
-    # تفاصيل الرسالة
-    message_type = db.Column(db.String(30), default='text')       # text, image, video, document, audio
-    content = db.Column(db.Text, nullable=True)                   # نص الرسالة أو وصف الوسائط
-    media_url = db.Column(db.String(500), nullable=True)          # رابط أو مسار الملف (صورة/فيديو)
-    media_id = db.Column(db.String(100), nullable=True)           # معرف الميديا في سيرفرات ميتا
+    # تفاصيل الرسالة والوسائط (صور وفيديوهات)
+    message_type = db.Column(db.String(30), default='text')        # text, image, video, document, audio
+    content = db.Column(db.Text, nullable=True)                    # نص الرسالة أو وصف الوسائط
+    media_url = db.Column(db.String(500), nullable=True)           # رابط أو مسار الملف (صورة/فيديو)
+    media_id = db.Column(db.String(100), nullable=True)            # معرف الميديا في سيرفرات ميتا
     
-    status = db.Column(db.String(30), default='received')         # received, sent, delivered, read
+    status = db.Column(db.String(30), default='received')          # received, sent, delivered, read
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class WhatsAppCustomerContact(db.Model):
@@ -41,13 +41,18 @@ class WhatsAppCustomerContact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     phone = db.Column(db.String(30), unique=True, nullable=False)
     
-    # الأسماء
-    name = db.Column(db.String(100), nullable=True)               # الاسم المخصص (القابل للتعديل يدوياً)
-    whatsapp_profile_name = db.Column(db.String(100), nullable=True) # الاسم المسجل في واتساب
+    # الأسماء (القابلة للتعديل يدوياً والحفظ في قاعدة البيانات)
+    name = db.Column(db.String(100), nullable=True)                
+    whatsapp_profile_name = db.Column(db.String(100), nullable=True) 
+    
+    # تفاصيل البطاقة الحقيقية (صورة، حالة، وآخر ظهور)
+    avatar_url = db.Column(db.String(500), nullable=True)          # رابط صورة العميل
+    is_online = db.Column(db.Boolean, default=False)               # حالة الاتصال
+    last_seen = db.Column(db.DateTime, nullable=True)              # وقت آخر ظهور
     
     last_message = db.Column(db.Text, nullable=True)
     last_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     unread_count = db.Column(db.Integer, default=0)
     
     # حالة التواصل
-    is_blocked = db.Column(db.Boolean, default=False)             # منع الرسائل من عملاء معينين
+    is_blocked = db.Column(db.Boolean, default=False)
