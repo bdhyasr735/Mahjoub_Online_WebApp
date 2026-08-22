@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/whatsapp_service/routes/dashboard.py
 
+import os
 from datetime import datetime, timedelta
 from flask import request, render_template
 from sqlalchemy import or_
@@ -47,6 +48,32 @@ def chat_dashboard():
         contacts=contacts,
         current_contact=current_contact,
         messages=messages
+    )
+
+
+@whatsapp_bp.route('/logs')
+def logs_dashboard():
+    """عرض سجل الرسائل (Logs) بالكامل"""
+    logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.timestamp.desc()).all()
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='logs',
+        logs=logs
+    )
+
+
+@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
+def settings_dashboard():
+    """إعدادات ربط واتساب وتحديث مفاتيح Meta API"""
+    if request.method == 'POST':
+        # يمكنك إضافة منطق حفظ المفاتيح هنا حسب الحاجة
+        pass
+        
+    is_connected = bool(os.getenv('WHATSAPP_ACCESS_TOKEN') or os.getenv('WHATSAPP_PHONE_NUMBER_ID'))
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='settings',
+        is_connected=is_connected
     )
 
 
