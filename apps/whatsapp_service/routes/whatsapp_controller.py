@@ -365,4 +365,4 @@ def settings_dashboard():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         saved_success = True
         
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
+    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success) 
