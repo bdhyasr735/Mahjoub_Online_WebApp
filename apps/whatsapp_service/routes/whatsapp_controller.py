@@ -144,12 +144,12 @@ def handle_webhook():
                                 customer_name = profile_name
 
                         if db:
+                            # تم إزالة حقل customer_name لأنه غير موجود في جدول WhatsAppMessageLog
                             log_entry = WhatsAppMessageLog(
                                 wamid=wamid,
                                 direction='inbound',
                                 sender_number=sender,
                                 recipient_number=phone_id,
-                                customer_name=customer_name,
                                 message_type=msg_type,
                                 content=text,
                                 status='received'
