@@ -10,6 +10,7 @@
     </div>
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% for contact in contacts|default([]) %}
+      <!-- هذا الرابط هو الذي يقوم بجلب بيانات العميل عند النقر -->
       <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-4 hover:bg-slate-50 cursor-pointer {{ 'bg-emerald-50' if current_contact and current_contact.id == contact.id }}">
         <div class="flex justify-between font-bold text-sm text-slate-900">
           <span>{{ contact.name }}</span>
@@ -62,16 +63,18 @@
         <span class="text-xs bg-slate-200 text-slate-600 px-3 py-1 rounded-full">اليوم</span>
       </div>
       {% for message in messages|default([]) %}
-        <div class="max-w-lg {{ 'self-start bg-white border border-slate-200' if message.sender == 'customer' else 'self-end bg-emerald-600 text-white' }} p-3 rounded-xl text-sm shadow-sm">
+        <div class="max-w-lg {{ 'self-start bg-white border border-slate-200' if message.direction == 'inbound' else 'self-end bg-emerald-600 text-white' }} p-3 rounded-xl text-sm shadow-sm">
           {{ message.content }}
           <div class="text-xs opacity-70 mt-1">{{ message.timestamp }}</div>
         </div>
       {% endfor %}
     </div>
 
-    <!-- Send Message Form -->
+    <!-- Send Message Form (تم إصلاحه ليتوافق مع الـ Controller) -->
     <div class="p-4 bg-white border-t border-slate-200 flex gap-2">
-      <form action="{{ url_for('whatsapp_service.send_message', contact_id=current_contact.id) }}" method="POST" class="flex-1 flex gap-2">
+      <form action="{{ url_for('whatsapp_service.send_message') }}" method="POST" class="flex-1 flex gap-2">
+        <!-- إرسال رقم الهاتف كحقل مخفي بدلاً من contact_id في الرابط -->
+        <input type="hidden" name="phone" value="{{ current_contact.phone }}">
         <input type="text" name="message" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs" required>
         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold">إرسال</button>
       </form>
