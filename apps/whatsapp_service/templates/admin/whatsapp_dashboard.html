@@ -57,7 +57,7 @@
       {% endif %}
     </main>
 
-    <!-- القائمة الجانبية للأيقونات (أقصى اليسار - مطابقة للصورة) -->
+    <!-- القائمة الجانبية للأيقونات (أقصى اليسار) -->
     <aside class="w-20 bg-[#1a0b2e] flex flex-col items-center justify-between py-6 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
       
       <!-- الجزء العلوي: شعار المنصة المصغر -->
@@ -82,7 +82,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
           </a>
 
-          <!-- 3. الربط والويب هوك (Webhook / API) -->
+          <!-- 3. الربط والويب هوك -->
           <a href="#" title="الربط والويب هوك" class="p-3 rounded-2xl transition-all flex justify-center text-purple-300 hover:bg-purple-900/50 hover:text-white">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.858 15.355-5.858 21.213 0"></path></svg>
           </a>
@@ -106,9 +106,10 @@
 
   </div>
 
-  <!-- الدوال البرمجية -->
+  <!-- الدوال البرمجية للتفاعل اللحظي (Real-time Polling & Messaging) -->
   <script>
     let currentActivePhone = "{{ contacts[0].phone_number if contacts and contacts|length > 0 else '' }}";
+    let refreshInterval = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       if (currentActivePhone) {
@@ -116,8 +117,11 @@
       }
     });
 
+    // تحميل محادثة العميل وتفعيل التحديث التلقائي اللحظي
     function loadConversation(phone, element = null) {
       currentActivePhone = phone;
+      
+      // تحديد العنصر النشط في القائمة الجانبية بصرياً
       document.querySelectorAll('.contact-item').forEach(item => {
         item.classList.remove('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
       });
@@ -125,18 +129,34 @@
         element.classList.add('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
       }
 
-      fetch(`/api/whatsapp/conversation/${phone}`)
+      // جلب الرسائل فوراً ثم جدولتها للتحديث كل 3 ثوانٍ
+      fetchMessages();
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(fetchMessages, 3000);
+    }
+
+    // دالة جلب الرسائل وبيانات العميل من السيرفر
+    function fetchMessages() {
+      if (!currentActivePhone) return;
+
+      fetch(`/api/whatsapp/conversation/${currentActivePhone}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
+            // تحديث تفاصيل العميل الجانبية
             const activeNameEl = document.getElementById('active-name');
             const activePhoneEl = document.getElementById('active-phone');
             const activeAvatarEl = document.getElementById('active-avatar');
+            const chatHeaderName = document.getElementById('chat-header-name');
+            const chatHeaderAvatar = document.getElementById('chat-header-avatar');
             
-            if(activeNameEl) activeNameEl.innerText = data.client.name || phone;
-            if(activePhoneEl) activePhoneEl.innerText = phone;
+            if(activeNameEl) activeNameEl.innerText = data.client.name || currentActivePhone;
+            if(activePhoneEl) activePhoneEl.innerText = currentActivePhone;
             if(activeAvatarEl) activeAvatarEl.innerText = (data.client.name ? data.client.name[0] : 'ع');
+            if(chatHeaderName) chatHeaderName.innerText = data.client.name || currentActivePhone;
+            if(chatHeaderAvatar) chatHeaderAvatar.innerText = (data.client.name ? data.client.name[0] : 'ع');
 
+            // تحديث صندوق الرسائل
             const box = document.getElementById('chat-messages-box');
             if(box) {
               box.innerHTML = '';
@@ -144,21 +164,45 @@
                 data.messages.forEach(msg => {
                   let isOutgoing = msg.direction === 'outbound';
                   box.innerHTML += `
-                    <div class="flex items-start gap-2 max-w-lg ${isOutgoing ? 'mr-auto flex-row-reverse' : ''}">
-                      <div class="${isOutgoing ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-800'} p-3.5 rounded-2xl shadow-sm text-sm">
-                        ${msg.message_body}
-                        <span class="block text-[10px] ${isOutgoing ? 'text-emerald-200' : 'text-slate-400'} mt-1 text-left">${msg.timestamp || ''}</span>
+                    <div class="flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-3">
+                      <div class="max-w-[70%] p-3.5 rounded-2xl ${isOutgoing ? 'bg-[#570575] text-white rounded-br-none shadow-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-xs'} text-xs">
+                        <p class="leading-relaxed">${msg.message_body}</p>
+                        <span class="block text-[9px] opacity-70 mt-1 text-left">${msg.timestamp || ''}</span>
                       </div>
                     </div>
                   `;
                 });
               } else {
-                box.innerHTML = '<div class="text-center text-slate-400 text-xs py-10">لا توجد رسائل مسجلة مع هذا العميل بعد</div>';
+                box.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">لا توجد رسائل مسجلة مع هذا العميل بعد</div>';
               }
               box.scrollTop = box.scrollHeight;
             }
           }
         });
+    }
+
+    // دالة إرسال الرسالة لحظياً عبر الـ API
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      if (!input) return;
+      
+      const text = input.value.trim();
+      if (!text || !currentActivePhone) return;
+
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ phone: currentActivePhone, message: text })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          input.value = ''; // تفريغ حقل الكتابة
+          fetchMessages();  // تحديث الشات فوراً لعرض الرسالة المرسلة
+        } else {
+          alert('فشل إرسال الرسالة، تأكد من الاتصال.');
+        }
+      });
     }
   </script>
 </body>
