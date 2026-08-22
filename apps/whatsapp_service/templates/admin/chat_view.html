@@ -1,23 +1,41 @@
 <!-- Chat View Jinja2 Component -->
-<div class="flex-1 flex overflow-hidden w-full h-[600px] border border-slate-200 rounded-2xl shadow-sm bg-white">
+<div class="flex-1 flex overflow-hidden w-full h-[650px] border border-slate-200 rounded-2xl shadow-sm bg-white" dir="rtl">
+  
   <!-- Contacts list sidebar (Right) -->
   <div class="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
-    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-      <h2 class="text-xs font-bold text-slate-800">
-        <i class="fab fa-whatsapp text-emerald-600 me-1"></i> محادثات العملاء النشطة
-      </h2>
-      <span class="badge bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">مباشر</span>
+    <div class="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div class="flex items-center gap-2">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy7beWcxcJ4SMIjx5aISfAbVzEo56G1_ez-BDsm_xc5g&s=10" alt="شعار محجوب أونلاين" class="w-8 h-8 rounded-full object-cover border border-purple-300">
+        <div>
+          <h2 class="text-xs font-bold text-slate-900">مراسلات محجوب أونلاين</h2>
+          <span class="text-[9px] text-emerald-600 font-bold">● اتصال مباشر Meta API</span>
+        </div>
+      </div>
+      <!-- زر الرسائل الجماعية وزر الإعدادات السريعة -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="openBroadcastModal()" class="p-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs transition" title="حملة رسائل جماعية">
+          <i class="fas fa-bullhorn"></i>
+        </button>
+        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="p-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs transition" title="الإعدادات">
+          <i class="fas fa-cog"></i>
+        </a>
+      </div>
     </div>
     
+    <!-- شريط البحث السريع بين العملاء -->
+    <div class="p-2 border-b border-slate-100 bg-slate-50/30">
+      <input type="text" id="contactSearchInput" placeholder="بحث عن عميل أو رقم..." class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-purple-600">
+    </div>
+
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contacts-list-container">
       {% if contacts %}
         {% for contact in contacts %}
         <div onclick="loadChat('{{ contact.phone }}', '{{ contact.name or 'عميل محجوب' }}')" 
-             class="contact-card p-3 hover:bg-emerald-50/30 cursor-pointer transition border-r-4 border-transparent hover:border-emerald-500 {% if loop.first %}bg-emerald-50/55 border-emerald-600{% endif %}"
+             class="contact-card p-3 hover:bg-purple-50/30 cursor-pointer transition border-r-4 border-transparent hover:border-purple-600 {% if loop.first %}bg-purple-50/40 border-purple-700{% endif %}"
+             data-search="{{ contact.name or 'عميل محجوب' }} {{ contact.phone }}"
              data-phone="{{ contact.phone }}">
           <div class="flex justify-between items-center font-bold text-xs text-slate-900">
             <span class="truncate max-w-[140px]">{{ contact.name or 'عميل محجوب' }}</span>
-            <!-- مؤشر حالة الاتصال الديناميكي -->
             {% if contact.is_online %}
               <span class="text-[9px] text-emerald-600 font-bold">● متصل</span>
             {% else %}
@@ -40,12 +58,12 @@
   </div>
 
   <!-- Messages conversation canvas (Center/Left) -->
-  <div class="flex-1 flex flex-col bg-[#efeae2] relative">
+  <div class="flex-1 flex flex-col bg-[#efeae2] relative" style="background-image: radial-gradient(#e5ddd5 0.75px, transparent 0.75px); background-size: 15px 15px;">
     
     <!-- Chat Header -->
     <div id="chat-header" class="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between shadow-2xs z-10">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs shadow-2xs">
+        <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs shadow-2xs">
           <i class="fab fa-whatsapp"></i>
         </div>
         <div>
@@ -53,34 +71,40 @@
           <span id="active-chat-status" class="text-[10px] text-slate-400 font-medium">● غير متصل</span>
         </div>
       </div>
-      <button class="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-100 transition flex items-center gap-1">
-        <span>⚡ قوالب الرد السريع</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <span id="active-chat-phone-badge" class="font-mono text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-600" dir="ltr"></span>
+      </div>
     </div>
 
     <!-- Messages stream -->
-    <div id="chat-messages-stream" class="flex-1 p-6 overflow-y-auto flex flex-col gap-3" style="background-image: radial-gradient(#e5ddd5 0.75px, transparent 0.75px); background-size: 15px 15px;">
+    <div id="chat-messages-stream" class="flex-1 p-6 overflow-y-auto flex flex-col gap-3">
       <div class="text-center my-auto text-slate-500 text-xs">
-        <div class="bg-white/80 p-4 rounded-xl shadow-2xs inline-block">
-          <i class="fab fa-whatsapp text-emerald-600 fa-3x mb-2"></i>
-          <p class="font-bold text-slate-700">مرحباً بك في لوحة محادثات محجوب أونلاين</p>
-          <p class="text-[11px] text-slate-400 mt-1">انقر على أي محادثة في القائمة الجانبية لعرض السجل وإرسال الرسائل.</p>
+        <div class="bg-white/90 p-5 rounded-2xl shadow-xs inline-block border border-slate-100 max-w-sm">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy7beWcxcJ4SMIjx5aISfAbVzEo56G1_ez-BDsm_xc5g&s=10" alt="Logo" class="w-12 h-12 rounded-full object-cover mx-auto mb-2 border border-2 border-amber-400 shadow-xs">
+          <p class="font-bold text-slate-800 text-sm">مركز المراسلات والدعم | محجوب أونلاين</p>
+          <p class="text-[11px] text-slate-500 mt-1">تفاعل لحظياً مع عملائك، أرسل صور المنتجات، وتابع السعاة بكل احترافية.</p>
         </div>
       </div>
     </div>
 
     <!-- Message Input Footer -->
     <div class="p-3 bg-white border-t border-slate-200">
-      <form id="whatsapp-send-form" onsubmit="sendDashboardMessage(event)" class="flex gap-2">
+      <form id="whatsapp-send-form" onsubmit="sendDashboardMessage(event)" class="flex items-center gap-2">
         <input type="hidden" id="current-target-phone" value="">
+        
+        <!-- زر إرفاق الصور والملفات -->
+        <button type="button" onclick="document.getElementById('mediaFileInput').click()" class="p-2.5 text-slate-500 hover:text-purple-700 transition bg-slate-50 border border-slate-200 rounded-xl" title="إرسال صورة أو وسائط">
+          <i class="fas fa-paperclip"></i>
+        </button>
+        <input type="file" id="mediaFileInput" accept="image/*" class="hidden" onchange="handleMediaUpload(this)">
+
         <input type="text" id="whatsapp-message-input" placeholder="اكتب رسالتك للعميل هنا..." disabled
-               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed">
+               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-purple-600 transition disabled:bg-slate-100 disabled:cursor-not-allowed">
+        
         <button type="submit" id="whatsapp-submit-btn" disabled
-                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                class="bg-purple-700 hover:bg-purple-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
           <span>إرسال</span>
-          <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-          </svg>
+          <i class="fas fa-paper-plane"></i>
         </button>
       </form>
     </div>
@@ -88,12 +112,52 @@
   </div>
 </div>
 
-<!-- Scripts for Dynamic Chat Loading -->
+<!-- نافذة الرسائل الجماعية (Broadcast Modal) -->
+<div id="broadcastModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden opacity-0 transition-all duration-300">
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl space-y-4 border border-slate-100" dir="rtl">
+    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <i class="fas fa-bullhorn text-purple-700"></i> إرسال حملة رسائل جماعية للعملاء
+      </h3>
+      <button onclick="closeBroadcastModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="broadcastForm" onsubmit="sendBroadcastMessage(event)" class="space-y-3">
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">محتوى الحملة أو الإشعار</label>
+        <textarea id="broadcastText" rows="4" placeholder="اكتب عروض متجر محجوب أونلاين والتنبيهات..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-purple-600" required></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">الفئة المستهدفة</label>
+        <select id="broadcastTarget" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-600">
+          <option value="all">كافة العملاء المسجلين</option>
+          <option value="active">العملاء النشطون مؤخراً</option>
+        </select>
+      </div>
+      <button type="submit" id="broadcastSubmitBtn" class="w-full bg-purple-700 hover:bg-purple-800 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-xs">
+        بدء الإرسال الفوري للحملة
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts for Dynamic Chat, Media, and Broadcast -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const firstContact = document.querySelector('.contact-card');
     if (firstContact) {
         firstContact.click();
+    }
+
+    // فلترة البحث في القائمة الجانبية
+    const searchInput = document.getElementById('contactSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('.contact-card').forEach(card => {
+                const text = card.getAttribute('data-search').toLowerCase();
+                card.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
     }
 });
 
@@ -101,8 +165,9 @@ let currentActiveContactName = 'عميل محجوب';
 
 function loadChat(phone, name) {
     currentActiveContactName = name;
-    document.getElementById('active-chat-name').innerHTML = `${name} <span class="ml-2 font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600" dir="ltr">${phone}</span>`;
+    document.getElementById('active-chat-name').innerText = name;
     document.getElementById('active-chat-status').innerHTML = '<span class="text-emerald-600 font-medium">● متصل وجاهز للمراسلة</span>';
+    document.getElementById('active-chat-phone-badge').innerText = phone;
     document.getElementById('current-target-phone').value = phone;
 
     document.getElementById('whatsapp-message-input').removeAttribute('disabled');
@@ -124,17 +189,16 @@ function loadChat(phone, name) {
                         ? 'max-w-[70%] bg-[#d9fdd3] p-3 rounded-xl shadow-2xs text-xs text-slate-800 mr-auto' 
                         : 'max-w-[70%] bg-white p-3 rounded-xl shadow-2xs text-xs text-slate-800 ml-auto';
 
-                    // دعم عرض محتوى مختلف إذا كانت الرسالة تحتوي على وسائط أو ملفات
                     let contentHtml = `<div class="content">${msg.content}</div>`;
-                    if (msg.message_type && msg.message_type !== 'text') {
-                        contentHtml = `<div class="content font-bold text-emerald-700"><i class="fas fa-paperclip mr-1"></i> ${msg.content}</div>`;
+                    if (msg.image_url) {
+                        contentHtml = `<img src="${msg.image_url}" class="max-w-full rounded-lg mb-2 max-h-48 object-cover cursor-pointer" alt="صورة مرفقة">` + contentHtml;
                     }
 
                     const html = `
                         <div class="${bubbleClasses}">
                             ${contentHtml}
                             <div class="flex justify-between items-center mt-1 pt-1 ${isOutbound ? 'border-t border-emerald-200/50' : 'border-t border-slate-100'}">
-                                <span class="${isOutbound ? 'text-blue-600 text-[10px]' : 'hidden'}">${msg.status === 'read' ? '✓✓' : '✓'}</span>
+                                <span class="${isOutbound ? 'text-blue-600 text-[10px]' : 'hidden'} font-bold">${msg.status === 'read' ? '✓✓' : '✓'}</span>
                                 <span class="text-[9px] text-slate-400 ms-auto">${msg.timestamp}</span>
                             </div>
                         </div>
@@ -152,9 +216,7 @@ function loadChat(phone, name) {
                 `;
             }
         })
-        .catch(err => {
-            console.error('Error fetching messages:', err);
-        });
+        .catch(err => console.error('Error fetching messages:', err));
 }
 
 function sendDashboardMessage(event) {
@@ -166,13 +228,10 @@ function sendDashboardMessage(event) {
 
     if (!phone || !message) return;
 
-    // تفعيل حالة التحميل لمنع التكرار
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span>جاري الإرسال...</span>';
+    submitBtn.innerHTML = '<span>جاري...</span>';
 
-    const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
-
-    fetch(sendUrl, {
+    fetch("{{ url_for('whatsapp_service.send_message_api') }}", {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
@@ -183,12 +242,7 @@ function sendDashboardMessage(event) {
     .then(res => res.json())
     .then(data => {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `
-            <span>إرسال</span>
-            <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-            </svg>
-        `;
+        submitBtn.innerHTML = '<span>إرسال</span> <i class="fas fa-paper-plane"></i>';
         if (data.success) {
             inputField.value = '';
             loadChat(phone, currentActiveContactName);
@@ -198,17 +252,92 @@ function sendDashboardMessage(event) {
     })
     .catch(err => {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `
-            <span>إرسال</span>
-            <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-            </svg>
-        `;
+        submitBtn.innerHTML = '<span>إرسال</span> <i class="fas fa-paper-plane"></i>';
         console.error('Error sending message:', err);
     });
 }
 
-// التحديث التلقائي للمحادثة المفتوحة كل 10 ثوانٍ لضمان التزامن المباشر
+function handleMediaUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const phone = document.getElementById('current-target-phone').value;
+        if (!phone) {
+            alert('الرجاء اختيار محادثة أولاً لإرسال الصورة.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('media', file);
+        formData.append('recipient_number', phone);
+
+        fetch("{{ url_for('whatsapp_service.send_media_api') }}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                loadChat(phone, currentActiveContactName);
+            } else {
+                alert('فشل إرسال الصورة: ' + (data.error || 'خطأ غير معروف'));
+            }
+        })
+        .catch(err => console.error('Error uploading media:', err));
+    }
+}
+
+function openBroadcastModal() {
+    const modal = document.getElementById('broadcastModal');
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.remove('opacity-0'), 10);
+}
+
+function closeBroadcastModal() {
+    const modal = document.getElementById('broadcastModal');
+    modal.classList.add('opacity-0');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function sendBroadcastMessage(event) {
+    event.preventDefault();
+    const text = document.getElementById('broadcastText').value.trim();
+    const target = document.getElementById('broadcastTarget').value;
+    const btn = document.getElementById('broadcastSubmitBtn');
+
+    if (!text) return;
+
+    btn.disabled = true;
+    btn.innerText = 'جاري إرسال الحملة...';
+
+    fetch("{{ url_for('whatsapp_service.broadcast_message_api') }}", {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}'
+        },
+        body: JSON.stringify({ message: text, target: target })
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = 'بدء الإرسال الفوري للحملة';
+        if (data.success) {
+            alert('تم إرسال الحملة الجماعية بنجاح.');
+            document.getElementById('broadcastText').value = '';
+            closeBroadcastModal();
+        } else {
+            alert('فشل إرسال الحملة: ' + (data.error || 'خطأ غير معروف'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = 'بدء الإرسال الفوري للحملة';
+        console.error('Error sending broadcast:', err);
+    });
+}
+
+// التحديث التلقائي للمحادثة المفتوحة كل 10 ثوانٍ
 setInterval(() => {
     const activePhone = document.getElementById('current-target-phone').value;
     if (activePhone) {
