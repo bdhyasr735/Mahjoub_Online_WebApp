@@ -1,105 +1,131 @@
-<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_dashboard.html -->
-{% extends "admin/admin_base.html" %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مركز مراسلات واتساب | محجوب أونلاين</title>
+    
+    <!-- مكتبات التنسيق والخطوط الأساسية -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-{% block title %}مركز مراسلات واتساب | محجوب أونلاين{% endblock %}
+    <style>
+        :root {
+            --wa-green: #25D366;
+            --wa-dark-green: #075E54;
+            --wa-light-bg: #efeae2;
+            --brand-purple: #632C8F;
+            --brand-gold: #D4AF37;
+        }
 
-{% block extra_css %}
-<style>
-    :root {
-        --wa-green: #25D366;
-        --wa-dark-green: #075E54;
-        --wa-light-bg: #efeae2;
-        --brand-purple: #632C8F;
-        --brand-gold: #D4AF37;
-    }
+        body {
+            font-family: 'Tajawal', 'Cairo', sans-serif !important;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    .whatsapp-header-badge {
-        background: linear-gradient(135deg, var(--wa-dark-green), var(--brand-purple));
-        color: white;
-    }
+        .whatsapp-header-badge {
+            background: linear-gradient(135deg, var(--wa-dark-green), var(--brand-purple));
+            color: white;
+        }
 
-    .chat-sidebar {
-        border-left: 1px solid #dee2e6;
-        height: 600px;
-        overflow-y: auto;
-    }
-
-    .chat-contact-item {
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .chat-contact-item:hover, .chat-contact-item.active {
-        background-color: rgba(99, 44, 143, 0.05);
-        border-right: 4px solid var(--brand-purple);
-    }
-
-    .chat-messages-container {
-        height: 480px;
-        overflow-y: auto;
-        background-color: #fcfbfa;
-        background-image: radial-gradient(#e5ddd5 0.75px, transparent 0.75px);
-        background-size: 15px 15px;
-    }
-
-    .message-bubble {
-        max-width: 75%;
-        border-radius: 12px;
-        padding: 10px 14px;
-        font-size: 0.9rem;
-        position: relative;
-        word-break: break-word;
-    }
-
-    .message-inbound {
-        background-color: #ffffff;
-        color: #333;
-        border-top-left-radius: 2px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .message-outbound {
-        background-color: #dcf8c6;
-        color: #111;
-        border-top-right-radius: 2px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .btn-brand-tab {
-        border-color: var(--brand-purple);
-        color: var(--brand-purple);
-    }
-    .btn-brand-tab.active, .btn-brand-tab:hover {
-        background-color: var(--brand-purple);
-        color: white;
-        border-color: var(--brand-purple);
-    }
-
-    /* تحسينات التجاوب للجوال */
-    @media (max-width: 768px) {
         .chat-sidebar {
-            height: 250px;
+            border-left: 1px solid #dee2e6;
+            height: calc(100vh - 100px);
+            overflow-y: auto;
         }
-        .chat-messages-container {
-            height: 350px;
-        }
-    }
-</style>
-{% endblock %}
 
-{% block content %}
-<div class="container-fluid px-0" dir="rtl">
+        .chat-contact-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .chat-contact-item:hover, .chat-contact-item.active {
+            background-color: rgba(99, 44, 143, 0.05);
+            border-right: 4px solid var(--brand-purple);
+        }
+
+        .chat-messages-container {
+            height: calc(100vh - 240px);
+            overflow-y: auto;
+            background-color: #fcfbfa;
+            background-image: radial-gradient(#e5ddd5 0.75px, transparent 0.75px);
+            background-size: 15px 15px;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            position: relative;
+            word-break: break-word;
+        }
+
+        .message-inbound {
+            background-color: #ffffff;
+            color: #333;
+            border-top-left-radius: 2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .message-outbound {
+            background-color: #dcf8c6;
+            color: #111;
+            border-top-right-radius: 2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .btn-brand-tab {
+            border-color: var(--brand-purple);
+            color: var(--brand-purple);
+        }
+        .btn-brand-tab.active, .btn-brand-tab:hover {
+            background-color: var(--brand-purple);
+            color: white;
+            border-color: var(--brand-purple);
+        }
+
+        .btn-purple {
+            background-color: var(--brand-purple);
+            color: white;
+        }
+        .btn-purple:hover {
+            background-color: #502273;
+            color: white;
+        }
+
+        .text-purple {
+            color: var(--brand-purple);
+        }
+
+        /* تحسينات التجاوب للجوال */
+        @media (max-width: 768px) {
+            .chat-sidebar {
+                height: 250px;
+            }
+            .chat-messages-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid px-4 py-3" dir="rtl">
     <!-- شريط التنقل الفرعي الخاص بالواتساب -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-3 border-bottom gap-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 pb-3 border-bottom gap-3">
         <div class="d-flex align-items-center gap-3">
-            <!-- الشعار / الأيقونة الخاصة بمحجوب أونلاين -->
             <div class="bg-white p-1 rounded-circle shadow-sm border d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px;">
-                <img src="https://mahjoub.online/cart?srsltid=AfmBOorDcr0r05SAvWbxPPxpbniXhoc7m6fWXo02tpkoGwwJaH71M0N7" alt="شعار محجوب أونلاين" class="w-100 h-100 rounded-circle" style="object-fit: contain;">
+                <i class="fab fa-whatsapp text-success fa-2x"></i>
             </div>
             <div>
                 <h2 class="h4 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
                     <span>مركز مراسلات واتساب</span>
-                    <i class="fab fa-whatsapp text-success"></i>
                 </h2>
                 <p class="text-muted small mb-0">إدارة محادثات العملاء وربط إشعارات السعاة والطلبات سحابياً</p>
             </div>
@@ -160,7 +186,7 @@
                 </div>
 
                 <!-- صندوق المحادثة النشطة -->
-                <div class="col-md-8 col-lg-9 d-flex flex-column" style="height: 600px;">
+                <div class="col-md-8 col-lg-9 d-flex flex-column" style="height: calc(100vh - 100px);">
                     <div id="chat-header" class="p-3 bg-white border-bottom d-flex align-items-center justify-content-between">
                         <span id="active-chat-title" class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-2"></i> اختر عميلاً من القائمة لبدء المحادثة</span>
                         <span id="active-chat-phone" class="badge bg-purple text-white px-3 py-2 rounded-pill"></span>
@@ -178,7 +204,7 @@
                     <div class="p-3 bg-white border-top">
                         <form id="send-message-form" class="d-flex gap-2 align-items-center" onsubmit="sendCustomerMessage(event)">
                             <input type="hidden" id="target-phone" value="">
-                            <input type="text" id="orderIdInput" class="form-control form-control-sm rounded-pill px-3" placeholder="رقم الطلب (اختياري مثل ORD-8821)" style="max-width: 200px;">
+                            <input type="text" id="orderIdInput" class="form-control form-control-sm rounded-pill px-3" placeholder="رقم الطلب (مثل ORD-8821)" style="max-width: 200px;">
                             <input type="text" id="message-input" class="form-control rounded-pill px-3" placeholder="اكتب رسالتك للعميل هنا..." required disabled>
                             <button type="submit" id="send-btn" class="btn btn-purple rounded-circle text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; min-width: 42px;" disabled>
                                 <i class="fas fa-paper-plane"></i>
@@ -189,8 +215,7 @@
             </div>
 
         {% elif active_tab == 'logs' %}
-            <div class="p-4">
-                <!-- فلاتر وبحث السجلات المتقدمة -->
+            <div class="p-4" style="height: calc(100vh - 120px); overflow-y: auto;">
                 <div class="row g-3 align-items-center mb-4">
                     <div class="col-md-5">
                         <div class="input-group">
@@ -209,7 +234,7 @@
                         </select>
                     </div>
                     <div class="col-md-3 text-md-end">
-                        <span class="badge bg-purple-soft text-purple px-3 py-2 fw-semibold border border-purple-subtle">إجمالي السجلات: <span id="logsCount">{{ logs|length }}</span></span>
+                        <span class="badge bg-light text-purple px-3 py-2 fw-semibold border">إجمالي السجلات: <span id="logsCount">{{ logs|length }}</span></span>
                     </div>
                 </div>
 
@@ -260,7 +285,7 @@
             </div>
 
         {% elif active_tab == 'settings' %}
-            <div class="p-5" style="max-width: 700px; margin: 0 auto;">
+            <div class="p-5" style="max-width: 700px; margin: 0 auto; height: calc(100vh - 120px); overflow-y: auto;">
                 <div class="text-center mb-4">
                     <div class="bg-light text-purple rounded-circle d-inline-flex p-3 mb-2 shadow-sm">
                         <i class="fas fa-sliders-h fa-2x"></i>
@@ -296,10 +321,9 @@
     </div>
 </div>
 
-{% block extra_js %}
+<!-- سكريبتات التشغيل التفاعلي -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. تفعيل البحث الفوري في قائمة العملاء
     const contactSearchInput = document.getElementById('contactSearchInput');
     if (contactSearchInput) {
         contactSearchInput.addEventListener('input', function() {
@@ -311,7 +335,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 2. تفعيل البحث والفلاتر في جدول السجلات
     const logSearchInput = document.getElementById('logSearchInput');
     const statusFilter = document.getElementById('statusFilter');
 
@@ -421,10 +444,10 @@ function sendCustomerMessage(event) {
             alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
         }
     })
-    .catch_err(err => {
+    .catch(err => {
         console.error('Error sending message:', err);
     });
 }
 </script>
-{% endblock %}
-{% endblock %}
+</body>
+</html>
