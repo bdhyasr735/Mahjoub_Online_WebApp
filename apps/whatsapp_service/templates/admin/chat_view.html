@@ -1,55 +1,86 @@
-<!-- Logs View Jinja2 Component -->
-<div class="flex-1 flex flex-col w-full h-full bg-slate-50 overflow-hidden">
-  <!-- Header and Filters -->
-  <div class="p-4 border-b border-slate-200 bg-white flex items-center justify-between gap-4">
-    <h2 class="text-sm font-bold text-slate-800">سجل الرسائل</h2>
-    <div class="flex gap-2">
-      <input type="text" placeholder="بحث في السجلات..." class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-xs w-64">
-      <select class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
-        <option>كل الحالات</option>
-        <option>تم الإرسال</option>
-        <option>فشل الإرسال</option>
-        <option>قيد الانتظار</option>
-      </select>
+<!-- Chat View Jinja2 Component -->
+<div class="flex-1 flex overflow-hidden w-full h-full">
+  <!-- Contacts list sidebar -->
+  <div class="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+      <h2 class="text-sm font-bold text-slate-800">المحادثات النشطة</h2>
+      <button class="bg-emerald-600 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold">
+        + محادثة جديدة
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
+      {% for contact in contacts|default([]) %}
+      <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-4 hover:bg-slate-50 cursor-pointer {{ 'bg-emerald-50' if current_contact and current_contact.id == contact.id }}">
+        <div class="flex justify-between font-bold text-sm text-slate-900">
+          <span>{{ contact.name }}</span>
+          <span class="text-xs text-slate-400 font-mono">{{ contact.phone }}</span>
+        </div>
+        <p class="text-xs text-slate-500 truncate mt-1">{{ contact.last_message }}</p>
+      </a>
+      {% else %}
+      <div class="p-8 text-center text-slate-400 text-xs">لا توجد محادثات نشطة حالياً</div>
+      {% endfor %}
     </div>
   </div>
 
-  <!-- Logs Table -->
-  <div class="flex-1 overflow-y-auto p-4">
-    {% if logs|default([]) %}
-    <table class="w-full text-right border-collapse bg-white shadow-sm rounded-lg overflow-hidden">
-      <thead class="bg-slate-100 text-xs text-slate-600 font-bold">
-        <tr>
-          <th class="p-3 border-b">المرسل</th>
-          <th class="p-3 border-b">المستلم</th>
-          <th class="p-3 border-b">نص الرسالة</th>
-          <th class="p-3 border-b">التاريخ والوقت</th>
-          <th class="p-3 border-b">الحالة</th>
-        </tr>
-      </thead>
-      <tbody class="text-xs divide-y divide-slate-100">
-        {% for log in logs %}
-        <tr class="hover:bg-slate-50">
-          <td class="p-3 font-mono text-slate-800">{{ log.sender }}</td>
-          <td class="p-3 font-mono text-slate-800">{{ log.recipient }}</td>
-          <td class="p-3 text-slate-600 truncate max-w-xs">{{ log.content }}</td>
-          <td class="p-3 text-slate-400 font-mono">{{ log.timestamp }}</td>
-          <td class="p-3">
-            {% if log.status == 'sent' %}
-              <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">تم الإرسال</span>
-            {% elif log.status == 'failed' %}
-              <span class="px-2 py-1 rounded-full bg-red-100 text-red-700">فشل</span>
-            {% else %}
-              <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-700">قيد الانتظار</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Messages conversation canvas -->
+  <div class="flex-1 flex flex-col bg-slate-50">
+    
+    <!-- Header with Customer Details (فقط إذا تم اختيار عميل) -->
+    {% if current_contact %}
+    <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+          {{ current_contact.name[0] }}
+        </div>
+        <div>
+          <h2 class="font-bold text-slate-900">{{ current_contact.name }}</h2>
+          <span class="text-xs text-slate-500">{{ current_contact.phone }}</span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg text-xs font-bold">قوالب الرد السريع</button>
+        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg text-xs font-bold">متصل بـ Meta API</span>
+      </div>
+    </div>
+
+    <!-- Customer Orders (الطلبات) -->
+    {% if current_contact.orders %}
+    <div class="bg-white border-b border-slate-100 p-3 flex gap-2">
+      {% for order in current_contact.orders %}
+        <div class="border rounded-lg p-2 text-xs">
+          <span class="font-bold text-slate-800">{{ order.id }}</span>
+          <span class="text-slate-500">{{ order.status }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Messages Stream -->
+    <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+      <div class="text-center">
+        <span class="text-xs bg-slate-200 text-slate-600 px-3 py-1 rounded-full">اليوم</span>
+      </div>
+      {% for message in messages|default([]) %}
+        <div class="max-w-lg {{ 'self-start bg-white border border-slate-200' if message.sender == 'customer' else 'self-end bg-emerald-600 text-white' }} p-3 rounded-xl text-sm shadow-sm">
+          {{ message.content }}
+          <div class="text-xs opacity-70 mt-1">{{ message.timestamp }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Send Message Form -->
+    <div class="p-4 bg-white border-t border-slate-200 flex gap-2">
+      <form action="{{ url_for('whatsapp_service.send_message', contact_id=current_contact.id) }}" method="POST" class="flex-1 flex gap-2">
+        <input type="text" name="message" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs" required>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold">إرسال</button>
+      </form>
+    </div>
+
     {% else %}
-    <div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
-      <p>لا توجد سجلات رسائل حالياً</p>
+    <!-- إذا لم يتم اختيار عميل -->
+    <div class="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm">
+      <p>اختر عميلاً من القائمة لعرض المحادثة</p>
     </div>
     {% endif %}
   </div>
