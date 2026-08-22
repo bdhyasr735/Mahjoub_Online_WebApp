@@ -26,6 +26,14 @@ template_dir = os.path.abspath(os.path.join(basedir, '../templates'))
 
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder=template_dir)
 
+# قوالب الرد السريع الاحترافية الخاصة بمنصة محجوب أونلاين
+DEFAULT_QUICK_TEMPLATES = [
+    {"id": 1, "title": "ترحيب بالعميل", "content": "مرحباً بك في منصة محجوب أونلاين! كيف يمكننا خدمة طلبك وتجربتك التسوقية اليوم؟ 🛍️✨"},
+    {"id": 2, "title": "تأكيد الطلب", "content": "تم استلام طلبكم بنجاح في محجوب أونلاين ✅ وسيتم تجهيزه وشحنه في أقرب وقت."},
+    {"id": 3, "title": "متابعة الشحن", "content": "طلبك قيد التوصيل حالياً، وسيتواصل معك مندوب الشحن لتسليم الطلب قريباً."},
+    {"id": 4, "title": "خدمة الدعم الفني", "content": "نحن هنا لمساعدتك! إذا كان لديك أي استفسار حول المنتجات أو الطلبات، تفضل بطرحه."}
+]
+
 
 def get_verify_token():
     try:
@@ -198,7 +206,6 @@ def send_message_htmx():
         contact.last_timestamp = datetime.utcnow()
         db.session.commit()
 
-    # إعادة التوجيه الفوري لنفس المحادثة
     return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=contact.id if contact else None))
 
 
@@ -210,16 +217,9 @@ def send_message_htmx():
 def send_bulk_broadcast():
     """إرسال حملة رسائل جماعية للعملاء مع دعم التوجيه و JSON"""
     target = request.form.get('target_audience', 'all')
-    template = request.form.get('template_name', '')
     content = request.form.get('message_content', '')
     
-    contacts = []
-    if target == 'all':
-        contacts = db.session.query(WhatsAppCustomerContact).all()
-    elif target == 'active_orders':
-        contacts = db.session.query(WhatsAppCustomerContact).all()
-    else:
-        contacts = db.session.query(WhatsAppCustomerContact).all()
+    contacts = db.session.query(WhatsAppCustomerContact).all()
     
     sent_count = 0
     for contact in contacts:
@@ -231,13 +231,23 @@ def send_bulk_broadcast():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
         return jsonify({"success": True, "sent_count": sent_count, "target": target})
         
-    flash(f"✅ تم إرسال الحملة الجماعية بنجاح إلى {sent_count} عميل!", "success")
+    flash(f"✅ تم إرسال الحملة الجماعية بنجاح إلى {sent_count} عميل عبر محجوب أونلاين!", "success")
     return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
 # =============================================================================
-# 5. API ENDPOINTS (للاستخدام مع Fetch)
+# 5. API ENDPOINTS (للاستخدام مع Fetch والقوالب التفاعلية)
 # =============================================================================
+
+@whatsapp_bp.route('/api/templates', methods=['GET'])
+def get_quick_templates_api():
+    """جلب قوالب الرد السريع ديناميكياً لتغذية واجهة لوحة التحكم"""
+    return jsonify({
+        "success": True,
+        "platform": "محجوب أونلاين",
+        "templates": DEFAULT_QUICK_TEMPLATES
+    })
+
 
 @whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
 def get_conversation_data(phone):
@@ -322,4 +332,4 @@ def settings_dashboard():
 
 @whatsapp_bp.route('/ping')
 def ping():
-    return jsonify({"status": "active", "service": "WhatsApp Service", "version": "1.0"})
+    return jsonify({"status": "active", "service": "WhatsApp Service", "version": "1.0", "platform": "محجوب أونلاين"})
