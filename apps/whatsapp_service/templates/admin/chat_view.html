@@ -128,7 +128,8 @@
 
     <!-- Send Message Form -->
     <div class="p-4 bg-white border-t border-slate-200">
-      <form action="{{ url_for('whatsapp_service.send_message') }}" method="POST" class="flex items-center gap-2">
+      <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="flex items-center gap-2">
+        <!-- إرسال رقم الهاتف كحقل مخفي -->
         <input type="hidden" name="phone" value="{{ current_contact.phone }}">
         <input 
           type="text" 
@@ -179,7 +180,7 @@
         <button onclick="document.getElementById('broadcastModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
       </div>
 
-      <form action="{{ url_for('whatsapp_service.send_bulk_broadcast') if 'whatsapp_service.send_bulk_broadcast' in url_for else '#' }}" method="POST" class="space-y-4 text-xs">
+      <form action="{{ url_for('whatsapp_service.send_bulk_broadcast') }}" method="POST" class="space-y-4 text-xs">
         
         <!-- الفئة المستهدفة -->
         <div>
