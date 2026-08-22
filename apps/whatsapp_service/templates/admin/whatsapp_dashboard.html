@@ -6,7 +6,6 @@
   <title>مركز المراسلات والدعم | منصة محجوب أونلاين</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style> 
     body { font-family: 'Tajawal', sans-serif; } 
@@ -14,7 +13,6 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    /* إضافة تنسيق للمكونات */
     .contact-item { cursor: pointer; transition: background 0.15s; }
     .contact-item:hover { background: #f8fafc; }
     .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
@@ -63,9 +61,61 @@
 
         </div>
       {% elif active_tab == 'logs' %}
-        {% include 'admin/logs_view.html' %}
+        <div class="p-6">
+          <h2 class="text-xl font-bold mb-4">سجل الرسائل</h2>
+          <table class="w-full bg-white rounded-lg shadow">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="p-3 text-right">#</th>
+                <th class="p-3 text-right">الاتجاه</th>
+                <th class="p-3 text-right">المرسل</th>
+                <th class="p-3 text-right">المستقبل</th>
+                <th class="p-3 text-right">المحتوى</th>
+                <th class="p-3 text-right">الحالة</th>
+                <th class="p-3 text-right">التوقيت</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in logs %}
+              <tr class="border-b">
+                <td class="p-3">{{ log.id }}</td>
+                <td class="p-3">{{ log.direction }}</td>
+                <td class="p-3">{{ log.sender_number }}</td>
+                <td class="p-3">{{ log.recipient_number }}</td>
+                <td class="p-3">{{ log.content|truncate(30) }}</td>
+                <td class="p-3">{{ log.status }}</td>
+                <td class="p-3">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% elif active_tab == 'settings' %}
-        {% include 'admin/settings_view.html' %}
+        <div class="p-6">
+          <h2 class="text-xl font-bold mb-4">إعدادات واتساب</h2>
+          <form method="POST" class="bg-white p-6 rounded-lg shadow">
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-1">رقم الهاتف المرتبط</label>
+              <input type="text" name="phone_number_id" value="{{ settings.phone_number_id }}" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-1">معرف الأعمال</label>
+              <input type="text" name="whatsapp_business_id" value="{{ settings.whatsapp_business_id }}" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-1">رمز الوصول</label>
+              <input type="password" name="access_token" value="{{ settings.access_token }}" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-1">رمز التحقق</label>
+              <input type="text" name="verify_token" value="{{ settings.verify_token }}" class="w-full p-2 border rounded">
+            </div>
+            <button type="submit" class="bg-[#570575] text-white px-6 py-2 rounded-lg hover:bg-[#632C8F] transition">حفظ الإعدادات</button>
+            {% if saved_success %}
+            <div class="mt-4 p-3 bg-green-100 text-green-700 rounded">تم الحفظ بنجاح</div>
+            {% endif %}
+          </form>
+        </div>
       {% endif %}
     </main>
 
@@ -77,51 +127,44 @@
         </div>
         <div class="w-10 h-[1px] bg-purple-900/60"></div>
         <div class="flex flex-col gap-3 w-full px-3">
-          <a href="{{ url_for('whatsapp.dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' or not active_tab else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+          <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' or not active_tab else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
             <span class="absolute top-2 left-3 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#1a0b2e]"></span>
           </a>
-          <a href="{{ url_for('whatsapp.logs') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+          <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
           </a>
         </div>
       </div>
       <div class="w-full px-3">
-        <a href="{{ url_for('whatsapp.settings') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
         </a>
       </div>
     </aside>
   </div>
 
-  <!-- JavaScript للتفاعل مع HTMX وتحديث المحتوى -->
   <script>
-    // عند النقر على جهة اتصال، يتم تحديث منطقة الشات وتفاصيل العميل عبر HTMX
+    // استخدام HTMX لتحديث المناطق عند النقر على جهة اتصال
     document.addEventListener('htmx:afterSwap', function(evt) {
-      // إذا تم تحديث الشريط الجانبي، نعيد تحميل الشات والتفاصيل تلقائياً
       if (evt.detail.target.id === 'sidebar-contacts-container') {
-        // نبحث عن العنصر النشط الجديد
         const activeItem = document.querySelector('.contact-item.active');
         if (activeItem) {
           const contactId = activeItem.dataset.contactId;
           if (contactId) {
-            // تحديث منطقة الشات
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            // تحديث تفاصيل العميل
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
           }
         }
       }
     });
 
-    // تأكد من أن أول عنصر اتصال يكون نشطاً عند التحميل (إذا لم يكن هناك عنصر نشط)
     document.addEventListener('DOMContentLoaded', function() {
       const activeItem = document.querySelector('.contact-item.active');
       if (!activeItem) {
         const firstItem = document.querySelector('.contact-item');
         if (firstItem) {
           firstItem.classList.add('active');
-          // تحميل الشات والتفاصيل للعنصر الأول
           const contactId = firstItem.dataset.contactId;
           if (contactId) {
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
@@ -131,6 +174,5 @@
       }
     });
   </script>
-
 </body>
 </html>
