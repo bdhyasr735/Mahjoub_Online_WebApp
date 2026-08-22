@@ -103,10 +103,40 @@
                 </div>
               </div>
 
-              <!-- صندوق كتابة وإرسال الرسالة -->
-              <div class="bg-white border-t border-slate-200 p-4 shrink-0 flex items-center gap-3">
-                <input type="text" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#570575]">
-                <button class="bg-[#570575] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#1a0b2e] transition-colors flex items-center gap-2">
+              <!-- صندوق كتابة وإرسال الرسالة المحدث والمكتمل -->
+              <div class="bg-white border-t border-slate-200 p-4 shrink-0 flex items-center gap-3 relative">
+                
+                <!-- زر الإيموجي -->
+                <button type="button" onclick="toggleEmojiPicker()" class="text-slate-400 hover:text-[#570575] transition-colors p-1" title="الإيموجي">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+
+                <!-- زر المرفقات (+) للصور والمستندات -->
+                <div class="relative">
+                  <button type="button" onclick="toggleAttachmentsMenu()" class="text-slate-400 hover:text-[#570575] transition-colors p-1" title="إرفاق ملف أو صورة">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                  </button>
+
+                  <!-- قائمة المرفقات المنبثقة -->
+                  <div id="attachments-menu" class="hidden absolute bottom-12 right-0 bg-white border border-slate-200 shadow-xl rounded-2xl py-2 w-48 z-50">
+                    <label class="flex items-center gap-3 px-4 py-2 text-xs text-slate-700 hover:bg-purple-50 cursor-pointer transition-colors">
+                      <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      <span>الصور ومقاطع الفيديو</span>
+                      <input type="file" accept="image/*,video/*" class="hidden" onchange="handleMediaUpload(this)">
+                    </label>
+                    <label class="flex items-center gap-3 px-4 py-2 text-xs text-slate-700 hover:bg-purple-50 cursor-pointer transition-colors">
+                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                      <span>مستند</span>
+                      <input type="file" class="hidden" onchange="handleDocumentUpload(this)">
+                    </label>
+                  </div>
+                </div>
+
+                <!-- حقل إدخال الرسالة -->
+                <input type="text" id="message-input" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#570575]">
+                
+                <!-- زر الإرسال -->
+                <button onclick="sendMessage()" class="bg-[#570575] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#1a0b2e] transition-colors flex items-center gap-2 shadow-md">
                   <span>إرسال</span>
                   <svg class="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                 </button>
@@ -148,5 +178,63 @@
 
   </div>
 
+  <script>
+    // التحكم بإظهار وإخفاء قائمة المرفقات (+)
+    function toggleAttachmentsMenu() {
+      const menu = document.getElementById('attachments-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    // دالة إرسال الرسالة النصية الفورية
+    function sendMessage() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('فشل إرسال الرسالة.');
+        }
+      });
+    }
+
+    // معالجة رفع الصور والفيديوهات
+    function handleMediaUpload(input) {
+      if (input.files && input.files[0]) {
+        const formData = new FormData();
+        formData.append('media', input.files[0]);
+        
+        fetch('/api/whatsapp/send-media', {
+          method: 'POST',
+          body: formData
+        }).then(res => res.json()).then(data => {
+          if(data.success) location.reload();
+        });
+      }
+    }
+
+    // معالجة رفع المستندات
+    function handleDocumentUpload(input) {
+      if (input.files && input.files[0]) {
+        const formData = new FormData();
+        formData.append('document', input.files[0]);
+        
+        fetch('/api/whatsapp/send-document', {
+          method: 'POST',
+          body: formData
+        }).then(res => res.json()).then(data => {
+          if(data.success) location.reload();
+        });
+      }
+    }
+  </script>
 </body>
 </html>
