@@ -84,7 +84,7 @@
       {% if active_tab == 'chat' or not active_tab %}
         <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
           
-          <!-- 1. قائمة المحادثات (يمين داخل اللوحة) - يتم تحديثها ديناميكياً كل 3 ثوانٍ بدون إعادة تحميل الصفحة -->
+          <!-- 1. قائمة المحادثات (يمين داخل اللوحة) -->
           <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" 
                id="sidebar-contacts-container"
                hx-get="{{ url_for('whatsapp_service.partials_contacts', contact_id=current_contact.id if current_contact else none) }}" 
@@ -97,21 +97,24 @@
               </h2>
             </div>
             
-            <!-- شريط البحث السريع -->
+            <!-- شريط البحث السريع واللحظي -->
             <div class="p-3 border-b border-slate-100 bg-slate-50/50">
               <div class="relative">
                 <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                   <i class="fa-solid fa-search text-xs"></i>
                 </span>
-                <input type="text" id="contact-search-input" placeholder="بحث بالاسم أو الرقم..." class="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-[11px] focus:outline-none focus:border-[#570575]">
+                <input type="text" id="contact-search-input" onkeyup="filterContacts()" placeholder="بحث بالاسم أو الرقم..." class="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-[11px] focus:outline-none focus:border-[#570575]">
               </div>
             </div>
 
-            <!-- قائمة الاتصالات -->
+            <!-- قائمة الاتصالات (تحديث تلقائي عبر HTMX للنقر الفوري بدون مغادرة الصفحة) -->
             <div class="divide-y divide-slate-100 flex-1 overflow-y-auto" id="contacts-list">
               {% if contacts %}
                 {% for contact in contacts %}
-                  <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="contact-item {{ 'active' if current_contact and current_contact.id == contact.id else '' }} p-3.5 flex items-start gap-3 block text-right">
+                  <div onclick="selectContact('{{ contact.id }}')" 
+                       class="contact-item {{ 'active' if current_contact and current_contact.id == contact.id else '' }} p-3.5 flex items-start gap-3 block text-right w-full"
+                       data-name="{{ contact.name | lower }}"
+                       data-phone="{{ contact.phone }}">
                     <div class="relative shrink-0">
                       <div class="w-10 h-10 rounded-full bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-sm border border-purple-200">
                         {{ contact.name[0] if contact.name else '?' }}
@@ -131,7 +134,7 @@
                         {% endif %}
                       </div>
                     </div>
-                  </a>
+                  </div>
                 {% endfor %}
               {% else %}
                 <div class="p-6 text-center text-slate-400 text-xs">
@@ -141,8 +144,14 @@
             </div>
           </div>
 
-          <!-- 2. منطقة الدردشة (منتصف) - يتم تحديث رسائل المحادثة المفتوحة فقط ديناميكياً كل 3 ثوانٍ -->
-          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
+          <!-- 2. منطقة الدردشة (منتصف) - يتم تحديثها ديناميكياً عند اختيار العميل أو وصول رسائل -->
+          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container"
+               {% if current_contact %}
+               hx-get="{{ url_for('whatsapp_service.partials_chat_window', contact_id=current_contact.id) }}"
+               hx-trigger="every 3s"
+               hx-swap="outerHTML"
+               {% endif %}>
+            
             {% if current_contact %}
               <!-- رأس المحادثة -->
               <div class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
@@ -168,12 +177,8 @@
                 </div>
               </div>
 
-              <!-- صندوق الرسائل (يتم جلب الرسائل ديناميكياً عبر المسار المخصص دون فتح دردشات أخرى) -->
-              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" 
-                   id="message-box-scroll"
-                   hx-get="{{ url_for('whatsapp_service.partials_messages', contact_id=current_contact.id) }}"
-                   hx-trigger="every 3s"
-                   hx-swap="innerHTML">
+              <!-- صندوق الرسائل -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" id="message-box-scroll">
                 {% if messages %}
                   {% for msg in messages %}
                     {% if msg.direction == 'outbound' %}
@@ -207,10 +212,11 @@
               </div>
 
               <!-- شريط الكتابة والإرسال -->
-              <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
+              <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" hx-target="#chat-area-container" hx-swap="outerHTML" class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
+                <input type="hidden" name="contact_id" value="{{ current_contact.id }}">
                 <input type="hidden" name="phone" value="{{ current_contact.phone }}">
                 <div class="flex items-center gap-2">
-                  <input type="text" name="message" placeholder="اكتب رسالتك للعميل هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
+                  <input type="text" name="message" id="chat-message-input" placeholder="اكتب رسالتك للعميل هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
                   <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs flex items-center gap-2">
                     <span>إرسال</span>
                     <i class="fa-solid fa-paper-plane text-xs"></i>
@@ -226,9 +232,8 @@
           </div>
 
           <!-- 3. تفاصيل العميل (يسار) -->
-          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm p-6 flex flex-col gap-6">
+          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm p-6 flex flex-col gap-6" id="client-details-panel">
             {% if current_contact %}
-              <!-- كارت الملف الشخصي -->
               <div class="text-center pb-6 border-b border-slate-100">
                 <div class="relative w-20 h-20 mx-auto mb-3">
                   <div class="w-full h-full rounded-2xl bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-2xl border-2 border-purple-100 shadow-inner">
@@ -239,8 +244,6 @@
                 <h3 class="text-sm font-bold text-slate-800 mb-1">{{ current_contact.name }}</h3>
                 <p class="text-xs font-mono text-slate-600 bg-slate-50 py-1 rounded-lg mt-2" dir="ltr">{{ current_contact.phone }}</p>
               </div>
-
-              <!-- حالة الاتصال -->
               <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
                 <span class="text-xs font-bold text-emerald-800">حالة الاتصال</span>
                 <span class="inline-flex items-center text-xs font-bold text-emerald-600">
@@ -248,8 +251,6 @@
                   {{ 'متصل الآن' if current_contact.is_online else 'غير متصل' }}
                 </span>
               </div>
-
-              <!-- إحصائيات المراسلة -->
               <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
                 <span class="text-[11px] font-bold text-slate-500 block">إحصائيات المراسلة (PROPERTIES)</span>
                 <div class="flex items-center justify-between text-xs">
@@ -265,7 +266,6 @@
           </div>
 
         </div>
-
       {% elif active_tab == 'logs' %}
         <!-- تبويب سجل الرسائل (Logs) -->
         <div class="p-6 h-full overflow-y-auto space-y-4">
@@ -310,7 +310,6 @@
             </table>
           </div>
         </div>
-
       {% elif active_tab == 'settings' %}
         <!-- تبويب الإعدادات -->
         <div class="p-8 h-full overflow-y-auto max-w-3xl mx-auto">
@@ -319,7 +318,6 @@
               <h2 class="text-sm font-bold text-slate-800 mb-1">إعدادات ربط Meta WhatsApp API</h2>
               <p class="text-xs text-slate-500">قم بتحديث بيانات المصادقة ومعرف الهاتف الخاص بمنصة محجوب أونلاين.</p>
             </div>
-            
             <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between">
               <div>
                 <span class="text-xs font-bold text-slate-700 block">حالة الاتصال العامة</span>
@@ -329,7 +327,6 @@
                 {{ 'متصل وجاهز' if is_connected else 'يحتاج إعداد المفاتيح' }}
               </span>
             </div>
-
             <form action="{{ url_for('whatsapp_service.settings_dashboard') }}" method="POST" class="space-y-4">
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
@@ -380,7 +377,7 @@
   </div>
 
   <script>
-    // التمرير التلقائي لصندوق الرسائل إلى الأسفل عند فتح المحادثة أو تحديثها
+    // التمرير التلقائي لصندوق الرسائل إلى الأسفل عند الفتح أو التحديث
     function scrollToBottom() {
       const msgBox = document.getElementById('message-box-scroll');
       if (msgBox) {
@@ -390,12 +387,41 @@
 
     window.addEventListener('DOMContentLoaded', scrollToBottom);
     
-    // إعادة التمرير بعد أي تحديث ديناميكي لـ HTMX في صندوق الرسائل
     document.body.addEventListener('htmx:afterSwap', function(evt) {
-      if(evt.detail.target.id === 'message-box-scroll') {
+      if(evt.detail.target.id === 'message-box-scroll' || evt.detail.target.id === 'chat-area-container') {
         scrollToBottom();
       }
     });
+
+    // 1. البحث اللحظي الفوري في قائمة جهات الاتصال (بدون خوادم وبدون تحديث)
+    function filterContacts() {
+      const input = document.getElementById('contact-search-input');
+      const filter = input.value.toLowerCase().trim();
+      const contactsList = document.getElementById('contacts-list');
+      const items = contactsList.getElementsByClassName('contact-item');
+
+      for (let i = 0; i < items.length; i++) {
+        const name = items[i].getAttribute('data-name') || '';
+        const phone = items[i].getAttribute('data-phone') || '';
+        if (name.includes(filter) || phone.includes(filter)) {
+          items[i].style.display = "";
+        } else {
+          items[i].style.display = "none";
+        }
+      }
+    }
+
+    // 2. النقر الفوري على جهة الاتصال لجلب الشات وتحديث اليمين واليسار بدون مغادرة الصفحة
+    function selectContact(contactId) {
+      // إزالة التنشيط عن الجميع وإضافة النشيط للعنصر الحالي
+      const items = document.querySelectorAll('.contact-item');
+      items.forEach(el => el.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      // طلب منطقة الدردشة وتفاصيل العميل عبر HTMX لجلبها ديناميكياً في مكانها
+      htmx.ajax('GET', '{{ url_for("whatsapp_service.partials_chat_window") }}?contact_id=' + contactId, {target: '#chat-area-container', swap: 'outerHTML'});
+      htmx.ajax('GET', '{{ url_for("whatsapp_service.partials_client_details") }}?contact_id=' + contactId, {target: '#client-details-panel', swap: 'outerHTML'});
+    }
   </script>
 </body>
 </html>
