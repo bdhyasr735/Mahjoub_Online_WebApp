@@ -45,6 +45,11 @@ def verify_webhook():
 
 def handle_webhook():
     data = request.get_json(silent=True) or {}
+    
+    # إذا كانت البيانات فارغة تماماً، نُرجع 200 لتجنب إعادة إرسال الطلب من ميتا
+    if not data:
+        return jsonify({"status": "ignored", "reason": "empty_payload"}), 200
+
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
 
     try:
@@ -52,21 +57,34 @@ def handle_webhook():
         for entry in entries:
             for change in entry.get('changes', []):
                 value = change.get('value', {})
+                
+                # معالجة الرسائل الواردة
                 if 'messages' in value:
                     for msg in value['messages']:
                         sender = msg.get('from')
+                        if not sender:
+                            continue
+                            
                         msg_type = msg.get('type', 'text')
                         wamid = msg.get('id')
+                        
                         if msg_type == 'text':
                             text = msg.get('text', {}).get('body', '')
                         else:
                             text = f'[{msg_type} ملف]'
+                            
                         contacts_list = value.get('contacts', [])
                         customer_name = f"عميل ({sender})"
                         if contacts_list:
                             profile_name = contacts_list[0].get('profile', {}).get('name')
                             if profile_name:
                                 customer_name = profile_name
+
+                        # التحقق من عدم تكرار حفظ نفس الرسالة
+                        if wamid:
+                            existing_msg = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+                            if existing_msg:
+                                continue
 
                         # حفظ الرسالة الواردة
                         log_entry = WhatsAppMessageLog(
@@ -96,8 +114,10 @@ def handle_webhook():
                                 unread_count=1
                             )
                             db.session.add(new_contact)
+                            
                         db.session.commit()
 
+                # معالجة تحديثات حالة الرسائل (تم التسليم، تمت القراءة)
                 elif 'statuses' in value:
                     for st in value['statuses']:
                         wamid = st.get('id')
@@ -107,8 +127,11 @@ def handle_webhook():
                             if msg_log:
                                 msg_log.status = status
                                 db.session.commit()
+                                
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Webhook error: {e}")
+        logger.error(f"Webhook processing error: {e}")
+        # نرجع 200 حتى في حالة الخطأ الداخلي لمنع تكرار طلبات الإخفاق من خوادم ميتا
+        return jsonify({"status": "error", "message": str(e)}), 200
 
     return jsonify({"status": "EVENT_RECEIVED"}), 200
