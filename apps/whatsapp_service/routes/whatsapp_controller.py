@@ -131,7 +131,7 @@ def handle_webhook():
 
 
 # =============================================================================
-# 2. DASHBOARD (الصفحة الرئيسية)
+# 2. DASHBOARD (الصفحة الرئيسية) - تم إصلاحها لتعمل مع النقر
 # =============================================================================
 
 @whatsapp_bp.route('/dashboard')
@@ -149,21 +149,35 @@ def chat_dashboard():
         else:
             contact.is_online = False
 
-    selected_contact = contacts[0] if contacts else None
+    # ===== الإصلاح الجوهري هنا =====
+    # قراءة رقم العميل المحدد من الرابط (مثل ?contact_id=1)
+    contact_id = request.args.get('contact_id', type=int)
+    
+    current_contact = None
+    
+    # إذا تم تمرير معرّف من الرابط، نبحث عنه
+    if contact_id:
+        current_contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
+    
+    # إذا لم يتم العثور عليه أو لم يتم تمرير معرّف، نختار أول عميل (سلوك افتراضي)
+    if not current_contact and contacts:
+        current_contact = contacts[0]
+    
     messages = []
-    if selected_contact:
+    if current_contact:
         messages = db.session.query(WhatsAppMessageLog).filter(
             or_(
-                WhatsAppMessageLog.sender_number == selected_contact.phone,
-                WhatsAppMessageLog.recipient_number == selected_contact.phone
+                WhatsAppMessageLog.sender_number == current_contact.phone,
+                WhatsAppMessageLog.recipient_number == current_contact.phone
             )
         ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
 
+    # تم تغيير selected_contact إلى current_contact ليتوافق مع القالب
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='chat',
         contacts=contacts,
-        selected_contact=selected_contact,
+        current_contact=current_contact,
         messages=messages
     )
 
@@ -179,7 +193,6 @@ def get_chat_area(contact_id):
     if not contact:
         return "العميل غير موجود", 404
 
-    # تحديث حالة القراءة
     if contact.unread_count > 0:
         contact.unread_count = 0
         db.session.commit()
@@ -226,17 +239,14 @@ def send_message_htmx():
     if not phone or not message:
         return "بيانات ناقصة", 400
 
-    # إرسال عبر ميتا
     success, response_data = send_text_message(phone, message)
 
-    # تحديث آخر رسالة في جهة الاتصال
     contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
     if contact:
         contact.last_message = message
         contact.last_timestamp = datetime.utcnow()
         db.session.commit()
 
-    # إعادة تحميل القائمة الجانبية
     return refresh_contacts()
 
 
