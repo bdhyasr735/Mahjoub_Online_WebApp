@@ -53,26 +53,75 @@
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); 
             z-index: 1050; 
             overflow-y: auto; 
-            transition: 0.3s; 
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
             box-shadow: -5px 0 25px rgba(0,0,0,0.15); 
             border-left: 1px solid rgba(212, 175, 55, 0.25);
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
-        .logo-container { padding: 25px 15px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); background: rgba(0,0,0,0.2); }
-        .sidebar-logo { width: 65px; height: 65px; object-fit: contain; filter: brightness(0) invert(1); }
-        .brand-text { color: var(--mahjoub-gold); font-size: 0.85rem; margin-top: 8px; display: block; font-weight: bold; }
+        .logo-container { 
+            padding: 25px 15px; 
+            text-align: center; 
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2); 
+            background: rgba(0,0,0,0.2); 
+        }
+        .sidebar-logo { 
+            width: 65px; 
+            height: 65px; 
+            object-fit: contain; 
+            filter: brightness(0) invert(1); 
+            transition: transform 0.3s ease;
+        }
+        .sidebar-logo:hover {
+            transform: scale(1.05);
+        }
+        .brand-text { 
+            color: var(--mahjoub-gold); 
+            font-size: 0.85rem; 
+            margin-top: 8px; 
+            display: block; 
+            font-weight: bold; 
+            letter-spacing: 0.5px;
+        }
         
         .nav-menu { padding: 15px 12px; }
-        .nav-link-custom { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; border-radius: 12px; transition: 0.3s; cursor: pointer; margin-bottom: 4px; }
-        .nav-link-custom:hover, .nav-link-custom.active { background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9)); color: var(--mahjoub-gold); border: 1px solid rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .nav-link-custom { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            padding: 12px 15px; 
+            color: #cbd5e1; 
+            text-decoration: none; 
+            border-radius: 12px; 
+            transition: all 0.3s ease; 
+            cursor: pointer; 
+            margin-bottom: 6px; 
+            font-weight: 500;
+        }
+        .nav-link-custom:hover, .nav-link-custom.active { 
+            background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9)); 
+            color: var(--mahjoub-gold); 
+            border: 1px solid rgba(212, 175, 55, 0.4); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+        }
         .nav-link-custom i { width: 20px; text-align: center; }
         
         .dropdown-content { display: none; list-style: none; padding-right: 30px; margin: 5px 0; }
-        .dropdown-content a { display: block; padding: 8px 12px; color: #94a3b8; text-decoration: none; border-radius: 8px; font-size: 0.9rem; transition: 0.2s; }
-        .dropdown-content a:hover, .dropdown-content a.active-link { color: var(--mahjoub-gold); background: rgba(212, 175, 55, 0.1); }
-        .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: 0.3s; }
+        .dropdown-content a { 
+            display: block; 
+            padding: 8px 12px; 
+            color: #94a3b8; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-size: 0.9rem; 
+            transition: 0.2s; 
+        }
+        .dropdown-content a:hover, .dropdown-content a.active-link { 
+            color: var(--mahjoub-gold); 
+            background: rgba(212, 175, 55, 0.1); 
+        }
+        .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: transform 0.3s ease; }
         .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
         
         /* Main Layout */
@@ -81,7 +130,7 @@
             margin-left: 0;
             min-height: 100vh; 
             background: var(--dashboard-bg) !important;
-            transition: 0.3s; 
+            transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
             overflow-y: auto;
         }
         .top-navbar { 
@@ -105,6 +154,8 @@
             font-weight: 800; 
             border: 1px solid rgba(212, 175, 55, 0.5); 
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
         }
         
         /* Unified Table Style المريحة للعين */
@@ -132,6 +183,7 @@
         }
         .table-mahjoub thead th {
             color: var(--mahjoub-gold) !important;
+            border: none !important;
         }
         .table-mahjoub th, .table-mahjoub td { 
             padding: 16px 18px !important; 
@@ -142,11 +194,29 @@
         }
         .table-mahjoub tbody tr {
             background-color: transparent !important;
+            transition: background-color 0.2s ease;
         }
         .table-mahjoub tbody tr:hover {
             background-color: rgba(26, 11, 46, 0.03) !important;
         }
         
+        /* Mobile Overlay Backdrop */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1045;
+            backdrop-filter: blur(2px);
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-backdrop.active {
+            display: block;
+        }
+
         @media (max-width: 992px) {
             .sidebar { right: -280px; }
             .sidebar.active { right: 0; }
@@ -163,6 +233,9 @@
 </head>
 <body>
     
+    <!-- خلفية شفافة عند فتح القائمة الجانبية في الموبايل -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
@@ -178,7 +251,7 @@
             {% if registered_modules %}
                 {% for mod_name, module in registered_modules.items() %}
                     <div class="nav-item mt-2">
-                        <div class="nav-link-custom" onclick="toggleSub(this)" style="justify-content: space-between;">
+                        <div class="nav-link-custom" onclick="toggleSub(this)">
                             <div>
                                 <i class="{{ module.icon|default('fas fa-folder') }}"></i>
                                 <span>{{ module.display_name }}</span>
@@ -245,17 +318,30 @@
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if (!drop) return;
-            drop.style.display = (drop.style.display === "block") ? "none" : "block";
+            
+            // تبديل العرض بسلاسة
+            let isVisible = drop.style.display === "block";
+            drop.style.display = isVisible ? "none" : "block";
+            
             let chevron = el.querySelector('.fa-chevron-down');
-            if (chevron) chevron.classList.toggle('rotated');
+            if (chevron) chevron.classList.toggle('rotated', !isVisible);
         }
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.classList.toggle('active');
+            backdrop.classList.toggle('active');
+        }
         
+        // إغلاق القائمة عند النقر خارجها في الشاشات الصغيرة تلقائياً
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.btn-outline-dark');
+            const backdrop = document.getElementById('sidebarBackdrop');
             if (window.innerWidth < 992 && sidebar && toggleBtn && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
                 sidebar.classList.remove('active');
+                backdrop.classList.remove('active');
             }
         });
     </script>
