@@ -1,8 +1,14 @@
 # coding: utf-8
 # 📂 apps/whatsapp_service/routes/__init__.py
 
-"""
-Routes package initializer for WhatsApp Service
-"""
+import os
+from flask import Blueprint
 
-from .whatsapp_controller import whatsapp_bp
+basedir = os.path.abspath(os.path.dirname(__file__))
+template_dir = os.path.abspath(os.path.join(basedir, '../../templates'))
+
+# تعريف الـ Blueprint الرئيسي المشترك لكل وحدات الواتساب
+whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder=template_dir)
+
+# استيراد الملفات الفرعية لربط المسارات (Routes) بالـ Blueprint
+from . import webhook, dashboard, actions, api
