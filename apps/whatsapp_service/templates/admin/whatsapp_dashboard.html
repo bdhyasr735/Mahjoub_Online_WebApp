@@ -211,8 +211,12 @@
                 {% endif %}
               </div>
 
-              <!-- شريط الكتابة والإرسال -->
-              <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" hx-target="#chat-area-container" hx-swap="outerHTML" class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
+              <!-- شريط الكتابة والإرسال (المعدل) -->
+              <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
+                    hx-target="#message-box-scroll" 
+                    hx-swap="beforeend" 
+                    hx-on::after-request="if(event.detail.successful) { this.reset(); scrollToBottom(); }" 
+                    class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
                 <input type="hidden" name="contact_id" value="{{ current_contact.id }}">
                 <input type="hidden" name="phone" value="{{ current_contact.phone }}">
                 <div class="flex items-center gap-2">
