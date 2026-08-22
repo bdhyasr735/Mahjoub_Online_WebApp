@@ -1,0 +1,19 @@
+<!-- Chat View Jinja2 Component (دمج مع مكونات _sidebar_contacts + _chat_area + _client_details) -->
+<div class="flex-1 flex overflow-hidden w-full h-full">
+  
+  <!-- 1. قائمة المحادثات (يمين) -->
+  <div class="w-[340px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm" id="sidebar-contacts-container">
+    {% include 'admin/components/_sidebar_contacts.html' %}
+  </div>
+
+  <!-- 2. منطقة الدردشة (منتصف) -->
+  <div class="flex-1 h-full flex flex-col bg-slate-50 overflow-hidden relative" id="chat-area-container">
+    {% include 'admin/components/_chat_area.html' %}
+  </div>
+
+  <!-- 3. تفاصيل العميل (يسار) -->
+  <div class="w-[320px] shrink-0 bg-white h-full overflow-y-auto shadow-sm" id="client-details-container">
+    {% include 'admin/components/_client_details.html' %}
+  </div>
+
+</div>
