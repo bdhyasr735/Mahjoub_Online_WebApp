@@ -131,7 +131,7 @@ def handle_webhook():
 
 
 # =============================================================================
-# 2. DASHBOARD (الصفحة الرئيسية) - تم إصلاحها لتعمل مع النقر
+# 2. DASHBOARD (الصفحة الرئيسية)
 # =============================================================================
 
 @whatsapp_bp.route('/dashboard')
@@ -149,17 +149,14 @@ def chat_dashboard():
         else:
             contact.is_online = False
 
-    # ===== الإصلاح الجوهري هنا =====
     # قراءة رقم العميل المحدد من الرابط (مثل ?contact_id=1)
     contact_id = request.args.get('contact_id', type=int)
     
     current_contact = None
     
-    # إذا تم تمرير معرّف من الرابط، نبحث عنه
     if contact_id:
         current_contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
     
-    # إذا لم يتم العثور عليه أو لم يتم تمرير معرّف، نختار أول عميل (سلوك افتراضي)
     if not current_contact and contacts:
         current_contact = contacts[0]
     
@@ -172,7 +169,6 @@ def chat_dashboard():
             )
         ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
 
-    # تم تغيير selected_contact إلى current_contact ليتوافق مع القالب
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='chat',
@@ -307,8 +303,29 @@ def send_message_api():
 
 
 # =============================================================================
-# 5. OTHER TABS (Logs & Settings)
+# 5. BULK BROADCAST & OTHER TABS
 # =============================================================================
+
+@whatsapp_bp.route('/send_bulk_broadcast', methods=['POST'])
+def send_bulk_broadcast():
+    """إرسال حملة رسائل جماعية للعملاء"""
+    target = request.form.get('target_audience', 'all')
+    template = request.form.get('template_name', '')
+    content = request.form.get('message_content', '')
+    
+    contacts = []
+    if target == 'all':
+        contacts = db.session.query(WhatsAppCustomerContact).all()
+    
+    sent_count = 0
+    for contact in contacts:
+        if contact.phone and content:
+            success, _ = send_text_message(contact.phone, content)
+            if success:
+                sent_count += 1
+                
+    return jsonify({"success": True, "sent_count": sent_count, "target": target})
+
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
