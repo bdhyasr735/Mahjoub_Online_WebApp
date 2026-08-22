@@ -1,3 +1,4 @@
+<!-- whatsapp_dashboard.html - الصفحة الرئيسية مع تبويبات -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -20,7 +21,7 @@
 </head>
 <body class="bg-slate-100 h-screen overflow-hidden flex flex-col" dir="rtl">
 
-  <!-- الشريط العلوي (Header) -->
+  <!-- Header (كما هو) -->
   <header class="bg-[#1a0b2e] border-b border-purple-900/40 h-16 px-6 flex items-center justify-between shrink-0 z-30 shadow-md">
     <div class="flex items-center gap-3">
       <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="محجوب أونلاين" class="h-9 w-auto object-contain bg-white/10 rounded-lg p-1 border border-[#D4AF37]/30">
@@ -36,91 +37,12 @@
     </div>
   </header>
 
-  <!-- الحاوية الرئيسية -->
+  <!-- الحاوية الرئيسية مع التبويبات -->
   <div class="flex-1 flex flex-row overflow-hidden">
     
-    <!-- المحتوى الرئيسي (الشات والأقسام الثلاثة) -->
-    <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
-      {% if active_tab == 'chat' or not active_tab %}
-        <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
-          
-          <!-- 1. قائمة المحادثات (يمين) -->
-          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm" id="sidebar-contacts-container">
-            {% include 'admin/components/_sidebar_contacts.html' %}
-          </div>
-
-          <!-- 2. منطقة الدردشة (منتصف) -->
-          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
-            {% include 'admin/components/_chat_area.html' %}
-          </div>
-
-          <!-- 3. تفاصيل العميل (يسار) -->
-          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm" id="client-details-container">
-            {% include 'admin/components/_client_details.html' %}
-          </div>
-
-        </div>
-      {% elif active_tab == 'logs' %}
-        <div class="p-6">
-          <h2 class="text-xl font-bold mb-4">سجل الرسائل</h2>
-          <table class="w-full bg-white rounded-lg shadow">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="p-3 text-right">#</th>
-                <th class="p-3 text-right">الاتجاه</th>
-                <th class="p-3 text-right">المرسل</th>
-                <th class="p-3 text-right">المستقبل</th>
-                <th class="p-3 text-right">المحتوى</th>
-                <th class="p-3 text-right">الحالة</th>
-                <th class="p-3 text-right">التوقيت</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for log in logs %}
-              <tr class="border-b">
-                <td class="p-3">{{ log.id }}</td>
-                <td class="p-3">{{ log.direction }}</td>
-                <td class="p-3">{{ log.sender_number }}</td>
-                <td class="p-3">{{ log.recipient_number }}</td>
-                <td class="p-3">{{ log.content|truncate(30) }}</td>
-                <td class="p-3">{{ log.status }}</td>
-                <td class="p-3">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% elif active_tab == 'settings' %}
-        <div class="p-6">
-          <h2 class="text-xl font-bold mb-4">إعدادات واتساب</h2>
-          <form method="POST" class="bg-white p-6 rounded-lg shadow">
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">رقم الهاتف المرتبط</label>
-              <input type="text" name="phone_number_id" value="{{ settings.phone_number_id }}" class="w-full p-2 border rounded">
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">معرف الأعمال</label>
-              <input type="text" name="whatsapp_business_id" value="{{ settings.whatsapp_business_id }}" class="w-full p-2 border rounded">
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">رمز الوصول</label>
-              <input type="password" name="access_token" value="{{ settings.access_token }}" class="w-full p-2 border rounded">
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">رمز التحقق</label>
-              <input type="text" name="verify_token" value="{{ settings.verify_token }}" class="w-full p-2 border rounded">
-            </div>
-            <button type="submit" class="bg-[#570575] text-white px-6 py-2 rounded-lg hover:bg-[#632C8F] transition">حفظ الإعدادات</button>
-            {% if saved_success %}
-            <div class="mt-4 p-3 bg-green-100 text-green-700 rounded">تم الحفظ بنجاح</div>
-            {% endif %}
-          </form>
-        </div>
-      {% endif %}
-    </main>
-
-    <!-- القائمة الجانبية للأيقونات (أقصى اليسار) -->
+    <!-- الشريط الجانبي للأيقونات (أقصى اليسار) -->
     <aside class="w-20 bg-[#1a0b2e] flex flex-col items-center justify-between py-6 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
+      <!-- ... (كما هو في النسخة السابقة) ... -->
       <div class="flex flex-col items-center gap-6 w-full">
         <div class="w-12 h-12 rounded-2xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center p-1 shadow-md">
           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="Logo" class="w-full h-full object-contain rounded-xl">
@@ -142,9 +64,25 @@
         </a>
       </div>
     </aside>
+
+    <!-- المحتوى الرئيسي (التبويبات) -->
+    <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
+      {% if active_tab == 'chat' or not active_tab %}
+        <!-- تبويب المحادثات -->
+        {% include 'admin/chat_view.html' %}
+      {% elif active_tab == 'logs' %}
+        <!-- تبويب سجل الرسائل -->
+        {% include 'admin/logs_view.html' %}
+      {% elif active_tab == 'settings' %}
+        <!-- تبويب الإعدادات -->
+        {% include 'admin/settings_view.html' %}
+      {% endif %}
+    </main>
   </div>
 
+  <!-- JavaScript لتفاعل HTMX -->
   <script>
+    // التعامل مع تحديثات HTMX
     document.addEventListener('htmx:afterSwap', function(evt) {
       if (evt.detail.target.id === 'sidebar-contacts-container') {
         const activeItem = document.querySelector('.contact-item.active');
@@ -152,12 +90,14 @@
           const contactId = activeItem.dataset.contactId;
           if (contactId) {
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
+            // إذا كان هناك عمود تفاصيل، قم بتحديثه أيضاً
+            // htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
           }
         }
       }
     });
 
+    // تحميل أول محادثة تلقائياً عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', function() {
       const activeItem = document.querySelector('.contact-item.active');
       if (!activeItem) {
@@ -167,11 +107,11 @@
           const contactId = firstItem.dataset.contactId;
           if (contactId) {
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
           }
         }
       }
     });
   </script>
+
 </body>
 </html>
