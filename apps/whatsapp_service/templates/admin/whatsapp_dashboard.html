@@ -57,14 +57,6 @@
         <i class="fa-solid fa-clock-rotate-left text-sm"></i>
         <span>سجل الرسائل (Logs)</span>
       </a>
-      <a href="#" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
-        <i class="fa-solid fa-network-wired text-sm"></i>
-        <span>محاكي الويب هوك</span>
-      </a>
-      <a href="#" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
-        <i class="fa-solid fa-code text-sm"></i>
-        <span>مستكشف الملفات والأكواد</span>
-      </a>
       <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 {{ 'bg-white text-[#570575] shadow-xs' if active_tab == 'settings' else 'text-slate-600 hover:text-slate-900' }}">
         <i class="fa-solid fa-gear text-sm"></i>
         <span>الإعدادات</span>
@@ -77,7 +69,7 @@
         <span class="block text-[10px] text-slate-400">رقم الهاتف المرتبط</span>
         <span class="text-xs font-bold font-mono text-slate-700" dir="ltr">+966 50 000 0000</span>
       </div>
-      <button class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+      <button onclick="window.location.reload();" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition" title="تحديث البيانات">
         <i class="fa-solid fa-rotate"></i>
       </button>
     </div>
@@ -88,6 +80,7 @@
     
     <!-- محتوى التبويبات -->
     <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
+      
       {% if active_tab == 'chat' or not active_tab %}
         <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
           
@@ -96,12 +89,8 @@
             <div class="p-4 border-b border-slate-100 flex items-center justify-between">
               <h2 class="text-xs font-bold text-slate-700 flex items-center gap-2">
                 <span>المحادثات النشطة</span>
-                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] flex items-center justify-center font-mono">5</span>
+                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] flex items-center justify-center font-mono">{{ contacts|length }}</span>
               </h2>
-              <button class="bg-[#570575] text-white text-[11px] font-bold px-3 py-1.5 rounded-xl hover:bg-[#632C8F] transition flex items-center gap-1 shadow-xs">
-                <i class="fa-solid fa-plus text-[10px]"></i>
-                <span>محادثة جديدة</span>
-              </button>
             </div>
             
             <!-- شريط البحث السريع -->
@@ -110,298 +99,248 @@
                 <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                   <i class="fa-solid fa-search text-xs"></i>
                 </span>
-                <input type="text" placeholder="بحث بالاسم، الرقم، أو الطلب..." class="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-[11px] focus:outline-none focus:border-[#570575]">
+                <input type="text" id="contact-search-input" placeholder="بحث بالاسم أو الرقم..." class="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-[11px] focus:outline-none focus:border-[#570575]">
               </div>
             </div>
 
             <!-- قائمة الاتصالات -->
-            <div class="divide-y divide-slate-100 flex-1 overflow-y-auto">
-              <!-- عينة لعنصر محادثة نشطة مطابق للصورة -->
-              <div class="contact-item active p-3.5 flex items-start gap-3">
-                <div class="relative shrink-0">
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-purple-200">
-                  <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
+            <div class="divide-y divide-slate-100 flex-1 overflow-y-auto" id="contacts-list">
+              {% if contacts %}
+                {% for contact in contacts %}
+                  <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="contact-item {{ 'active' if current_contact and current_contact.id == contact.id else '' }} p-3.5 flex items-start gap-3 block text-right">
+                    <div class="relative shrink-0">
+                      <div class="w-10 h-10 rounded-full bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-sm border border-purple-200">
+                        {{ contact.name[0] if contact.name else '?' }}
+                      </div>
+                      <span class="absolute bottom-0 right-0 w-2.5 h-2.5 {{ 'bg-emerald-500' if contact.is_online else 'bg-slate-300' }} rounded-full border-2 border-white"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between mb-0.5">
+                        <h3 class="text-xs font-bold text-slate-800 truncate">{{ contact.name }}</h3>
+                        <span class="text-[10px] text-slate-400">{{ contact.last_timestamp.strftime('%I:%M %p') if contact.last_timestamp else '' }}</span>
+                      </div>
+                      <p class="text-[10px] text-slate-400 truncate mb-1" dir="ltr">{{ contact.phone }}</p>
+                      <p class="text-[11px] text-slate-600 truncate">{{ contact.last_message or 'لا توجد رسائل بعد' }}</p>
+                      <div class="mt-1.5 flex items-center justify-between">
+                        {% if contact.unread_count and contact.unread_count > 0 %}
+                          <span class="w-4 h-4 bg-[#570575] text-white rounded-full text-[9px] flex items-center justify-center font-bold">{{ contact.unread_count }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </a>
+                {% endfor %}
+              {% else %}
+                <div class="p-6 text-center text-slate-400 text-xs">
+                  لا توجد محادثات نشطة حالياً.
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between mb-0.5">
-                    <h3 class="text-xs font-bold text-slate-800 truncate">علي أحمد المنصوري</h3>
-                    <span class="text-[10px] text-slate-400">٠٦:٠٢ م</span>
-                  </div>
-                  <p class="text-[10px] text-slate-400 truncate mb-1">واتساب: Ali Al-Mansouri (أبو أحمد)</p>
-                  <p class="text-[11px] text-slate-600 truncate">ممتاز جداً، شكراً لكم على سرعة التجاوب 🌹</p>
-                  <div class="mt-1.5 flex items-center justify-between">
-                    <span class="text-[9px] font-mono bg-purple-50 text-[#570575] px-1.5 py-0.5 rounded border border-purple-100">ORD-8821</span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- محادثات إضافية تجريبية لمطابقة الشكل -->
-              <div class="contact-item p-3.5 flex items-start gap-3">
-                <div class="relative shrink-0">
-                  <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-slate-200">
-                  <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-slate-300 rounded-full border-2 border-white"></span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between mb-0.5">
-                    <h3 class="text-xs font-bold text-slate-800 truncate">فاطمة الزهراء الشريف</h3>
-                    <span class="text-[10px] text-slate-400">٠٧:٠٨ م</span>
-                  </div>
-                  <p class="text-[10px] text-slate-400 truncate mb-1">واتساب: Fatima Al-Shareef</p>
-                  <p class="text-[11px] text-slate-600 truncate">صورة المنتجات بعد الاستلام</p>
-                  <div class="mt-1.5 flex items-center justify-between">
-                    <span class="text-[9px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">ORD-8840</span>
-                    <span class="w-4 h-4 bg-[#570575] text-white rounded-full text-[9px] flex items-center justify-center font-bold">1</span>
-                  </div>
-                </div>
-              </div>
+              {% endif %}
             </div>
           </div>
 
           <!-- 2. منطقة الدردشة (منتصف) -->
           <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
-            <!-- رأس المحادثة -->
-            <div class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
-              <div class="flex items-center gap-3">
-                <div class="relative">
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" class="w-9 h-9 rounded-full object-cover border border-purple-200">
-                  <span class="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white"></span>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h2 class="text-xs font-bold text-slate-800">علي أحمد المنصوري</h2>
-                    <span class="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">ORD-8821</span>
-                    <i class="fa-solid fa-pen text-[10px] text-slate-400 cursor-pointer"></i>
+            {% if current_contact %}
+              <!-- رأس المحادثة -->
+              <div class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                  <div class="relative">
+                    <div class="w-9 h-9 rounded-full bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-xs border border-purple-200">
+                      {{ current_contact.name[0] if current_contact.name else '?' }}
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-2 h-2 {{ 'bg-emerald-500' if current_contact.is_online else 'bg-slate-300' }} rounded-full border border-white"></span>
                   </div>
-                  <span class="text-[10px] text-emerald-600 font-medium">متصل الآن</span>
-                  <span class="text-[10px] text-slate-400 mr-2">• بروفايل: Ali Al-Mansouri (أبو أحمد)</span>
-                  <span class="text-[10px] text-slate-400 font-mono mr-1">+966501234567</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <button class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-amber-100 transition">
-                  <i class="fa-solid fa-bolt text-amber-600 text-xs"></i>
-                  <span>قوالب الرد السريع</span>
-                </button>
-                <button class="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-rose-100 transition">
-                  <i class="fa-solid fa-ban text-xs"></i>
-                  <span>حظر</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- صندوق الرسائل -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30">
-              <!-- رسالة تحتوي على صورة مجهزة -->
-              <div class="flex flex-col items-end">
-                <div class="max-w-[65%] bg-white rounded-2xl p-2 shadow-xs border border-slate-200">
-                  <div class="rounded-xl overflow-hidden mb-2 border border-slate-100">
-                    <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=500&h=300&fit=crop" alt="Product" class="w-full h-48 object-cover">
-                  </div>
-                  <p class="text-xs text-slate-800 px-2 pb-1 font-medium">صورة شحنة كرتون التمور الفاخرة المجهزة لطلبك #ORD-8821</p>
-                  <div class="flex items-center justify-end gap-1 px-2 pb-1 text-[10px] text-slate-400">
-                    <span>١٠:٥٠ م</span>
-                    <i class="fa-solid fa-check-double text-blue-500 text-[9px]"></i>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h2 class="text-xs font-bold text-slate-800">{{ current_contact.name }}</h2>
+                      <span class="text-[10px] font-mono text-slate-400" dir="ltr">{{ current_contact.phone }}</span>
+                    </div>
+                    <span class="text-[10px] {{ 'text-emerald-600' if current_contact.is_online else 'text-slate-400' }} font-medium">
+                      {{ 'متصل الآن' if current_contact.is_online else 'غير متصل' }}
+                    </span>
                   </div>
                 </div>
-              </div>
-
-              <!-- رسالة نصية واردة -->
-              <div class="flex flex-col items-start">
-                <div class="max-w-[65%] bg-white rounded-2xl px-4 py-3 shadow-xs border border-slate-200 text-slate-800">
-                  <p class="text-xs leading-relaxed">ممتاز جداً، شكراً لكم على سرعة التجاوب 🌹</p>
-                  <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
-                    <span>٠٦:٠٢ م</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- شريط الكتابة والإرسال -->
-            <div class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
-              <div class="flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2">
-                  <span class="text-slate-400 text-[11px]">ربط برقم طلب:</span>
-                  <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-mono text-[11px]">
-                    <span>ORD-8821</span>
-                    <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
-                  </div>
+                  <span class="text-xs text-slate-500 font-mono bg-slate-100 px-3 py-1 rounded-xl">منصة محجوب أونلاين</span>
                 </div>
-                <button class="text-slate-500 hover:text-[#570575] flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg transition">
-                  <i class="fa-solid fa-paperclip text-xs"></i>
-                  <span>إرفاق وسائط (Media)</span>
-                </button>
               </div>
-              <div class="flex items-center gap-2">
-                <input type="text" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
-                <button class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs flex items-center gap-2">
-                  <span>إرسال</span>
-                  <i class="fa-solid fa-paper-plane text-xs"></i>
-                </button>
+
+              <!-- صندوق الرسائل -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" id="message-box-scroll">
+                {% if messages %}
+                  {% for msg in messages %}
+                    {% if msg.direction == 'outbound' %}
+                      <!-- رسالة صادرة -->
+                      <div class="flex flex-col items-end">
+                        <div class="max-w-[65%] bg-[#f3e8ff] rounded-2xl px-4 py-3 shadow-xs border border-purple-100 text-slate-800">
+                          <p class="text-xs leading-relaxed">{{ msg.content }}</p>
+                          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                            <span>{{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}</span>
+                            <i class="fa-solid fa-check-double text-purple-600 text-[9px]"></i>
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <!-- رسالة واردة -->
+                      <div class="flex flex-col items-start">
+                        <div class="max-w-[65%] bg-white rounded-2xl px-4 py-3 shadow-xs border border-slate-200 text-slate-800">
+                          <p class="text-xs leading-relaxed">{{ msg.content }}</p>
+                          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                            <span>{{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <div class="flex items-center justify-center h-full text-slate-400 text-xs">
+                    لا توجد رسائل سابقة في هذه المحادثة. ابدأ الإرسال أدناه.
+                  </div>
+                {% endif %}
               </div>
-            </div>
+
+              <!-- شريط الكتابة والإرسال -->
+              <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
+                <input type="hidden" name="phone" value="{{ current_contact.phone }}">
+                <div class="flex items-center gap-2">
+                  <input type="text" name="message" placeholder="اكتب رسالتك للعميل هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
+                  <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs flex items-center gap-2">
+                    <span>إرسال</span>
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                  </button>
+                </div>
+              </form>
+            {% else %}
+              <div class="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
+                <i class="fa-solid fa-comments text-4xl text-slate-300"></i>
+                <p>اختر محادثة من القائمة الجانبية لبدء استعراض الرسائل.</p>
+              </div>
+            {% endif %}
           </div>
 
           <!-- 3. تفاصيل العميل (يسار) -->
           <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm p-6 flex flex-col gap-6">
-            <!-- كارت الملف الشخصي -->
-            <div class="text-center pb-6 border-b border-slate-100">
-              <div class="relative w-20 h-20 mx-auto mb-3">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=faces" class="w-full h-full rounded-2xl object-cover border-2 border-purple-100 shadow-inner">
-                <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"></span>
+            {% if current_contact %}
+              <!-- كارت الملف الشخصي -->
+              <div class="text-center pb-6 border-b border-slate-100">
+                <div class="relative w-20 h-20 mx-auto mb-3">
+                  <div class="w-full h-full rounded-2xl bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-2xl border-2 border-purple-100 shadow-inner">
+                    {{ current_contact.name[0] if current_contact.name else '?' }}
+                  </div>
+                  <span class="absolute bottom-0 right-0 w-3.5 h-3.5 {{ 'bg-emerald-500' if current_contact.is_online else 'bg-slate-300' }} rounded-full border-2 border-white"></span>
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 mb-1">{{ current_contact.name }}</h3>
+                <p class="text-xs font-mono text-slate-600 bg-slate-50 py-1 rounded-lg mt-2" dir="ltr">{{ current_contact.phone }}</p>
               </div>
-              <h3 class="text-sm font-bold text-slate-800 flex items-center justify-center gap-1 mb-1">
-                <span>علي أحمد المنصوري</span>
-                <i class="fa-solid fa-pen text-[10px] text-slate-400"></i>
-              </h3>
-              <p class="text-[11px] text-slate-500 mb-1">اسم الحساب: Ali Al-Mansouri (أبو أحمد)</p>
-              <p class="text-xs font-mono text-slate-600 bg-slate-50 py-1 rounded-lg mt-2" dir="ltr">+966501234567</p>
-            </div>
 
-            <!-- حالة الاتصال -->
-            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
-              <span class="text-xs font-bold text-emerald-800">حالة الاتصال</span>
-              <span class="inline-flex items-center text-xs font-bold text-emerald-600">
-                <span class="w-2 h-2 ml-1.5 bg-emerald-500 rounded-full"></span>
-                متصل الآن
-              </span>
-            </div>
-
-            <!-- إحصائيات المراسلة -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
-              <span class="text-[11px] font-bold text-slate-500 block">إحصائيات المراسلة (PROPERTIES)</span>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-600">إجمالي الرسائل</span>
-                <span class="font-bold font-mono text-[#570575]">4</span>
+              <!-- حالة الاتصال -->
+              <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-800">حالة الاتصال</span>
+                <span class="inline-flex items-center text-xs font-bold text-emerald-600">
+                  <span class="w-2 h-2 ml-1.5 {{ 'bg-emerald-500' if current_contact.is_online else 'bg-slate-300' }} rounded-full"></span>
+                  {{ 'متصل الآن' if current_contact.is_online else 'غير متصل' }}
+                </span>
               </div>
-            </div>
 
-            <!-- الطلبات المرتبطة -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
-              <span class="text-[11px] font-bold text-slate-500 block">الطلبات المرتبطة (ORDERS PROPERTY)</span>
-              <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span class="text-xs font-bold font-mono text-slate-800 block">ORD-8821</span>
-                  <span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block">قيد المعالجة</span>
+              <!-- إحصائيات المراسلة -->
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <span class="text-[11px] font-bold text-slate-500 block">إحصائيات المراسلة (PROPERTIES)</span>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-600">آخر رسالة</span>
+                  <span class="font-bold font-mono text-[#570575] truncate max-w-[140px]">{{ current_contact.last_message or '-' }}</span>
                 </div>
               </div>
-              <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span class="text-xs font-bold font-mono text-slate-800 block">ORD-2112</span>
-                  <span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded mt-1 inline-block">تم التسليم</span>
-                </div>
+            {% else %}
+              <div class="text-center text-slate-400 text-xs py-10">
+                لا يوجد عميل محدد.
               </div>
-            </div>
-
-            <!-- حالة الحظر -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
-              <span class="text-[11px] font-bold text-slate-500 block">حالة الحظر (is_blocked)</span>
-              <span class="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200">نشط (غير محظور)</span>
-            </div>
+            {% endif %}
           </div>
 
         </div>
-      {% elif active_tab == 'logs' %}
-        <!-- تبويب سجل الرسائل (Logs) المطابق للصورة الثانية -->
-        <div class="p-6 h-full overflow-y-auto space-y-4">
-          <!-- شريط الفلاتر العلوي -->
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3 flex-1 min-w-[280px]">
-              <div class="relative w-full">
-                <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                  <i class="fa-solid fa-search text-xs"></i>
-                </span>
-                <input type="text" placeholder="بحث بالرقم، المحتوى، اسم العميل، رقم الطلب، أو WAMID..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs focus:outline-none focus:border-[#570575]">
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center gap-1.5">
-                <span class="text-[11px] text-slate-500">الاتجاه:</span>
-                <select class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 focus:outline-none">
-                  <option>الكل (وارد وصادر)</option>
-                  <option>وارد (Inbound)</option>
-                  <option>صادر (Outbound)</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-[11px] text-slate-500">الحالة:</span>
-                <select class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 focus:outline-none">
-                  <option>جميع الحالات</option>
-                  <option>مرسل (Sent)</option>
-                  <option>مقروء (Read)</option>
-                </select>
-              </div>
-            </div>
-          </div>
 
-          <!-- جدول السجلات -->
+      {% elif active_tab == 'logs' %}
+        <!-- تبويب سجل الرسائل (Logs) -->
+        <div class="p-6 h-full overflow-y-auto space-y-4">
           <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
             <table class="w-full text-right border-collapse">
               <thead class="bg-slate-50 text-slate-700 text-xs border-b border-slate-200">
                 <tr>
-                  <th class="p-3.5">المعرف</th>
+                  <th class="p-3.5">المعرف (WAMID)</th>
                   <th class="p-3.5">الاتجاه</th>
-                  <th class="p-3.5">العميل / الهاتف</th>
-                  <th class="p-3.5">رقم الطلب</th>
+                  <th class="p-3.5">المرسل</th>
+                  <th class="p-3.5">المستقبل</th>
                   <th class="p-3.5">نص الرسالة</th>
                   <th class="p-3.5">النوع</th>
                   <th class="p-3.5">الحالة</th>
                   <th class="p-3.5">التوقيت</th>
-                  <th class="p-3.5 text-center">إجراءات</th>
                 </tr>
               </thead>
               <tbody class="text-xs divide-y divide-slate-100">
-                <!-- صف 1 -->
-                <tr class="hover:bg-slate-50/50 transition">
-                  <td class="p-3.5 font-mono text-slate-500">msg-101#</td>
-                  <td class="p-3.5">
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                      <i class="fa-solid fa-arrow-down ml-1 text-[10px]"></i> وارد (Inbound)
-                    </span>
-                  </td>
-                  <td class="p-3.5 font-bold text-slate-800">
-                    علي أحمد المنصوري
-                    <span class="block text-[10px] font-mono font-normal text-slate-400" dir="ltr">+966501234567</span>
-                  </td>
-                  <td class="p-3.5"><span class="font-mono bg-slate-100 px-2 py-0.5 rounded text-[11px]">ORD-8821</span></td>
-                  <td class="p-3.5 text-slate-700 max-w-xs truncate">السلام عليكم ورحمة الله، هل تم شحن الطلب رقم ORD-8821؟</td>
-                  <td class="p-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">TEXT</span></td>
-                  <td class="p-3.5 text-slate-600">وارد (received)</td>
-                  <td class="p-3.5 text-slate-500 text-[11px]">٢٠٢٦/٠٨/٢٢ ٠٥:٢٢ م</td>
-                  <td class="p-3.5 text-center">
-                    <div class="flex items-center justify-center gap-1.5">
-                      <button class="p-1.5 bg-slate-100 hover:bg-purple-50 text-slate-600 hover:text-[#570575] rounded-lg transition" title="عرض التفاصيل"><i class="fa-solid fa-code text-xs"></i></button>
-                      <button class="p-1.5 bg-slate-100 hover:bg-purple-50 text-slate-600 hover:text-[#570575] rounded-lg transition" title="فتح المحادثة"><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></button>
-                    </div>
-                  </td>
-                </tr>
-                <!-- صف 2 -->
-                <tr class="hover:bg-slate-50/50 transition">
-                  <td class="p-3.5 font-mono text-slate-500">msg-102#</td>
-                  <td class="p-3.5">
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <i class="fa-solid fa-arrow-up ml-1 text-[10px]"></i> صادر (Outbound)
-                    </span>
-                  </td>
-                  <td class="p-3.5 font-bold text-slate-800">
-                    علي أحمد المنصوري
-                    <span class="block text-[10px] font-mono font-normal text-slate-400" dir="ltr">+966501234567</span>
-                  </td>
-                  <td class="p-3.5"><span class="font-mono bg-slate-100 px-2 py-0.5 rounded text-[11px]">ORD-8821</span></td>
-                  <td class="p-3.5 text-slate-700 max-w-xs truncate">أهلاً بك أخي علي! نعم تم تجهيز طلبك #ORD-8821 وهو الآن مع مندوب شركة الشحن...</td>
-                  <td class="p-3.5"><span class="px-2 py-0.5 bg-purple-50 text-[#570575] rounded text-[10px] font-mono border border-purple-100">TEMPLATE</span></td>
-                  <td class="p-3.5 text-emerald-600 text-[11px] font-medium flex items-center gap-1">
-                    <i class="fa-solid fa-check-double text-xs"></i> مقروء (read)
-                  </td>
-                  <td class="p-3.5 text-slate-500 text-[11px]">٢٠٢٦/٠٨/٢٢ ٠٥:٤٤ م</td>
-                  <td class="p-3.5 text-center">
-                    <div class="flex items-center justify-center gap-1.5">
-                      <button class="p-1.5 bg-slate-100 hover:bg-purple-50 text-slate-600 hover:text-[#570575] rounded-lg transition"><i class="fa-solid fa-code text-xs"></i></button>
-                      <button class="p-1.5 bg-slate-100 hover:bg-purple-50 text-slate-600 hover:text-[#570575] rounded-lg transition"><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></button>
-                    </div>
-                  </td>
-                </tr>
+                {% if logs %}
+                  {% for log in logs %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                      <td class="p-3.5 font-mono text-slate-500 truncate max-w-[120px]">{{ log.wamid or 'N/A' }}</td>
+                      <td class="p-3.5">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium {{ 'bg-blue-50 text-blue-700 border-blue-200' if log.direction == 'inbound' else 'bg-emerald-50 text-emerald-700 border-emerald-200' }} border">
+                          {{ 'وارد (Inbound)' if log.direction == 'inbound' else 'صادر (Outbound)' }}
+                        </span>
+                      </td>
+                      <td class="p-3.5 font-bold text-slate-800 font-mono" dir="ltr">{{ log.sender_number }}</td>
+                      <td class="p-3.5 font-bold text-slate-800 font-mono" dir="ltr">{{ log.recipient_number }}</td>
+                      <td class="p-3.5 text-slate-700 max-w-xs truncate">{{ log.content }}</td>
+                      <td class="p-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">{{ log.message_type }}</span></td>
+                      <td class="p-3.5 text-slate-600 font-medium">{{ log.status }}</td>
+                      <td class="p-3.5 text-slate-500 text-[11px]">{{ log.timestamp.strftime('%Y-%m-%d %I:%M %p') if log.timestamp else '' }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="8" class="p-6 text-center text-slate-400">لا توجد سجلات رسائل متاحة حالياً.</td>
+                  </tr>
+                {% endif %}
               </tbody>
             </table>
+          </div>
+        </div>
+
+      {% elif active_tab == 'settings' %}
+        <!-- تبويب الإعدادات -->
+        <div class="p-8 h-full overflow-y-auto max-w-3xl mx-auto">
+          <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-6">
+            <div>
+              <h2 class="text-sm font-bold text-slate-800 mb-1">إعدادات ربط Meta WhatsApp API</h2>
+              <p class="text-xs text-slate-500">قم بتحديث بيانات المصادقة ومعرف الهاتف الخاص بمنصة محجوب أونلاين.</p>
+            </div>
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-slate-700 block">حالة الاتصال العامة</span>
+                <span class="text-[11px] text-slate-500">التحقق من توفر مفاتيح الربط البرمجية</span>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-bold {{ 'bg-emerald-50 text-emerald-700 border border-emerald-200' if is_connected else 'bg-amber-50 text-amber-700 border border-amber-200' }}">
+                {{ 'متصل وجاهز' if is_connected else 'يحتاج إعداد المفاتيح' }}
+              </span>
+            </div>
+
+            <form action="{{ url_for('whatsapp_service.settings_dashboard') }}" method="POST" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
+                <input type="text" name="phone_number_id" placeholder="مثال: 105629931234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account ID</label>
+                <input type="text" name="business_account_id" placeholder="مثال: 109823451234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Access Token (Permanent / System User Token)</label>
+                <textarea name="access_token" rows="3" placeholder="ضع رمز الوصول الخاص بـ Meta هنا..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-[#570575]"></textarea>
+              </div>
+              <div class="pt-2">
+                <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs">
+                  حفظ الإعدادات والتغييرات
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       {% endif %}
@@ -421,21 +360,25 @@
           <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-2.5 rounded-xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-md border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <i class="fa-solid fa-clock-rotate-left text-base"></i>
           </a>
-          <a href="#" title="الويب هوك" class="p-2.5 rounded-xl transition-all flex justify-center text-purple-300 hover:bg-purple-900/50 hover:text-white">
-            <i class="fa-solid fa-network-wired text-base"></i>
-          </a>
-          <a href="#" title="الملفات والأكواد" class="p-2.5 rounded-xl transition-all flex justify-center text-purple-300 hover:bg-purple-900/50 hover:text-white">
-            <i class="fa-solid fa-code text-base"></i>
-          </a>
         </div>
       </div>
       <div class="w-full px-2">
-        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-2.5 rounded-xl transition-all flex justify-center text-purple-300 hover:bg-purple-900/50 hover:text-white">
+        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-2.5 rounded-xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-md border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
           <i class="fa-solid fa-gear text-base"></i>
         </a>
       </div>
     </aside>
 
   </div>
+
+  <script>
+    // التمرير التلقائي لصندوق الرسائل إلى الأسفل عند فتح المحادثة
+    window.addEventListener('DOMContentLoaded', () => {
+      const msgBox = document.getElementById('message-box-scroll');
+      if (msgBox) {
+        msgBox.scrollTop = msgBox.scrollHeight;
+      }
+    });
+  </script>
 </body>
 </html>
