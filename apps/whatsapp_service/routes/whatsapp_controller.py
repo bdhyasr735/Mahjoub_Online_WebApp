@@ -3,7 +3,7 @@
 
 """
 WhatsApp Routes and Webhook Controllers for Mahgoob Online
-Handles two-way messaging, database logging, media sending, broadcasts, and admin dashboard views.
+Handles two-way messaging, database logging, media sending, broadcasts, customer naming, and admin dashboard views.
 """
 
 import os
@@ -260,7 +260,7 @@ def send_message_api():
 
 @whatsapp_bp.route('/api/send-media', methods=['POST'])
 def send_media_api():
-    """معالجة إرسال الوسائط والصور من لوحة التحكم (تمت إضافتها لمنع خطأ BuildError)"""
+    """معالجة إرسال الوسائط والصور من لوحة التحكم"""
     phone = request.form.get('recipient_number') or request.form.get('phone')
     file = request.files.get('media')
     
@@ -349,6 +349,32 @@ def get_customer_messages(phone):
             
         return jsonify({"success": True, "messages": logs_data}), 200
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@whatsapp_bp.route('/api/contacts/<int:contact_id>/update-name', methods=['POST'])
+def update_customer_name(contact_id):
+    """تحديث وحفظ اسم العميل يدوياً من لوحة التحكم"""
+    data = request.get_json(silent=True) or {}
+    new_name = data.get('name')
+    
+    if not new_name:
+        return jsonify({"success": False, "error": "الاسم الجديد مطلوب"}), 400
+        
+    db = get_db()
+    if not db:
+        return jsonify({"success": False, "error": "قاعدة البيانات غير متوفرة"}), 500
+    
+    contact = db.session.query(WhatsAppCustomerContact).filter_by(id=contact_id).first()
+    if not contact:
+        return jsonify({"success": False, "error": "العميل غير موجود"}), 404
+        
+    try:
+        contact.name = new_name
+        db.session.commit()
+        return jsonify({"success": True, "message": "تم تحديث اسم العميل بنجاح"})
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
 
 
