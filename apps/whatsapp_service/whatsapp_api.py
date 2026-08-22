@@ -89,3 +89,73 @@ def send_text_message(recipient, message):
         except Exception:
             pass
         return False, str(e)
+
+
+# ==========================================
+# الدالة العامة لإرسال القوالب (Templates / Broadcast)
+# ==========================================
+def send_template_message(recipient, template_name, language_code="ar", components=None):
+    phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", PHONE_NUMBER_ID)
+    token = os.getenv("WHATSAPP_ACCESS_TOKEN", ACCESS_TOKEN)
+    ver = os.getenv("VERSION", VERSION)
+    
+    url = f"{BASE_URL}/{ver}/{phone_id}/messages"
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": recipient,
+        "type": "template",
+        "template": {
+            "name": template_name,
+            "language": {"code": language_code},
+            "components": components or []
+        }
+    }
+    headers = {
+        "Authorization": f"Bearer {token}", 
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        res_data = response.json()
+        
+        db = get_db()
+        from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
+        
+        wamid = None
+        try:
+            wamid = res_data.get('messages', [{}])[0].get('id')
+        except Exception:
+            pass
+            
+        status = 'sent' if response.status_code == 200 else 'failed'
+        
+        # حفظ السجل
+        log_entry = WhatsAppMessageLog(
+            wamid=wamid,
+            direction='outbound', 
+            sender_number=str(phone_id), 
+            recipient_number=str(recipient), 
+            content=f"[Template: {template_name}]", 
+            status=status
+        )
+        db.session.add(log_entry)
+
+        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=str(recipient)).first()
+        if contact:
+            contact.last_message = f"[قالب: {template_name}]"
+            contact.last_timestamp = datetime.utcnow()
+            
+        db.session.commit()
+
+        if response.status_code == 200:
+            return True, res_data
+        else:
+            return False, response.text
+    except Exception as e:
+        try:
+            db = get_db()
+            db.session.rollback()
+        except Exception:
+            pass
+        return False, str(e)
