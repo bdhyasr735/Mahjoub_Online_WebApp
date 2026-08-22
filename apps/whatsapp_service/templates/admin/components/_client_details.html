@@ -1,63 +1,45 @@
-<!-- ملف: apps/whatsapp_service/templates/admin/components/_client_details.html -->
-<div class="w-[300px] bg-white border-r border-slate-200 h-full flex flex-col shadow-sm">
-  
-  <!-- الجزء العلوي: الصورة والاسم -->
-  <div class="p-6 flex flex-col items-center text-center border-b border-slate-100">
-    <div class="w-20 h-20 bg-gradient-to-br from-[#632C8F] to-[#570575] rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg mb-4" id="active-avatar">
-      ع
+<!-- apps/whatsapp_service/templates/admin/components/_client_details.html -->
+<div class="client-details p-4 bg-white h-full overflow-y-auto">
+  {% if contact %}
+  <div class="flex items-center gap-3 mb-4">
+    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#632C8F] to-[#570575] text-white font-bold flex items-center justify-center text-lg shadow-sm">
+      {{ contact.name|first|upper or contact.phone|first|upper }}
     </div>
-    <h2 class="text-lg font-bold text-slate-800" id="active-name">جاري التحميل...</h2>
-    <p class="text-xs text-slate-500 mt-1" id="active-phone">0000000000</p>
-    
-    <div class="flex gap-2 mt-4">
-      <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">عميل نشط</span>
-      <span class="px-3 py-1 bg-purple-50 text-[#570575] text-[10px] font-bold rounded-full border border-purple-200">محجوب أونلاين</span>
+    <div>
+      <h3 class="text-base font-bold text-slate-800">{{ contact.name|default:contact.phone }}</h3>
+      <p class="text-xs text-slate-500">{{ contact.phone }}</p>
+      <span class="text-[10px] {% if contact.is_online %}text-emerald-600{% else %}text-slate-400{% endif %}">
+        {% if contact.is_online %}🟢 متصل الآن{% else %}⚪ غير متصل{% endif %}
+      </span>
     </div>
   </div>
 
-  <!-- الجزء الأوسط: التفاصيل -->
-  <div class="flex-1 overflow-y-auto p-4 space-y-6">
-    
-    <!-- معلومات العميل -->
-    <div>
-      <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">معلومات التواصل</h3>
-      <div class="space-y-3">
-        <div class="flex justify-between text-xs">
-          <span class="text-slate-500">حالة الربط:</span>
-          <span class="text-emerald-600 font-medium">متصل</span>
-        </div>
-        <div class="flex justify-between text-xs">
-          <span class="text-slate-500">آخر رسالة:</span>
-          <span class="text-slate-800" id="last-seen">منذ دقيقة</span>
-        </div>
-      </div>
+  <div class="border-t pt-4 mt-2 space-y-2 text-xs">
+    <div class="flex justify-between">
+      <span class="text-slate-500">آخر ظهور</span>
+      <span class="text-slate-700">{{ contact.last_timestamp.strftime('%Y-%m-%d %H:%M') if contact.last_timestamp else 'غير معروف' }}</span>
     </div>
-
-    <!-- إجراءات سريعة -->
-    <div>
-      <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">إجراءات سريعة</h3>
-      <div class="grid grid-cols-2 gap-2">
-        <button class="p-2 bg-slate-50 hover:bg-[#570575] hover:text-white transition-colors rounded-xl border border-slate-200 text-slate-600 text-[10px] font-bold">
-          عرض الطلبات
-        </button>
-        <button class="p-2 bg-slate-50 hover:bg-[#570575] hover:text-white transition-colors rounded-xl border border-slate-200 text-slate-600 text-[10px] font-bold">
-          تعديل البيانات
-        </button>
-      </div>
+    <div class="flex justify-between">
+      <span class="text-slate-500">الطلبات</span>
+      <span class="text-slate-700">{{ contact.orders|default([])|join(', ') or 'لا يوجد' }}</span>
     </div>
-
-    <!-- ملاحظات -->
-    <div>
-      <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">ملاحظات داخلية</h3>
-      <textarea class="w-full h-24 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:outline-none focus:border-[#570575]" placeholder="أضف ملاحظة حول العميل..."></textarea>
+    <div class="flex justify-between">
+      <span class="text-slate-500">الرسائل غير المقروءة</span>
+      <span class="text-slate-700">{{ contact.unread_count|default(0) }}</span>
     </div>
-
   </div>
 
-  <!-- الجزء السفلي: أزرار تحكم -->
-  <div class="p-4 border-t border-slate-100">
-    <button class="w-full py-2.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all rounded-xl text-xs font-bold border border-red-100">
-      حظر العميل
+  <div class="border-t mt-4 pt-4">
+    <button class="w-full bg-[#570575] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#632C8F] transition">
+      عرض الطلبات
+    </button>
+    <button class="w-full bg-slate-100 text-slate-700 py-2 rounded-lg text-xs font-bold mt-2 hover:bg-slate-200 transition">
+      ملاحظات داخلية
     </button>
   </div>
+  {% else %}
+  <div class="flex items-center justify-center h-full text-slate-400 text-sm">
+    اختر عميلاً لعرض التفاصيل
+  </div>
+  {% endif %}
 </div>
