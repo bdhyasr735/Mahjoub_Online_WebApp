@@ -187,6 +187,29 @@ def chat_dashboard():
 # 3. ACTION ENDPOINTS (إرسال الرسائل الفردية والتحديث الديناميكي)
 # =============================================================================
 
+@whatsapp_bp.route('/partials/contacts', methods=['GET'])
+def partials_contacts():
+    """جلب قائمة جهات الاتصال جزئياً لتحديثها عبر HTMX"""
+    contacts = db.session.query(WhatsAppCustomerContact).order_by(
+        WhatsAppCustomerContact.last_timestamp.desc()
+    ).all()
+
+    for contact in contacts:
+        if contact.last_timestamp:
+            diff = datetime.utcnow() - contact.last_timestamp
+            contact.is_online = diff < timedelta(minutes=10)
+        else:
+            contact.is_online = False
+
+    current_contact_id = request.args.get('contact_id', type=int)
+    
+    return render_template(
+        'admin/partials/contacts_list.html',
+        contacts=contacts,
+        current_contact_id=current_contact_id
+    )
+
+
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
     """إرسال رسالة عبر HTMX لإضافتها فوراً بدون وميض وبدون إعادة تحميل الصفحة مع حماية تكرار wamid"""
