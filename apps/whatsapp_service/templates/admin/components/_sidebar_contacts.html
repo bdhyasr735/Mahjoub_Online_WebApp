@@ -1,68 +1,90 @@
-<!-- ملف: apps/whatsapp_service/templates/admin/components/_sidebar_contacts.html -->
-<div class="w-full bg-white border-l border-slate-200 flex flex-col h-full shrink-0">
-  
-  <!-- رأس القائمة: العنوان والعدد -->
-  <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-    <span class="font-bold text-slate-800 text-sm">المحادثات النشطة</span>
-    <span class="bg-purple-100 text-[#570575] px-2 py-0.5 rounded-full text-xs font-bold" id="contacts-count">{{ contacts|length }}</span>
-  </div>
-
-  <!-- حقل البحث السريع -->
-  <div class="p-3 border-b border-slate-100">
-    <div class="relative">
-      <input type="text" id="search-contacts" placeholder="بحث عن عميل أو رقم..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#570575] transition-colors" oninput="filterContacts(this.value)">
-      <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-      </svg>
+<!-- apps/whatsapp_service/templates/admin/components/_sidebar_contacts.html -->
+<div class="sidebar-contacts d-flex flex-column h-100">
+  <!-- رأس الشريط -->
+  <div class="sidebar-header p-3 border-bottom bg-white shadow-sm">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-bold">
+        <i class="fas fa-comments text-primary me-2"></i> المحادثات النشطة
+      </h5>
+      <span class="badge bg-primary rounded-pill">{{ contacts|length }}</span>
     </div>
   </div>
 
-  <!-- قائمة العملاء -->
-  <div class="flex-1 overflow-y-auto" id="contacts-list">
+  <!-- شريط البحث -->
+  <div class="search-box px-3 py-2 border-bottom">
+    <div class="input-group input-group-sm">
+      <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+      <input type="text" class="form-control border-start-0" placeholder="بحث عن عميل أو رقم..." id="contactSearch">
+    </div>
+  </div>
+
+  <!-- قائمة جهات الاتصال -->
+  <div class="contacts-list flex-grow-1 overflow-auto py-2">
     {% if contacts %}
-      {% for c in contacts %}
-      <div onclick="loadConversation('{{ c.phone_number }}', this)" 
-           class="contact-item p-3.5 border-b border-slate-50 hover:bg-purple-50/50 cursor-pointer transition-colors flex items-center gap-3 {% if loop.first %}bg-purple-50/80 border-r-4 border-r-[#570575]{% endif %}"
-           data-phone="{{ c.phone_number }}" data-name="{{ c.name | default('') }}">
-        
-        <!-- رمز الحرف الأول أو الصورة المصغرة للعميل -->
-        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#632C8F]/20 to-[#570575]/20 text-[#570575] font-bold flex items-center justify-center shrink-0 shadow-sm">
-          {{ c.name[0] if c.name else 'ع' }}
-        </div>
-
-        <!-- تفاصيل العميل -->
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between mb-0.5">
-            <h4 class="text-xs font-bold text-slate-800 truncate">{{ c.name or c.phone_number }}</h4>
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      {% for contact in contacts %}
+      <div class="contact-item px-3 py-2 d-flex align-items-center gap-2 border-bottom border-light {% if selected_contact and selected_contact.id == contact.id %}active{% endif %}"
+           data-contact-id="{{ contact.id }}"
+           hx-get="{{ url_for('whatsapp_service.get_chat_area', contact_id=contact.id) }}"
+           hx-target="#chat-area-container"
+           hx-swap="innerHTML"
+           hx-trigger="click">
+        <div class="avatar-wrapper position-relative flex-shrink-0" style="width: 44px; height: 44px;">
+          <div class="avatar-placeholder rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:100%;height:100%;font-size:20px;">
+            {{ (contact.name or contact.phone)|first|upper }}
           </div>
-          <p class="text-[11px] text-slate-400 truncate" dir="ltr">{{ c.phone_number }}</p>
+          {% if contact.is_online %}
+          <span class="status-dot online position-absolute bottom-0 end-0 border border-2 border-white rounded-circle" style="width:12px;height:12px;background:#28a745;"></span>
+          {% else %}
+          <span class="status-dot offline position-absolute bottom-0 end-0 border border-2 border-white rounded-circle" style="width:12px;height:12px;background:#adb5bd;"></span>
+          {% endif %}
         </div>
-
+        <div class="contact-info flex-grow-1 min-w-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="contact-name fw-semibold text-truncate">{{ contact.name|default:contact.phone }}</span>
+            <small class="text-muted time">{{ contact.last_timestamp.strftime('%H:%M') if contact.last_timestamp else '' }}</small>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="contact-phone small text-muted text-truncate">{{ contact.phone }}</span>
+            {% if contact.unread_count > 0 %}
+            <span class="badge bg-danger rounded-pill unread-count">{{ contact.unread_count }}</span>
+            {% endif %}
+          </div>
+          <div class="last-message small text-muted text-truncate">{{ contact.last_message|default:"لا توجد رسائل" }}</div>
+        </div>
       </div>
       {% endfor %}
     {% else %}
-      <div class="text-center text-slate-400 text-xs py-10">لا توجد محادثات نشطة حالياً</div>
+      <div class="text-center text-muted py-5">
+        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+        <p>لا توجد جهات اتصال بعد</p>
+      </div>
     {% endif %}
   </div>
-
 </div>
 
+<style>
+  .sidebar-contacts { height: 100%; }
+  .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
+  .unread-count { font-size: 10px; padding: 2px 6px; }
+</style>
+
 <script>
-// دالة البحث الفوري داخل قائمة المحادثات
-function filterContacts(query) {
-    const filter = query.toLowerCase();
-    const items = document.querySelectorAll('.contact-item');
-    
-    items.forEach(item => {
-        const phone = item.getAttribute('data-phone') || '';
-        const name = item.getAttribute('data-name').toLowerCase() || '';
-        
-        if (phone.includes(filter) || name.includes(filter)) {
-            item.style.display = 'flex';
-        } else {
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('contactSearch');
+    if (searchInput) {
+      searchInput.addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.contact-item');
+        items.forEach(item => {
+          const name = item.querySelector('.contact-name')?.textContent?.toLowerCase() || '';
+          const phone = item.querySelector('.contact-phone')?.textContent || '';
+          if (name.includes(filter) || phone.includes(filter)) {
+            item.style.display = '';
+          } else {
             item.style.display = 'none';
-        }
-    });
-}
+          }
+        });
+      });
+    }
+  });
 </script>
