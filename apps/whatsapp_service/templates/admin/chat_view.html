@@ -1,107 +1,122 @@
-<!-- Chat View Jinja2 Component - Full Screen Fixed -->
-<div class="flex flex-col h-[calc(100vh-80px)] w-full overflow-hidden bg-slate-100 font-sans" dir="rtl">
+<!-- بطاقة تفاصيل العميل الحقيقية والديناميكية -->
+<div class="bg-white border-l border-slate-200 w-80 flex flex-col h-full shrink-0 p-5 overflow-y-auto">
   
-  <div class="flex-1 flex overflow-hidden w-full h-full">
-    
-    <!-- 1. شاشة الرسائل ومنطقة المحادثة الكبرى (اليسار) -->
-    <div class="flex-1 flex flex-col bg-slate-50 overflow-hidden border-l border-slate-200">
-      
-      {% if active_contact %}
-      <!-- رأس المحادثة النشطة -->
-      <div class="px-6 py-3 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0 z-10">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-xs shadow-2xs">
-            {{ active_contact.name[0] if active_contact.name else 'ع' }}
-          </div>
-          <div>
-            <h3 class="text-xs font-bold text-slate-900">{{ active_contact.name }}</h3>
-            <span class="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> نشط الآن
-            </span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-mono border border-slate-200" dir="ltr">{{ active_contact.phone }}</span>
-        </div>
-      </div>
-
-      <!-- منطقة عرض الرسائل الفعلية -->
-      <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-        {% for msg in messages|default([]) %}
-          {% if msg.direction == 'inbound' %}
-            <!-- رسالة واردة من العميل -->
-            <div class="flex items-end gap-2 max-w-[70%]">
-              <div class="bg-white border border-slate-200 px-4 py-2.5 rounded-2xl rounded-br-xs text-xs text-slate-800 shadow-2xs">
-                {{ msg.content }}
-                <span class="block text-[9px] text-slate-400 text-left mt-1 font-mono">{{ msg.created_at }}</span>
-              </div>
-            </div>
-          {% else %}
-            <!-- رسالة صادرة من المتجر -->
-            <div class="flex items-end gap-2 max-w-[70%] mr-auto flex-row-reverse">
-              <div class="bg-[#570575] text-white px-4 py-2.5 rounded-2xl rounded-bl-xs text-xs shadow-2xs">
-                {{ msg.content }}
-                <span class="block text-[9px] text-purple-200 text-left mt-1 font-mono">{{ msg.created_at }}</span>
-              </div>
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-
-      <!-- شريط إدخال الرسالة السفلي -->
-      <form action="{{ url_for('send_message') }}" method="POST" class="p-4 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0">
-        <input type="hidden" name="contact_id" value="{{ active_contact.id }}">
-        <input type="text" name="message" placeholder="اكتب رسالتك للعميل هنا..." class="flex-1 bg-slate-50 border border-slate-200 focus:border-[#570575] focus:outline-hidden rounded-xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 transition-colors" required>
-        <button type="submit" class="bg-[#570575] hover:bg-[#43045b] active:scale-95 transition-all text-white px-6 py-3 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1">
-          <span>إرسال</span>
-        </button>
-      </form>
-      
-      {% else %}
-      <!-- في حال لم يتم اختيار محادثة -->
-      <div class="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-        <svg class="w-16 h-16 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-        </svg>
-        <p class="text-xs font-bold text-slate-600">اختر محادثة من القائمة الجانبية لبدء استعراض الرسائل</p>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- 2. قائمة محادثات العملاء النشطة (اليمين) -->
-    <div class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-xs order-first h-full overflow-hidden">
-      <!-- رأس القائمة -->
-      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-        <h2 class="text-xs font-bold text-slate-800">محادثات العملاء النشطة</h2>
-        <button class="bg-[#570575] hover:bg-[#43045b] transition-colors text-white text-[11px] px-3 py-2 rounded-xl font-bold flex items-center gap-1 shadow-xs">
-          <span>+ محادثة جديدة</span>
-        </button>
-      </div>
-      
-      <!-- قائمة العملاء الديناميكية -->
-      <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
-        {% for contact in contacts|default([]) %}
-        <a href="?contact_id={{ contact.id }}" class="block p-4 hover:bg-slate-50 transition-colors cursor-pointer {% if active_contact and active_contact.id == contact.id %}bg-slate-50/80 border-r-4 border-[#570575]{% endif %}">
-          <div class="flex justify-between items-center text-sm mb-1">
-            <span class="font-bold text-slate-900 truncate">{{ contact.name }}</span>
-            <span class="text-[10px] text-slate-400 font-mono">{{ contact.time|default('') }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <p class="text-xs text-slate-500 truncate max-w-[180px]">{{ contact.last_message }}</p>
-            {% if contact.unread_count and contact.unread_count > 0 %}
-            <span class="bg-emerald-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-              {{ contact.unread_count }}
-            </span>
-            {% endif %}
-          </div>
-        </a>
+  <!-- صورة البروفايل والأفاتار الحقيقي -->
+  <div class="flex flex-col items-center text-center pb-5 border-b border-slate-100">
+    <div class="relative mb-3">
+      <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-[#570575] to-[#1a0b2e] text-white flex items-center justify-center text-2xl font-bold shadow-md border-2 border-[#D4AF37]/50 overflow-hidden">
+        {% if client.avatar_url %}
+          <img src="{{ client.avatar_url }}" alt="{{ client.name }}" class="w-full h-full object-cover" id="client-img">
         {% else %}
-        <div class="p-8 text-center text-slate-400 text-xs">
-          لا توجد محادثات نشطة حالياً
-        </div>
-        {% endfor %}
+          <span id="client-avatar-text">{{ client.name[0] if client.name else 'ع' }}</span>
+        {% endif %}
+      </div>
+      <!-- مؤشر الحالة الديناميكي (متصل / غير متصل بناءً على حالة العميل) -->
+      <span class="absolute bottom-1 right-1 w-4 h-4 {{ 'bg-emerald-500' if client.is_online else 'bg-slate-400' }} border-2 border-white rounded-full"></span>
+    </div>
+
+    <!-- اسم العميل الحقيقي مع زر التعديل والحفظ الفوري لقاعدة البيانات -->
+    <div class="w-full mt-1">
+      <div id="client-name-view" class="flex items-center justify-center gap-2">
+        <h3 id="client-name-display" class="font-bold text-slate-900 text-base">{{ client.name }}</h3>
+        <button onclick="toggleEditName()" class="text-slate-400 hover:text-[#570575] transition-colors" title="تعديل الاسم">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+        </button>
+      </div>
+
+      <!-- حقل تعديل الاسم المخفي -->
+      <div id="client-name-edit" class="hidden flex items-center gap-1 mt-1">
+        <input type="text" id="client-name-input" value="{{ client.name }}" class="w-full text-sm border border-purple-300 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-[#570575]">
+        <button onclick="saveClientName('{{ client.id }}')" class="bg-[#570575] text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-[#1a0b2e] transition-colors">حفظ</button>
       </div>
     </div>
 
+    <!-- رقم الهاتف الحقيقي -->
+    <p class="text-xs text-slate-500 mt-1 font-medium" dir="ltr">{{ client.phone_number }}</p>
+
+    <!-- الوقت والتاريخ وحالة آخر ظهور الحقيقية من السيرفر -->
+    <div class="w-full mt-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex flex-col gap-1.5 text-xs">
+      <div class="flex items-center justify-between text-slate-600">
+        <span class="text-slate-400">التاريخ:</span>
+        <span class="font-bold">{{ current_date }}</span>
+      </div>
+      <div class="flex items-center justify-between text-slate-600">
+        <span class="text-slate-400">آخر ظهور:</span>
+        <span class="font-bold text-emerald-600 flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          {{ client.last_seen|default('الان', true) }}
+        </span>
+      </div>
+    </div>
   </div>
+
+  <!-- إحصائيات المراسلة الحقيقية -->
+  <div class="py-4 border-b border-slate-100">
+    <span class="text-xs font-bold text-slate-400 block mb-2">إحصائيات المراسلة</span>
+    <div class="bg-slate-50 p-3 rounded-xl flex items-center justify-between border border-slate-100">
+      <span class="text-xs text-slate-600 font-medium">إجمالي الرسائل</span>
+      <span class="text-sm font-bold text-[#570575]">{{ client.total_messages_count }}</span>
+    </div>
+  </div>
+
+  <!-- الطلبات المرتبطة الحقيقية (تُجلب من قاعدة البيانات لمنصة محجوب أونلاين) -->
+  <div class="py-4 border-b border-slate-100">
+    <span class="text-xs font-bold text-slate-400 block mb-2">الطلبات المرتبطة</span>
+    <div class="flex flex-col gap-2">
+      {% for order in client.orders %}
+      <div class="flex items-center justify-between {{ 'bg-amber-50/50 border-amber-200/60' if order.status == 'processing' else 'bg-emerald-50/50 border-emerald-200/60' }} border p-2.5 rounded-xl">
+        <span class="text-xs font-bold text-slate-800">{{ order.order_number }}</span>
+        <span class="text-[10px] {{ 'bg-amber-100 text-amber-800' if order.status == 'processing' else 'bg-emerald-100 text-emerald-800' }} px-2 py-0.5 rounded-md font-bold">{{ order.status_label }}</span>
+      </div>
+      {% else %}
+      <span class="text-xs text-slate-400 text-center py-2">لا توجد طلبات مرتبطة حالياً</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- قناة الاتصال -->
+  <div class="pt-4 mt-auto">
+    <div class="flex items-center justify-between text-xs text-slate-500 font-medium">
+      <span>قناة الاتصال</span>
+      <span class="font-bold text-slate-800">WhatsApp Cloud</span>
+    </div>
+    <div class="flex items-center justify-between text-xs text-slate-500 font-medium mt-2">
+      <span>إصدار الـ API</span>
+      <span class="font-bold text-[#570575]">v21.0 API</span>
+    </div>
+  </div>
+
 </div>
+
+<!-- دوال الجافاسكريبت لحفظ الاسم حقيقياً في السيرفر -->
+<script>
+  function toggleEditName() {
+    document.getElementById('client-name-view').classList.toggle('hidden');
+    document.getElementById('client-name-edit').classList.toggle('hidden');
+  }
+
+  function saveClientName(clientId) {
+    const newName = document.getElementById('client-name-input').value;
+    
+    // إرسال طلب حقيقي لتحديث البيانات في قاعدة بيانات Flask
+    fetch(`/api/client/${clientId}/update-name`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: newName })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('client-name-display').innerText = newName;
+        const avatarSpan = document.getElementById('client-avatar-text');
+        if (avatarSpan) avatarSpan.innerText = newName.charAt(0);
+        toggleEditName();
+      } else {
+        alert('فشل حفظ الاسم، يرجى المحاولة مرة أخرى.');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+</script>
