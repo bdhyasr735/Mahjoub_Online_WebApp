@@ -25,12 +25,60 @@ def get_db():
         return db
 
 # ==========================================
-# 1. تحديث اسم العميل يدوياً
+# 1. الدالة العامة لإرسال رسائل النص (مستقلة لتجنب أخطاء الاستيراد)
+# ==========================================
+def send_text_message(recipient, message):
+    """
+    دالة عامة لإرسال رسائل الواتساب يمكن استدعاؤها من أي مكان في النظام
+    """
+    url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": recipient,
+        "type": "text",
+        "text": {"body": message}
+    }
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}", 
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            db = get_db()
+            from apps.models.whatsapp_models import WhatsAppMessageLog
+            
+            res_data = response.json()
+            wamid = None
+            try:
+                wamid = res_data.get('messages', [{}])[0].get('id')
+            except:
+                pass
+                
+            db.session.add(WhatsAppMessageLog(
+                wamid=wamid,
+                direction='outbound', 
+                sender_number=PHONE_NUMBER_ID, 
+                recipient_number=recipient, 
+                content=message, 
+                status='sent'
+            ))
+            db.session.commit()
+            return True, res_data
+        else:
+            return False, response.text
+    except Exception as e:
+        return False, str(e)
+
+
+# ==========================================
+# 2. تحديث اسم العميل يدوياً
 # ==========================================
 @whatsapp_bp.route('/update-contact-name', methods=['POST'])
 def update_contact_name():
     db = get_db()
-    data = request.get_json()
+    data = request.get_json() or {}
     phone = data.get('phone')
     new_name = data.get('name')
     
@@ -42,12 +90,13 @@ def update_contact_name():
         return jsonify({"status": "success"})
     return jsonify({"status": "error", "message": "غير موجود"}), 404
 
+
 # ==========================================
-# 2. معالجة الـ Webhook (دعم الوسائط ومنع التكرار)
+# 3. معالجة الـ Webhook (دعم الوسائط ومنع التكرار)
 # ==========================================
 @whatsapp_bp.route('/webhook', methods=['POST'])
 def receive_webhook():
-    data = request.get_json()
+    data = request.get_json() or {}
     db = get_db()
     
     from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
@@ -98,36 +147,22 @@ def receive_webhook():
                 db.session.commit()
     return jsonify({'status': 'success'}), 200
 
+
 # ==========================================
-# 3. إرسال الرسالة من لوحة التحكم (مع منع تكرار النقر)
+# 4. إرسال الرسالة من لوحة التحكم (تستعين بالدالة العامة)
 # ==========================================
 @whatsapp_bp.route('/send-message', methods=['POST'])
 def send_dashboard_message():
-    data = request.get_json()
-    phone = data.get('phone')
+    data = request.get_json() or {}
+    phone = data.get('phone') or data.get('recipient_number')
     message = data.get('message')
     
-    # هنا يتم الإرسال عبر requests
-    url = f"{BASE_URL}/{VERSION}/{PHONE_NUMBER_ID}/messages"
-    payload = {"messaging_product": "whatsapp", "to": phone, "type": "text", "text": {"body": message}}
-    headers = {"Authorization": f"Bearer {ACCESS_TOKEN}", "Content-Type": "application/json"}
-    
-    response = requests.post(url, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        # حفظ في قاعدة البيانات بعد نجاح الإرسال
-        db = get_db()
-        from apps.models.whatsapp_models import WhatsAppMessageLog
-        db.session.add(WhatsAppMessageLog(
-            direction='outbound', 
-            sender_number=PHONE_NUMBER_ID, 
-            recipient_number=phone, 
-            content=message, 
-            status='sent'
-        ))
-        db.session.commit()
-        return jsonify({"status": "success"})
-    
-    return jsonify({"status": "error"}), response.status_code
+    if not phone or not message:
+        return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
 
-# ... (باقي المسارات كما هي)
+    success, result = send_text_message(phone, message)
+    
+    if success:
+        return jsonify({"status": "success", "result": result})
+    
+    return jsonify({"status": "error", "message": result}), 500
