@@ -1,15 +1,17 @@
-<!-- whatsapp_dashboard.html - الصفحة الرئيسية مع تبويبات -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مركز المراسلات والدعم | منصة محجوب أونلاين</title>
+  <title>مركز مراسلات واتساب | محجوب أونلاين</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-  <style> 
-    body { font-family: 'Tajawal', sans-serif; } 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: 'Tajawal', sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -19,70 +21,48 @@
     .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
   </style>
 </head>
-<body class="bg-slate-100 h-screen overflow-hidden flex flex-col" dir="rtl">
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
 
-  <!-- Header (كما هو) -->
-  <header class="bg-[#1a0b2e] border-b border-purple-900/40 h-16 px-6 flex items-center justify-between shrink-0 z-30 shadow-md">
+  <!-- Main Top Navigation -->
+  <header class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
     <div class="flex items-center gap-3">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="محجوب أونلاين" class="h-9 w-auto object-contain bg-white/10 rounded-lg p-1 border border-[#D4AF37]/30">
-      <div class="flex items-center gap-2 border-r border-purple-800/60 pr-3">
-        <h1 class="text-xs sm:text-sm font-bold text-white tracking-wide">مركز المراسلات والدعم <span class="text-purple-300 font-normal mx-1">|</span> <span class="text-[#D4AF37]">منصة محجوب أونلاين</span></h1>
+      <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-xs">
+        <img src="https://images.unsplash.com/photo-1577563908411-5077b6dc7624?w=120&auto=format&fit=crop&q=80" alt="Logo" class="w-full h-full object-contain rounded-lg">
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <span>مركز مراسلات واتساب</span>
+          <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded">محجوب أونلاين</span>
+        </h1>
       </div>
     </div>
-    <div class="flex items-center gap-2">
-      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-        <span class="w-1.5 h-1.5 ml-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-        متصل بـ Meta API
-      </span>
-    </div>
+
+    <nav class="flex items-center gap-2 text-xs font-bold">
+      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'chat' or not active_tab else 'text-slate-600 hover:bg-slate-100' }}">
+        <i class="fas fa-comments ml-1"></i> المحادثات المباشرة
+      </a>
+      <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'logs' else 'text-slate-600 hover:bg-slate-100' }}">
+        <i class="fas fa-history ml-1"></i> سجل الرسائل
+      </a>
+      <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'settings' else 'text-slate-600 hover:bg-slate-100' }}">
+        <i class="fas fa-cog ml-1"></i> إعدادات الربط
+      </a>
+    </nav>
   </header>
 
-  <!-- الحاوية الرئيسية مع التبويبات -->
-  <div class="flex-1 flex flex-row overflow-hidden">
-    
-    <!-- الشريط الجانبي للأيقونات (أقصى اليسار) -->
-    <aside class="w-20 bg-[#1a0b2e] flex flex-col items-center justify-between py-6 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
-      <!-- ... (كما هو في النسخة السابقة) ... -->
-      <div class="flex flex-col items-center gap-6 w-full">
-        <div class="w-12 h-12 rounded-2xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center p-1 shadow-md">
-          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="Logo" class="w-full h-full object-contain rounded-xl">
-        </div>
-        <div class="w-10 h-[1px] bg-purple-900/60"></div>
-        <div class="flex flex-col gap-3 w-full px-3">
-          <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' or not active_tab else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-            <span class="absolute top-2 left-3 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#1a0b2e]"></span>
-          </a>
-          <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
-          </a>
-        </div>
-      </div>
-      <div class="w-full px-3">
-        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
-        </a>
-      </div>
-    </aside>
+  <!-- Content Container -->
+  <main class="flex-1 flex overflow-hidden">
+    {% if active_tab == 'chat' or not active_tab %}
+      {% include 'admin/chat_view.html' %}
+    {% elif active_tab == 'logs' %}
+      {% include 'admin/logs_view.html' %}
+    {% elif active_tab == 'settings' %}
+      {% include 'admin/settings_view.html' %}
+    {% endif %}
+  </main>
 
-    <!-- المحتوى الرئيسي (التبويبات) -->
-    <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
-      {% if active_tab == 'chat' or not active_tab %}
-        <!-- تبويب المحادثات -->
-        {% include 'admin/chat_view.html' %}
-      {% elif active_tab == 'logs' %}
-        <!-- تبويب سجل الرسائل -->
-        {% include 'admin/logs_view.html' %}
-      {% elif active_tab == 'settings' %}
-        <!-- تبويب الإعدادات -->
-        {% include 'admin/settings_view.html' %}
-      {% endif %}
-    </main>
-  </div>
-
-  <!-- JavaScript لتفاعل HTMX -->
   <script>
-    // التعامل مع تحديثات HTMX
+    // HTMX: تحديث الشات والتفاصيل عند النقر على جهة اتصال
     document.addEventListener('htmx:afterSwap', function(evt) {
       if (evt.detail.target.id === 'sidebar-contacts-container') {
         const activeItem = document.querySelector('.contact-item.active');
@@ -90,8 +70,7 @@
           const contactId = activeItem.dataset.contactId;
           if (contactId) {
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            // إذا كان هناك عمود تفاصيل، قم بتحديثه أيضاً
-            // htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
+            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
           }
         }
       }
@@ -107,11 +86,11 @@
           const contactId = firstItem.dataset.contactId;
           if (contactId) {
             htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
+            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
           }
         }
       }
     });
   </script>
-
 </body>
 </html>
