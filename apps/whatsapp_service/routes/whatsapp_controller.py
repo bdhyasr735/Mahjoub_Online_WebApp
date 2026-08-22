@@ -144,7 +144,7 @@ def handle_webhook():
 
 @whatsapp_bp.route('/dashboard')
 def chat_dashboard():
-    """عرض لوحة التحكم الرئيسية مع جميع جهات الاتصال وأول عميل محدد"""
+    """عرض لوحة التحكم الرئيسية مع جميع جهات الاتصال وعدم فتح أي دردشة إلا عند اختيارها صراحة"""
     contacts = db.session.query(WhatsAppCustomerContact).order_by(
         WhatsAppCustomerContact.last_timestamp.desc()
     ).all()
@@ -161,21 +161,18 @@ def chat_dashboard():
     contact_id = request.args.get('contact_id', type=int)
     
     current_contact = None
+    messages = []
     
+    # لا تقم بفتح أو جلب أي محادثة افتراضياً إلا إذا تم اختيار العميل عبر الـ contact_id
     if contact_id:
         current_contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
-    
-    if not current_contact and contacts:
-        current_contact = contacts[0]
-    
-    messages = []
-    if current_contact:
-        messages = db.session.query(WhatsAppMessageLog).filter(
-            or_(
-                WhatsAppMessageLog.sender_number == current_contact.phone,
-                WhatsAppMessageLog.recipient_number == current_contact.phone
-            )
-        ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
+        if current_contact:
+            messages = db.session.query(WhatsAppMessageLog).filter(
+                or_(
+                    WhatsAppMessageLog.sender_number == current_contact.phone,
+                    WhatsAppMessageLog.recipient_number == current_contact.phone
+                )
+            ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
 
     return render_template(
         'admin/whatsapp_dashboard.html',
@@ -192,7 +189,7 @@ def chat_dashboard():
 
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
-    """إرسال رسالة عبر HTMX لإضافتها فوراً بدون وميض وبدون إعادة تحميل الصفحة"""
+    """إرسال رسالة عبر HTMX لإضافتها فوراً بدون وميض وبدون إعادة تحميل الصفحة مع حماية تكرار wamid"""
     phone = request.form.get('phone')
     message_content = request.form.get('message')
     
@@ -210,25 +207,32 @@ def send_message_htmx():
 
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
     
-    # حفظ سجل الرسالة الصادرة
-    outbound_log = WhatsAppMessageLog(
-        wamid=wamid,
-        direction='outbound',
-        sender_number=phone_id,
-        recipient_number=phone,
-        message_type='text',
-        content=message_content,
-        status='sent' if success else 'failed'
-    )
-    db.session.add(outbound_log)
+    with db.session.no_autoflush:
+        # التأكد من عدم تكرار الـ wamid إذا تم تسجيله مسبقاً عبر Webhook
+        if wamid:
+            existing_log = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+            if existing_log:
+                wamid = None
 
-    # تحديث بيانات الاتصال للعميل
-    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
-    if contact:
-        contact.last_message = message_content
-        contact.last_timestamp = datetime.utcnow()
-    
-    db.session.commit()
+        # حفظ سجل الرسالة الصادرة
+        outbound_log = WhatsAppMessageLog(
+            wamid=wamid,
+            direction='outbound',
+            sender_number=phone_id,
+            recipient_number=phone,
+            message_type='text',
+            content=message_content,
+            status='sent' if success else 'failed'
+        )
+        db.session.add(outbound_log)
+
+        # تحديث بيانات الاتصال للعميل
+        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+        if contact:
+            contact.last_message = message_content
+            contact.last_timestamp = datetime.utcnow()
+        
+        db.session.commit()
 
     # إرجاع فقرة HTML المصغرة للرسالة ليتم حقنها مباشرة في واجهة المحادثة
     current_time_str = datetime.utcnow().strftime('%I:%M %p')
