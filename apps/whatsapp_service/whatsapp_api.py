@@ -306,4 +306,4 @@ def logs_dashboard():
 
 @whatsapp_bp.route('/settings-view', methods=['GET'])
 def settings_dashboard():
-    return render_template('admin/whatsapp_settings.html'
+    return render_template('admin/whatsapp_settings.html')
