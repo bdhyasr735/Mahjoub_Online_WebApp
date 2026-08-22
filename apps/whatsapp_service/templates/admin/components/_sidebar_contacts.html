@@ -1,16 +1,12 @@
 <!-- apps/whatsapp_service/templates/admin/components/_sidebar_contacts.html -->
 <div class="sidebar-contacts d-flex flex-column h-100">
-  <!-- رأس الشريط -->
   <div class="sidebar-header p-3 border-bottom bg-white shadow-sm">
     <div class="d-flex justify-content-between align-items-center">
-      <h5 class="mb-0 fw-bold">
-        <i class="fas fa-comments text-primary me-2"></i> المحادثات النشطة
-      </h5>
+      <h5 class="mb-0 fw-bold"><i class="fas fa-comments text-primary me-2"></i> المحادثات النشطة</h5>
       <span class="badge bg-primary rounded-pill">{{ contacts|length }}</span>
     </div>
   </div>
 
-  <!-- شريط البحث -->
   <div class="search-box px-3 py-2 border-bottom">
     <div class="input-group input-group-sm">
       <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
@@ -18,17 +14,16 @@
     </div>
   </div>
 
-  <!-- قائمة جهات الاتصال -->
   <div class="contacts-list flex-grow-1 overflow-auto py-2">
     {% if contacts %}
       {% for contact in contacts %}
       <div class="contact-item px-3 py-2 d-flex align-items-center gap-2 border-bottom border-light {% if selected_contact and selected_contact.id == contact.id %}active{% endif %}"
            data-contact-id="{{ contact.id }}"
-           hx-get="{{ url_for('whatsapp_service.get_chat_area', contact_id=contact.id) }}"
+           hx-get="/admin/whatsapp/client/{{ contact.id }}/chat"
            hx-target="#chat-area-container"
            hx-swap="innerHTML"
            hx-trigger="click">
-        <div class="avatar-wrapper position-relative flex-shrink-0" style="width: 44px; height: 44px;">
+        <div class="avatar-wrapper position-relative flex-shrink-0" style="width:44px;height:44px;">
           <div class="avatar-placeholder rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:100%;height:100%;font-size:20px;">
             {{ (contact.name|first or contact.phone|first)|upper }}
           </div>
@@ -85,6 +80,16 @@
           }
         });
       });
+    }
+
+    // تأكد من أن أول عنصر نشط يحمّل الشات تلقائياً
+    const activeItem = document.querySelector('.contact-item.active');
+    if (activeItem) {
+      const contactId = activeItem.dataset.contactId;
+      if (contactId) {
+        htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
+        htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
+      }
     }
   });
 </script>
