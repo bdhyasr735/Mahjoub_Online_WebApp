@@ -313,20 +313,37 @@ def logs_dashboard():
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_dashboard():
-    settings = {
-        "phone_number_id": current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', ''),
-        "whatsapp_business_id": current_app.config.get('WHATSAPP_BUSINESS_ACCOUNT_ID', ''),
-        "access_token": current_app.config.get('WHATSAPP_ACCESS_TOKEN', ''),
-        "verify_token": get_verify_token()
-    }
-    saved_success = False
+    access_token = current_app.config.get('WHATSAPP_ACCESS_TOKEN', '') or os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
+    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', '') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
+    
+    # تحديد حالة الاتصال الفعلية بناءً على توفر المفاتيح المعيارية
+    is_connected = bool(access_token and phone_id)
+
     if request.method == 'POST':
-        saved_success = True
+        phone_number_id = request.form.get('phone_number_id')
+        business_account_id = request.form.get('business_account_id')
+        whatsapp_phone_number = request.form.get('whatsapp_phone_number')
+        api_version = request.form.get('api_version')
+        access_token_val = request.form.get('access_token')
+
+        if phone_number_id:
+            current_app.config['WHATSAPP_PHONE_NUMBER_ID'] = phone_number_id
+        if business_account_id:
+            current_app.config['WHATSAPP_BUSINESS_ACCOUNT_ID'] = business_account_id
+        if whatsapp_phone_number:
+            current_app.config['WHATSAPP_PHONE_NUMBER'] = whatsapp_phone_number
+        if api_version:
+            current_app.config['WHATSAPP_API_VERSION'] = api_version
+        if access_token_val:
+            current_app.config['WHATSAPP_ACCESS_TOKEN'] = access_token_val
+
+        flash("✅ تم حفظ إعدادات الربط وتحديث الحالة بنجاح!", "success")
+        return redirect(url_for('whatsapp_service.settings_dashboard'))
+
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='settings',
-        settings=settings,
-        saved_success=saved_success
+        is_connected=is_connected
     )
 
 
