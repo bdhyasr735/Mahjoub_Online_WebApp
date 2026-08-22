@@ -1,177 +1,330 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مركز المراسلات والدعم | منصة محجوب أونلاين</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-  <style> 
-    body { font-family: 'Tajawal', sans-serif; } 
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .contact-item { cursor: pointer; transition: background 0.15s; }
-    .contact-item:hover { background: #f8fafc; }
-    .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
-  </style>
-</head>
-<body class="bg-slate-100 h-screen overflow-hidden flex flex-col" dir="rtl">
+# coding: utf-8
+# 📂 apps/whatsapp_service/routes/whatsapp_controller.py
 
-  <!-- الشريط العلوي (Header) -->
-  <header class="bg-[#1a0b2e] border-b border-purple-900/40 h-16 px-6 flex items-center justify-between shrink-0 z-30 shadow-md">
-    <div class="flex items-center gap-3">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="محجوب أونلاين" class="h-9 w-auto object-contain bg-white/10 rounded-lg p-1 border border-[#D4AF37]/30">
-      <div class="flex items-center gap-2 border-r border-purple-800/60 pr-3">
-        <h1 class="text-xs sm:text-sm font-bold text-white tracking-wide">مركز المراسلات والدعم <span class="text-purple-300 font-normal mx-1">|</span> <span class="text-[#D4AF37]">منصة محجوب أونلاين</span></h1>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-        <span class="w-1.5 h-1.5 ml-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-        متصل بـ Meta API
-      </span>
-    </div>
-  </header>
+import os
+import logging
+from datetime import datetime, timedelta
+from flask import Blueprint, request, jsonify, render_template, current_app
+from sqlalchemy import or_
 
-  <!-- الحاوية الرئيسية -->
-  <div class="flex-1 flex flex-row overflow-hidden">
-    
-    <!-- المحتوى الرئيسي (الشات والأقسام الثلاثة) -->
-    <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
-      {% if active_tab == 'chat' or not active_tab %}
-        <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
-          
-          <!-- 1. قائمة المحادثات (يمين) -->
-          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm" id="sidebar-contacts-container">
-            {% include 'admin/components/_sidebar_contacts.html' %}
-          </div>
+try:
+    from ..whatsapp_api import send_text_message
+except ImportError:
+    from apps.whatsapp_service.whatsapp_api import send_text_message
 
-          <!-- 2. منطقة الدردشة (منتصف) -->
-          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
-            {% include 'admin/components/_chat_area.html' %}
-          </div>
+from apps.models.whatsapp_models import (
+    WhatsAppMessageLog,
+    WhatsAppWebhookEvent,
+    WhatsAppCustomerContact
+)
+from apps.extensions import db
 
-          <!-- 3. تفاصيل العميل (يسار) -->
-          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm" id="client-details-container">
-            {% include 'admin/components/_client_details.html' %}
-          </div>
+logger = logging.getLogger(__name__)
 
-        </div>
-      {% elif active_tab == 'logs' %}
-        <div class="p-6">
-          <h2 class="text-xl font-bold mb-4">سجل الرسائل</h2>
-          <table class="w-full bg-white rounded-lg shadow">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="p-3 text-right">#</th>
-                <th class="p-3 text-right">الاتجاه</th>
-                <th class="p-3 text-right">المرسل</th>
-                <th class="p-3 text-right">المستقبل</th>
-                <th class="p-3 text-right">المحتوى</th>
-                <th class="p-3 text-right">الحالة</th>
-                <th class="p-3 text-right">التوقيت</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for log in logs %}
-              <tr class="border-b">
-                <td class="p-3">{{ log.id }}</td>
-                <td class="p-3">{{ log.direction }}</td>
-                <td class="p-3">{{ log.sender_number }}</td>
-                <td class="p-3">{{ log.recipient_number }}</td>
-                <td class="p-3">{{ log.content|truncate(30) }}</td>
-                <td class="p-3">{{ log.status }}</td>
-                <td class="p-3">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% elif active_tab == 'settings' %}
-        <div class="p-6">
-          <h2 class="text-xl font-bold mb-4">إعدادات واتساب</h2>
-          <form method="POST" class="bg-white p-6 rounded-lg shadow">
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">رقم الهاتف المرتبط</label>
-              <input type="text" name="phone_number_id" value="{{ settings.phone_number_id }}" class="w-full p-2 border rounded">
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">معرف الأعمال</label>
-              <input type="text" name="whatsapp_business_id" value="{{ settings.whatsapp_business_id }}" class="w-full p-2 border rounded">
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">رمز الوصول</label>
-              <input type="password" name="access_token" value="{{ settings.access_token }}" class="w-full p-2 border rounded">
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-1">رمز التحقق</label>
-              <input type="text" name="verify_token" value="{{ settings.verify_token }}" class="w-full p-2 border rounded">
-            </div>
-            <button type="submit" class="bg-[#570575] text-white px-6 py-2 rounded-lg hover:bg-[#632C8F] transition">حفظ الإعدادات</button>
-            {% if saved_success %}
-            <div class="mt-4 p-3 bg-green-100 text-green-700 rounded">تم الحفظ بنجاح</div>
-            {% endif %}
-          </form>
-        </div>
-      {% endif %}
-    </main>
+basedir = os.path.abspath(os.path.dirname(__file__))
+template_dir = os.path.abspath(os.path.join(basedir, '../templates'))
 
-    <!-- القائمة الجانبية للأيقونات (أقصى اليسار) -->
-    <aside class="w-20 bg-[#1a0b2e] flex flex-col items-center justify-between py-6 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
-      <div class="flex flex-col items-center gap-6 w-full">
-        <div class="w-12 h-12 rounded-2xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center p-1 shadow-md">
-          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="Logo" class="w-full h-full object-contain rounded-xl">
-        </div>
-        <div class="w-10 h-[1px] bg-purple-900/60"></div>
-        <div class="flex flex-col gap-3 w-full px-3">
-          <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' or not active_tab else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-            <span class="absolute top-2 left-3 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#1a0b2e]"></span>
-          </a>
-          <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
-          </a>
-        </div>
-      </div>
-      <div class="w-full px-3">
-        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
-        </a>
-      </div>
-    </aside>
-  </div>
+whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder=template_dir)
 
-  <script>
-    document.addEventListener('htmx:afterSwap', function(evt) {
-      if (evt.detail.target.id === 'sidebar-contacts-container') {
-        const activeItem = document.querySelector('.contact-item.active');
-        if (activeItem) {
-          const contactId = activeItem.dataset.contactId;
-          if (contactId) {
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
-          }
-        }
-      }
-    });
 
-    document.addEventListener('DOMContentLoaded', function() {
-      const activeItem = document.querySelector('.contact-item.active');
-      if (!activeItem) {
-        const firstItem = document.querySelector('.contact-item');
-        if (firstItem) {
-          firstItem.classList.add('active');
-          const contactId = firstItem.dataset.contactId;
-          if (contactId) {
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
-          }
-        }
-      }
-    });
-  </script>
-</body>
-</html>
+def get_verify_token():
+    try:
+        return current_app.config.get('WHATSAPP_VERIFY_TOKEN') or os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
+    except RuntimeError:
+        return os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
+
+
+# =============================================================================
+# 1. WEBHOOK (GET + POST)
+# =============================================================================
+
+@whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
+@whatsapp_bp.route('/webhook-admin', methods=['GET', 'POST'])
+@whatsapp_bp.route('/admin/whatsapp/webhook', methods=['GET', 'POST'])
+def direct_webhook():
+    if request.method == 'GET':
+        return verify_webhook()
+    return handle_webhook()
+
+
+def verify_webhook():
+    mode = request.args.get('hub.mode')
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    verify_token = get_verify_token()
+    if mode == 'subscribe' and token == verify_token:
+        return str(challenge), 200
+    elif challenge and (token == verify_token or not token):
+        return str(challenge), 200
+    return "Verification token mismatch", 403
+
+
+def handle_webhook():
+    data = request.get_json(silent=True) or {}
+    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
+
+    try:
+        entries = data.get('entry', [])
+        for entry in entries:
+            for change in entry.get('changes', []):
+                value = change.get('value', {})
+                if 'messages' in value:
+                    for msg in value['messages']:
+                        sender = msg.get('from')
+                        msg_type = msg.get('type', 'text')
+                        wamid = msg.get('id')
+                        if msg_type == 'text':
+                            text = msg.get('text', {}).get('body', '')
+                        else:
+                            text = f'[{msg_type} ملف]'
+                        contacts_list = value.get('contacts', [])
+                        customer_name = f"عميل ({sender})"
+                        if contacts_list:
+                            profile_name = contacts_list[0].get('profile', {}).get('name')
+                            if profile_name:
+                                customer_name = profile_name
+
+                        # حفظ الرسالة
+                        log_entry = WhatsAppMessageLog(
+                            wamid=wamid,
+                            direction='inbound',
+                            sender_number=sender,
+                            recipient_number=phone_id,
+                            message_type=msg_type,
+                            content=text,
+                            status='received'
+                        )
+                        db.session.add(log_entry)
+
+                        # تحديث أو إنشاء جهة اتصال
+                        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
+                        if contact:
+                            contact.name = customer_name if not contact.name.startswith("عميل (") else contact.name
+                            contact.last_message = text
+                            contact.last_timestamp = datetime.utcnow()
+                            contact.unread_count = (contact.unread_count or 0) + 1
+                        else:
+                            new_contact = WhatsAppCustomerContact(
+                                phone=sender,
+                                name=customer_name,
+                                last_message=text,
+                                last_timestamp=datetime.utcnow(),
+                                unread_count=1
+                            )
+                            db.session.add(new_contact)
+                        db.session.commit()
+
+                elif 'statuses' in value:
+                    for st in value['statuses']:
+                        wamid = st.get('id')
+                        status = st.get('status')
+                        if wamid:
+                            msg_log = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+                            if msg_log:
+                                msg_log.status = status
+                                db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Webhook error: {e}")
+
+    return jsonify({"status": "EVENT_RECEIVED"}), 200
+
+
+# =============================================================================
+# 2. DASHBOARD (الصفحة الرئيسية)
+# =============================================================================
+
+@whatsapp_bp.route('/dashboard')
+def chat_dashboard():
+    """عرض لوحة التحكم الرئيسية مع جميع جهات الاتصال وأول عميل محدد"""
+    contacts = db.session.query(WhatsAppCustomerContact).order_by(
+        WhatsAppCustomerContact.last_timestamp.desc()
+    ).all()
+
+    # تعيين حالة الاتصال (online/offline)
+    for contact in contacts:
+        if contact.last_timestamp:
+            diff = datetime.utcnow() - contact.last_timestamp
+            contact.is_online = diff < timedelta(minutes=10)
+        else:
+            contact.is_online = False
+
+    selected_contact = contacts[0] if contacts else None
+    messages = []
+    if selected_contact:
+        messages = db.session.query(WhatsAppMessageLog).filter(
+            or_(
+                WhatsAppMessageLog.sender_number == selected_contact.phone,
+                WhatsAppMessageLog.recipient_number == selected_contact.phone
+            )
+        ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
+
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='chat',
+        contacts=contacts,
+        selected_contact=selected_contact,
+        messages=messages
+    )
+
+
+# =============================================================================
+# 3. HTMX ENDPOINTS (لتحديث الأجزاء ديناميكياً)
+# =============================================================================
+
+@whatsapp_bp.route('/client/<int:contact_id>/chat')
+def get_chat_area(contact_id):
+    """إرجاع مكون الشات فقط (للاستخدام مع HTMX)"""
+    contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
+    if not contact:
+        return "العميل غير موجود", 404
+
+    # تحديث حالة القراءة
+    if contact.unread_count > 0:
+        contact.unread_count = 0
+        db.session.commit()
+
+    messages = db.session.query(WhatsAppMessageLog).filter(
+        or_(
+            WhatsAppMessageLog.sender_number == contact.phone,
+            WhatsAppMessageLog.recipient_number == contact.phone
+        )
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
+
+    return render_template('admin/components/_chat_area.html', contact=contact, messages=messages)
+
+
+@whatsapp_bp.route('/client/<int:contact_id>/details')
+def get_client_details(contact_id):
+    """إرجاع مكون تفاصيل العميل فقط (للاستخدام مع HTMX)"""
+    contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
+    if not contact:
+        return "العميل غير موجود", 404
+    return render_template('admin/components/_client_details.html', contact=contact)
+
+
+@whatsapp_bp.route('/refresh_contacts')
+def refresh_contacts():
+    """تحديث قائمة جهات الاتصال في الشريط الجانبي"""
+    contacts = db.session.query(WhatsAppCustomerContact).order_by(
+        WhatsAppCustomerContact.last_timestamp.desc()
+    ).all()
+    for contact in contacts:
+        if contact.last_timestamp:
+            diff = datetime.utcnow() - contact.last_timestamp
+            contact.is_online = diff < timedelta(minutes=10)
+        else:
+            contact.is_online = False
+    return render_template('admin/components/_sidebar_contacts.html', contacts=contacts)
+
+
+@whatsapp_bp.route('/send_message', methods=['POST'])
+def send_message_htmx():
+    """إرسال رسالة وتحديث القائمة الجانبية (HTMX)"""
+    phone = request.form.get('phone')
+    message = request.form.get('message')
+    if not phone or not message:
+        return "بيانات ناقصة", 400
+
+    # إرسال عبر ميتا
+    success, response_data = send_text_message(phone, message)
+
+    # تحديث آخر رسالة في جهة الاتصال
+    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+    if contact:
+        contact.last_message = message
+        contact.last_timestamp = datetime.utcnow()
+        db.session.commit()
+
+    # إعادة تحميل القائمة الجانبية
+    return refresh_contacts()
+
+
+# =============================================================================
+# 4. API ENDPOINTS (للاستخدام مع Fetch)
+# =============================================================================
+
+@whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
+def get_conversation_data(phone):
+    """جلب رسائل عميل معين بصيغة JSON (للاستخدام مع JavaScript)"""
+    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+    if contact and contact.unread_count > 0:
+        contact.unread_count = 0
+        db.session.commit()
+
+    messages = db.session.query(WhatsAppMessageLog).filter(
+        or_(
+            WhatsAppMessageLog.sender_number == phone,
+            WhatsAppMessageLog.recipient_number == phone
+        )
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+
+    messages_data = []
+    for m in messages:
+        ts = getattr(m, 'timestamp', None)
+        messages_data.append({
+            "id": m.id,
+            "direction": m.direction,
+            "message_body": m.content,
+            "message_type": getattr(m, 'message_type', 'text'),
+            "timestamp": ts.strftime('%Y-%m-%d %H:%M') if ts else '',
+            "status": m.status
+        })
+
+    client_info = {
+        "name": contact.name if contact else phone,
+        "phone": phone
+    }
+
+    return jsonify({
+        "success": True,
+        "client": client_info,
+        "messages": messages_data
+    })
+
+
+@whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
+def send_message_api():
+    """إرسال رسالة عبر JSON (للاستخدام مع JavaScript)"""
+    data = request.get_json(silent=True) or {}
+    phone = data.get('phone')
+    message = data.get('message')
+    if not phone or not message:
+        return jsonify({"success": False, "error": "بيانات ناقصة"}), 400
+
+    success, response_data = send_text_message(phone, message)
+    return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
+
+
+# =============================================================================
+# 5. OTHER TABS (Logs & Settings)
+# =============================================================================
+
+@whatsapp_bp.route('/logs')
+def logs_dashboard():
+    logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).limit(150).all()
+    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
+
+
+@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
+def settings_dashboard():
+    settings = {
+        "phone_number_id": current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', ''),
+        "whatsapp_business_id": current_app.config.get('WHATSAPP_BUSINESS_ACCOUNT_ID', ''),
+        "access_token": current_app.config.get('WHATSAPP_ACCESS_TOKEN', ''),
+        "verify_token": get_verify_token()
+    }
+    saved_success = False
+    if request.method == 'POST':
+        saved_success = True
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='settings',
+        settings=settings,
+        saved_success=saved_success
+    )
+
+
+@whatsapp_bp.route('/ping')
+def ping():
+    return jsonify({"status": "active", "service": "WhatsApp Service", "version": "1.0"})
