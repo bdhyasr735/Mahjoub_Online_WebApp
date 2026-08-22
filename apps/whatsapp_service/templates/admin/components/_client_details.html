@@ -6,7 +6,7 @@
       {{ (contact.name|first or contact.phone|first)|upper }}
     </div>
     <div>
-      <h3 class="text-base font-bold text-slate-800">{{ contact.name|default:contact.phone }}</h3>
+      <h3 class="text-base font-bold text-slate-800">{{ contact.name|default(contact.phone) }}</h3>
       <p class="text-xs text-slate-500">{{ contact.phone }}</p>
       <span class="text-[10px] {% if contact.is_online %}text-emerald-600{% else %}text-slate-400{% endif %}">
         {% if contact.is_online %}🟢 متصل الآن{% else %}⚪ غير متصل{% endif %}
@@ -21,7 +21,7 @@
     </div>
     <div class="flex justify-between">
       <span class="text-slate-500">الطلبات</span>
-      <span class="text-slate-700">{{ contact.orders|default([])|join(', ') or 'لا يوجد' }}</span>
+      <span class="text-slate-700">{{ contact.orders|join(', ') if contact.orders else 'لا يوجد' }}</span>
     </div>
     <div class="flex justify-between">
       <span class="text-slate-500">الرسائل غير المقروءة</span>
