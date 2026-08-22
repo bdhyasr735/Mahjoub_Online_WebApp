@@ -1,3 +1,4 @@
+<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_dashboard.html -->
 {% extends "admin/admin_base.html" %}
 
 {% block title %}مركز مراسلات واتساب | محجوب أونلاين{% endblock %}
@@ -29,8 +30,8 @@
     }
 
     .chat-contact-item:hover, .chat-contact-item.active {
-        background-color: #f8f9fa;
-        border-right: 4px solid var(--wa-green);
+        background-color: rgba(99, 44, 143, 0.05);
+        border-right: 4px solid var(--brand-purple);
     }
 
     .chat-messages-container {
@@ -71,31 +72,54 @@
     .btn-brand-tab.active, .btn-brand-tab:hover {
         background-color: var(--brand-purple);
         color: white;
+        border-color: var(--brand-purple);
+    }
+
+    /* تحسينات التجاوب للجوال */
+    @media (max-width: 768px) {
+        .chat-sidebar {
+            height: 250px;
+        }
+        .chat-messages-container {
+            height: 350px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-0">
+<div class="container-fluid px-0" dir="rtl">
     <!-- شريط التنقل الفرعي الخاص بالواتساب -->
-    <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
-        <div>
-            <h2 class="h4 fw-bold text-dark mb-1">
-                <i class="fab fa-whatsapp text-success me-2"></i> مركز مراسلات واتساب
-            </h2>
-            <p class="text-muted small mb-0">إدارة محادثات العملاء وربط إشعارات السعاة والطلبات سحابياً</p>
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-3 border-bottom gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <!-- الشعار / الأيقونة الخاصة بمحجوب أونلاين -->
+            <div class="bg-white p-1 rounded-circle shadow-sm border d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px;">
+                <img src="https://mahjoub.online/cart?srsltid=AfmBOorDcr0r05SAvWbxPPxpbniXhoc7m6fWXo02tpkoGwwJaH71M0N7" alt="شعار محجوب أونلاين" class="w-100 h-100 rounded-circle" style="object-fit: contain;">
+            </div>
+            <div>
+                <h2 class="h4 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <span>مركز مراسلات واتساب</span>
+                    <i class="fab fa-whatsapp text-success"></i>
+                </h2>
+                <p class="text-muted small mb-0">إدارة محادثات العملاء وربط إشعارات السعاة والطلبات سحابياً</p>
+            </div>
         </div>
         
-        <div class="btn-group shadow-sm" role="group">
-            <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="btn {{ 'btn-success text-white' if active_tab == 'chat' else 'btn-outline-success' }}">
-                <i class="fas fa-comments me-1"></i> المحادثات
-            </a>
-            <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="btn {{ 'btn-success text-white' if active_tab == 'logs' else 'btn-outline-success' }}">
-                <i class="fas fa-database me-1"></i> السجلات
-            </a>
-            <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="btn {{ 'btn-success text-white' if active_tab == 'settings' else 'btn-outline-success' }}">
-                <i class="fas fa-cog me-1"></i> الإعدادات
-            </a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold border border-success-subtle">
+                <i class="fas fa-circle fa-xs me-1 text-success"></i> متصل بـ Meta API
+            </span>
+            <div class="btn-group shadow-sm" role="group">
+                <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="btn {{ 'btn-brand-tab active' if active_tab == 'chat' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-comments me-1"></i> المحادثات
+                </a>
+                <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="btn {{ 'btn-brand-tab active' if active_tab == 'logs' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-database me-1"></i> السجلات
+                </a>
+                <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="btn {{ 'btn-brand-tab active' if active_tab == 'settings' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-cog me-1"></i> الإعدادات
+                </a>
+            </div>
         </div>
     </div>
 
@@ -104,13 +128,18 @@
         
         {% if active_tab == 'chat' %}
             <div class="row g-0">
-                <!-- قائمة جهات الاتصال -->
-                <div class="col-md-4 col-lg-3 chat-sidebar p-3">
-                    <h6 class="fw-bold text-muted mb-3"><i class="fas fa-address-book me-1"></i> العملاء المتواصلون</h6>
+                <!-- قائمة جهات الاتصال والبحث -->
+                <div class="col-md-4 col-lg-3 chat-sidebar p-3 bg-light">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="contactSearchInput" class="form-control bg-white border-0 shadow-none" placeholder="بحث عن عميل...">
+                    </div>
+                    <h6 class="fw-bold text-muted mb-2 small px-1"><i class="fas fa-address-book me-1"></i> العملاء المتواصلون</h6>
                     {% if contacts %}
-                        <div class="list-group list-group-flush">
+                        <div class="list-group list-group-flush" id="contactsList">
                             {% for contact in contacts %}
-                                <div class="list-group-item list-group-item-action chat-contact-item rounded-3 mb-2 p-2 border" 
+                                <div class="list-group-item list-group-item-action chat-contact-item rounded-3 mb-2 p-2 border bg-white shadow-sm contact-row" 
+                                     data-search="{{ contact.name or 'عميل محجوب' }} {{ contact.phone }}"
                                      onclick="loadChat('{{ contact.phone }}', '{{ contact.name or 'عميل محجوب' }}')">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h6 class="mb-1 fw-bold text-dark small">{{ contact.name or 'عميل محجوب' }}</h6>
@@ -132,9 +161,9 @@
 
                 <!-- صندوق المحادثة النشطة -->
                 <div class="col-md-8 col-lg-9 d-flex flex-column" style="height: 600px;">
-                    <div id="chat-header" class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+                    <div id="chat-header" class="p-3 bg-white border-bottom d-flex align-items-center justify-content-between">
                         <span id="active-chat-title" class="fw-bold text-dark"><i class="fab fa-whatsapp text-success me-2"></i> اختر عميلاً من القائمة لبدء المحادثة</span>
-                        <span id="active-chat-phone" class="badge bg-secondary"></span>
+                        <span id="active-chat-phone" class="badge bg-purple text-white px-3 py-2 rounded-pill"></span>
                     </div>
 
                     <!-- رسائل الشات -->
@@ -146,11 +175,12 @@
                     </div>
 
                     <!-- حقل إرسال رسالة -->
-                    <div class="p-3 bg-light border-top">
-                        <form id="send-message-form" class="d-flex gap-2" onsubmit="sendCustomerMessage(event)">
+                    <div class="p-3 bg-white border-top">
+                        <form id="send-message-form" class="d-flex gap-2 align-items-center" onsubmit="sendCustomerMessage(event)">
                             <input type="hidden" id="target-phone" value="">
-                            <input type="text" id="message-input" class="form-control" placeholder="اكتب رسالتك للعميل هنا..." required disabled>
-                            <button type="submit" id="send-btn" class="btn btn-success px-4" disabled>
+                            <input type="text" id="orderIdInput" class="form-control form-control-sm rounded-pill px-3" placeholder="رقم الطلب (اختياري مثل ORD-8821)" style="max-width: 200px;">
+                            <input type="text" id="message-input" class="form-control rounded-pill px-3" placeholder="اكتب رسالتك للعميل هنا..." required disabled>
+                            <button type="submit" id="send-btn" class="btn btn-purple rounded-circle text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; min-width: 42px;" disabled>
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </form>
@@ -160,47 +190,68 @@
 
         {% elif active_tab == 'logs' %}
             <div class="p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-database text-success me-2"></i> سجلات نظام الرسائل والطلبات</h5>
-                    <span class="badge bg-light text-dark border">آخر 100 سجل</span>
+                <!-- فلاتر وبحث السجلات المتقدمة -->
+                <div class="row g-3 align-items-center mb-4">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="logSearchInput" class="form-control bg-light border-0" placeholder="بحث برقم الطلب، الهاتف، أو محتوى الرسالة...">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="statusFilter" class="form-select bg-light border-0">
+                            <option value="">جميع الحالات (All Statuses)</option>
+                            <option value="received">مستلمة (received)</option>
+                            <option value="sent">تم الإرسال (sent)</option>
+                            <option value="delivered">تم التسليم (delivered)</option>
+                            <option value="read">تمت القراءة (read)</option>
+                            <option value="failed">فشلت (failed)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 text-md-end">
+                        <span class="badge bg-purple-soft text-purple px-3 py-2 fw-semibold border border-purple-subtle">إجمالي السجلات: <span id="logsCount">{{ logs|length }}</span></span>
+                    </div>
                 </div>
+
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle small">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle small mb-0" id="logsTable">
+                        <thead class="table-light text-muted">
                             <tr>
-                                <th>#ID</th>
+                                <th class="py-3 px-3">#ID</th>
                                 <th>الاتجاه</th>
                                 <th>المرسل</th>
                                 <th>المستقبل</th>
                                 <th>المحتوى</th>
                                 <th>الحالة</th>
-                                <th>التاريخ والوقت</th>
+                                <th class="text-end px-3">التاريخ والوقت</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if logs %}
                                 {% for log in logs %}
-                                <tr>
-                                    <td>{{ log.id }}</td>
+                                <tr class="log-row" data-status="{{ log.status }}" data-search="{{ log.id }} {{ log.sender_number }} {{ log.recipient_number }} {{ log.content }} {{ log.order_id }}">
+                                    <td class="px-3 fw-bold">{{ log.id }}</td>
                                     <td>
                                         {% if log.direction == 'inbound' %}
-                                            <span class="badge bg-info text-dark">وارد 📥</span>
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">وارد 📥</span>
                                         {% else %}
-                                            <span class="badge bg-success">صادر 📤</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">صادر 📤</span>
                                         {% endif %}
                                     </td>
-                                    <td dir="ltr" class="text-end">{{ log.sender_number }}</td>
-                                    <td dir="ltr" class="text-end">{{ log.recipient_number }}</td>
+                                    <td dir="ltr" class="text-end text-muted">{{ log.sender_number }}</td>
+                                    <td dir="ltr" class="text-end text-muted">{{ log.recipient_number }}</td>
                                     <td class="text-truncate" style="max-width: 250px;" title="{{ log.content }}">{{ log.content }}</td>
                                     <td>
-                                        <span class="badge bg-secondary">{{ log.status }}</span>
+                                        <span class="badge {% if log.status == 'read' %}bg-success{% elif log.status == 'delivered' %}bg-primary{% elif log.status == 'sent' %}bg-info{% elif log.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ log.status }}
+                                        </span>
                                     </td>
-                                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '-' }}</td>
+                                    <td class="text-end px-3 text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '-' }}</td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="7" class="text-center py-4 text-muted">لا توجد سجلات مسجلة في قاعدة البيانات بعد.</td>
+                                    <td colspan="7" class="text-center py-5 text-muted">لا توجد سجلات مسجلة في قاعدة البيانات بعد.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -211,7 +262,7 @@
         {% elif active_tab == 'settings' %}
             <div class="p-5" style="max-width: 700px; margin: 0 auto;">
                 <div class="text-center mb-4">
-                    <div class="bg-light text-success rounded-circle d-inline-flex p-3 mb-2 shadow-sm">
+                    <div class="bg-light text-purple rounded-circle d-inline-flex p-3 mb-2 shadow-sm">
                         <i class="fas fa-sliders-h fa-2x"></i>
                     </div>
                     <h4 class="fw-bold">إعدادات ربط Meta Cloud API</h4>
@@ -222,21 +273,21 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">معرف رقم الهاتف (Phone Number ID)</label>
-                        <input type="text" name="phone_number_id" class="form-control" value="{{ settings.phone_number_id }}" placeholder="مثال: 105938...">
+                        <input type="text" name="phone_number_id" class="form-control bg-light border-0" value="{{ settings.phone_number_id }}" placeholder="مثال: 105938...">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">معرف الحساب التجاري (WhatsApp Business Account ID)</label>
-                        <input type="text" name="whatsapp_business_id" class="form-control" value="{{ settings.whatsapp_business_id }}" placeholder="مثال: 102938...">
+                        <input type="text" name="whatsapp_business_id" class="form-control bg-light border-0" value="{{ settings.whatsapp_business_id }}" placeholder="مثال: 102938...">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">رمز الدخول المؤقت / الدائم (Access Token)</label>
-                        <textarea name="access_token" class="form-control" rows="3" placeholder="EAAG...">{{ settings.access_token }}</textarea>
+                        <textarea name="access_token" class="form-control bg-light border-0" rows="3" placeholder="EAAG...">{{ settings.access_token }}</textarea>
                     </div>
                     <div class="mb-4">
                         <label class="form-label fw-bold small">رمز التحقق للـ Webhook (Verify Token)</label>
-                        <input type="text" name="verify_token" class="form-control" value="{{ settings.verify_token }}">
+                        <input type="text" name="verify_token" class="form-control bg-light border-0" value="{{ settings.verify_token }}">
                     </div>
-                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
+                    <button type="submit" class="btn btn-purple w-100 py-2 fw-bold text-white">
                         <i class="fas fa-save me-1"></i> حفظ التغييرات والإعدادات
                     </button>
                 </form>
@@ -247,80 +298,133 @@
 
 {% block extra_js %}
 <script>
-    function loadChat(phone, name) {
-        document.getElementById('active-chat-title').innerHTML = `<i class="fas fa-user-circle text-success me-2"></i> ${name}`;
-        document.getElementById('active-chat-phone').innerText = phone;
-        document.getElementById('target-phone').value = phone;
-        
-        document.getElementById('message-input').removeAttribute('disabled');
-        document.getElementById('send-btn').removeAttribute('disabled');
-        document.getElementById('message-input').focus();
-
-        const fetchUrl = "{{ url_for('whatsapp_service.get_customer_messages', phone='REPLACE_PHONE') }}".replace('REPLACE_PHONE', phone);
-
-        fetch(fetchUrl)
-            .then(res => res.json())
-            .then(data => {
-                const container = document.getElementById('chat-messages');
-                container.innerHTML = '';
-                
-                if(data.success && data.messages.length > 0) {
-                    data.messages.forEach(msg => {
-                        const isOutbound = msg.direction === 'outbound';
-                        const bubbleClass = isOutbound ? 'message-outbound ms-auto' : 'message-inbound me-auto';
-                        
-                        const html = `
-                            <div class="message-bubble ${bubbleClass}">
-                                <div class="content">${msg.content}</div>
-                                <div class="text-end mt-1" style="font-size: 0.65rem; color: #666;">
-                                    ${msg.timestamp} 
-                                    ${isOutbound ? `<span class="ms-1">${msg.status === 'read' ? '✓✓' : '✓'}</span>` : ''}
-                                </div>
-                            </div>
-                        `;
-                        container.insertAdjacentHTML('beforeend', html);
-                    });
-                    container.scrollTop = container.scrollHeight;
-                } else {
-                    container.innerHTML = '<div class="text-center text-muted my-auto small">لا توجد رسائل سابقة مع هذا العميل. ابدأ المحادثة الآن!</div>';
-                }
-            })
-            .catch(err => {
-                console.error('Error loading messages:', err);
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. تفعيل البحث الفوري في قائمة العملاء
+    const contactSearchInput = document.getElementById('contactSearchInput');
+    if (contactSearchInput) {
+        contactSearchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('.contact-row').forEach(row => {
+                const text = row.getAttribute('data-search').toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
             });
+        });
     }
 
-    function sendCustomerMessage(event) {
-        event.preventDefault();
-        const phone = document.getElementById('target-phone').value;
-        const messageInput = document.getElementById('message-input');
-        const message = messageInput.value.trim();
+    // 2. تفعيل البحث والفلاتر في جدول السجلات
+    const logSearchInput = document.getElementById('logSearchInput');
+    const statusFilter = document.getElementById('statusFilter');
 
-        if (!phone || !message) return;
+    function filterLogs() {
+        if (!logSearchInput && !statusFilter) return;
+        const query = logSearchInput ? logSearchInput.value.toLowerCase() : '';
+        const status = statusFilter ? statusFilter.value.toLowerCase() : '';
+        let visibleCount = 0;
 
-        const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
+        document.querySelectorAll('.log-row').forEach(row => {
+            const text = row.getAttribute('data-search').toLowerCase();
+            const rowStatus = row.getAttribute('data-status').toLowerCase();
 
-        fetch(sendUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}' 
-            },
-            body: JSON.stringify({ recipient_number: phone, message: message })
-        })
+            const matchesQuery = text.includes(query);
+            const matchesStatus = !status || rowStatus === status;
+
+            if (matchesQuery && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const logsCountElem = document.getElementById('logsCount');
+        if (logsCountElem) logsCountElem.textContent = visibleCount;
+    }
+
+    if (logSearchInput) logSearchInput.addEventListener('input', filterLogs);
+    if (statusFilter) statusFilter.addEventListener('change', filterLogs);
+});
+
+function loadChat(phone, name) {
+    document.getElementById('active-chat-title').innerHTML = `<i class="fas fa-user-circle text-purple me-2"></i> ${name}`;
+    document.getElementById('active-chat-phone').innerText = phone;
+    document.getElementById('target-phone').value = phone;
+    
+    document.getElementById('message-input').removeAttribute('disabled');
+    document.getElementById('send-btn').removeAttribute('disabled');
+    document.getElementById('message-input').focus();
+
+    const fetchUrl = "{{ url_for('whatsapp_service.get_customer_messages', phone='REPLACE_PHONE') }}".replace('REPLACE_PHONE', phone);
+
+    fetch(fetchUrl)
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                messageInput.value = '';
-                loadChat(phone, document.getElementById('active-chat-title').innerText);
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
+            
+            if(data.success && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    const isOutbound = msg.direction === 'outbound';
+                    const bubbleClass = isOutbound ? 'message-outbound ms-auto' : 'message-inbound me-auto';
+                    
+                    const html = `
+                        <div class="message-bubble ${bubbleClass}">
+                            <div class="content">${msg.content}</div>
+                            <div class="d-flex justify-content-end align-items-center gap-1 mt-1" style="font-size: 0.65rem; color: #666;">
+                                ${msg.timestamp} 
+                                ${isOutbound ? `<span class="ms-1 fw-bold ${msg.status === 'read' ? 'text-primary' : 'text-muted'}">${msg.status === 'read' ? '✓✓' : '✓'}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+                container.scrollTop = container.scrollHeight;
             } else {
-                alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
+                container.innerHTML = '<div class="text-center text-muted my-auto small">لا توجد رسائل سابقة مع هذا العميل. ابدأ المحادثة الآن!</div>';
             }
         })
         .catch(err => {
-            console.error('Error sending message:', err);
+            console.error('Error loading messages:', err);
         });
-    }
+}
+
+function sendCustomerMessage(event) {
+    event.preventDefault();
+    const phone = document.getElementById('target-phone').value;
+    const messageInput = document.getElementById('message-input');
+    const orderIdInput = document.getElementById('orderIdInput');
+    const message = messageInput.value.trim();
+    const orderId = orderIdInput ? orderIdInput.value.trim() : '';
+
+    if (!phone || !message) return;
+
+    const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
+
+    fetch(sendUrl, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}' 
+        },
+        body: JSON.stringify({ 
+            recipient_number: phone, 
+            message: message,
+            order_id: orderId 
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            messageInput.value = '';
+            if (orderIdInput) orderIdInput.value = '';
+            loadChat(phone, document.getElementById('active-chat-title').innerText.replace(/<[^>]*>?/gm, '').trim());
+        } else {
+            alert('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'));
+        }
+    })
+    .catch_err(err => {
+        console.error('Error sending message:', err);
+    });
+}
 </script>
 {% endblock %}
 {% endblock %}
