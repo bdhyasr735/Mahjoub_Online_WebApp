@@ -1,10 +1,11 @@
+<!-- 📂 apps/whatsapp_service/templates/admin/chat_view.html -->
 <!-- Chat View Jinja2 Component with Broadcast / Bulk Messaging -->
 <div class="flex-1 flex overflow-hidden w-full h-full bg-slate-100" x-data="{ showBroadcastModal: false }">
   
   <!-- Contacts list sidebar (ثابت ومحكوم التمرير داخلياً) -->
   <div class="w-80 md:w-96 bg-white border-l border-slate-200 flex flex-col h-full shrink-0 overflow-hidden">
     <div class="p-3.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-white">
-      <h2 class="text-xs font-bold text-slate-800">المحادثات النشطة</h2>
+      <h2 class="text-xs font-bold text-slate-800">👥 المحادثات النشطة</h2>
       <div class="flex items-center gap-1.5">
         <!-- زر الإرسال الجماعي (Broadcast) -->
         <button 
@@ -16,7 +17,7 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
           </svg>
-          <span>إرسال جماعي</span>
+          <span>📢 إرسال جماعي</span>
         </button>
 
         <button 
@@ -24,14 +25,14 @@
           onclick="document.getElementById('newChatModal')?.classList.remove('hidden')"
           class="bg-[#570575] hover:bg-[#632C8F] text-white text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
         >
-          <span>+ محادثة</span>
+          <span>➕ محادثة</span>
         </button>
       </div>
     </div>
 
     <!-- Search filter -->
     <div class="p-2 border-b border-slate-100 bg-slate-50 shrink-0">
-      <input type="text" placeholder="بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#570575]">
+      <input type="text" placeholder="🔍 بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#570575]">
     </div>
 
     <!-- Contact items (تمرير داخلي مستقل للقائمة) -->
@@ -39,19 +40,19 @@
       {% for contact in contacts|default([]) %}
       <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-3.5 hover:bg-purple-50/40 cursor-pointer transition-colors {{ 'bg-purple-50/80 border-r-4 border-[#570575]' if current_contact and current_contact.id == contact.id }}">
         <div class="flex justify-between items-start font-bold text-xs text-slate-900">
-          <span class="truncate">{{ contact.name or contact.phone }}</span>
-          <span class="text-[10px] text-slate-400 font-mono">{{ contact.phone }}</span>
+          <span class="truncate">👤 {{ contact.name or contact.phone }}</span>
+          <span class="text-[10px] text-slate-400 font-mono" dir="ltr">📞 {{ contact.phone }}</span>
         </div>
-        <p class="text-xs text-slate-500 truncate mt-1">{{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
+        <p class="text-xs text-slate-500 truncate mt-1">💬 {{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
         <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-          <span>{{ contact.status_label if contact.status_label else 'نشط' }}</span>
+          <span>🟢 {{ contact.status_label if contact.status_label else 'نشط' }}</span>
           {% if contact.unread_count and contact.unread_count > 0 %}
           <span class="bg-[#570575] text-white font-bold w-4 h-4 rounded-full flex items-center justify-center text-[9px]">{{ contact.unread_count }}</span>
           {% endif %}
         </div>
       </a>
       {% else %}
-      <div class="p-8 text-center text-slate-400 text-xs">لا توجد محادثات نشطة حالياً</div>
+      <div class="p-8 text-center text-slate-400 text-xs">📭 لا توجد محادثات نشطة حالياً</div>
       {% endfor %}
     </div>
   </div>
@@ -64,7 +65,7 @@
     <div class="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0 z-10">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-purple-50 text-[#570575] flex items-center justify-center font-bold text-sm border border-purple-200 shrink-0">
-          {{ current_contact.name[0] if current_contact.name else 'ع' }}
+          {{ current_contact.name[0] if current_contact.name else '👤' }}
         </div>
         <div>
           <div class="flex items-center gap-2">
@@ -73,7 +74,10 @@
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="متصل الآن"></span>
             {% endif %}
           </div>
-          <span class="text-xs text-slate-500 font-mono" dir="ltr">{{ current_contact.phone }}</span>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-xs text-slate-500 font-mono" dir="ltr">📞 {{ current_contact.phone }}</span>
+            <span class="text-[11px] text-slate-400">• 🕒 آخر ظهور: {{ current_contact.last_seen | default('غير متوفر') }}</span>
+          </div>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -81,7 +85,7 @@
           ⚡ قوالب الرد السريع
         </button>
         <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold">
-          متصل بـ Meta API
+          🟢 متصل بـ Meta API
         </span>
       </div>
     </div>
@@ -89,11 +93,11 @@
     <!-- Customer Orders (الطلبات المرتبطة - ثابت) -->
     {% if current_contact.orders %}
     <div class="bg-white border-b border-slate-100 p-2.5 flex items-center gap-2 overflow-x-auto shrink-0">
-      <span class="text-xs font-bold text-slate-500">الطلبات المرتبطة:</span>
+      <span class="text-xs font-bold text-slate-500">🛒 الطلبات المرتبطة:</span>
       {% for order in current_contact.orders %}
         <div class="border border-slate-200 bg-slate-50 rounded-xl px-3 py-1 text-xs flex items-center gap-2 shrink-0">
           <span class="font-bold font-mono text-slate-800">#{{ order.id }}</span>
-          <span class="text-[#570575] bg-purple-50 px-2 py-0.5 rounded-lg text-[10px] font-semibold">{{ order.status }}</span>
+          <span class="text-[#570575] bg-purple-50 px-2 py-0.5 rounded-lg text-[10px] font-semibold">📦 {{ order.status }}</span>
         </div>
       {% endfor %}
     </div>
@@ -102,37 +106,37 @@
     <!-- Messages Stream (منطقة التمرير الداخلي للرسائل فقط) -->
     <div id="messagesStream" class="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scroll-smooth">
       <div class="text-center my-2 shrink-0">
-        <span class="text-[11px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full font-medium">سجل المحادثة</span>
+        <span class="text-[11px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full font-medium">💬 سجل المحادثة</span>
       </div>
       {% for message in messages|default([]) %}
         <div class="max-w-md {{ 'self-start bg-white text-slate-800 border border-slate-200' if message.direction == 'inbound' else 'self-end bg-[#570575] text-white' }} p-3.5 rounded-2xl {{ 'rounded-tr-none' if message.direction == 'inbound' else 'rounded-tl-none' }} text-xs md:text-sm shadow-xs">
           
           {% if message.message_type == 'image' and message.media_url %}
             <div class="mb-2 rounded-xl overflow-hidden border border-black/10">
-              <img src="{{ message.media_url }}" alt="وسائط" class="max-h-48 w-full object-cover">
+              <img src="{{ message.media_url }}" alt="🖼️ وسائط" class="max-h-48 w-full object-cover">
             </div>
           {% endif %}
 
           <p class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
           <div class="text-[10px] {{ 'text-slate-400' if message.direction == 'inbound' else 'text-purple-200' }} mt-1.5 text-left font-mono">
-            {{ message.timestamp }}
+            🕒 {{ message.timestamp }}
           </div>
         </div>
       {% else %}
         <div class="text-center text-slate-400 text-xs my-auto">
-          لا توجد رسائل سابقة في هذه المحادثة.
+          📭 لا توجد رسائل سابقة في هذه المحادثة.
         </div>
       {% endfor %}
     </div>
 
-    <!-- Send Message Form (ثابت في الأسفل دائماً) -->
+    <!-- Send Message Form (ثابتใน الأسفل دائماً) -->
     <div class="p-3 md:p-4 bg-white border-t border-slate-200 shrink-0 z-10">
       <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="flex items-center gap-2">
         <input type="hidden" name="phone" value="{{ current_contact.phone }}">
         <input 
           type="text" 
           name="message" 
-          placeholder="اكتب رسالتك للعميل هنا..." 
+          placeholder="✍️ اكتب رسالتك للعميل هنا..." 
           class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
           required
           autocomplete="off"
@@ -141,7 +145,7 @@
           type="submit" 
           class="bg-[#570575] hover:bg-[#632C8F] text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
         >
-          إرسال
+          📤 إرسال
         </button>
       </form>
     </div>
@@ -154,7 +158,7 @@
           <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2z"/>
         </svg>
       </div>
-      <p class="font-bold text-slate-700">اختر عميلاً من القائمة لبدء المحادثة</p>
+      <p class="font-bold text-slate-700">👈 اختر عميلاً من القائمة لبدء المحادثة</p>
       <p class="text-xs text-slate-400">أو استخدم زر "إرسال جماعي" لبث عروض ورسائل لعدة عملاء</p>
     </div>
     {% endif %}
@@ -172,43 +176,43 @@
             </svg>
           </div>
           <div>
-            <h3 class="font-bold text-sm text-slate-900">إرسال رسائل جماعية (WhatsApp Broadcast)</h3>
+            <h3 class="font-bold text-sm text-slate-900">📢 إرسال رسائل جماعية (WhatsApp Broadcast)</h3>
             <p class="text-xs text-slate-500">إرسال حملة ترويجية أو إشعار عام للعملاء المسجلين في المتجر</p>
           </div>
         </div>
-        <button onclick="document.getElementById('broadcastModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer">✕</button>
+        <button onclick="document.getElementById('broadcastModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer">❌</button>
       </div>
 
       <form id="broadcastForm" onsubmit="submitBroadcastForm(event)" action="{{ url_for('whatsapp_service.send_bulk_broadcast') }}" method="POST" class="space-y-4 text-xs">
         
         <!-- الفئة المستهدفة -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">الفئة المستهدفة:</label>
+          <label class="block font-bold text-slate-700 mb-1">🎯 الفئة المستهدفة:</label>
           <select name="target_audience" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:border-[#570575]">
-            <option value="all">جميع العملاء المسجلين ({{ contacts|length if contacts else 0 }} عميل)</option>
-            <option value="active_orders">عملاء لديهم طلبات نشطة</option>
-            <option value="completed_orders">عملاء أتموا طلباتهم سابقاً</option>
-            <option value="custom_numbers">أرقام محددة يدوياً</option>
+            <option value="all">👥 جميع العملاء المسجلين ({{ contacts|length if contacts else 0 }} عميل)</option>
+            <option value="active_orders">📦 عملاء لديهم طلبات نشطة</option>
+            <option value="completed_orders">✅ عملاء أتموا طلباتهم سابقاً</option>
+            <option value="custom_numbers">🔢 أرقام محددة يدوياً</option>
           </select>
         </div>
 
         <!-- اختيار القالب المعتمد من ميتا -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">قالب الرسالة المعتمد (Template Name):</label>
+          <label class="block font-bold text-slate-700 mb-1">📋 قالب الرسالة المعتمد (Template Name):</label>
           <select name="template_name" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:border-[#570575] font-mono">
-            <option value="marketing_offer_v1">marketing_offer_v1 (عروض وتخفيضات محجوب)</option>
-            <option value="store_announcement">store_announcement (إشعار مواسم وأوقات عمل)</option>
-            <option value="customer_feedback_request">customer_feedback_request (طلب تقييم الخدمة)</option>
+            <option value="marketing_offer_v1">marketing_offer_v1 (🏷️ عروض وتخفيضات محجوب)</option>
+            <option value="store_announcement">store_announcement (⏰ إشعار مواسم وأوقات عمل)</option>
+            <option value="customer_feedback_request">customer_feedback_request (⭐ طلب تقييم الخدمة)</option>
           </select>
         </div>
 
         <!-- نص الرسالة / المتغيرات -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">نص الرسالة أو محتوى العرض:</label>
+          <label class="block font-bold text-slate-700 mb-1">✍️ نص الرسالة أو محتوى العرض:</label>
           <textarea 
             name="message_content" 
             rows="4" 
-            placeholder="أهلاً بك {{1}} في محجوب أونلاين! يسعدنا تقديم خصم خاص 20% على تشكيلة التمور والزعفران الفاخر بكود: SAVE20..." 
+            placeholder="أهلاً بك {{1}} في محجوب أونلاين! يسعدنا تقديم خصم خاص 20% على تشكيلة المنتجات الفاخرة بكود: SAVE20..." 
             class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-[#570575] leading-relaxed"
             required
           ></textarea>
@@ -216,7 +220,7 @@
 
         <!-- خيار إرفاق صورة -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">رابط صورة العرض (اختياري - Media URL):</label>
+          <label class="block font-bold text-slate-700 mb-1">🖼️ رابط صورة العرض (اختياري - Media URL):</label>
           <input 
             type="url" 
             name="media_url" 
@@ -238,14 +242,14 @@
             onclick="document.getElementById('broadcastModal').classList.add('hidden')"
             class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
           >
-            إلغاء
+            🚫 إلغاء
           </button>
           <button 
             type="submit" 
             id="broadcastSubmitBtn"
             class="px-6 py-2 bg-[#570575] hover:bg-[#632C8F] text-white rounded-xl font-bold shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <span id="broadcastBtnText">بدء الإرسال الجماعي الآن</span>
+            <span id="broadcastBtnText">🚀 بدء الإرسال الجماعي الآن</span>
           </button>
         </div>
       </form>
@@ -276,7 +280,7 @@
       const btnText = document.getElementById('broadcastBtnText');
       
       btn.disabled = true;
-      btnText.innerText = 'جاري الإرسال عبر Meta API... ⏳';
+      btnText.innerText = '⏳ جاري الإرسال عبر Meta API...';
 
       const formData = new FormData(form);
 
@@ -297,13 +301,13 @@
           alert(`✅ تم إرسال الحملة الجماعية بنجاح إلى (${data.sent_count}) عميل!`);
           window.location.reload();
         } else {
-          alert('حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً');
+          alert('❌ حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً');
         }
       } catch (err) {
         form.submit();
       } finally {
         btn.disabled = false;
-        btnText.innerText = 'بدء الإرسال الجماعي الآن';
+        btnText.innerText = '🚀 بدء الإرسال الجماعي الآن';
       }
     }
   </script>
