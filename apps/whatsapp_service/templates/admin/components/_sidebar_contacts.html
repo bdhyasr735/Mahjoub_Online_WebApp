@@ -30,7 +30,7 @@
            hx-trigger="click">
         <div class="avatar-wrapper position-relative flex-shrink-0" style="width: 44px; height: 44px;">
           <div class="avatar-placeholder rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:100%;height:100%;font-size:20px;">
-            {{ (contact.name|default(contact.phone))[0]|upper }}
+            {{ (contact.name|first or contact.phone|first)|upper }}
           </div>
           {% if contact.is_online %}
           <span class="status-dot online position-absolute bottom-0 end-0 border border-2 border-white rounded-circle" style="width:12px;height:12px;background:#28a745;"></span>
@@ -49,7 +49,7 @@
             <span class="badge bg-danger rounded-pill unread-count">{{ contact.unread_count }}</span>
             {% endif %}
           </div>
-          <div class="last-message small text-muted text-truncate">{{ contact.last_message|default:"لا توجد رسائل" }}</div>
+          <div class="last-message small text-muted text-truncate">{{ contact.last_message or 'لا توجد رسائل' }}</div>
         </div>
       </div>
       {% endfor %}
