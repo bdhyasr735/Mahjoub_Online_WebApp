@@ -1,5 +1,5 @@
 <!-- Settings View Jinja2 Component -->
-<div class="max-w-4xl mx-auto w-full p-6 space-y-6 relative">
+<div class="max-w-4xl mx-auto w-full p-6 space-y-6 relative" dir="rtl">
   
   <!-- Header Card -->
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
@@ -44,7 +44,10 @@
       </div>
 
       <!-- Submit Button -->
-      <div class="pt-4 border-t border-slate-100 flex justify-end">
+      <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
+        <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="text-xs font-bold text-slate-600 hover:text-purple-700 transition flex items-center gap-1.5">
+          <i class="fas fa-arrow-right"></i> العودة لمركز المراسلات والدعم
+        </a>
         <button type="submit" class="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2">
           <i class="fas fa-save"></i>
           حفظ التغييرات وإحداث التفعيل
