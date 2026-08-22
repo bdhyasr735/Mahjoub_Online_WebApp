@@ -210,6 +210,49 @@ def partials_contacts():
     )
 
 
+@whatsapp_bp.route('/partials/chat-window', methods=['GET'])
+def partials_chat_window():
+    """جلب نافذة المحادثة والرسائل لعميل محدد عبر الـ contact_id"""
+    contact_id = request.args.get('contact_id', type=int)
+    if not contact_id:
+        return '<div class="flex items-center justify-center h-full text-slate-400">اختر عميلاً لعرض المحادثة</div>', 400
+
+    current_contact = db.session.query(WhatsAppCustomerContact).get_or_404(contact_id)
+    
+    # تصفير عدد الرسائل غير المقروءة عند فتح المحادثة
+    if current_contact.unread_count > 0:
+        current_contact.unread_count = 0
+        db.session.commit()
+
+    messages = db.session.query(WhatsAppMessageLog).filter(
+        or_(
+            WhatsAppMessageLog.sender_number == current_contact.phone,
+            WhatsAppMessageLog.recipient_number == current_contact.phone
+        )
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+
+    return render_template(
+        'admin/partials/chat_window.html',
+        current_contact=current_contact,
+        messages=messages
+    )
+
+
+@whatsapp_bp.route('/partials/client-details', methods=['GET'])
+def partials_client_details():
+    """جلب تفاصيل العميل الجانبية (اللوحة اليسرى)"""
+    contact_id = request.args.get('contact_id', type=int)
+    if not contact_id:
+        return '<div class="p-4 text-slate-400 text-center">لا توجد بيانات محددة</div>', 400
+
+    current_contact = db.session.query(WhatsAppCustomerContact).get_or_404(contact_id)
+    
+    return render_template(
+        'admin/partials/client_sidebar.html',
+        current_contact=current_contact
+    )
+
+
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
     """إرسال رسالة عبر HTMX لإضافتها فوراً بدون وميض وبدون إعادة تحميل الصفحة مع حماية تكرار wamid"""
