@@ -1,16 +1,16 @@
 <!-- Chat View Jinja2 Component with Broadcast / Bulk Messaging -->
-<div class="flex-1 flex overflow-hidden w-full h-full" x-data="{ showBroadcastModal: false }">
+<div class="flex-1 flex overflow-hidden w-full h-full bg-slate-100" x-data="{ showBroadcastModal: false }">
   
-  <!-- Contacts list sidebar -->
-  <div class="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
-    <div class="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
-      <h2 class="text-sm font-bold text-slate-800">المحادثات النشطة</h2>
+  <!-- Contacts list sidebar (ثابت ومحكوم التمرير داخلياً) -->
+  <div class="w-80 md:w-96 bg-white border-l border-slate-200 flex flex-col h-full shrink-0 overflow-hidden">
+    <div class="p-3.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-white">
+      <h2 class="text-xs font-bold text-slate-800">المحادثات النشطة</h2>
       <div class="flex items-center gap-1.5">
         <!-- زر الإرسال الجماعي (Broadcast) -->
         <button 
           type="button"
           onclick="document.getElementById('broadcastModal').classList.remove('hidden')"
-          class="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors"
+          class="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors cursor-pointer"
           title="إرسال رسالة ترويجية أو إشعار جماعي لعدة عملاء"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,7 +22,7 @@
         <button 
           type="button"
           onclick="document.getElementById('newChatModal')?.classList.remove('hidden')"
-          class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors cursor-pointer"
         >
           <span>+ محادثة</span>
         </button>
@@ -30,14 +30,13 @@
     </div>
 
     <!-- Search filter -->
-    <div class="p-2 border-b border-slate-100 bg-slate-50">
+    <div class="p-2 border-b border-slate-100 bg-slate-50 shrink-0">
       <input type="text" placeholder="بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-500">
     </div>
 
-    <!-- Contact items -->
+    <!-- Contact items (تمرير داخلي مستقل للقائمة) -->
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% for contact in contacts|default([]) %}
-      <!-- هذا الرابط هو الذي يقوم بجلب بيانات العميل عند النقر -->
       <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-3.5 hover:bg-slate-50 cursor-pointer transition-colors {{ 'bg-emerald-50/80 border-r-4 border-emerald-500' if current_contact and current_contact.id == contact.id }}">
         <div class="flex justify-between items-start font-bold text-xs text-slate-900">
           <span class="truncate">{{ contact.name or contact.phone }}</span>
@@ -57,14 +56,14 @@
     </div>
   </div>
 
-  <!-- Messages conversation canvas -->
-  <div class="flex-1 flex flex-col bg-slate-50 relative">
+  <!-- Messages conversation canvas (مساحة المحادثة الثابتة بالكامل) -->
+  <div class="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
     
-    <!-- Header with Customer Details (فقط إذا تم اختيار عميل) -->
     {% if current_contact %}
-    <div class="p-4 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs">
+    <!-- Header with Customer Details (ثابت في الأعلى) -->
+    <div class="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0 z-10">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm border border-emerald-200">
+        <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm border border-emerald-200 shrink-0">
           {{ current_contact.name[0] if current_contact.name else 'ع' }}
         </div>
         <div>
@@ -87,12 +86,12 @@
       </div>
     </div>
 
-    <!-- Customer Orders (الطلبات المرتبطة) -->
+    <!-- Customer Orders (الطلبات المرتبطة - ثابت) -->
     {% if current_contact.orders %}
-    <div class="bg-white border-b border-slate-100 p-3 flex items-center gap-2 overflow-x-auto">
+    <div class="bg-white border-b border-slate-100 p-2.5 flex items-center gap-2 overflow-x-auto shrink-0">
       <span class="text-xs font-bold text-slate-500">الطلبات المرتبطة:</span>
       {% for order in current_contact.orders %}
-        <div class="border border-slate-200 bg-slate-50 rounded-lg px-2.5 py-1 text-xs flex items-center gap-2">
+        <div class="border border-slate-200 bg-slate-50 rounded-lg px-2.5 py-1 text-xs flex items-center gap-2 shrink-0">
           <span class="font-bold font-mono text-slate-800">#{{ order.id }}</span>
           <span class="text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded text-[10px]">{{ order.status }}</span>
         </div>
@@ -100,13 +99,13 @@
     </div>
     {% endif %}
 
-    <!-- Messages Stream -->
-    <div class="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-      <div class="text-center">
-        <span class="text-xs bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full font-medium">اليوم</span>
+    <!-- Messages Stream (منطقة التمرير الداخلي للرسائل فقط) -->
+    <div id="messagesStream" class="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scroll-smooth">
+      <div class="text-center my-2 shrink-0">
+        <span class="text-[11px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full font-medium">سجل المحادثة</span>
       </div>
       {% for message in messages|default([]) %}
-        <div class="max-w-md {{ 'self-start bg-white text-slate-800 border border-slate-200' if message.direction == 'inbound' else 'self-end bg-emerald-600 text-white' }} p-3.5 rounded-2xl {{ 'rounded-tr-none' if message.direction == 'inbound' else 'rounded-tl-none' }} text-sm shadow-xs">
+        <div class="max-w-md {{ 'self-start bg-white text-slate-800 border border-slate-200' if message.direction == 'inbound' else 'self-end bg-emerald-600 text-white' }} p-3.5 rounded-2xl {{ 'rounded-tr-none' if message.direction == 'inbound' else 'rounded-tl-none' }} text-xs md:text-sm shadow-xs">
           
           {% if message.message_type == 'image' and message.media_url %}
             <div class="mb-2 rounded-lg overflow-hidden border border-black/10">
@@ -115,7 +114,7 @@
           {% endif %}
 
           <p class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
-          <div class="text-[10px] {{ 'text-slate-400' if message.direction == 'inbound' else 'text-emerald-100' }} mt-1 text-left font-mono">
+          <div class="text-[10px] {{ 'text-slate-400' if message.direction == 'inbound' else 'text-emerald-100' }} mt-1.5 text-left font-mono">
             {{ message.timestamp }}
           </div>
         </div>
@@ -126,10 +125,9 @@
       {% endfor %}
     </div>
 
-    <!-- Send Message Form -->
-    <div class="p-4 bg-white border-t border-slate-200">
+    <!-- Send Message Form (ثابت في الأسفل دائماً) -->
+    <div class="p-3 md:p-4 bg-white border-t border-slate-200 shrink-0 z-10">
       <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="flex items-center gap-2">
-        <!-- إرسال رقم الهاتف كحقل مخفي -->
         <input type="hidden" name="phone" value="{{ current_contact.phone }}">
         <input 
           type="text" 
@@ -137,10 +135,11 @@
           placeholder="اكتب رسالتك للعميل هنا..." 
           class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all" 
           required
+          autocomplete="off"
         >
         <button 
           type="submit" 
-          class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-colors"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
         >
           إرسال
         </button>
@@ -149,7 +148,7 @@
 
     {% else %}
     <!-- إذا لم يتم اختيار عميل -->
-    <div class="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm gap-3">
+    <div class="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm gap-3 p-6 text-center">
       <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
         <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2z"/>
@@ -177,10 +176,10 @@
             <p class="text-xs text-slate-500">إرسال حملة ترويجية أو إشعار عام للعملاء المسجلين في المتجر</p>
           </div>
         </div>
-        <button onclick="document.getElementById('broadcastModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+        <button onclick="document.getElementById('broadcastModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer">✕</button>
       </div>
 
-      <form action="{{ url_for('whatsapp_service.send_bulk_broadcast') }}" method="POST" class="space-y-4 text-xs">
+      <form id="broadcastForm" onsubmit="submitBroadcastForm(event)" action="{{ url_for('whatsapp_service.send_bulk_broadcast') }}" method="POST" class="space-y-4 text-xs">
         
         <!-- الفئة المستهدفة -->
         <div>
@@ -237,19 +236,76 @@
           <button 
             type="button" 
             onclick="document.getElementById('broadcastModal').classList.add('hidden')"
-            class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+            class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
           >
             إلغاء
           </button>
           <button 
             type="submit" 
-            class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center gap-1.5"
+            id="broadcastSubmitBtn"
+            class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <span>بدء الإرسال الجماعي الآن</span>
+            <span id="broadcastBtnText">بدء الإرسال الجماعي الآن</span>
           </button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- JavaScript لإدارة التمرير التلقائي لآخر رسالة + الإرسال الجماعي بسلاسة -->
+  <script>
+    function scrollToBottom() {
+      const stream = document.getElementById('messagesStream');
+      if (stream) {
+        stream.scrollTop = stream.scrollHeight;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      scrollToBottom();
+    });
+
+    window.addEventListener('load', () => {
+      scrollToBottom();
+    });
+
+    async function submitBroadcastForm(event) {
+      event.preventDefault();
+      const form = event.target;
+      const btn = document.getElementById('broadcastSubmitBtn');
+      const btnText = document.getElementById('broadcastBtnText');
+      
+      btn.disabled = true;
+      btnText.innerText = 'جاري الإرسال عبر Meta API... ⏳';
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('broadcastModal').classList.add('hidden');
+          form.reset();
+          alert(`✅ تم إرسال الحملة الجماعية بنجاح إلى (${data.sent_count}) عميل!`);
+          window.location.reload();
+        } else {
+          alert('حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً');
+        }
+      } catch (err) {
+        form.submit();
+      } finally {
+        btn.disabled = false;
+        btnText.innerText = 'بدء الإرسال الجماعي الآن';
+      }
+    }
+  </script>
 
 </div>
