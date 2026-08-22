@@ -4,7 +4,7 @@
 import os
 import logging
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, render_template, current_app
+from flask import Blueprint, request, jsonify, render_template, current_app, redirect, url_for, flash
 from sqlalchemy import or_
 
 try:
@@ -84,7 +84,7 @@ def handle_webhook():
                             if profile_name:
                                 customer_name = profile_name
 
-                        # حفظ الرسالة
+                        # حفظ الرسالة الواردة
                         log_entry = WhatsAppMessageLog(
                             wamid=wamid,
                             direction='inbound',
@@ -149,7 +149,7 @@ def chat_dashboard():
         else:
             contact.is_online = False
 
-    # قراءة رقم العميل المحدد من الرابط
+    # قراءة رقم العميل المحدد من الرابط (مثل ?contact_id=1)
     contact_id = request.args.get('contact_id', type=int)
     
     current_contact = None
@@ -179,49 +179,16 @@ def chat_dashboard():
 
 
 # =============================================================================
-# 3. HTMX & ACTION ENDPOINTS
+# 3. ACTION ENDPOINTS (إرسال الرسائل الفردية)
 # =============================================================================
-
-@whatsapp_bp.route('/client/<int:contact_id>/chat')
-def get_chat_area(contact_id):
-    contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
-    if not contact:
-        return "العميل غير موجود", 404
-
-    if contact.unread_count > 0:
-        contact.unread_count = 0
-        db.session.commit()
-
-    messages = db.session.query(WhatsAppMessageLog).filter(
-        or_(
-            WhatsAppMessageLog.sender_number == contact.phone,
-            WhatsAppMessageLog.recipient_number == contact.phone
-        )
-    ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
-
-    return render_template('admin/components/_chat_area.html', contact=contact, messages=messages)
-
-
-@whatsapp_bp.route('/refresh_contacts')
-def refresh_contacts():
-    contacts = db.session.query(WhatsAppCustomerContact).order_by(
-        WhatsAppCustomerContact.last_timestamp.desc()
-    ).all()
-    for contact in contacts:
-        if contact.last_timestamp:
-            diff = datetime.utcnow() - contact.last_timestamp
-            contact.is_online = diff < timedelta(minutes=10)
-        else:
-            contact.is_online = False
-    return render_template('admin/components/_sidebar_contacts.html', contacts=contacts)
-
 
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
+    """إرسال رسالة فردية لعميل من لوحة التحكم وإعادة التوجيه للمحادثة"""
     phone = request.form.get('phone')
     message = request.form.get('message')
     if not phone or not message:
-        return "بيانات ناقصة", 400
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
     success, response_data = send_text_message(phone, message)
 
@@ -231,7 +198,8 @@ def send_message_htmx():
         contact.last_timestamp = datetime.utcnow()
         db.session.commit()
 
-    return refresh_contacts()
+    # إعادة التوجيه الفوري لنفس المحادثة
+    return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=contact.id if contact else None))
 
 
 # =============================================================================
@@ -241,8 +209,6 @@ def send_message_htmx():
 @whatsapp_bp.route('/send_bulk_broadcast', methods=['POST'])
 def send_bulk_broadcast():
     """إرسال حملة رسائل جماعية للعملاء مع دعم التوجيه و JSON"""
-    from flask import flash, redirect, url_for
-    
     target = request.form.get('target_audience', 'all')
     template = request.form.get('template_name', '')
     content = request.form.get('message_content', '')
@@ -270,7 +236,63 @@ def send_bulk_broadcast():
 
 
 # =============================================================================
-# 5. OTHER TABS (Logs & Settings)
+# 5. API ENDPOINTS (للاستخدام مع Fetch)
+# =============================================================================
+
+@whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
+def get_conversation_data(phone):
+    """جلب رسائل عميل معين بصيغة JSON"""
+    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+    if contact and contact.unread_count > 0:
+        contact.unread_count = 0
+        db.session.commit()
+
+    messages = db.session.query(WhatsAppMessageLog).filter(
+        or_(
+            WhatsAppMessageLog.sender_number == phone,
+            WhatsAppMessageLog.recipient_number == phone
+        )
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+
+    messages_data = []
+    for m in messages:
+        ts = getattr(m, 'timestamp', None)
+        messages_data.append({
+            "id": m.id,
+            "direction": m.direction,
+            "message_body": m.content,
+            "message_type": getattr(m, 'message_type', 'text'),
+            "timestamp": ts.strftime('%Y-%m-%d %H:%M') if ts else '',
+            "status": m.status
+        })
+
+    client_info = {
+        "name": contact.name if contact else phone,
+        "phone": phone
+    }
+
+    return jsonify({
+        "success": True,
+        "client": client_info,
+        "messages": messages_data
+    })
+
+
+@whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
+def send_message_api():
+    """إرسال رسالة عبر JSON"""
+    data = request.get_json(silent=True) or {}
+    phone = data.get('phone')
+    message = data.get('message')
+    if not phone or not message:
+        return jsonify({"success": False, "error": "بيانات ناقصة"}), 400
+
+    success, response_data = send_text_message(phone, message)
+    return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
+
+
+# =============================================================================
+# 6. OTHER TABS (Logs & Settings)
 # =============================================================================
 
 @whatsapp_bp.route('/logs')
