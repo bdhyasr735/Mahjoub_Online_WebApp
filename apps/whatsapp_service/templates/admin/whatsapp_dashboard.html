@@ -101,7 +101,8 @@
 
   <!-- الدوال البرمجية والتفاعل اللحظي والتمرير -->
   <script>
-    let currentActivePhone = "{{ contacts[0].phone_number if contacts and contacts|length > 0 else '' }}";
+    // تم التصحيح هنا لاستخدام phone بدلاً من phone_number لتتوافق مع قاعدة البيانات
+    let currentActivePhone = "{{ contacts[0].phone if contacts and contacts|length > 0 else '' }}";
     let refreshInterval = null;
 
     window.addEventListener('DOMContentLoaded', () => {
