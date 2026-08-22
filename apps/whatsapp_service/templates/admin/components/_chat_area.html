@@ -1,10 +1,211 @@
-{% for msg in messages %}
-<div class="flex {% if msg.direction == 'inbound' %}justify-start{% else %}justify-end{% endif %}">
-    <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-xs shadow-sm {% if msg.direction == 'inbound' %}bg-white text-slate-800 rounded-bl-none border border-slate-100{% else %}bg-[#570575] text-white rounded-br-none{% endif %}">
-        {{ msg.content }}
-        <div class="text-[9px] mt-1 opacity-60 {% if msg.direction == 'inbound' %}text-slate-400{% else %}text-white/70{% endif %} text-left">
-            {{ msg.timestamp.strftime('%H:%M') }}
-        </div>
+<!-- apps/whatsapp_service/templates/admin/components/_chat_area.html -->
+{% if contact %}
+<div class="flex-1 bg-slate-50 flex flex-col h-full overflow-hidden" id="chat-main-container" data-phone="{{ contact.phone }}">
+
+  <!-- رأس المحادثة -->
+  <div class="px-6 py-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs z-10 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#632C8F] to-[#570575] text-white font-bold flex items-center justify-center text-sm shadow-sm" id="chat-header-avatar">
+        {{ contact.name|slice:":1"|upper or contact.phone|slice:":1"|upper }}
+      </div>
+      <div>
+        <h3 class="text-xs font-bold text-slate-800" id="chat-header-name">{{ contact.name or contact.phone }}</h3>
+        <p class="text-[10px] text-emerald-600 flex items-center gap-1 mt-0.5">
+          <span class="w-1.5 h-1.5 rounded-full {% if contact.is_online %}bg-emerald-500 animate-pulse{% else %}bg-slate-400{% endif %}"></span>
+          {% if contact.is_online %}متصل الآن{% else %}غير متصل{% endif %}
+        </p>
+      </div>
     </div>
+    <div class="flex items-center gap-2">
+      <button onclick="refreshChat()" class="p-2 text-slate-400 hover:text-[#570575] transition-colors rounded-lg hover:bg-purple-50" title="تحديث المحادثة">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- صندوق الرسائل -->
+  <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f0f2f5]" id="chat-messages-box">
+    {% if messages %}
+      {% for msg in messages %}
+        {% if msg.direction == 'inbound' %}
+          <div class="flex justify-start">
+            <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-xs shadow-sm bg-white text-slate-800 rounded-bl-none border border-slate-100">
+              {{ msg.content }}
+              <div class="text-[9px] mt-1 text-slate-400 text-left">
+                {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div class="flex justify-end">
+            <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-xs shadow-sm bg-[#570575] text-white rounded-br-none">
+              {{ msg.content }}
+              <div class="text-[9px] mt-1 text-white/70 text-left">
+                {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
+        <svg class="w-12 h-12 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+        </svg>
+        <span>لا توجد رسائل بعد، ابدأ المحادثة الآن</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- شريط الكتابة والإرسال -->
+  <div class="p-4 bg-white border-t border-slate-200 shrink-0">
+    <div class="flex items-center gap-2">
+      <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." 
+             class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#570575] focus:bg-white transition-all"
+             onkeypress="if(event.key === 'Enter') sendMessage()">
+             
+      <button onclick="sendMessage()" id="send-btn" class="bg-[#570575] hover:bg-[#632C8F] text-white px-5 py-3 rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 shrink-0">
+        <span>إرسال</span>
+        <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="flex flex-wrap gap-2 mt-2">
+      <span class="text-[10px] bg-slate-100 text-slate-600 px-3 py-1 rounded-full cursor-pointer hover:bg-slate-200 transition-all quick-reply">الشحن (رقم التتبع: SA-99882)</span>
+      <span class="text-[10px] bg-slate-100 text-slate-600 px-3 py-1 rounded-full cursor-pointer hover:bg-slate-200 transition-all quick-reply">ممتاز جداً، شكراً لكم 😊</span>
+      <span class="text-[10px] bg-slate-100 text-slate-600 px-3 py-1 rounded-full cursor-pointer hover:bg-slate-200 transition-all quick-reply">رابط برقم طلب: ORD-8821</span>
+    </div>
+  </div>
+
 </div>
-{% endfor %}
+
+<script>
+  (function() {
+    let currentPhone = document.getElementById('chat-main-container')?.dataset?.phone || '';
+
+    window.sendMessage = function() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span>جاري...</span>`;
+
+      const phone = currentPhone;
+      if (!phone) {
+        alert('لا يمكن تحديد رقم العميل');
+        btn.disabled = false;
+        btn.innerHTML = `<span>إرسال</span> ...`;
+        return;
+      }
+
+      // Optimistic UI
+      const messagesBox = document.getElementById('chat-messages-box');
+      const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex justify-end';
+      msgDiv.innerHTML = `
+        <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-xs shadow-sm bg-[#570575] text-white rounded-br-none">
+          ${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+          <div class="text-[9px] mt-1 text-white/70 text-left">${time}</div>
+        </div>
+      `;
+      messagesBox.appendChild(msgDiv);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+      input.value = '';
+
+      // إرسال إلى الخادم عبر HTMX (باستخدام fetch)
+      fetch('{{ url_for("whatsapp_service.send_message_htmx") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
+        body: new URLSearchParams({ phone: phone, message: text })
+      })
+      .then(response => response.text())
+      .then(html => {
+        // تحديث الشريط الجانبي
+        const sidebar = document.getElementById('sidebar-contacts-container');
+        if (sidebar) {
+          htmx.ajax('GET', '{{ url_for("whatsapp_service.refresh_contacts") }}', { target: '#sidebar-contacts-container', swap: 'innerHTML' });
+        }
+        btn.disabled = false;
+        btn.innerHTML = `<span>إرسال</span> ...`;
+      })
+      .catch(error => {
+        console.error('❌ فشل الإرسال:', error);
+        btn.disabled = false;
+        btn.innerHTML = `<span>إرسال</span> ...`;
+        alert('حدث خطأ أثناء الإرسال');
+      });
+    };
+
+    window.refreshChat = function() {
+      const phone = currentPhone;
+      if (!phone) return;
+      const messagesBox = document.getElementById('chat-messages-box');
+      messagesBox.innerHTML = `<div class="flex justify-center items-center h-full text-slate-400 text-xs">جاري تحميل الرسائل...</div>`;
+      
+      fetch(`/admin/whatsapp/api/whatsapp/conversation/${phone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.messages) {
+            let html = '';
+            data.messages.forEach(msg => {
+              if (msg.direction === 'inbound') {
+                html += `
+                  <div class="flex justify-start">
+                    <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-xs shadow-sm bg-white text-slate-800 rounded-bl-none border border-slate-100">
+                      ${msg.message_body}
+                      <div class="text-[9px] mt-1 text-slate-400 text-left">${msg.timestamp}</div>
+                    </div>
+                  </div>
+                `;
+              } else {
+                html += `
+                  <div class="flex justify-end">
+                    <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-xs shadow-sm bg-[#570575] text-white rounded-br-none">
+                      ${msg.message_body}
+                      <div class="text-[9px] mt-1 text-white/70 text-left">${msg.timestamp}</div>
+                    </div>
+                  </div>
+                `;
+              }
+            });
+            if (!html) html = `<div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">لا توجد رسائل بعد</div>`;
+            messagesBox.innerHTML = html;
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+          }
+        })
+        .catch(err => console.error('Error refreshing chat:', err));
+    };
+
+    document.querySelectorAll('.quick-reply').forEach(el => {
+      el.addEventListener('click', function() {
+        const input = document.getElementById('chat-input');
+        if (input) {
+          input.value = this.textContent.trim();
+          input.focus();
+        }
+      });
+    });
+
+    const box = document.getElementById('chat-messages-box');
+    if (box) box.scrollTop = box.scrollHeight;
+  })();
+</script>
+
+{% else %}
+<div class="flex-1 bg-slate-50 flex flex-col items-center justify-center h-full text-slate-400">
+  <svg class="w-16 h-16 mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+  </svg>
+  <p class="text-sm font-medium">اختر محادثة من القائمة الجانبية</p>
+  <p class="text-xs mt-1">ستظهر جميع الرسائل هنا فوراً</p>
+</div>
+{% endif %}
