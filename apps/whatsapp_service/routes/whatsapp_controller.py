@@ -26,7 +26,7 @@ from apps.models.whatsapp_models import (
 
 logger = logging.getLogger(__name__)
 
-# استخدام المسار المطلق لمجلد القوالب لضمان عمله بسلاسة على سيرفرات الإنتاج مثل Render
+# استخدام المسار المطلق لمجلد القوالب لضمان عمله بسلاسة
 basedir = os.path.abspath(os.path.dirname(__file__))
 template_dir = os.path.abspath(os.path.join(basedir, '../templates'))
 
@@ -59,9 +59,7 @@ def get_db():
 @whatsapp_bp.route('/webhook-admin', methods=['GET', 'POST'])
 @whatsapp_bp.route('/admin/whatsapp/webhook', methods=['GET', 'POST'])
 def direct_webhook():
-    """
-    مسار موحد ومباشر لاستقبال طلبات Meta (GET للتحقق و POST للرسائل)
-    """
+    """مسار موحد ومباشر لاستقبال طلبات Meta (GET للتحقق و POST للرسائل)"""
     if request.method == 'GET':
         return verify_webhook()
     return handle_webhook()
@@ -84,7 +82,6 @@ def verify_webhook():
         return str(challenge), 200
 
     return "Verification token mismatch", 403
-
 
 def handle_webhook():
     """مستقبل آمن للرسائل والأحداث وتحديث الحالات"""
@@ -248,7 +245,6 @@ def send_message_api():
 
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
-
 @whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
 @whatsapp_bp.route('/whatsapp/api/whatsapp/conversation/<phone>', methods=['GET'])
 def get_conversation_data(phone):
@@ -296,23 +292,58 @@ def get_conversation_data(phone):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
-@whatsapp_bp.route('/api/ping', methods=['GET'])
-def ping_meta_api():
-    return jsonify({"status": "active", "message": "WhatsApp API helper is ready for Mahgoob Online."})
-
 # ==============================================================================
-# 3. ADMIN DASHBOARD VIEWS (JINJA2 - Modular Structure)
+# 3. HTMX ENDPOINTS FOR DYNAMIC UI UPDATES (NEW)
 # ==============================================================================
 
-@whatsapp_bp.route('/dashboard')
-def chat_dashboard():
-    """واجهة الشات والمحادثات المباشرة (تشير للمجلد الجديد)"""
+@whatsapp_bp.route('/client/<int:contact_id>/chat')
+def get_chat_area(contact_id):
+    """إرجاع مكون منطقة الشات لعميل معين (HTMX)"""
+    db = get_db()
+    if not db:
+        return "Database error", 500
+    
+    contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
+    if not contact:
+        return "العميل غير موجود", 404
+    
+    messages = db.session.query(WhatsAppMessageLog).filter(
+        or_(
+            WhatsAppMessageLog.sender_number == contact.phone,
+            WhatsAppMessageLog.recipient_number == contact.phone
+        )
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
+    
+    # تحديث حالة القراءة
+    if contact.unread_count > 0:
+        contact.unread_count = 0
+        db.session.commit()
+    
+    return render_template('admin/components/_chat_area.html', contact=contact, messages=messages)
+
+@whatsapp_bp.route('/client/<int:contact_id>/details')
+def get_client_details(contact_id):
+    """إرجاع مكون تفاصيل العميل (HTMX)"""
+    db = get_db()
+    if not db:
+        return "Database error", 500
+    
+    contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
+    if not contact:
+        return "العميل غير موجود", 404
+    
+    return render_template('admin/components/_client_details.html', contact=contact)
+
+@whatsapp_bp.route('/refresh_contacts')
+def refresh_contacts():
+    """تحديث قائمة جهات الاتصال في الشريط الجانبي (HTMX)"""
     db = get_db()
     contacts = []
     if db:
         try:
-            contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+            contacts = db.session.query(WhatsAppCustomerContact).order_by(
+                WhatsAppCustomerContact.last_timestamp.desc()
+            ).all()
             for contact in contacts:
                 if contact.last_timestamp:
                     diff = datetime.utcnow() - contact.last_timestamp
@@ -321,9 +352,76 @@ def chat_dashboard():
                     contact.is_online = False
         except Exception as e:
             contacts = []
-            
-    return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
+    
+    return render_template('admin/components/_sidebar_contacts.html', contacts=contacts)
 
+@whatsapp_bp.route('/send_message', methods=['POST'])
+def send_message_htmx():
+    """إرسال رسالة عبر HTMX وتحديث الشريط الجانبي"""
+    phone = request.form.get('phone')
+    message = request.form.get('message')
+    if not phone or not message:
+        return "بيانات ناقصة", 400
+    
+    # إرسال عبر ميتا
+    success, response_data = send_text_message(phone, message)
+    
+    # تحديث جهة الاتصال
+    db = get_db()
+    if db:
+        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+        if contact:
+            contact.last_message = message
+            contact.last_timestamp = datetime.utcnow()
+            db.session.commit()
+    
+    # إعادة تحميل قائمة جهات الاتصال
+    return refresh_contacts()
+
+# ==============================================================================
+# 4. ADMIN DASHBOARD VIEWS (JINJA2 - Modular Structure)
+# ==============================================================================
+
+@whatsapp_bp.route('/dashboard')
+def chat_dashboard():
+    """واجهة الشات والمحادثات المباشرة"""
+    db = get_db()
+    contacts = []
+    selected_contact = None
+    messages = []
+    
+    if db:
+        try:
+            contacts = db.session.query(WhatsAppCustomerContact).order_by(
+                WhatsAppCustomerContact.last_timestamp.desc()
+            ).all()
+            for contact in contacts:
+                if contact.last_timestamp:
+                    diff = datetime.utcnow() - contact.last_timestamp
+                    contact.is_online = diff < timedelta(minutes=10)
+                else:
+                    contact.is_online = False
+            
+            # اختيار أول جهة اتصال لعرضها افتراضياً
+            if contacts:
+                selected_contact = contacts[0]
+                messages = db.session.query(WhatsAppMessageLog).filter(
+                    or_(
+                        WhatsAppMessageLog.sender_number == selected_contact.phone,
+                        WhatsAppMessageLog.recipient_number == selected_contact.phone
+                    )
+                ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
+        except Exception as e:
+            logger.error(f"Error loading dashboard: {e}")
+            contacts = []
+    
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='chat',
+        contacts=contacts,
+        selected_contact=selected_contact,
+        messages=messages
+    )
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
@@ -332,12 +430,17 @@ def logs_dashboard():
     logs = []
     if db:
         try:
-            logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).limit(150).all()
+            logs = db.session.query(WhatsAppMessageLog).order_by(
+                WhatsAppMessageLog.id.desc()
+            ).limit(150).all()
         except Exception as e:
             logs = []
-            
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
-
+    
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='logs',
+        logs=logs
+    )
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_dashboard():
@@ -354,4 +457,13 @@ def settings_dashboard():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         saved_success = True
         
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='settings',
+        settings=settings,
+        saved_success=saved_success
+    )
+
+@whatsapp_bp.route('/ping')
+def ping():
+    return jsonify({"status": "active", "service": "WhatsApp Service", "version": "1.0"})
