@@ -9,7 +9,7 @@ Handles two-way messaging, database logging, and admin dashboard views.
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, current_app
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from ..whatsapp_api import send_text_message
 
 # ✨ تم تحديث مسار الاستيراد هنا ليتطابق مع النقل إلى المجلد العام
@@ -300,6 +300,14 @@ def chat_dashboard():
     if db:
         try:
             contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+            
+            # حساب حالة الاتصال (متصل الآن إذا كان آخر تفاعل خلال آخر 5 دقائق)
+            for contact in contacts:
+                if contact.last_timestamp:
+                    diff = datetime.utcnow() - contact.last_timestamp
+                    contact.is_online = diff < timedelta(minutes=5)
+                else:
+                    contact.is_online = False
         except Exception:
             contacts = []
     return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
