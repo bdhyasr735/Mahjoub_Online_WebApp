@@ -26,6 +26,7 @@ from apps.models.whatsapp_models import (
 
 logger = logging.getLogger(__name__)
 
+# تحديث مسار القوالب ليتوافق مع المجلد الجديد apps/whatsapp_service/templates/
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='../templates')
 
 def get_verify_token():
@@ -57,7 +58,6 @@ def get_db():
 def direct_webhook():
     """
     مسار موحد ومباشر لاستقبال طلبات Meta (GET للتحقق و POST للرسائل)
-    يدعم كافة الاحتمالات لضمان عدم حدوث خطأ 400 أو failure في التوجيه.
     """
     if request.method == 'GET':
         return verify_webhook()
@@ -74,22 +74,17 @@ def verify_webhook():
     challenge = request.args.get('hub.challenge')
 
     verify_token = get_verify_token()
-    logger.info(f"🔍 [Webhook GET] Received verification request - mode: {mode}, token: {token}")
 
     if mode == 'subscribe' and token == verify_token:
-        logger.info("✅ [Webhook Verify] Success! Returning challenge.")
         return str(challenge), 200
     elif challenge and (token == verify_token or not token):
         return str(challenge), 200
 
-    logger.warning("❌ [Webhook Verify] Token mismatch or invalid mode.")
     return "Verification token mismatch", 403
 
 
 def handle_webhook():
-    """مستقبل آمن للرسائل والأحداث مع تسجيل كامل للـ JSON لمعالجة الرسائل الواردة وتحديث الحالات."""
-    logger.info("📡 [Webhook Debug] Received POST request from Meta")
-    
+    """مستقبل آمن للرسائل والأحداث وتحديث الحالات"""
     raw_data = request.get_data(as_text=True)
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
@@ -104,14 +99,12 @@ def handle_webhook():
         if not data:
             data = request.form.to_dict()
     except Exception as e:
-        logger.error(f"❌ [Webhook Parse Error]: {str(e)}")
         data = {}
 
     if not data:
         data = {}
 
     try:
-        # 1. حفظ الحدث الخام في جدول الأحداث
         if db:
             raw_event = WhatsAppWebhookEvent(
                 event_type="incoming_payload",
@@ -121,13 +114,11 @@ def handle_webhook():
             db.session.add(raw_event)
             db.session.commit()
 
-        # 2. تحليل محتوى الـ Webhook
         entries = data.get('entry', []) if isinstance(data, dict) else []
         for entry in entries:
             for change in entry.get('changes', []):
                 value = change.get('value', {})
 
-                # معالجة الرسائل الواردة
                 if 'messages' in value:
                     for msg in value['messages']:
                         sender = msg.get('from') 
@@ -180,9 +171,7 @@ def handle_webhook():
                                 db.session.add(new_contact)
 
                             db.session.commit()
-                            logger.info(f"📥 [Inbound Saved] From {customer_name} ({sender}): {text}")
 
-                # معالجة تحديثات حالة الرسائل
                 elif 'statuses' in value:
                     for st in value['statuses']:
                         wamid = st.get('id')
@@ -194,7 +183,6 @@ def handle_webhook():
                                 db.session.commit()
 
     except Exception as e:
-        logger.error(f"❌ [Webhook Processing Error]: {str(e)}")
         if db:
             db.session.rollback()
 
@@ -204,11 +192,11 @@ def handle_webhook():
 # 2. INTERNAL API & ACTIONS (SENDING MESSAGES & FETCHING CHATS)
 # ==============================================================================
 
-@whatsapp_bp.route('/api/send-message', methods=['POST'])
+@whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
 def send_message_api():
-    """إرسال رسالة نصية صادرة وتسجيلها تلقائياً في قاعدة البيانات"""
+    """إرسال رسالة نصية عبر الواجهة الديناميكية وتخزينها"""
     body = request.get_json(silent=True) or {}
-    recipient = body.get('recipient_number') or body.get('phone')
+    recipient = body.get('phone') or body.get('recipient_number')
     text = body.get('message')
     order_id = body.get('order_id')
 
@@ -241,13 +229,13 @@ def send_message_api():
         
         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=recipient).first()
         if contact:
-            contact.last_message = f"إلى: {text}"
+            contact.last_message = text
             contact.last_timestamp = datetime.utcnow()
         else:
             new_contact = WhatsAppCustomerContact(
                 phone=recipient,
                 name=f"عميل ({recipient})",
-                last_message=f"إلى: {text}",
+                last_message=text,
                 last_timestamp=datetime.utcnow(),
                 unread_count=0
             )
@@ -258,66 +246,9 @@ def send_message_api():
     return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
 
 
-@whatsapp_bp.route('/api/send-media', methods=['POST'])
-def send_media_api():
-    """معالجة إرسال الوسائط والصور من لوحة التحكم"""
-    phone = request.form.get('recipient_number') or request.form.get('phone')
-    file = request.files.get('media')
-    
-    if not phone or not file:
-        return jsonify({"success": False, "error": "الرجاء إرفاق الملف ورقم المستلم"}), 400
-
-    db = get_db()
-    phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
-
-    if db:
-        outbound_log = WhatsAppMessageLog(
-            direction='outbound',
-            sender_number=phone_id,
-            recipient_number=phone,
-            message_type='image',
-            content=f"[صورة مرفقة: {file.filename}]",
-            status='sent'
-        )
-        db.session.add(outbound_log)
-        
-        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
-        if contact:
-            contact.last_message = "[صورة مرفقة]"
-            contact.last_timestamp = datetime.utcnow()
-            
-        db.session.commit()
-
-    return jsonify({"success": True, "message": "تم إرسال الصورة بنجاح"})
-
-
-@whatsapp_bp.route('/api/broadcast', methods=['POST'])
-def broadcast_message_api():
-    """إرسال حملة رسائل جماعية للعملاء"""
-    body = request.get_json(silent=True) or {}
-    message = body.get('message')
-    
-    if not message:
-        return jsonify({"success": False, "error": "محتوى الرسالة مطلوب"}), 400
-        
-    db = get_db()
-    if not db:
-        return jsonify({"success": False, "error": "قاعدة البيانات غير متوفرة"}), 500
-
-    contacts = db.session.query(WhatsAppCustomerContact).all()
-    success_count = 0
-    
-    for contact in contacts:
-        success, _ = send_text_message(contact.phone, message)
-        if success:
-            success_count += 1
-            
-    return jsonify({"success": True, "sent_count": success_count})
-
-
-@whatsapp_bp.route('/api/contacts/<phone>/messages', methods=['GET'])
-def get_customer_messages(phone):
-    """جلب سجل الرسائل المتبادلة وتصفير العداد غير المقروء"""
+@whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
+def get_conversation_data(phone):
+    """مسار جلب رسائل وبيانات عميل معين عند النقر عليه في القائمة الديناميكية"""
     db = get_db()
     if not db:
         return jsonify({"success": False, "error": "Database unavailable"}), 500
@@ -335,46 +266,30 @@ def get_customer_messages(phone):
             )
         ).order_by(WhatsAppMessageLog.id.asc()).all()
 
-        logs_data = []
+        messages_data = []
         for m in messages:
             ts = getattr(m, 'timestamp', None) or getattr(m, 'created_at', None)
-            logs_data.append({
+            messages_data.append({
                 "id": m.id,
                 "direction": m.direction,
-                "content": m.content,
+                "message_body": m.content,
                 "message_type": getattr(m, 'message_type', 'text'),
                 "timestamp": ts.strftime('%Y-%m-%d %H:%M') if ts else '',
                 "status": m.status
             })
             
-        return jsonify({"success": True, "messages": logs_data}), 200
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        client_info = {
+            "name": contact.name if contact else phone,
+            "phone": phone
+        }
 
-
-@whatsapp_bp.route('/api/contacts/<int:contact_id>/update-name', methods=['POST'])
-def update_customer_name(contact_id):
-    """تحديث وحفظ اسم العميل يدوياً من لوحة التحكم"""
-    data = request.get_json(silent=True) or {}
-    new_name = data.get('name')
-    
-    if not new_name:
-        return jsonify({"success": False, "error": "الاسم الجديد مطلوب"}), 400
-        
-    db = get_db()
-    if not db:
-        return jsonify({"success": False, "error": "قاعدة البيانات غير متوفرة"}), 500
-    
-    contact = db.session.query(WhatsAppCustomerContact).filter_by(id=contact_id).first()
-    if not contact:
-        return jsonify({"success": False, "error": "العميل غير موجود"}), 404
-        
-    try:
-        contact.name = new_name
-        db.session.commit()
-        return jsonify({"success": True, "message": "تم تحديث اسم العميل بنجاح"})
+        return jsonify({
+            "success": True, 
+            "client": client_info,
+            "messages": messages_data,
+            "order_id": getattr(contact, 'order_id', None)
+        }), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -383,12 +298,12 @@ def ping_meta_api():
     return jsonify({"status": "active", "message": "WhatsApp API helper is ready for Mahgoob Online."})
 
 # ==============================================================================
-# 3. ADMIN DASHBOARD VIEWS (JINJA2)
+# 3. ADMIN DASHBOARD VIEWS (JINJA2 - Modular Structure)
 # ==============================================================================
 
 @whatsapp_bp.route('/dashboard')
 def chat_dashboard():
-    """واجهة الشات والمحادثات المباشرة"""
+    """واجهة الشات والمحادثات المباشرة (تشير للمجلد الجديد)"""
     db = get_db()
     contacts = []
     if db:
@@ -401,10 +316,9 @@ def chat_dashboard():
                 else:
                     contact.is_online = False
         except Exception as e:
-            logger.error(f"Error fetching contacts: {e}")
             contacts = []
             
-    return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
+    return render_template('whatsapp/dashboard.html', active_tab='chat', contacts=contacts)
 
 
 @whatsapp_bp.route('/logs')
@@ -416,10 +330,9 @@ def logs_dashboard():
         try:
             logs = db.session.query(WhatsAppMessageLog).order_by(WhatsAppMessageLog.id.desc()).limit(150).all()
         except Exception as e:
-            logger.error(f"Error fetching logs: {e}")
             logs = []
             
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
+    return render_template('whatsapp/dashboard.html', active_tab='logs', logs=logs)
 
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
@@ -437,4 +350,4 @@ def settings_dashboard():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         saved_success = True
         
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
+    return render_template('whatsapp/dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
