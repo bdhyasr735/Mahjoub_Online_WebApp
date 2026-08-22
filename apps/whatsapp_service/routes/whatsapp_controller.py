@@ -321,7 +321,7 @@ def chat_dashboard():
         except Exception as e:
             contacts = []
             
-    return render_template('whatsapp/dashboard.html', active_tab='chat', contacts=contacts)
+    return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts)
 
 
 @whatsapp_bp.route('/logs')
@@ -335,7 +335,7 @@ def logs_dashboard():
         except Exception as e:
             logs = []
             
-    return render_template('whatsapp/dashboard.html', active_tab='logs', logs=logs)
+    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
 
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
@@ -353,4 +353,4 @@ def settings_dashboard():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         saved_success = True
         
-    return render_template('whatsapp/dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
+    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings, saved_success=saved_success)
