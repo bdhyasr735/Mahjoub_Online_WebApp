@@ -6,7 +6,24 @@
   <title>مركز المراسلات والدعم | منصة محجوب أونلاين</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <style> body { font-family: 'Tajawal', sans-serif; } </style>
+  <style> 
+    body { font-family: 'Tajawal', sans-serif; } 
+    /* تخصيص شكل شريط التمرير ليكون أكثر جمالاً ونعومة */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
 </head>
 <body class="bg-slate-100 h-screen overflow-hidden flex flex-col" dir="rtl">
 
@@ -39,8 +56,8 @@
             {% include 'admin/components/_sidebar_contacts.html' %}
           </div>
 
-          <!-- 2. منطقة الدردشة (منتصف - مرنة) -->
-          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200">
+          <!-- 2. منطقة الدردشة (منتصف - مرنة مع ضبط الارتفاع والتمرير) -->
+          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative">
             {% include 'admin/components/_chat_area.html' %}
           </div>
 
@@ -59,69 +76,45 @@
 
     <!-- القائمة الجانبية للأيقونات (أقصى اليسار) -->
     <aside class="w-20 bg-[#1a0b2e] flex flex-col items-center justify-between py-6 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
-      
-      <!-- الجزء العلوي: شعار المنصة المصغر -->
       <div class="flex flex-col items-center gap-6 w-full">
         <div class="w-12 h-12 rounded-2xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center p-1 shadow-md">
           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="Logo" class="w-full h-full object-contain rounded-xl">
         </div>
-
         <div class="w-10 h-[1px] bg-purple-900/60"></div>
-
-        <!-- أيقونات التنقل الأساسية -->
         <div class="flex flex-col gap-3 w-full px-3">
-          
-          <!-- 1. المحادثات النشطة -->
           <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
             <span class="absolute top-2 left-3 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#1a0b2e]"></span>
           </a>
-
-          <!-- 2. سجل الرسائل (Database Logs) -->
           <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
           </a>
-
-          <!-- 3. الربط والويب هوك -->
-          <a href="#" title="الربط والويب هوك" class="p-3 rounded-2xl transition-all flex justify-center text-purple-300 hover:bg-purple-900/50 hover:text-white">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.858 15.355-5.858 21.213 0"></path></svg>
-          </a>
-
-          <!-- 4. التقارير والتحليلات -->
-          <a href="#" title="التقارير" class="p-3 rounded-2xl transition-all flex justify-center text-purple-300 hover:bg-purple-900/50 hover:text-white">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-          </a>
-
         </div>
       </div>
-
-      <!-- الجزء السفلي: الإعدادات -->
       <div class="w-full px-3">
         <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
         </a>
       </div>
-
     </aside>
-
   </div>
 
-  <!-- الدوال البرمجية للتفاعل اللحظي (Real-time Polling & Messaging) -->
+  <!-- الدوال البرمجية والتفاعل اللحظي والتمرير -->
   <script>
     let currentActivePhone = "{{ contacts[0].phone_number if contacts and contacts|length > 0 else '' }}";
     let refreshInterval = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       if (currentActivePhone) {
-        loadConversation(currentActivePhone);
+        const firstItem = document.querySelector('.contact-item');
+        loadConversation(currentActivePhone, firstItem);
       }
     });
 
-    // تحميل محادثة العميل وتفعيل التحديث التلقائي اللحظي
     function loadConversation(phone, element = null) {
+      if(!phone) return;
       currentActivePhone = phone;
       
-      // تحديد العنصر النشط في القائمة الجانبية بصرياً
       document.querySelectorAll('.contact-item').forEach(item => {
         item.classList.remove('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
       });
@@ -129,44 +122,46 @@
         element.classList.add('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
       }
 
-      // جلب الرسائل فوراً ثم جدولتها للتحديث كل 3 ثوانٍ
-      fetchMessages();
+      fetchMessages(true); // تمرير true للنزول للأسفل عند فتح المحادثة لأول مرة
       if (refreshInterval) clearInterval(refreshInterval);
-      refreshInterval = setInterval(fetchMessages, 3000);
+      refreshInterval = setInterval(() => fetchMessages(false), 3000);
     }
 
-    // دالة جلب الرسائل وبيانات العميل من السيرفر
-    function fetchMessages() {
+    function fetchMessages(scrollToBottomFlag = false) {
       if (!currentActivePhone) return;
 
       fetch(`/api/whatsapp/conversation/${currentActivePhone}`)
         .then(res => res.json())
         .then(data => {
-          if (data.success) {
-            // تحديث تفاصيل العميل الجانبية
+          if (data.success || data.messages || data.client) {
+            const clientInfo = data.client || { name: currentActivePhone };
+            const messagesList = data.messages || data || [];
+
             const activeNameEl = document.getElementById('active-name');
             const activePhoneEl = document.getElementById('active-phone');
             const activeAvatarEl = document.getElementById('active-avatar');
             const chatHeaderName = document.getElementById('chat-header-name');
             const chatHeaderAvatar = document.getElementById('chat-header-avatar');
             
-            if(activeNameEl) activeNameEl.innerText = data.client.name || currentActivePhone;
+            if(activeNameEl) activeNameEl.innerText = clientInfo.name || currentActivePhone;
             if(activePhoneEl) activePhoneEl.innerText = currentActivePhone;
-            if(activeAvatarEl) activeAvatarEl.innerText = (data.client.name ? data.client.name[0] : 'ع');
-            if(chatHeaderName) chatHeaderName.innerText = data.client.name || currentActivePhone;
-            if(chatHeaderAvatar) chatHeaderAvatar.innerText = (data.client.name ? data.client.name[0] : 'ع');
+            if(activeAvatarEl) activeAvatarEl.innerText = (clientInfo.name ? clientInfo.name.charAt(0) : 'ع');
+            if(chatHeaderName) chatHeaderName.innerText = clientInfo.name || currentActivePhone;
+            if(chatHeaderAvatar) chatHeaderAvatar.innerText = (clientInfo.name ? clientInfo.name.charAt(0) : 'ع');
 
-            // تحديث صندوق الرسائل
             const box = document.getElementById('chat-messages-box');
             if(box) {
+              // التحقق مما إذا كان المستخدم في أسفل المحادثة قبل التحديث لمنع مقاطعته أثناء القراءة للأعلى
+              const isAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 150;
+
               box.innerHTML = '';
-              if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(msg => {
+              if (Array.isArray(messagesList) && messagesList.length > 0) {
+                messagesList.forEach(msg => {
                   let isOutgoing = msg.direction === 'outbound';
                   box.innerHTML += `
                     <div class="flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-3">
                       <div class="max-w-[70%] p-3.5 rounded-2xl ${isOutgoing ? 'bg-[#570575] text-white rounded-br-none shadow-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-xs'} text-xs">
-                        <p class="leading-relaxed">${msg.message_body}</p>
+                        <p class="leading-relaxed">${msg.message_body || msg.content || ''}</p>
                         <span class="block text-[9px] opacity-70 mt-1 text-left">${msg.timestamp || ''}</span>
                       </div>
                     </div>
@@ -175,13 +170,17 @@
               } else {
                 box.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">لا توجد رسائل مسجلة مع هذا العميل بعد</div>';
               }
-              box.scrollTop = box.scrollHeight;
+
+              // النزول لأسفل الشات تلقائياً عند الفتح أو إذا كان المستخدم بالأسفل أساساً
+              if (scrollToBottomFlag || isAtBottom) {
+                box.scrollTop = box.scrollHeight;
+              }
             }
           }
-        });
+        })
+        .catch(err => console.error('Error fetching messages:', err));
     }
 
-    // دالة إرسال الرسالة لحظياً عبر الـ API
     function sendMessage() {
       const input = document.getElementById('chat-input');
       if (!input) return;
@@ -196,13 +195,14 @@
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          input.value = ''; // تفريغ حقل الكتابة
-          fetchMessages();  // تحديث الشات فوراً لعرض الرسالة المرسلة
+        if (data.success || data.status === 'sent') {
+          input.value = ''; 
+          fetchMessages(true); // النزول للأسفل فور إرسال رسالة جديدة
         } else {
           alert('فشل إرسال الرسالة، تأكد من الاتصال.');
         }
-      });
+      })
+      .catch(err => console.error('Error sending message:', err));
     }
   </script>
 </body>
