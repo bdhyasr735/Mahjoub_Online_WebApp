@@ -145,7 +145,6 @@
   </div>
 
   <script>
-    // استخدام HTMX لتحديث المناطق عند النقر على جهة اتصال
     document.addEventListener('htmx:afterSwap', function(evt) {
       if (evt.detail.target.id === 'sidebar-contacts-container') {
         const activeItem = document.querySelector('.contact-item.active');
