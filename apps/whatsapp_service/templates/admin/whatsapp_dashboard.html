@@ -5,20 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>مركز مراسلات واتساب | محجوب أونلاين</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body { font-family: 'Tajawal', sans-serif; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .contact-item { cursor: pointer; transition: background 0.15s; }
-    .contact-item:hover { background: #f8fafc; }
-    .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
@@ -38,21 +29,21 @@
     </div>
 
     <nav class="flex items-center gap-2 text-xs font-bold">
-      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'chat' or not active_tab else 'text-slate-600 hover:bg-slate-100' }}">
-        <i class="fas fa-comments ml-1"></i> المحادثات المباشرة
+      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'chat' else 'text-slate-600 hover:bg-slate-100' }}">
+        المحادثات المباشرة
       </a>
       <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'logs' else 'text-slate-600 hover:bg-slate-100' }}">
-        <i class="fas fa-history ml-1"></i> سجل الرسائل
+        سجل الرسائل
       </a>
       <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-3.5 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'settings' else 'text-slate-600 hover:bg-slate-100' }}">
-        <i class="fas fa-cog ml-1"></i> إعدادات الربط
+        إعدادات الربط
       </a>
     </nav>
   </header>
 
   <!-- Content Container -->
   <main class="flex-1 flex overflow-hidden">
-    {% if active_tab == 'chat' or not active_tab %}
+    {% if active_tab == 'chat' %}
       {% include 'admin/chat_view.html' %}
     {% elif active_tab == 'logs' %}
       {% include 'admin/logs_view.html' %}
@@ -61,36 +52,5 @@
     {% endif %}
   </main>
 
-  <script>
-    // HTMX: تحديث الشات والتفاصيل عند النقر على جهة اتصال
-    document.addEventListener('htmx:afterSwap', function(evt) {
-      if (evt.detail.target.id === 'sidebar-contacts-container') {
-        const activeItem = document.querySelector('.contact-item.active');
-        if (activeItem) {
-          const contactId = activeItem.dataset.contactId;
-          if (contactId) {
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
-          }
-        }
-      }
-    });
-
-    // تحميل أول محادثة تلقائياً عند تحميل الصفحة
-    document.addEventListener('DOMContentLoaded', function() {
-      const activeItem = document.querySelector('.contact-item.active');
-      if (!activeItem) {
-        const firstItem = document.querySelector('.contact-item');
-        if (firstItem) {
-          firstItem.classList.add('active');
-          const contactId = firstItem.dataset.contactId;
-          if (contactId) {
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
-          }
-        }
-      }
-    });
-  </script>
 </body>
 </html>
