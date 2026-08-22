@@ -39,4 +39,4 @@ class WhatsAppCustomerContact(db.Model):
     name = db.Column(db.String(100), nullable=True)
     last_message = db.Column(db.Text, nullable=True)
     last_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    unread_count = db.Column(db.Integer, default=0)
+    unread_count = db.Column(db.Integer, default=0) 
