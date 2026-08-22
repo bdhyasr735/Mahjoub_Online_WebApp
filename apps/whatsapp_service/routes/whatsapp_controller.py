@@ -250,6 +250,7 @@ def send_message_api():
 
 
 @whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
+@whatsapp_bp.route('/whatsapp/api/whatsapp/conversation/<phone>', methods=['GET'])
 def get_conversation_data(phone):
     """مسار جلب رسائل وبيانات عميل معين عند النقر عليه في القائمة الديناميكية"""
     db = get_db()
