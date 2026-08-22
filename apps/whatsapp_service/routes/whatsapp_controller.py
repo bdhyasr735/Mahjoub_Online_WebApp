@@ -149,7 +149,7 @@ def chat_dashboard():
         else:
             contact.is_online = False
 
-    # قراءة رقم العميل المحدد من الرابط (مثل ?contact_id=1)
+    # قراءة رقم العميل المحدد من الرابط
     contact_id = request.args.get('contact_id', type=int)
     
     current_contact = None
@@ -179,12 +179,11 @@ def chat_dashboard():
 
 
 # =============================================================================
-# 3. HTMX ENDPOINTS (لتحديث الأجزاء ديناميكياً)
+# 3. HTMX & ACTION ENDPOINTS
 # =============================================================================
 
 @whatsapp_bp.route('/client/<int:contact_id>/chat')
 def get_chat_area(contact_id):
-    """إرجاع مكون الشات فقط (للاستخدام مع HTMX)"""
     contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
     if not contact:
         return "العميل غير موجود", 404
@@ -203,18 +202,8 @@ def get_chat_area(contact_id):
     return render_template('admin/components/_chat_area.html', contact=contact, messages=messages)
 
 
-@whatsapp_bp.route('/client/<int:contact_id>/details')
-def get_client_details(contact_id):
-    """إرجاع مكون تفاصيل العميل فقط (للاستخدام مع HTMX)"""
-    contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
-    if not contact:
-        return "العميل غير موجود", 404
-    return render_template('admin/components/_client_details.html', contact=contact)
-
-
 @whatsapp_bp.route('/refresh_contacts')
 def refresh_contacts():
-    """تحديث قائمة جهات الاتصال في الشريط الجانبي"""
     contacts = db.session.query(WhatsAppCustomerContact).order_by(
         WhatsAppCustomerContact.last_timestamp.desc()
     ).all()
@@ -229,7 +218,6 @@ def refresh_contacts():
 
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
-    """إرسال رسالة وتحديث القائمة الجانبية (HTMX)"""
     phone = request.form.get('phone')
     message = request.form.get('message')
     if not phone or not message:
@@ -247,74 +235,24 @@ def send_message_htmx():
 
 
 # =============================================================================
-# 4. API ENDPOINTS (للاستخدام مع Fetch)
-# =============================================================================
-
-@whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
-def get_conversation_data(phone):
-    """جلب رسائل عميل معين بصيغة JSON (للاستخدام مع JavaScript)"""
-    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
-    if contact and contact.unread_count > 0:
-        contact.unread_count = 0
-        db.session.commit()
-
-    messages = db.session.query(WhatsAppMessageLog).filter(
-        or_(
-            WhatsAppMessageLog.sender_number == phone,
-            WhatsAppMessageLog.recipient_number == phone
-        )
-    ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
-
-    messages_data = []
-    for m in messages:
-        ts = getattr(m, 'timestamp', None)
-        messages_data.append({
-            "id": m.id,
-            "direction": m.direction,
-            "message_body": m.content,
-            "message_type": getattr(m, 'message_type', 'text'),
-            "timestamp": ts.strftime('%Y-%m-%d %H:%M') if ts else '',
-            "status": m.status
-        })
-
-    client_info = {
-        "name": contact.name if contact else phone,
-        "phone": phone
-    }
-
-    return jsonify({
-        "success": True,
-        "client": client_info,
-        "messages": messages_data
-    })
-
-
-@whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
-def send_message_api():
-    """إرسال رسالة عبر JSON (للاستخدام مع JavaScript)"""
-    data = request.get_json(silent=True) or {}
-    phone = data.get('phone')
-    message = data.get('message')
-    if not phone or not message:
-        return jsonify({"success": False, "error": "بيانات ناقصة"}), 400
-
-    success, response_data = send_text_message(phone, message)
-    return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
-
-
-# =============================================================================
-# 5. BULK BROADCAST & OTHER TABS
+# 4. BULK BROADCAST (الإرسال الجماعي)
 # =============================================================================
 
 @whatsapp_bp.route('/send_bulk_broadcast', methods=['POST'])
 def send_bulk_broadcast():
-    """إرسال حملة رسائل جماعية للعملاء"""
+    """إرسال حملة رسائل جماعية للعملاء مع دعم التوجيه و JSON"""
+    from flask import flash, redirect, url_for
+    
     target = request.form.get('target_audience', 'all')
     template = request.form.get('template_name', '')
     content = request.form.get('message_content', '')
     
     contacts = []
     if target == 'all':
+        contacts = db.session.query(WhatsAppCustomerContact).all()
+    elif target == 'active_orders':
+        contacts = db.session.query(WhatsAppCustomerContact).all()
+    else:
         contacts = db.session.query(WhatsAppCustomerContact).all()
     
     sent_count = 0
@@ -324,8 +262,16 @@ def send_bulk_broadcast():
             if success:
                 sent_count += 1
                 
-    return jsonify({"success": True, "sent_count": sent_count, "target": target})
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+        return jsonify({"success": True, "sent_count": sent_count, "target": target})
+        
+    flash(f"✅ تم إرسال الحملة الجماعية بنجاح إلى {sent_count} عميل!", "success")
+    return redirect(url_for('whatsapp_service.chat_dashboard'))
 
+
+# =============================================================================
+# 5. OTHER TABS (Logs & Settings)
+# =============================================================================
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
