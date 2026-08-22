@@ -6,10 +6,10 @@
   <div class="px-6 py-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs z-10 shrink-0">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#632C8F] to-[#570575] text-white font-bold flex items-center justify-center text-sm shadow-sm" id="chat-header-avatar">
-        {{ (contact.name|default(contact.phone))[0]|upper }}
+        {{ (contact.name|first or contact.phone|first)|upper }}
       </div>
       <div>
-        <h3 class="text-xs font-bold text-slate-800" id="chat-header-name">{{ contact.name|default(contact.phone) }}</h3>
+        <h3 class="text-xs font-bold text-slate-800" id="chat-header-name">{{ contact.name or contact.phone }}</h3>
         <p class="text-[10px] text-emerald-600 flex items-center gap-1 mt-0.5">
           <span class="w-1.5 h-1.5 rounded-full {% if contact.is_online %}bg-emerald-500 animate-pulse{% else %}bg-slate-400{% endif %}"></span>
           {% if contact.is_online %}متصل الآن{% else %}غير متصل{% endif %}
@@ -118,8 +118,8 @@
       messagesBox.scrollTop = messagesBox.scrollHeight;
       input.value = '';
 
-      // إرسال إلى الخادم عبر HTMX (باستخدام fetch)
-      fetch('{{ url_for("whatsapp_service.send_message_htmx") }}', {
+      // إرسال إلى الخادم
+      fetch('/admin/whatsapp/send_message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -129,10 +129,9 @@
       })
       .then(response => response.text())
       .then(html => {
-        // تحديث الشريط الجانبي
         const sidebar = document.getElementById('sidebar-contacts-container');
         if (sidebar) {
-          htmx.ajax('GET', '{{ url_for("whatsapp_service.refresh_contacts") }}', { target: '#sidebar-contacts-container', swap: 'innerHTML' });
+          htmx.ajax('GET', '/admin/whatsapp/refresh_contacts', { target: '#sidebar-contacts-container', swap: 'innerHTML' });
         }
         btn.disabled = false;
         btn.innerHTML = `<span>إرسال</span> ...`;
@@ -151,7 +150,7 @@
       const messagesBox = document.getElementById('chat-messages-box');
       messagesBox.innerHTML = `<div class="flex justify-center items-center h-full text-slate-400 text-xs">جاري تحميل الرسائل...</div>`;
       
-      fetch(`/admin/whatsapp/api/whatsapp/conversation/${phone}`)
+      fetch('/admin/whatsapp/api/whatsapp/conversation/' + phone)
         .then(res => res.json())
         .then(data => {
           if (data.messages) {
