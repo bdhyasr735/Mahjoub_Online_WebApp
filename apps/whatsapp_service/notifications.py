@@ -10,10 +10,19 @@ import os
 import logging
 from datetime import datetime
 from flask import current_app
-from .whatsapp_api import send_text_message
-from .models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
+
+try:
+    from .whatsapp_api import send_text_message
+except ImportError:
+    from apps.whatsapp_service.whatsapp_api import send_text_message
+
+try:
+    from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
+except ImportError:
+    from .models.whatsapp_models import WhatsAppMessageLog, WhatsAppCustomerContact
 
 logger = logging.getLogger(__name__)
+
 
 def get_db():
     """Helper to get db instance safely from main app"""
@@ -21,7 +30,12 @@ def get_db():
         from apps.extensions import db
         return db
     except ImportError:
-        return None
+        try:
+            from app import db
+            return db
+        except ImportError:
+            return None
+
 
 def _log_outbound_notification(recipient_phone, message, order_id=None, success=False, response_data=None):
     """دالة مساعدة لتسجيل الرسائل التلقائية في قاعدة البيانات لضمان ظهورها بلوحة التحكم"""
@@ -30,7 +44,11 @@ def _log_outbound_notification(recipient_phone, message, order_id=None, success=
         return
 
     try:
-        phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')) if current_app else 'system'
+        phone_id = 'system'
+        if current_app:
+            phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
+        else:
+            phone_id = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system')
         
         wamid = None
         if success and isinstance(response_data, dict):
@@ -43,11 +61,9 @@ def _log_outbound_notification(recipient_phone, message, order_id=None, success=
             direction='outbound',
             sender_number=phone_id,
             recipient_number=recipient_phone,
-            order_id=str(order_id) if order_id else None,
             message_type='text',
             content=message,
-            status='sent' if success else 'failed',
-            error_message=None if success else str(response_data)
+            status='sent' if success else 'failed'
         )
         db.session.add(outbound_log)
         
@@ -55,13 +71,10 @@ def _log_outbound_notification(recipient_phone, message, order_id=None, success=
         if contact:
             contact.last_message = f"إلى: {message[:50]}..."
             contact.last_timestamp = datetime.utcnow()
-            if order_id:
-                contact.active_order_id = str(order_id)
         else:
             new_contact = WhatsAppCustomerContact(
                 phone=recipient_phone,
                 name=f"عميل ({recipient_phone})",
-                active_order_id=str(order_id) if order_id else None,
                 last_message=f"إلى: {message[:50]}...",
                 last_timestamp=datetime.utcnow(),
                 unread_count=0
