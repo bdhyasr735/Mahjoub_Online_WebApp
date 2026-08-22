@@ -1,19 +1,56 @@
-<!-- Chat View Jinja2 Component (دمج مع مكونات _sidebar_contacts + _chat_area + _client_details) -->
-<div class="flex-1 flex overflow-hidden w-full h-full">
-  
-  <!-- 1. قائمة المحادثات (يمين) -->
-  <div class="w-[340px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm" id="sidebar-contacts-container">
-    {% include 'admin/components/_sidebar_contacts.html' %}
+<!-- Logs View Jinja2 Component -->
+<div class="flex-1 flex flex-col w-full h-full bg-slate-50 overflow-hidden">
+  <!-- Header and Filters -->
+  <div class="p-4 border-b border-slate-200 bg-white flex items-center justify-between gap-4">
+    <h2 class="text-sm font-bold text-slate-800">سجل الرسائل</h2>
+    <div class="flex gap-2">
+      <input type="text" placeholder="بحث في السجلات..." class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-xs w-64">
+      <select class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
+        <option>كل الحالات</option>
+        <option>تم الإرسال</option>
+        <option>فشل الإرسال</option>
+        <option>قيد الانتظار</option>
+      </select>
+    </div>
   </div>
 
-  <!-- 2. منطقة الدردشة (منتصف) -->
-  <div class="flex-1 h-full flex flex-col bg-slate-50 overflow-hidden relative" id="chat-area-container">
-    {% include 'admin/components/_chat_area.html' %}
+  <!-- Logs Table -->
+  <div class="flex-1 overflow-y-auto p-4">
+    {% if logs|default([]) %}
+    <table class="w-full text-right border-collapse bg-white shadow-sm rounded-lg overflow-hidden">
+      <thead class="bg-slate-100 text-xs text-slate-600 font-bold">
+        <tr>
+          <th class="p-3 border-b">المرسل</th>
+          <th class="p-3 border-b">المستلم</th>
+          <th class="p-3 border-b">نص الرسالة</th>
+          <th class="p-3 border-b">التاريخ والوقت</th>
+          <th class="p-3 border-b">الحالة</th>
+        </tr>
+      </thead>
+      <tbody class="text-xs divide-y divide-slate-100">
+        {% for log in logs %}
+        <tr class="hover:bg-slate-50">
+          <td class="p-3 font-mono text-slate-800">{{ log.sender }}</td>
+          <td class="p-3 font-mono text-slate-800">{{ log.recipient }}</td>
+          <td class="p-3 text-slate-600 truncate max-w-xs">{{ log.content }}</td>
+          <td class="p-3 text-slate-400 font-mono">{{ log.timestamp }}</td>
+          <td class="p-3">
+            {% if log.status == 'sent' %}
+              <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">تم الإرسال</span>
+            {% elif log.status == 'failed' %}
+              <span class="px-2 py-1 rounded-full bg-red-100 text-red-700">فشل</span>
+            {% else %}
+              <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-700">قيد الانتظار</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
+      <p>لا توجد سجلات رسائل حالياً</p>
+    </div>
+    {% endif %}
   </div>
-
-  <!-- 3. تفاصيل العميل (يسار) -->
-  <div class="w-[320px] shrink-0 bg-white h-full overflow-y-auto shadow-sm" id="client-details-container">
-    {% include 'admin/components/_client_details.html' %}
-  </div>
-
 </div>
