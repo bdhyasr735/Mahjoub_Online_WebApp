@@ -17,11 +17,16 @@
              data-phone="{{ contact.phone }}">
           <div class="flex justify-between items-center font-bold text-xs text-slate-900">
             <span class="truncate max-w-[140px]">{{ contact.name or 'عميل محجوب' }}</span>
-            <span class="text-[10px] text-slate-400 font-mono" dir="ltr">{{ contact.phone }}</span>
+            <!-- مؤشر حالة الاتصال الديناميكي -->
+            {% if contact.is_online %}
+              <span class="text-[9px] text-emerald-600 font-bold">● متصل</span>
+            {% else %}
+              <span class="text-[9px] text-slate-400">آخر ظهور: {{ contact.last_timestamp.strftime('%H:%M') if contact.last_timestamp else 'ـ' }}</span>
+            {% endif %}
           </div>
           <p class="text-[11px] text-slate-500 truncate mt-1">{{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
-          <div class="text-[9px] text-slate-400 text-end mt-1">
-            {{ contact.last_timestamp.strftime('%H:%M') if contact.last_timestamp else '' }}
+          <div class="text-[9px] text-slate-400 text-end mt-1" dir="ltr">
+            {{ contact.last_timestamp.strftime('%Y-%m-%d %H:%M') if contact.last_timestamp else '' }}
           </div>
         </div>
         {% endfor %}
@@ -150,9 +155,14 @@ function sendDashboardMessage(event) {
     event.preventDefault();
     const phone = document.getElementById('current-target-phone').value;
     const inputField = document.getElementById('whatsapp-message-input');
+    const submitBtn = document.getElementById('whatsapp-submit-btn');
     const message = inputField.value.trim();
 
     if (!phone || !message) return;
+
+    // تفعيل حالة التحميل لمنع التكرار
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>جاري الإرسال...</span>';
 
     const sendUrl = "{{ url_for('whatsapp_service.send_message_api') }}";
 
@@ -166,6 +176,13 @@ function sendDashboardMessage(event) {
     })
     .then(res => res.json())
     .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `
+            <span>إرسال</span>
+            <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+        `;
         if (data.success) {
             inputField.value = '';
             loadChat(phone, currentActiveContactName);
@@ -174,7 +191,22 @@ function sendDashboardMessage(event) {
         }
     })
     .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `
+            <span>إرسال</span>
+            <svg class="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+        `;
         console.error('Error sending message:', err);
     });
 }
+
+// التحديث التلقائي للمحادثة المفتوحة كل 10 ثوانٍ لضمان التزامن المباشر
+setInterval(() => {
+    const activePhone = document.getElementById('current-target-phone').value;
+    if (activePhone) {
+        loadChat(activePhone, currentActiveContactName);
+    }
+}, 10000);
 </script>
