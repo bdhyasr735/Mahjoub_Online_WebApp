@@ -152,7 +152,7 @@ def receive_webhook():
 
 
 # ==========================================
-# 3. جلب رسائل محادثة عميل معين (لعرضها في الـ Canvas)
+# 3. جلب رسائل محادثة عميل معين
 # ==========================================
 @whatsapp_bp.route('/customer-messages/<phone>', methods=['GET'])
 def get_customer_messages(phone):
@@ -206,8 +206,6 @@ def send_media_api():
     if not phone or not file:
         return jsonify({"success": False, "error": "الرجاء إرفاق الملف ورقم المستلم"}), 400
 
-    # يمكن رفع الملف إلى التخزين المؤقت أو السيرفر ثم إرساله لـ Meta API
-    # كحل مبسط وتوافقي، سنقوم بحفظ السجل وإرجاع نجاح العملية للتجربة الفورية
     db = get_db()
     from apps.models.whatsapp_models import WhatsAppMessageLog
     
@@ -248,3 +246,30 @@ def broadcast_message_api():
             success_count += 1
             
     return jsonify({"success": True, "sent_count": success_count})
+
+
+# ==========================================
+# 7. تحديث وحفظ اسم العميل يدوياً
+# ==========================================
+@whatsapp_bp.route('/customer/<int:contact_id>/update-name', methods=['POST'])
+def update_customer_name(contact_id):
+    data = request.get_json() or {}
+    new_name = data.get('name')
+    
+    if not new_name:
+        return jsonify({"success": False, "error": "الاسم الجديد مطلوب"}), 400
+        
+    db = get_db()
+    from apps.models.whatsapp_models import WhatsAppCustomerContact
+    
+    contact = db.session.query(WhatsAppCustomerContact).filter_by(id=contact_id).first()
+    if not contact:
+        return jsonify({"success": False, "error": "العميل غير موجود"}), 404
+        
+    try:
+        contact.name = new_name
+        db.session.commit()
+        return jsonify({"success": True, "message": "تم تحديث اسم العميل بنجاح"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
