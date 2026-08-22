@@ -6,23 +6,18 @@
   <title>مركز المراسلات والدعم | منصة محجوب أونلاين</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style> 
     body { font-family: 'Tajawal', sans-serif; } 
-    /* تخصيص شكل شريط التمرير ليكون أكثر جمالاً ونعومة */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* إضافة تنسيق للمكونات */
+    .contact-item { cursor: pointer; transition: background 0.15s; }
+    .contact-item:hover { background: #f8fafc; }
+    .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
   </style>
 </head>
 <body class="bg-slate-100 h-screen overflow-hidden flex flex-col" dir="rtl">
@@ -48,21 +43,21 @@
     
     <!-- المحتوى الرئيسي (الشات والأقسام الثلاثة) -->
     <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
-      {% if active_tab == 'chat' %}
+      {% if active_tab == 'chat' or not active_tab %}
         <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
           
           <!-- 1. قائمة المحادثات (يمين) -->
-          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm">
+          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm" id="sidebar-contacts-container">
             {% include 'admin/components/_sidebar_contacts.html' %}
           </div>
 
-          <!-- 2. منطقة الدردشة (منتصف - مرنة مع ضبط الارتفاع والتمرير) -->
-          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative">
+          <!-- 2. منطقة الدردشة (منتصف) -->
+          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
             {% include 'admin/components/_chat_area.html' %}
           </div>
 
-          <!-- 3. تفاصيل العميل والبروفايل (يسار) -->
-          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm">
+          <!-- 3. تفاصيل العميل (يسار) -->
+          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm" id="client-details-container">
             {% include 'admin/components/_client_details.html' %}
           </div>
 
@@ -82,129 +77,60 @@
         </div>
         <div class="w-10 h-[1px] bg-purple-900/60"></div>
         <div class="flex flex-col gap-3 w-full px-3">
-          <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+          <a href="{{ url_for('whatsapp.dashboard') }}" title="المحادثات المباشرة" class="relative group p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'chat' or not active_tab else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
             <span class="absolute top-2 left-3 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#1a0b2e]"></span>
           </a>
-          <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+          <a href="{{ url_for('whatsapp.logs') }}" title="سجل الرسائل" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
           </a>
         </div>
       </div>
       <div class="w-full px-3">
-        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+        <a href="{{ url_for('whatsapp.settings') }}" title="الإعدادات" class="p-3 rounded-2xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-lg border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
         </a>
       </div>
     </aside>
   </div>
 
-  <!-- الدوال البرمجية والتفاعل اللحظي والتمرير -->
+  <!-- JavaScript للتفاعل مع HTMX وتحديث المحتوى -->
   <script>
-    // تم التصحيح هنا لاستخدام phone بدلاً من phone_number لتتوافق مع قاعدة البيانات
-    let currentActivePhone = "{{ contacts[0].phone if contacts and contacts|length > 0 else '' }}";
-    let refreshInterval = null;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      if (currentActivePhone) {
-        const firstItem = document.querySelector('.contact-item');
-        loadConversation(currentActivePhone, firstItem);
+    // عند النقر على جهة اتصال، يتم تحديث منطقة الشات وتفاصيل العميل عبر HTMX
+    document.addEventListener('htmx:afterSwap', function(evt) {
+      // إذا تم تحديث الشريط الجانبي، نعيد تحميل الشات والتفاصيل تلقائياً
+      if (evt.detail.target.id === 'sidebar-contacts-container') {
+        // نبحث عن العنصر النشط الجديد
+        const activeItem = document.querySelector('.contact-item.active');
+        if (activeItem) {
+          const contactId = activeItem.dataset.contactId;
+          if (contactId) {
+            // تحديث منطقة الشات
+            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
+            // تحديث تفاصيل العميل
+            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
+          }
+        }
       }
     });
 
-    function loadConversation(phone, element = null) {
-      if(!phone) return;
-      currentActivePhone = phone;
-      
-      document.querySelectorAll('.contact-item').forEach(item => {
-        item.classList.remove('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
-      });
-      if (element) {
-        element.classList.add('bg-purple-50/80', 'border-r-4', 'border-r-[#570575]');
-      }
-
-      fetchMessages(true); // تمرير true للنزول للأسفل عند فتح المحادثة لأول مرة
-      if (refreshInterval) clearInterval(refreshInterval);
-      refreshInterval = setInterval(() => fetchMessages(false), 3000);
-    }
-
-    function fetchMessages(scrollToBottomFlag = false) {
-      if (!currentActivePhone) return;
-
-      fetch(`/api/whatsapp/conversation/${currentActivePhone}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success || data.messages || data.client) {
-            const clientInfo = data.client || { name: currentActivePhone };
-            const messagesList = data.messages || data || [];
-
-            const activeNameEl = document.getElementById('active-name');
-            const activePhoneEl = document.getElementById('active-phone');
-            const activeAvatarEl = document.getElementById('active-avatar');
-            const chatHeaderName = document.getElementById('chat-header-name');
-            const chatHeaderAvatar = document.getElementById('chat-header-avatar');
-            
-            if(activeNameEl) activeNameEl.innerText = clientInfo.name || currentActivePhone;
-            if(activePhoneEl) activePhoneEl.innerText = currentActivePhone;
-            if(activeAvatarEl) activeAvatarEl.innerText = (clientInfo.name ? clientInfo.name.charAt(0) : 'ع');
-            if(chatHeaderName) chatHeaderName.innerText = clientInfo.name || currentActivePhone;
-            if(chatHeaderAvatar) chatHeaderAvatar.innerText = (clientInfo.name ? clientInfo.name.charAt(0) : 'ع');
-
-            const box = document.getElementById('chat-messages-box');
-            if(box) {
-              // التحقق مما إذا كان المستخدم في أسفل المحادثة قبل التحديث لمنع مقاطعته أثناء القراءة للأعلى
-              const isAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 150;
-
-              box.innerHTML = '';
-              if (Array.isArray(messagesList) && messagesList.length > 0) {
-                messagesList.forEach(msg => {
-                  let isOutgoing = msg.direction === 'outbound';
-                  box.innerHTML += `
-                    <div class="flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-3">
-                      <div class="max-w-[70%] p-3.5 rounded-2xl ${isOutgoing ? 'bg-[#570575] text-white rounded-br-none shadow-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-xs'} text-xs">
-                        <p class="leading-relaxed">${msg.message_body || msg.content || ''}</p>
-                        <span class="block text-[9px] opacity-70 mt-1 text-left">${msg.timestamp || ''}</span>
-                      </div>
-                    </div>
-                  `;
-                });
-              } else {
-                box.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs">لا توجد رسائل مسجلة مع هذا العميل بعد</div>';
-              }
-
-              // النزول لأسفل الشات تلقائياً عند الفتح أو إذا كان المستخدم بالأسفل أساساً
-              if (scrollToBottomFlag || isAtBottom) {
-                box.scrollTop = box.scrollHeight;
-              }
-            }
+    // تأكد من أن أول عنصر اتصال يكون نشطاً عند التحميل (إذا لم يكن هناك عنصر نشط)
+    document.addEventListener('DOMContentLoaded', function() {
+      const activeItem = document.querySelector('.contact-item.active');
+      if (!activeItem) {
+        const firstItem = document.querySelector('.contact-item');
+        if (firstItem) {
+          firstItem.classList.add('active');
+          // تحميل الشات والتفاصيل للعنصر الأول
+          const contactId = firstItem.dataset.contactId;
+          if (contactId) {
+            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
+            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
           }
-        })
-        .catch(err => console.error('Error fetching messages:', err));
-    }
-
-    function sendMessage() {
-      const input = document.getElementById('chat-input');
-      if (!input) return;
-      
-      const text = input.value.trim();
-      if (!text || !currentActivePhone) return;
-
-      fetch('/api/whatsapp/send', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: currentActivePhone, message: text })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success || data.status === 'sent') {
-          input.value = ''; 
-          fetchMessages(true); // النزول للأسفل فور إرسال رسالة جديدة
-        } else {
-          alert('فشل إرسال الرسالة، تأكد من الاتصال.');
         }
-      })
-      .catch(err => console.error('Error sending message:', err));
-    }
+      }
+    });
   </script>
+
 </body>
 </html>
