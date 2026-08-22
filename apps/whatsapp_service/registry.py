@@ -58,7 +58,8 @@ def register_module(app):
     تسجيل موديول الواتساب ومساراته تلقائياً في التطبيق الرئيسي
     """
     try:
-        from apps.whatsapp_service.routes.whatsapp_controller import whatsapp_bp
+        # ⚠️ التعديل هنا: الاستيراد من مجلد الـ routes مباشرة بعد إعادة الهيكلة
+        from apps.whatsapp_service.routes import whatsapp_bp
         
         # تسجيل الـ Blueprint إذا لم يكن مسجلاً من قبل لتجنب التكرار
         if 'whatsapp_service' not in app.blueprints:
@@ -67,7 +68,6 @@ def register_module(app):
         # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً وضمان تفعيلها
         with app.app_context():
             try:
-                # ملاحظة: تم تعديل المسار ليتماشى مع الهيكل الجديد وجلب قاعدة البيانات من apps.extensions
                 from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
                 from apps.extensions import db
                 
