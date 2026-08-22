@@ -12,7 +12,6 @@ import logging
 from datetime import datetime, timedelta
 from ..whatsapp_api import send_text_message
 
-# ✨ تم تحديث مسار الاستيراد هنا ليتطابق مع النقل إلى المجلد العام
 from apps.models.whatsapp_models import (
     WhatsAppMessageLog, 
     WhatsAppWebhookEvent, 
@@ -211,8 +210,7 @@ def send_message_api():
     if not recipient or not text:
         return jsonify({"success": False, "error": "Missing recipient_number or message"}), 400
 
-    status_code, response_data = send_text_message(recipient, text)
-    success = (200 <= status_code < 300)
+    success, response_data = send_text_message(recipient, text)
 
     db = get_db()
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', os.environ.get('WHATSAPP_PHONE_NUMBER_ID', 'system'))
@@ -301,7 +299,6 @@ def chat_dashboard():
         try:
             contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
             
-            # حساب حالة الاتصال (متصل الآن إذا كان آخر تفاعل خلال آخر 5 دقائق)
             for contact in contacts:
                 if contact.last_timestamp:
                     diff = datetime.utcnow() - contact.last_timestamp
