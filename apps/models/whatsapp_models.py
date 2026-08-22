@@ -56,3 +56,31 @@ class WhatsAppCustomerContact(db.Model):
     
     # حالة التواصل
     is_blocked = db.Column(db.Boolean, default=False)
+
+    # -------------------------------------------------------------
+    # خصائص مساعدة (Properties) متوافقة مع قوالب العرض (chat_view.html)
+    # -------------------------------------------------------------
+    @property
+    def phone_number(self):
+        """توافقاً مع القالب الذي يستدعي client.phone_number"""
+        return self.phone
+
+    @property
+    def total_messages_count(self):
+        """حساب إجمالي الرسائل المتبادلة مع هذا الرقم تلقائياً"""
+        try:
+            return WhatsAppMessageLog.query.filter(
+                (WhatsAppMessageLog.sender_number == self.phone) | 
+                (WhatsAppMessageLog.recipient_number == self.phone)
+            ).count()
+        except Exception:
+            return 0
+
+    @property
+    def orders(self):
+        """إرجاع الطلبات المرتبطة بالعميل (يمكن ربطها بجدول الطلبات لديك لاحقاً)"""
+        return []
+
+    @property
+    def status_label(self):
+        return "نشط"
