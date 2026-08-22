@@ -1,34 +1,68 @@
+<!-- ملف: apps/whatsapp_service/templates/admin/components/_sidebar_contacts.html -->
 <div class="w-full bg-white border-l border-slate-200 flex flex-col h-full shrink-0">
+  
+  <!-- رأس القائمة: العنوان والعدد -->
   <div class="p-4 border-b border-slate-100 flex items-center justify-between">
     <span class="font-bold text-slate-800 text-sm">المحادثات النشطة</span>
     <span class="bg-purple-100 text-[#570575] px-2 py-0.5 rounded-full text-xs font-bold" id="contacts-count">{{ contacts|length }}</span>
   </div>
+
+  <!-- حقل البحث السريع -->
   <div class="p-3 border-b border-slate-100">
-    <input type="text" id="search-contacts" placeholder="بحث..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none" oninput="filterContacts(this.value)">
-  </div>
-  <div class="flex-1 overflow-y-auto" id="contacts-list">
-    {% for c in contacts %}
-    <div onclick="loadConversation('{{ c.phone_number }}', this)" 
-         class="contact-item p-3 border-b border-slate-50 hover:bg-purple-50/50 cursor-pointer transition-colors flex items-center gap-3"
-         data-phone="{{ c.phone_number }}">
-      <div class="w-10 h-10 rounded-full bg-[#570575]/10 text-[#570575] font-bold flex items-center justify-center shrink-0">
-        {{ c.name[0] if c.name else 'ع' }}
-      </div>
-      <div class="flex-1 min-w-0">
-        <h4 class="text-xs font-bold text-slate-800 truncate">{{ c.name or c.phone_number }}</h4>
-        <p class="text-[10px] text-slate-400 mt-0.5">{{ c.phone_number }}</p>
-      </div>
+    <div class="relative">
+      <input type="text" id="search-contacts" placeholder="بحث عن عميل أو رقم..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#570575] transition-colors" oninput="filterContacts(this.value)">
+      <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
     </div>
-    {% endfor %}
   </div>
+
+  <!-- قائمة العملاء -->
+  <div class="flex-1 overflow-y-auto" id="contacts-list">
+    {% if contacts %}
+      {% for c in contacts %}
+      <div onclick="loadConversation('{{ c.phone_number }}', this)" 
+           class="contact-item p-3.5 border-b border-slate-50 hover:bg-purple-50/50 cursor-pointer transition-colors flex items-center gap-3 {% if loop.first %}bg-purple-50/80 border-r-4 border-r-[#570575]{% endif %}"
+           data-phone="{{ c.phone_number }}" data-name="{{ c.name | default('') }}">
+        
+        <!-- رمز الحرف الأول أو الصورة المصغرة للعميل -->
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#632C8F]/20 to-[#570575]/20 text-[#570575] font-bold flex items-center justify-center shrink-0 shadow-sm">
+          {{ c.name[0] if c.name else 'ع' }}
+        </div>
+
+        <!-- تفاصيل العميل -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between mb-0.5">
+            <h4 class="text-xs font-bold text-slate-800 truncate">{{ c.name or c.phone_number }}</h4>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+          <p class="text-[11px] text-slate-400 truncate" dir="ltr">{{ c.phone_number }}</p>
+        </div>
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center text-slate-400 text-xs py-10">لا توجد محادثات نشطة حالياً</div>
+    {% endif %}
+  </div>
+
 </div>
 
 <script>
+// دالة البحث الفوري داخل قائمة المحادثات
 function filterContacts(query) {
+    const filter = query.toLowerCase();
     const items = document.querySelectorAll('.contact-item');
+    
     items.forEach(item => {
-        const name = item.dataset.phone;
-        item.style.display = name.includes(query) ? 'flex' : 'none';
+        const phone = item.getAttribute('data-phone') || '';
+        const name = item.getAttribute('data-name').toLowerCase() || '';
+        
+        if (phone.includes(filter) || name.includes(filter)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
     });
 }
 </script>
