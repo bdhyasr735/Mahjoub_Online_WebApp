@@ -3,7 +3,7 @@
 
 import os
 import requests
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify
 from dotenv import load_dotenv
 from datetime import datetime
 
