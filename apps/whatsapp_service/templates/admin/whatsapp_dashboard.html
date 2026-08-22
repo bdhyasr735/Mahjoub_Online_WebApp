@@ -1,3 +1,4 @@
+<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_dashboard.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" class="h-full overflow-hidden">
 <head>
@@ -16,21 +17,10 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style>
     body { font-family: 'Tajawal', sans-serif; }
-    /* تخصيص شريط التمرير ليكون ناعماً وعصرياً */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     .contact-item { cursor: pointer; transition: background 0.15s; }
     .contact-item:hover { background: #f8fafc; }
     .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
@@ -70,19 +60,127 @@
       {% if active_tab == 'chat' or not active_tab %}
         <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
           
-          <!-- 1. قائمة المحادثات (يمين) -->
-          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm" id="sidebar-contacts-container">
-            {% include 'admin/components/_sidebar_contacts.html' %}
+          <!-- 1. قائمة المحادثات (يمين) - مدمجة مباشرة -->
+          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" id="sidebar-contacts-container">
+            <div class="p-4 border-b border-slate-100">
+              <h2 class="text-sm font-bold text-[#570575] flex items-center gap-2">
+                <i class="fa-solid fa-comments text-base"></i> جهات الاتصال والمحادثات
+              </h2>
+            </div>
+            <div class="divide-y divide-slate-100 flex-1 overflow-y-auto">
+              {% if contacts %}
+                {% for contact in contacts %}
+                  <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+                     data-contact-id="{{ contact.id }}"
+                     class="contact-item p-3.5 flex items-start gap-3 block {% if current_contact and current_contact.id == contact.id %}active{% endif %}">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 text-[#570575] font-bold flex items-center justify-center shrink-0 text-sm">
+                      {{ (contact.name or contact.phone)[:2] }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between mb-1">
+                        <h3 class="text-xs font-bold text-slate-800 truncate">{{ contact.name or contact.phone }}</h3>
+                        <span class="text-[10px] text-slate-400">
+                          {% if contact.last_timestamp %}{{ contact.last_timestamp.strftime('%H:%M') }}{% endif %}
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-slate-500 truncate">{{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
+                    </div>
+                    {% if contact.unread_count and contact.unread_count > 0 %}
+                      <span class="bg-[#570575] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{{ contact.unread_count }}</span>
+                    {% endif %}
+                  </a>
+                {% endfor %}
+              {% else %}
+                <div class="p-6 text-center text-slate-400 text-xs">لا توجد جهات اتصال مسجلة حتى الآن.</div>
+              {% endif %}
+            </div>
           </div>
 
           <!-- 2. منطقة الدردشة (منتصف) -->
           <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container">
-            {% include 'admin/components/_chat_area.html' %}
+            {% if current_contact %}
+              <!-- رأس المحادثة الحالية -->
+              <div class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-purple-100 text-[#570575] font-bold flex items-center justify-center text-xs">
+                    {{ (current_contact.name or current_contact.phone)[:2] }}
+                  </div>
+                  <div>
+                    <h2 class="text-xs font-bold text-slate-800">{{ current_contact.name or current_contact.phone }}</h2>
+                    <span class="text-[10px] text-emerald-600 font-medium">متصل الآن</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <a href="https://wa.me/{{ current_contact.phone }}" target="_blank" class="p-2 text-slate-500 hover:text-[#570575] transition" title="فتح في واتساب ويب">
+                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                  </a>
+                </div>
+              </div>
+
+              <!-- صندوق الرسائل -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/40" id="message-list-box">
+                {% if messages %}
+                  {% for msg in messages %}
+                    <div class="flex flex-col {{ 'items-end' if msg.direction == 'outbound' else 'items-start' }}">
+                      <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs text-xs {{ 'bg-[#570575] text-white rounded-tl-none' if msg.direction == 'outbound' else 'bg-white text-slate-800 rounded-tr-none border border-slate-200' }}">
+                        <p class="leading-relaxed whitespace-pre-wrap">{{ msg.content }}</p>
+                        <div class="flex items-center justify-end gap-1.5 mt-1 opacity-70 text-[10px]">
+                          <span>{{ msg.timestamp.strftime('%H:%M') if msg.timestamp else '' }}</span>
+                          {% if msg.direction == 'outbound' %}
+                            <i class="fa-solid fa-check-double text-[9px]"></i>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="h-full flex items-center justify-center text-slate-400 text-xs">ابدأ المحادثة بإرسال رسالة أدناه...</div>
+                {% endif %}
+              </div>
+
+              <!-- نموذج إرسال الرسالة -->
+              <div class="p-4 bg-white border-t border-slate-200 shrink-0">
+                <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="flex items-center gap-2">
+                  <input type="hidden" name="phone" value="{{ current_contact.phone }}">
+                  <input type="text" name="message" placeholder="اكتب رسالتك هنا..." required autocomplete="off"
+                         class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575] transition">
+                  <button type="submit" class="bg-[#570575] text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs flex items-center gap-1.5">
+                    <span>إرسال</span>
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </button>
+                </form>
+              </div>
+            {% else %}
+              <div class="flex-1 flex items-center justify-center text-slate-400 text-xs">اختر محادثة من القائمة الجانبية للبدء</div>
+            {% endif %}
           </div>
 
           <!-- 3. تفاصيل العميل (يسار) -->
-          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm" id="client-details-container">
-            {% include 'admin/components/_client_details.html' %}
+          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm p-6 flex flex-col gap-6" id="client-details-container">
+            <div>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">معلومات العميل</h3>
+              {% if current_contact %}
+                <div class="text-center pb-6 border-b border-slate-100">
+                  <div class="w-16 h-16 rounded-2xl bg-purple-100 text-[#570575] font-bold text-xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    {{ (current_contact.name or current_contact.phone)[:2] }}
+                  </div>
+                  <h4 class="text-sm font-bold text-slate-800 mb-1">{{ current_contact.name or 'عميل غير مسجل' }}</h4>
+                  <p class="text-xs font-mono text-slate-500" dir="ltr">{{ current_contact.phone }}</p>
+                </div>
+                <div class="space-y-4 mt-4">
+                  <div>
+                    <span class="block text-[11px] text-slate-400 mb-1">آخر رسالة تفاعلية</span>
+                    <p class="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">{{ current_contact.last_message or 'لا توجد رسائل' }}</p>
+                  </div>
+                  <div>
+                    <span class="block text-[11px] text-slate-400 mb-1">عدد الرسائل غير المقروءة</span>
+                    <span class="inline-block px-2.5 py-1 bg-purple-50 text-[#570575] rounded-lg text-xs font-bold border border-purple-100">{{ current_contact.unread_count or 0 }} رسالة</span>
+                  </div>
+                </div>
+              {% else %}
+                <p class="text-xs text-slate-400 text-center py-8">لا يوجد عميل محدد</p>
+              {% endif %}
+            </div>
           </div>
 
         </div>
@@ -173,35 +271,5 @@
 
   </div>
 
-  <!-- سكربت تفاعلات HTMX والتحديث التلقائي للمحادثات -->
-  <script>
-    document.addEventListener('htmx:afterSwap', function(evt) {
-      if (evt.detail.target.id === 'sidebar-contacts-container') {
-        const activeItem = document.querySelector('.contact-item.active');
-        if (activeItem) {
-          const contactId = activeItem.dataset.contactId;
-          if (contactId) {
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
-          }
-        }
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const activeItem = document.querySelector('.contact-item.active');
-      if (!activeItem) {
-        const firstItem = document.querySelector('.contact-item');
-        if (firstItem) {
-          firstItem.classList.add('active');
-          const contactId = firstItem.dataset.contactId;
-          if (contactId) {
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', { target: '#chat-area-container', swap: 'innerHTML' });
-            htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', { target: '#client-details-container', swap: 'innerHTML' });
-          }
-        }
-      }
-    });
-  </script>
 </body>
 </html>
