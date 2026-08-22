@@ -3,6 +3,7 @@
 
 import os
 import logging
+import json
 from datetime import datetime
 from flask import request, jsonify, current_app
 
@@ -29,8 +30,18 @@ def direct_webhook():
     if request.method == 'GET':
         return verify_webhook()
     
-    # استخدام force=True لتجنب أي رفض من Flask بسبب اختلاف ترويسة Content-Type ومنع خطأ 400
-    data = request.get_json(silent=True, force=True) or {}
+    try:
+        # محاولة قراءة البيانات كـ JSON مع تجاهل قيود الترويسات
+        data = request.get_json(silent=True, force=True)
+        if not data:
+            raw_data = request.get_data(as_text=True)
+            if raw_data:
+                data = json.loads(raw_data)
+            else:
+                data = {}
+    except Exception as e:
+        logger.error(f"JSON parsing error: {e}")
+        data = {}
     
     if not data:
         return jsonify({"status": "ok", "note": "empty_payload_received"}), 200
@@ -90,7 +101,7 @@ def handle_webhook_data(data):
                         # حفظ الرسالة الواردة
                         log_entry = WhatsAppMessageLog(
                             wamid=wamid,
-                            direction='inbound',
+                        direction='inbound',
                             sender_number=sender,
                             recipient_number=phone_id,
                             message_type=msg_type,
