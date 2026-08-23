@@ -41,7 +41,8 @@ def register_module(app):
     try:
         from apps.whatsapp_service.routes import whatsapp_bp
         
-        if 'whatsapp_service' not in app.blueprints:
+        # التأكد من عدم تسجيل الـ Blueprint مرتين لمنع تضارب المسارات
+        if 'whatsapp_service' not in app.blueprints and 'whatsapp_bp' not in [bp.name for bp in app.blueprints.values()]:
             app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         
         with app.app_context():
