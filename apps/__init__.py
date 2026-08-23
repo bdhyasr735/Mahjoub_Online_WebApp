@@ -328,7 +328,7 @@ def create_app():
             '/supplier/forgot-password',
             admin_login_path,
             '/auth',
-            '/api/whatsapp'  # إبقاء مسار الـ Webhook الخارجي فقط إن وُجد
+            '/api/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
