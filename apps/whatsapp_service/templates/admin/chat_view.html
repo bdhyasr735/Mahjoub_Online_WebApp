@@ -2,12 +2,15 @@
 <!-- Chat View Jinja2 Component with Broadcast / Bulk Messaging -->
 <div class="flex-1 flex overflow-hidden w-full h-full bg-slate-100" x-data="{ showBroadcastModal: false }">
   
-  <!-- Contacts list sidebar (ثابت ومحكوم التمرير داخلياً) -->
+  <!-- Contacts list sidebar (عرض جميع المحادثات) -->
   <div class="w-80 md:w-96 bg-white border-l border-slate-200 flex flex-col h-full shrink-0 overflow-hidden">
     <div class="p-3.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-white">
-      <h2 class="text-xs font-bold text-slate-800">👥 المحادثات النشطة</h2>
+      <h2 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+        <span>👥 المحادثات النشطة</span>
+        <span class="bg-slate-100 text-slate-600 rounded-full px-2 py-0.5 text-[10px] font-mono">{{ contacts|length if contacts else 0 }}</span>
+      </h2>
       <div class="flex items-center gap-1.5">
-        <!-- زر الإرسال الجماعي (Broadcast) -->
+        <!-- زر الإرسال الجماعي -->
         <button 
           type="button"
           onclick="document.getElementById('broadcastModal').classList.remove('hidden')"
@@ -32,28 +35,36 @@
 
     <!-- Search filter -->
     <div class="p-2 border-b border-slate-100 bg-slate-50 shrink-0">
-      <input type="text" placeholder="🔍 بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#570575]">
+      <input type="text" id="contactSearchInput" placeholder="🔍 بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#570575]">
     </div>
 
-    <!-- Contact items (تمرير داخلي مستقل للقائمة) -->
-    <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
-      {% for contact in contacts|default([]) %}
-      <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-3.5 hover:bg-purple-50/40 cursor-pointer transition-colors {{ 'bg-purple-50/80 border-r-4 border-[#570575]' if selected_contact and selected_contact.id == contact.id }}">
-        <div class="flex justify-between items-start font-bold text-xs text-slate-900">
-          <span class="truncate">👤 {{ contact.name or contact.phone }}</span>
-          <span class="text-[10px] text-slate-400 font-mono" dir="ltr">📞 {{ contact.phone }}</span>
-        </div>
-        <p class="text-xs text-slate-500 truncate mt-1">💬 {{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
-        <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-          <span>🟢 {{ contact.status_label if contact.status_label else 'نشط' }}</span>
-          {% if contact.unread_count and contact.unread_count > 0 %}
-          <span class="bg-[#570575] text-white font-bold w-4 h-4 rounded-full flex items-center justify-center text-[9px]">{{ contact.unread_count }}</span>
-          {% endif %}
-        </div>
-      </a>
+    <!-- Contact items (عرض جميع جهات الاتصال مع تمرير داخلي) -->
+    <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contactsListContainer">
+      {% if contacts and contacts|length > 0 %}
+        {% for contact in contacts %}
+          <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+             class="block p-3.5 hover:bg-purple-50/40 cursor-pointer transition-colors {{ 'bg-purple-50/80 border-r-4 border-[#570575]' if selected_contact and selected_contact.id == contact.id }}"
+             data-contact-id="{{ contact.id }}">
+            <div class="flex justify-between items-start font-bold text-xs text-slate-900">
+              <span class="truncate max-w-[60%]">👤 {{ contact.name or contact.phone }}</span>
+              <span class="text-[10px] text-slate-400 font-mono whitespace-nowrap" dir="ltr">📞 {{ contact.phone }}</span>
+            </div>
+            <p class="text-xs text-slate-500 truncate mt-1">💬 {{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+              <span>🟢 {{ contact.status_label if contact.status_label else 'نشط' }}</span>
+              {% if contact.unread_count and contact.unread_count > 0 %}
+                <span class="bg-[#570575] text-white font-bold w-4 h-4 rounded-full flex items-center justify-center text-[9px]">{{ contact.unread_count }}</span>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
       {% else %}
-      <div class="p-8 text-center text-slate-400 text-xs">📭 لا توجد محادثات نشطة حالياً</div>
-      {% endfor %}
+        <div class="p-8 text-center text-slate-400 text-xs">
+          <div class="text-2xl mb-2">📭</div>
+          <p>لا توجد محادثات نشطة حالياً</p>
+          <p class="text-[10px] mt-1">ستظهر هنا عند استقبال أول رسالة</p>
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -108,25 +119,27 @@
       <div class="text-center my-2 shrink-0">
         <span class="text-[11px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full font-medium">💬 سجل المحادثة</span>
       </div>
-      {% for message in messages|default([]) %}
-        <div class="max-w-md {{ 'self-start bg-white text-slate-800 border border-slate-200' if message.direction == 'inbound' else 'self-end bg-[#570575] text-white' }} p-3.5 rounded-2xl {{ 'rounded-tr-none' if message.direction == 'inbound' else 'rounded-tl-none' }} text-xs md:text-sm shadow-xs">
-          
-          {% if message.message_type == 'image' and message.media_url %}
-            <div class="mb-2 rounded-xl overflow-hidden border border-black/10">
-              <img src="{{ message.media_url }}" alt="🖼️ وسائط" class="max-h-48 w-full object-cover">
-            </div>
-          {% endif %}
+      {% if messages and messages|length > 0 %}
+        {% for message in messages %}
+          <div class="max-w-md {{ 'self-start bg-white text-slate-800 border border-slate-200' if message.direction == 'inbound' else 'self-end bg-[#570575] text-white' }} p-3.5 rounded-2xl {{ 'rounded-tr-none' if message.direction == 'inbound' else 'rounded-tl-none' }} text-xs md:text-sm shadow-xs">
+            
+            {% if message.message_type == 'image' and message.media_url %}
+              <div class="mb-2 rounded-xl overflow-hidden border border-black/10">
+                <img src="{{ message.media_url }}" alt="🖼️ وسائط" class="max-h-48 w-full object-cover">
+              </div>
+            {% endif %}
 
-          <p class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
-          <div class="text-[10px] {{ 'text-slate-400' if message.direction == 'inbound' else 'text-purple-200' }} mt-1.5 text-left font-mono">
-            🕒 {{ message.timestamp }}
+            <p class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
+            <div class="text-[10px] {{ 'text-slate-400' if message.direction == 'inbound' else 'text-purple-200' }} mt-1.5 text-left font-mono">
+              🕒 {{ message.timestamp.strftime('%I:%M %p') if message.timestamp else '' }}
+            </div>
           </div>
-        </div>
+        {% endfor %}
       {% else %}
         <div class="text-center text-slate-400 text-xs my-auto">
           📭 لا توجد رسائل سابقة في هذه المحادثة.
         </div>
-      {% endfor %}
+      {% endif %}
     </div>
 
     <!-- Send Message Form (ثابت في الأسفل دائماً) -->
@@ -206,7 +219,7 @@
           </select>
         </div>
 
-        <!-- نص الرسالة / المتغيرات -->
+        <!-- نص الرسالة -->
         <div>
           <label class="block font-bold text-slate-700 mb-1">✍️ نص الرسالة أو محتوى العرض:</label>
           <textarea 
@@ -220,7 +233,7 @@
 
         <!-- خيار إرفاق صورة -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">🖼️ رابط صورة العرض (اختياري - Media URL):</label>
+          <label class="block font-bold text-slate-700 mb-1">🖼️ رابط صورة العرض (اختياري):</label>
           <input 
             type="url" 
             name="media_url" 
@@ -256,7 +269,7 @@
     </div>
   </div>
 
-  <!-- JavaScript لإدارة التمرير التلقائي لآخر رسالة + الإرسال الجماعي بسلاسة -->
+  <!-- JavaScript للتفاعل -->
   <script>
     function scrollToBottom() {
       const stream = document.getElementById('messagesStream');
@@ -271,6 +284,25 @@
 
     window.addEventListener('load', () => {
       scrollToBottom();
+    });
+
+    // البحث المباشر في قائمة جهات الاتصال
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('contactSearchInput');
+      if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+          const filter = this.value.toLowerCase().trim();
+          const items = document.querySelectorAll('#contactsListContainer a');
+          items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (text.includes(filter)) {
+              item.style.display = '';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        });
+      }
     });
 
     async function submitBroadcastForm(event) {
