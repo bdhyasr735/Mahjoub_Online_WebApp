@@ -1,75 +1,163 @@
-<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_logs.html -->
+<!-- 📂 apps/whatsapp_service/templates/admin/logs_view.html -->
 <!-- Logs View Jinja2 Component -->
 <div class="max-w-7xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full">
   
   <!-- Header and Filters -->
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
     <div>
-      <h2 class="text-base font-bold text-[#1a0b2e]">سجل رسائل واتساب (WhatsApp Messages Log)</h2>
+      <h2 class="text-base font-bold text-[#1a0b2e]">📋 سجل رسائل واتساب (WhatsApp Messages Log)</h2>
       <p class="text-xs text-slate-500 mt-1">سجلات الإرسال والاستقبال المباشرة المرتبطة بطلبات متجر محجوب أونلاين</p>
     </div>
     <div class="flex gap-2 w-full md:w-auto">
-      <input type="text" placeholder="بحث في السجلات..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] transition-all">
-      <select class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] transition-all text-slate-700">
-        <option>كل الحالات</option>
-        <option>تم الإرسال</option>
-        <option>فشل الإرسال</option>
-        <option>قيد الانتظار</option>
+      <input type="text" id="logSearchInput" placeholder="🔍 بحث في السجلات..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] transition-all">
+      <select id="logStatusFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] transition-all text-slate-700">
+        <option value="all">كل الحالات</option>
+        <option value="sent">✅ تم الإرسال</option>
+        <option value="delivered">📬 تم التسليم</option>
+        <option value="read">👁️ مقروءة</option>
+        <option value="failed">❌ فشل الإرسال</option>
+        <option value="received">📥 مستلمة</option>
       </select>
     </div>
   </div>
 
   <!-- Logs Table -->
   <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-    <table class="w-full text-right text-xs">
-      <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
-        <tr>
-          <th class="px-4 py-3.5">المعرف</th>
-          <th class="px-4 py-3.5">الاتجاه</th>
-          <th class="px-4 py-3.5">العميل</th>
-          <th class="px-4 py-3.5">رقم الطلب</th>
-          <th class="px-4 py-3.5">الرسالة</th>
-          <th class="px-4 py-3.5">الحالة</th>
-          <th class="px-4 py-3.5">التاريخ</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100">
-        {% for log in logs|default([]) %}
-        <tr class="hover:bg-purple-50/30 transition-colors">
-          <td class="px-4 py-3 font-mono text-slate-500">#{{ log.id }}</td>
-          <td class="px-4 py-3">
-            {% if log.direction == 'outgoing' %}
-              <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 font-semibold text-[11px]">صادر</span>
-            {% else %}
-              <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-[#570575] border border-purple-100 font-semibold text-[11px]">وارد</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 font-bold text-slate-800">{{ log.customer_name }}</td>
-          <td class="px-4 py-3 font-mono text-slate-600">
-            {% if log.order_id %}
-              <span class="bg-slate-100 px-2 py-0.5 rounded text-[11px]">{{ log.order_id }}</span>
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 max-w-xs truncate text-slate-600" title="{{ log.content }}">{{ log.content }}</td>
-          <td class="px-4 py-3">
-            {% if log.status == 'sent' %}
-              <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px]">تم الإرسال</span>
-            {% elif log.status == 'failed' %}
-              <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px]">فشل الإرسال</span>
-            {% else %}
-              <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[11px]">قيد الانتظار</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">{{ log.created_at }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="7" class="px-4 py-12 text-center text-slate-400 text-xs">لا توجد سجلات رسائل حالياً</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="w-full text-right text-xs" id="logsTable">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+          <tr>
+            <th class="px-4 py-3.5"># المعرف</th>
+            <th class="px-4 py-3.5">📤 الاتجاه</th>
+            <th class="px-4 py-3.5">📞 المرسل</th>
+            <th class="px-4 py-3.5">📞 المستقبل</th>
+            <th class="px-4 py-3.5">💬 الرسالة</th>
+            <th class="px-4 py-3.5">📎 النوع</th>
+            <th class="px-4 py-3.5">📌 الحالة</th>
+            <th class="px-4 py-3.5">⏰ التوقيت</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100" id="logsTableBody">
+          {% if logs and logs|length > 0 %}
+            {% for log in logs %}
+            <tr class="hover:bg-purple-50/30 transition-colors" 
+                data-status="{{ log.status|lower }}"
+                data-content="{{ log.content|lower }}">
+              <td class="px-4 py-3 font-mono text-slate-500 text-[11px]">#{{ log.id }}</td>
+              <td class="px-4 py-3">
+                {% if log.direction == 'inbound' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-[#570575] border border-purple-100 font-semibold text-[11px] flex items-center gap-1 w-fit">
+                    <span>📥</span> وارد
+                  </span>
+                {% elif log.direction == 'outbound' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 font-semibold text-[11px] flex items-center gap-1 w-fit">
+                    <span>📤</span> صادر
+                  </span>
+                {% else %}
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 font-semibold text-[11px]">{{ log.direction }}</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 font-mono text-slate-700 text-[11px]" dir="ltr">{{ log.sender_number|default('-') }}</td>
+              <td class="px-4 py-3 font-mono text-slate-700 text-[11px]" dir="ltr">{{ log.recipient_number|default('-') }}</td>
+              <td class="px-4 py-3 max-w-[200px] truncate text-slate-600" title="{{ log.content|default('') }}">
+                {{ log.content|default('-')|truncate(50) }}
+              </td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">
+                  {{ log.message_type|default('text') }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                {% if log.status == 'sent' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px] flex items-center gap-1 w-fit">
+                    <span>✅</span> مرسلة
+                  </span>
+                {% elif log.status == 'delivered' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[11px] flex items-center gap-1 w-fit">
+                    <span>📬</span> مسلمة
+                  </span>
+                {% elif log.status == 'read' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold text-[11px] flex items-center gap-1 w-fit">
+                    <span>👁️</span> مقروءة
+                  </span>
+                {% elif log.status == 'failed' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px] flex items-center gap-1 w-fit">
+                    <span>❌</span> فشلت
+                  </span>
+                {% elif log.status == 'received' %}
+                  <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[11px] flex items-center gap-1 w-fit">
+                    <span>📥</span> مستلمة
+                  </span>
+                {% else %}
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[11px]">{{ log.status|default('غير معروف') }}</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">
+                {{ log.timestamp.strftime('%Y-%m-%d %I:%M %p') if log.timestamp else '-' }}
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="px-4 py-12 text-center text-slate-400 text-sm">
+                <div class="flex flex-col items-center gap-3">
+                  <span class="text-4xl">📭</span>
+                  <p>لا توجد سجلات رسائل متاحة حالياً</p>
+                  <p class="text-[11px] text-slate-400">ستظهر هنا جميع الرسائل المرسلة والمستلمة عبر واتساب</p>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Footer with stats -->
+    <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between text-[11px] text-slate-500">
+      <div>
+        إجمالي السجلات: <span class="font-bold text-slate-700">{{ logs|length if logs else 0 }}</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>✅ مرسلة: <span class="font-bold text-emerald-600">{{ logs|selectattr('status', 'equalto', 'sent')|list|length if logs else 0 }}</span></span>
+        <span>📥 واردة: <span class="font-bold text-purple-600">{{ logs|selectattr('direction', 'equalto', 'inbound')|list|length if logs else 0 }}</span></span>
+        <span>📤 صادرة: <span class="font-bold text-blue-600">{{ logs|selectattr('direction', 'equalto', 'outbound')|list|length if logs else 0 }}</span></span>
+      </div>
+    </div>
   </div>
 </div>
+
+<script>
+  // وظيفة البحث والتصفية في سجل الرسائل
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('logSearchInput');
+    const statusFilter = document.getElementById('logStatusFilter');
+    const tableBody = document.getElementById('logsTableBody');
+    const rows = tableBody ? tableBody.querySelectorAll('tr') : [];
+
+    function filterTable() {
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const statusValue = statusFilter ? statusFilter.value : 'all';
+
+      rows.forEach(row => {
+        const content = row.getAttribute('data-content') || '';
+        const status = row.getAttribute('data-status') || '';
+        
+        const matchesSearch = content.includes(searchTerm);
+        const matchesStatus = statusValue === 'all' || status === statusValue;
+        
+        if (matchesSearch && matchesStatus) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('keyup', filterTable);
+    }
+    if (statusFilter) {
+      statusFilter.addEventListener('change', filterTable);
+    }
+  });
+</script>
