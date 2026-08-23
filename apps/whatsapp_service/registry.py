@@ -11,11 +11,13 @@ LINKS = {
 }
 
 def register_module(app):
-    """تسجيل بلوبرنت الواتساب تلقائياً"""
+    """تسجيل بلوبرنت الواتساب تلقائياً مع طباعة حالة النجاح أو الفشل بوضوح"""
     try:
         from apps.whatsapp_service.routes import whatsapp_bp
         if 'whatsapp_service' not in app.blueprints:
             app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
-            print("✅ [WhatsApp Registry]: تم تسجيل موديول الواتساب بنجاح.")
+            print("🟢 [WhatsApp Registry]: ✅ تم تسجيل موديول الواتساب بنجاح تام في النظام الديناميكي.")
+        else:
+            print("🟡 [WhatsApp Registry]: ⚠️ موديول الواتساب مسجل مسبقاً.")
     except Exception as e:
-        print(f"❌ [WhatsApp Registry Error]: {e}")
+        print(f"🔴 [WhatsApp Registry Error]: ❌ فشل تسجيل موديول الواتساب - السبب: {e}")
