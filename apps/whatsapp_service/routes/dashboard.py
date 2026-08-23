@@ -145,7 +145,7 @@ def start_new_chat():
 
     if not phone:
         flash("يرجى أدخال رقم الهاتف بشكل صحيح", "danger")
-        return redirect(url_for('whatsapp_bp.chat_dashboard'))
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
     try:
         contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
@@ -158,11 +158,11 @@ def start_new_chat():
             send_meta_whatsapp_message(phone, message)
 
         flash("تم فتح المحادثة بنجاح", "success")
-        return redirect(url_for('whatsapp_bp.chat_dashboard', contact_id=contact.id))
+        return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=contact.id))
     except Exception as e:
         db.session.rollback()
         flash(f"حدث خطأ أثناء فتح المحادثة: {e}", "danger")
-        return redirect(url_for('whatsapp_bp.chat_dashboard'))
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
 @whatsapp_bp.route('/logs', methods=['GET'])
@@ -195,7 +195,7 @@ def settings_dashboard():
         current_app.config['WHATSAPP_ACCESS_TOKEN'] = request.form.get('access_token')
 
         flash("تم حفظ إعدادات Meta API بنجاح", "success")
-        return redirect(url_for('whatsapp_bp.settings_dashboard', saved='true'))
+        return redirect(url_for('whatsapp_service.settings_dashboard', saved='true'))
 
     return render_template(
         'admin/whatsapp_dashboard.html',
