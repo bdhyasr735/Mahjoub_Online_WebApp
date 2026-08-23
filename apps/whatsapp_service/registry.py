@@ -2,10 +2,10 @@
 # 📂 apps/whatsapp_service/registry.py
 
 MODULE_NAME = "خدمة الواتساب"
-MODULE_ICON = "fas fa-comments"  # استخدمنا أيقونة تتوافق تماماً مع FontAwesome في القالب
+MODULE_ICON = "fas fa-comments"
 SHOW_IN_ADMIN = True
 
-# العودة إلى صيغة الـ Endpoint التي يتوقعها safe_url_for في القالب
+# استخدام الـ Endpoint الصحيح الذي يبدأ بـ whatsapp_service (اسم الـ Blueprint)
 LINKS = {
     'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب'
 }
