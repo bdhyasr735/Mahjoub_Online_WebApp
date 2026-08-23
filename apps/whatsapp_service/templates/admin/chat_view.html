@@ -1,8 +1,8 @@
 <!-- 📂 apps/whatsapp_service/templates/admin/chat_view.html -->
-<!-- Chat View Jinja2 Component with Broadcast / Bulk Messaging -->
-<div class="flex-1 flex overflow-hidden w-full h-full bg-slate-100" x-data="{ showBroadcastModal: false }">
+<!-- Chat View Jinja2 Component with Broadcast & New Chat Modal -->
+<div class="flex-1 flex overflow-hidden w-full h-full bg-slate-100" x-data="{ showBroadcastModal: false, showNewChatModal: false }">
   
-  <!-- Contacts list sidebar (عرض جميع المحادثات) -->
+  <!-- Contacts list sidebar -->
   <div class="w-80 md:w-96 bg-white border-l border-slate-200 flex flex-col h-full shrink-0 overflow-hidden">
     <div class="p-3.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-white">
       <h2 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -13,7 +13,7 @@
         <!-- زر الإرسال الجماعي -->
         <button 
           type="button"
-          onclick="document.getElementById('broadcastModal').classList.remove('hidden')"
+          @click="showBroadcastModal = true"
           class="bg-purple-50 hover:bg-purple-100 text-[#570575] border border-purple-200 text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
           title="إرسال رسالة ترويجية أو إشعار جماعي لعدة عملاء"
         >
@@ -25,7 +25,7 @@
 
         <button 
           type="button"
-          onclick="document.getElementById('newChatModal')?.classList.remove('hidden')"
+          @click="showNewChatModal = true"
           class="bg-[#570575] hover:bg-[#632C8F] text-white text-xs px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
         >
           <span>➕ محادثة</span>
@@ -35,10 +35,10 @@
 
     <!-- Search filter -->
     <div class="p-2 border-b border-slate-100 bg-slate-50 shrink-0">
-      <input type="text" id="contactSearchInput" placeholder="🔍 بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#570575]">
+      <input type="text" id="contactSearchInput" placeholder="🔍 بحث في جهات الاتصال..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#570575] transition-all">
     </div>
 
-    <!-- Contact items (عرض جميع جهات الاتصال مع تمرير داخلي) -->
+    <!-- Contact items -->
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contactsListContainer">
       {% if contacts and contacts|length > 0 %}
         {% for contact in contacts %}
@@ -51,7 +51,7 @@
             </div>
             <p class="text-xs text-slate-500 truncate mt-1">💬 {{ contact.last_message or 'لا توجد رسائل سابقة' }}</p>
             <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-              <span>🟢 {{ contact.status_label if contact.status_label else 'نشط' }}</span>
+              <span>🟢 {{ contact.status_label or 'نشط' }}</span>
               {% if contact.unread_count and contact.unread_count > 0 %}
                 <span class="bg-[#570575] text-white font-bold w-4 h-4 rounded-full flex items-center justify-center text-[9px]">{{ contact.unread_count }}</span>
               {% endif %}
@@ -68,11 +68,11 @@
     </div>
   </div>
 
-  <!-- Messages conversation canvas (مساحة المحادثة الثابتة بالكامل) -->
+  <!-- Messages conversation canvas -->
   <div class="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
     
     {% if selected_contact %}
-    <!-- Header with Customer Details (ثابت في الأعلى) -->
+    <!-- Header with Customer Details -->
     <div class="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0 z-10">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-purple-50 text-[#570575] flex items-center justify-center font-bold text-sm border border-purple-200 shrink-0">
@@ -80,31 +80,28 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h2 class="font-bold text-slate-900 text-sm">{{ selected_contact.name }}</h2>
+            <h2 class="font-bold text-slate-900 text-sm">{{ selected_contact.name or selected_contact.phone }}</h2>
             {% if selected_contact.is_online %}
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="متصل الآن"></span>
             {% endif %}
           </div>
           <div class="flex items-center gap-2 mt-0.5">
             <span class="text-xs text-slate-500 font-mono" dir="ltr">📞 {{ selected_contact.phone }}</span>
-            <span class="text-[11px] text-slate-400">• 🕒 آخر ظهور: {{ selected_contact.last_seen | default('غير متوفر') }}</span>
+            <span class="text-[11px] text-slate-400">• 🕒 آخر ظهور: {{ selected_contact.last_seen or 'غير متوفر' }}</span>
           </div>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors">
-          ⚡ قوالب الرد السريع
-        </button>
-        <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold">
-          🟢 متصل بـ Meta API
+        <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span> متصل بـ Meta API
         </span>
       </div>
     </div>
 
-    <!-- Customer Orders (الطلبات المرتبطة - ثابت) -->
+    <!-- Customer Orders -->
     {% if selected_contact.orders %}
     <div class="bg-white border-b border-slate-100 p-2.5 flex items-center gap-2 overflow-x-auto shrink-0">
-      <span class="text-xs font-bold text-slate-500">🛒 الطلبات المرتبطة:</span>
+      <span class="text-xs font-bold text-slate-500 shrink-0">🛒 الطلبات المرتبطة:</span>
       {% for order in selected_contact.orders %}
         <div class="border border-slate-200 bg-slate-50 rounded-xl px-3 py-1 text-xs flex items-center gap-2 shrink-0">
           <span class="font-bold font-mono text-slate-800">#{{ order.id }}</span>
@@ -114,7 +111,7 @@
     </div>
     {% endif %}
 
-    <!-- Messages Stream (منطقة التمرير الداخلي للرسائل فقط) -->
+    <!-- Messages Stream -->
     <div id="messagesStream" class="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scroll-smooth">
       <div class="text-center my-2 shrink-0">
         <span class="text-[11px] bg-slate-200/80 text-slate-600 px-3 py-1 rounded-full font-medium">💬 سجل المحادثة</span>
@@ -129,7 +126,7 @@
               </div>
             {% endif %}
 
-            <p class="leading-relaxed whitespace-pre-wrap">{{ message.content }}</p>
+            <p class="leading-relaxed whitespace-pre-wrap">{{ message.content or '' }}</p>
             <div class="text-[10px] {{ 'text-slate-400' if message.direction == 'inbound' else 'text-purple-200' }} mt-1.5 text-left font-mono">
               🕒 {{ message.timestamp.strftime('%I:%M %p') if message.timestamp else '' }}
             </div>
@@ -142,7 +139,7 @@
       {% endif %}
     </div>
 
-    <!-- Send Message Form (ثابت في الأسفل دائماً) -->
+    <!-- Send Message Form -->
     <div class="p-3 md:p-4 bg-white border-t border-slate-200 shrink-0 z-10">
       <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="flex items-center gap-2">
         <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
@@ -164,7 +161,7 @@
     </div>
 
     {% else %}
-    <!-- إذا لم يتم اختيار عميل -->
+    <!-- Blank Canvas -->
     <div class="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm gap-3 p-6 text-center">
       <div class="w-16 h-16 rounded-2xl bg-purple-50 text-[#570575] flex items-center justify-center">
         <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
@@ -177,9 +174,33 @@
     {% endif %}
   </div>
 
+  <!-- ================= نافذة بدء محادثة جديدة (New Chat Modal) ================= -->
+  <div x-show="showNewChatModal" x-cloak class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 text-right" @click.away="showNewChatModal = false">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-sm text-slate-900">➕ بدء محادثة جديدة</h3>
+        <button @click="showNewChatModal = false" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer">❌</button>
+      </div>
+      <form action="{{ url_for('whatsapp_service.start_new_chat') if 'whatsapp_service.start_new_chat' in url_for.__globals__ else '#' }}" method="POST" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">📞 رقم الهواتف (مع رمز الدولة):</label>
+          <input type="text" name="phone" placeholder="9677XXXXXXXX" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono focus:outline-none focus:border-[#570575]" required>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">💬 الرسالة الأولى:</label>
+          <textarea name="message" rows="3" placeholder="مرحباً بك في محجوب أونلاين..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:border-[#570575]" required></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="showNewChatModal = false" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">إلغاء</button>
+          <button type="submit" class="px-5 py-2 bg-[#570575] hover:bg-[#632C8F] text-white rounded-xl font-bold cursor-pointer">بدء المحادثة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= نافذة الإرسال الجماعي (Bulk Broadcast Modal) ================= -->
-  <div id="broadcastModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-4 text-right">
+  <div x-show="showBroadcastModal" x-cloak class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-4 text-right" @click.away="showBroadcastModal = false">
       
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
@@ -193,7 +214,7 @@
             <p class="text-xs text-slate-500">إرسال حملة ترويجية أو إشعار عام للعملاء المسجلين في المتجر</p>
           </div>
         </div>
-        <button onclick="document.getElementById('broadcastModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer">❌</button>
+        <button @click="showBroadcastModal = false" class="text-slate-400 hover:text-slate-600 text-sm cursor-pointer">❌</button>
       </div>
 
       <form id="broadcastForm" onsubmit="submitBroadcastForm(event)" action="{{ url_for('whatsapp_service.send_bulk_broadcast') }}" method="POST" class="space-y-4 text-xs">
@@ -237,7 +258,7 @@
           <input 
             type="url" 
             name="media_url" 
-            placeholder="https://images.unsplash.com/..." 
+            placeholder="https://..." 
             class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono focus:outline-none focus:border-[#570575]"
           >
         </div>
@@ -252,7 +273,7 @@
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
           <button 
             type="button" 
-            onclick="document.getElementById('broadcastModal').classList.add('hidden')"
+            @click="showBroadcastModal = false"
             class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
           >
             🚫 إلغاء
@@ -269,79 +290,66 @@
     </div>
   </div>
 
-  <!-- JavaScript للتفاعل -->
-  <script>
-    function scrollToBottom() {
-      const stream = document.getElementById('messagesStream');
-      if (stream) {
-        stream.scrollTop = stream.scrollHeight;
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      scrollToBottom();
-    });
-
-    window.addEventListener('load', () => {
-      scrollToBottom();
-    });
-
-    // البحث المباشر في قائمة جهات الاتصال
-    document.addEventListener('DOMContentLoaded', function() {
-      const searchInput = document.getElementById('contactSearchInput');
-      if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-          const filter = this.value.toLowerCase().trim();
-          const items = document.querySelectorAll('#contactsListContainer a');
-          items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            if (text.includes(filter)) {
-              item.style.display = '';
-            } else {
-              item.style.display = 'none';
-            }
-          });
-        });
-      }
-    });
-
-    async function submitBroadcastForm(event) {
-      event.preventDefault();
-      const form = event.target;
-      const btn = document.getElementById('broadcastSubmitBtn');
-      const btnText = document.getElementById('broadcastBtnText');
-      
-      btn.disabled = true;
-      btnText.innerText = '⏳ جاري الإرسال عبر Meta API...';
-
-      const formData = new FormData(form);
-
-      try {
-        const response = await fetch(form.action, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          document.getElementById('broadcastModal').classList.add('hidden');
-          form.reset();
-          alert(`✅ تم إرسال الحملة الجماعية بنجاح إلى (${data.sent_count}) عميل!`);
-          window.location.reload();
-        } else {
-          alert('❌ حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً');
-        }
-      } catch (err) {
-        form.submit();
-      } finally {
-        btn.disabled = false;
-        btnText.innerText = '🚀 بدء الإرسال الجماعي الآن';
-      }
-    }
-  </script>
-
 </div>
+
+<script>
+  function scrollToBottom() {
+    const stream = document.getElementById('messagesStream');
+    if (stream) {
+      stream.scrollTop = stream.scrollHeight;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+
+    // البحث المباشر في جهات الاتصال
+    const searchInput = document.getElementById('contactSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const filter = this.value.toLowerCase().trim();
+        const items = document.querySelectorAll('#contactsListContainer a');
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          item.style.display = text.includes(filter) ? '' : 'none';
+        });
+      });
+    }
+  });
+
+  async function submitBroadcastForm(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById('broadcastSubmitBtn');
+    const btnText = document.getElementById('broadcastBtnText');
+    
+    btn.disabled = true;
+    btnText.innerText = '⏳ جاري الإرسال عبر Meta API...';
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ تم إرسال الحملة الجماعية بنجاح إلى (${data.sent_count}) عميل!`);
+        window.location.reload();
+      } else {
+        alert('❌ حدث خطأ أثناء الإرسال: ' + (data.error || 'يرجى المحاولة لاحقاً'));
+      }
+    } catch (err) {
+      form.submit();
+    } finally {
+      btn.disabled = false;
+      btnText.innerText = '🚀 بدء الإرسال الجماعي الآن';
+    }
+  }
+</script>
