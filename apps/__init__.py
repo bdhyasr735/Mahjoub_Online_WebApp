@@ -213,27 +213,20 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل بناءً على متغير البيئة
+    # ⚙️ إعادة بناء الجداول تلقائياً وبشكل إجباري عند التشغيل/الرفع
     # ============================================================
     with app.app_context():
         import_all_models()
-        
-        if os.environ.get('RESET_DB_ON_START') == 'true':
-            try:
-                db.session.execute(text("DROP SCHEMA public CASCADE;"))
-                db.session.execute(text("CREATE SCHEMA public;"))
-                db.session.commit()
-                db.create_all()
-                seed_database()
-                print("✅ [Schema Reset]: تم مسح وإعادة بناء القاعدة وزراعة البيانات بنجاح.")
-            except Exception as e:
-                db.session.rollback()
-                print(f"⚠️ [Schema Reset Error]: {e}")
-        else:
-            try:
-                db.create_all()
-            except Exception as e:
-                print(f"❌ [Schema Create Error]: {e}")
+        try:
+            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            db.session.execute(text("CREATE SCHEMA public;"))
+            db.session.commit()
+            db.create_all()
+            seed_database()
+            print("✅ [Auto Schema Reset]: تم مسح وإعادة بناء القاعدة وزراعة البيانات بنجاح عند التشغيل.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Auto Schema Reset Error]: {e}")
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
