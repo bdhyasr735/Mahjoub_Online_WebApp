@@ -463,14 +463,14 @@ def create_app():
         app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         csrf.exempt(whatsapp_bp)
         print("✅ [WhatsApp]: تم تسجيل Blueprint بنجاح مع المسار /admin/whatsapp")
-    except ImportError as e:
-        print(f"⚠️ [WhatsApp]: فشل استيراد whatsapp_bp: {e}")
+    except Exception as e:
+        print(f"❌ [WhatsApp Error]: فشل استيراد أو تسجيل whatsapp_bp: {e}")
 
     # ============================================================
     # 🔄 التسجيل الديناميكي التلقائي للموديولات عبر ملف الـ registry.py
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
