@@ -1,10 +1,10 @@
 # coding: utf-8
-from flask import Blueprint
+# 📂 apps/whatsapp_service/registry.py
 
 MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "fas fa-comments"
 
-# الروابط التي ستظهر في القائمة الجانبية المنسدلة
+# الروابط المباشرة للـ Sidebar
 LINKS = {
     '/admin/whatsapp/': 'إدارة مراسلات الواتساب',
     '/admin/whatsapp/logs': 'سجلات النظام',
@@ -12,13 +12,11 @@ LINKS = {
 }
 
 def register_module(app):
-    """تسجيل بلوبرنت الواتساب تلقائياً"""
+    """تسجيل بلوبرنت الواتساب تلقائياً عبر النظام الديناميكي"""
     try:
         from apps.whatsapp_service.routes import whatsapp_bp
         if 'whatsapp_service' not in app.blueprints:
             app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
-            # استثناء الـ CSRF إذا لزم الأمر للـ Webhooks
-            from apps.extensions import db
-            # يمكن إضافة الاستثناء في حال تطلب الأمر
+            print("✅ [WhatsApp Registry]: تم تسجيل موديول الواتساب بنجاح.")
     except Exception as e:
-        print(f"⚠️ [WhatsApp Registry Error]: {e}")
+        print(f"❌ [WhatsApp Registry Error]: {e}")
