@@ -4,9 +4,9 @@
 """
 WhatsApp Webhook Handler
 Receives real-time events from Meta WhatsApp Cloud API:
-- New incoming messages
-- Message status updates (sent, delivered, read)
-- Other business events
+- New incoming messages & button clicks
+- Message status updates (sent, delivered, read, failed)
+- Raw event logging
 """
 
 import json
@@ -15,22 +15,23 @@ from datetime import datetime
 from flask import request, jsonify, current_app
 from . import whatsapp_bp
 from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
-from apps.extensions import db
+from apps.extensions import db, csrf
 
 logger = logging.getLogger(__name__)
 
 
 # =========================================================
-# 1. نقطة نهاية Webhook الموحدة (GET + POST)
+# 1. نقطة نهاية Webhook الموحدة (مع إعفاء CSRF)
 # =========================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 @whatsapp_bp.route('/webhook-admin', methods=['GET', 'POST'])
 @whatsapp_bp.route('/admin/whatsapp/webhook', methods=['GET', 'POST'])
+@csrf.exempt  # إعفاء Webhook Meta من حماية CSRF
 def direct_webhook():
     """
     نقطة نهاية Webhook الرئيسية.
     - GET: التحقق من صحة الرابط (Handshake مع ميتا).
-    - POST: استقبال الأحداث الفعلية (رسائل، تحديثات حالة، إلخ).
+    - POST: استقبال الأحداث الفعلية (رسائل، أزرار، تحديثات حالة).
     """
     if request.method == 'GET':
         return verify_webhook()
@@ -41,23 +42,16 @@ def direct_webhook():
 # 2. التحقق من Webhook (GET) – Handshake مع ميتا
 # =========================================================
 def verify_webhook():
-    """
-    معالجة طلب التحقق من ميتا (GET).
-    يجب أن يعيد نفس قيمة hub.challenge إذا تطابق الرمز.
-    """
     mode = request.args.get('hub.mode')
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
 
-    # جلب رمز التحقق من الإعدادات
     verify_token = current_app.config.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
 
-    # التحقق من صحة الطلب
     if mode == 'subscribe' and token == verify_token:
         logger.info("✅ Webhook verified successfully with Meta")
         return str(challenge), 200
     elif challenge and (token == verify_token or not token):
-        # بعض عملاء ميتا يرسلون challenge فقط
         return str(challenge), 200
 
     logger.warning(f"⚠️ Webhook verification failed: mode={mode}, token={token[:5] if token else 'None'}...")
@@ -65,19 +59,12 @@ def verify_webhook():
 
 
 # =========================================================
-# 3. معالجة الأحداث الواردة (POST) – جوهر النظام
+# 3. معالجة الأحداث الواردة (POST)
 # =========================================================
 def handle_webhook():
-    """
-    معالجة الأحداث القادمة من ميتا (POST).
-    - رسائل جديدة (messages)
-    - تحديثات حالة (statuses)
-    """
-    # قراءة البيانات الخام
     raw_data = request.get_data(as_text=True)
     phone_id = current_app.config.get('WHATSAPP_PHONE_NUMBER_ID') or 'system'
 
-    # محاولة تحويل JSON
     data = None
     try:
         if request.is_json:
@@ -89,10 +76,10 @@ def handle_webhook():
         return jsonify({"status": "ERROR", "message": "Invalid JSON"}), 400
 
     if not data:
-        logger.warning("⚠️ Empty webhook payload received")
         return jsonify({"status": "OK"}), 200
 
-    # تسجيل الحدث الخام في قاعدة البيانات (للتدقيق)
+    # 1. تسجيل الحدث الخام في قاعدة البيانات
+    event_id = None
     try:
         raw_event = WhatsAppWebhookEvent(
             event_type="incoming_payload",
@@ -101,46 +88,43 @@ def handle_webhook():
         )
         db.session.add(raw_event)
         db.session.commit()
+        event_id = raw_event.id
     except Exception as e:
-        logger.error(f"❌ Failed to log webhook event: {e}")
+        logger.error(f"❌ Failed to log raw webhook event: {e}")
         db.session.rollback()
 
-    # معالجة الأحداث
+    # 2. معالجة الرسائل والتحديثات
     try:
         entries = data.get('entry', [])
         for entry in entries:
             for change in entry.get('changes', []):
                 value = change.get('value', {})
 
-                # ----- 3.1 معالجة الرسائل الواردة -----
+                # معالجة الرسائل والردود على القوالب
                 if 'messages' in value:
                     process_incoming_messages(value, phone_id)
 
-                # ----- 3.2 معالجة تحديثات الحالة -----
+                # معالجة تحديثات حالة الإرسال
                 if 'statuses' in value:
                     process_status_updates(value)
 
-        # تحديث حالة معالجة الحدث في السجل
-        raw_event.processed = True
-        db.session.commit()
+        # تحديث حالة معالجة الحدث الخام
+        if event_id:
+            db.session.query(WhatsAppWebhookEvent).filter_by(id=event_id).update({"processed": True})
+            db.session.commit()
 
     except Exception as e:
-        logger.error(f"❌ Error processing webhook: {e}")
+        logger.error(f"❌ Error processing webhook content: {e}")
         db.session.rollback()
-        return jsonify({"status": "ERROR", "message": str(e)}), 500
 
+    # الإرجاع الدائم لـ 200 OK لضمان عدم توقف Webhook لدى Meta
     return jsonify({"status": "EVENT_RECEIVED"}), 200
 
 
 # =========================================================
-# 4. معالجة الرسائل الواردة (مصححة ومحسنة)
+# 4. معالجة الرسائل الواردة وتفاعلات القوالب
 # =========================================================
 def process_incoming_messages(value, phone_id):
-    """
-    معالجة الرسائل الواردة من العملاء.
-    - حفظ الرسالة في قاعدة البيانات.
-    - تحديث أو إنشاء جهة اتصال.
-    """
     for msg in value.get('messages', []):
         try:
             sender = msg.get('from')
@@ -148,21 +132,38 @@ def process_incoming_messages(value, phone_id):
             wamid = msg.get('id')
             timestamp = msg.get('timestamp')
 
-            # استخراج محتوى الرسالة حسب النوع
+            # استخراج محتوى الرسالة بحسب النوع (بما فيها تفاعلات القوالب والأزرار)
+            text = ""
             if msg_type == 'text':
                 text = msg.get('text', {}).get('body', '')
+            elif msg_type == 'interactive':
+                interactive = msg.get('interactive', {})
+                i_type = interactive.get('type')
+                if i_type == 'button_reply':
+                    text = f"🔘 {interactive.get('button_reply', {}).get('title', '')}"
+                elif i_type == 'list_reply':
+                    text = f"📋 {interactive.get('list_reply', {}).get('title', '')}"
+                else:
+                    text = "[تفاعل أزرار]"
+            elif msg_type == 'button':
+                text = f"🔘 {msg.get('button', {}).get('text', '')}"
             elif msg_type == 'image':
-                text = "📷 [صورة]"
+                caption = msg.get('image', {}).get('caption', '')
+                text = f"📷 [صورة]{' - ' + caption if caption else ''}"
             elif msg_type == 'video':
-                text = "🎬 [فيديو]"
+                caption = msg.get('video', {}).get('caption', '')
+                text = f"🎬 [فيديو]{' - ' + caption if caption else ''}"
             elif msg_type == 'document':
-                text = "📄 [مستند]"
+                caption = msg.get('document', {}).get('caption', '')
+                text = f"📄 [مستند]{' - ' + caption if caption else ''}"
             elif msg_type == 'audio':
-                text = "🎵 [صوت]"
+                text = "🎵 [رسالة صوتية]"
+            elif msg_type == 'location':
+                text = "📍 [موقع جغرافي]"
             else:
                 text = f"[{msg_type}]"
 
-            # استخراج اسم العميل من بيانات ميتا
+            # استخراج اسم العميل من البروفايل
             contacts_list = value.get('contacts', [])
             customer_name = f"عميل ({sender})"
             whatsapp_profile_name = None
@@ -172,19 +173,17 @@ def process_incoming_messages(value, phone_id):
                     customer_name = profile_name
                     whatsapp_profile_name = profile_name
 
-            # التحقق من عدم تكرار الرسالة (باستخدام WAMID)
+            # منع تكرار المعالجة بنفس الـ WAMID
             existing = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
             if existing:
-                logger.debug(f"⏭️ Duplicate message {wamid}, skipping")
                 continue
 
-            # تحويل التوقيت بشكل آمن
             try:
                 msg_timestamp = datetime.fromtimestamp(int(timestamp)) if timestamp else datetime.utcnow()
             except (ValueError, TypeError):
                 msg_timestamp = datetime.utcnow()
 
-            # 1. حفظ الرسالة في قاعدة البيانات
+            # 1. حفظ سجل الرسالة الواردة
             log_entry = WhatsAppMessageLog(
                 wamid=wamid,
                 direction='inbound',
@@ -197,13 +196,12 @@ def process_incoming_messages(value, phone_id):
             )
             db.session.add(log_entry)
 
-            # 2. تحديث أو إنشاء جهة اتصال
+            # 2. تحديث أو إنشاء جهة الاتصال
             contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
             if contact:
-                # تحديث الاسم إذا كان افتراضياً أو مختلفاً
                 if contact.name.startswith("عميل (") or contact.name != customer_name:
                     contact.name = customer_name
-                if whatsapp_profile_name and contact.whatsapp_profile_name != whatsapp_profile_name:
+                if whatsapp_profile_name:
                     contact.whatsapp_profile_name = whatsapp_profile_name
                 contact.last_message = text
                 contact.last_timestamp = datetime.utcnow()
@@ -222,49 +220,39 @@ def process_incoming_messages(value, phone_id):
                 db.session.add(new_contact)
 
             db.session.commit()
-            logger.info(f"📩 New message from {sender} ({customer_name}): {text[:30]}...")
+            logger.info(f"📩 Incoming message/button from {sender}: {text}")
 
         except Exception as e:
             db.session.rollback()
-            logger.error(f"❌ Failed to save message from {sender}: {e}")
-            continue
+            logger.error(f"❌ Failed to process incoming message: {e}")
 
 
 # =========================================================
-# 5. معالجة تحديثات حالة الرسائل (مصححة)
+# 5. معالجة تحديثات حالة الرسائل
 # =========================================================
 def process_status_updates(value):
-    """
-    معالجة تحديثات حالة الرسائل (مرسلة، مسلمة، مقروءة، فشلت).
-    """
     for st in value.get('statuses', []):
         try:
             wamid = st.get('id')
             status = st.get('status')
-            recipient = st.get('recipient_id')
             timestamp = st.get('timestamp')
 
             if not wamid:
                 continue
 
-            # تحويل التوقيت بشكل آمن
             try:
                 status_timestamp = datetime.fromtimestamp(int(timestamp)) if timestamp else None
             except (ValueError, TypeError):
                 status_timestamp = None
 
-            # تحديث حالة الرسالة في قاعدة البيانات
             msg_log = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
             if msg_log:
                 msg_log.status = status
                 if status_timestamp:
                     msg_log.timestamp = status_timestamp
                 db.session.commit()
-                logger.debug(f"📨 Status update: {wamid} → {status}")
-            else:
-                logger.warning(f"⚠️ Status update for unknown message: {wamid}")
+                logger.debug(f"📨 Status update: {wamid} -> {status}")
 
         except Exception as e:
             db.session.rollback()
             logger.error(f"❌ Failed to update status for {wamid}: {e}")
-            continue
