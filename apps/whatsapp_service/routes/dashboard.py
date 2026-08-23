@@ -4,9 +4,12 @@
 from flask import Blueprint, render_template, request, jsonify, current_app
 from sqlalchemy import or_
 
-# الاستيراد الصحيح والمباشر لقاعدة البيانات والنماذج
+# الاستيراد الصحيح والمباشر لقاعدة البيانات ونماذج الواتساب
 from apps.extensions import db
-from apps.models.whatsapp_models import WhatsAppContact, WhatsAppMessageLog
+from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
+
+# تعريف اسم مستعار (Alias) لكي يعمل الكود بكل أجزائه دون الحاجة لتعديل بقية المتغيرات
+WhatsAppContact = WhatsAppCustomerContact
 
 whatsapp_service = Blueprint('whatsapp_service', __name__, template_folder='templates')
 
