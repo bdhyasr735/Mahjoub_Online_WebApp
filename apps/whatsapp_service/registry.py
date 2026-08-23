@@ -7,18 +7,21 @@ SHOW_IN_SUPPLIER = False
 
 NAV_ITEMS = [
     {
-        'endpoint': 'whatsapp_controller.index',
-        'title': 'صندوق الرسائل'
+        'endpoint': 'whatsapp_service.chat_dashboard',
+        'title': 'صندوق الرسائل',
+        'icon': 'fa-solid fa-comments'
     },
     {
-        'endpoint': 'whatsapp_controller.settings',
-        'title': 'إعدادات الربط'
+        'endpoint': 'whatsapp_service.logs_dashboard',
+        'title': 'سجل الرسائل',
+        'icon': 'fa-solid fa-list-check'
+    },
+    {
+        'endpoint': 'whatsapp_service.settings_dashboard',
+        'title': 'إعدادات الربط',
+        'icon': 'fa-solid fa-gear'
     }
 ]
 
 def register_module(app):
-    """
-    هنا لأنك قمت بتسجيل الـ Blueprint سابقاً لا نحتاج لتسجيل الـ
-    CSRF مع استثنائه من __init__.py بشكل صريح في ملف
-    """
     pass
