@@ -1,17 +1,20 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/dashboard.py
+
 from flask import Blueprint, render_template, request, jsonify, current_app
 from sqlalchemy import or_
-# تأكد من استيراد النماذج وقاعدة البيانات الخاصة بمشروعك (محجوب أونلاين)
-from .models import db, WhatsAppContact, WhatsAppMessageLog
+
+# الاستيراد الصحيح والمباشر لقاعدة البيانات والنماذج
+from apps.extensions import db
+from apps.models.whatsapp_models import WhatsAppContact, WhatsAppMessageLog
 
 whatsapp_service = Blueprint('whatsapp_service', __name__, template_folder='templates')
 
 @whatsapp_service.route('/dashboard/chat', methods=['GET'])
 def chat_dashboard():
     """عرض لوحة التحكم الرئيسية للمحادثات المباشرة"""
-    # جلب جميع جهات الاتصال مرتبة حسب آخر نشاط
     contacts = WhatsAppContact.query.order_by(WhatsAppContact.last_timestamp.desc()).all()
     
-    # تحديد العميل الافتراضي (أول عميل أو بناءً على المعرف المرفق)
     contact_id = request.args.get('contact_id', type=int)
     current_contact = None
     messages = []
@@ -19,9 +22,8 @@ def chat_dashboard():
     if contact_id:
         current_contact = WhatsAppContact.query.get(contact_id)
     elif contacts:
-        current_contact = contacts[0] # اختيار أول عميل تلقائياً إن لم يُحدد
+        current_contact = contacts[0]
         
-    # جلب الرسائل الخاصة بالعميل الحالي إن وجد
     if current_contact:
         messages = WhatsAppMessageLog.query.filter(
             or_(
@@ -58,8 +60,6 @@ def settings_dashboard():
         phone_number_id = request.form.get('phone_number_id')
         business_account_id = request.form.get('business_account_id')
         access_token = request.form.get('access_token')
-        # قم هنا بحفظ الإعدادات في قاعدة البيانات أو ملف التكوين
-        # ...
     
     return render_template(
         'admin/whatsapp_dashboard.html',
@@ -71,7 +71,6 @@ def settings_dashboard():
 
 @whatsapp_service.route('/dashboard/partials/chat-window', methods=['GET'])
 def partials_chat_window():
-    """جلب نافذة المحادثة الخاصة بعميل معين عند النقر عليه أو التحديث التلقائي"""
     contact_id = request.args.get('contact_id', type=int)
     current_contact = WhatsAppContact.query.get_or_404(contact_id)
     
@@ -82,7 +81,6 @@ def partials_chat_window():
         )
     ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
 
-    # نعيد إرجاع جزء نافذة المحادثة فقط (الموجود داخل chat-area-container)
     return render_template(
         'admin/partials/chat_window.html',
         current_contact=current_contact,
@@ -91,7 +89,6 @@ def partials_chat_window():
 
 @whatsapp_service.route('/dashboard/partials/client-details', methods=['GET'])
 def partials_client_details():
-    """جلب لوحة تفاصيل العميل الجانبية اليسرى عبر HTMX"""
     contact_id = request.args.get('contact_id', type=int)
     current_contact = WhatsAppContact.query.get_or_404(contact_id)
     
@@ -102,7 +99,6 @@ def partials_client_details():
 
 @whatsapp_service.route('/dashboard/partials/contacts', methods=['GET'])
 def partials_contacts():
-    """تحديث قائمة المحادثات النشطة في الشريط الجانبي تلقائياً"""
     contacts = WhatsAppContact.query.order_by(WhatsAppContact.last_timestamp.desc()).all()
     current_contact_id = request.args.get('contact_id', type=int)
     current_contact = WhatsAppContact.query.get(current_contact_id) if current_contact_id else None
@@ -115,18 +111,13 @@ def partials_contacts():
 
 @whatsapp_service.route('/dashboard/send-message', methods=['POST'])
 def send_message_htmx():
-    """معالجة إرسال رسالة جديدة عبر النموذج وإرجاعها للقالب مباشرة"""
     contact_id = request.form.get('contact_id', type=int)
     phone = request.form.get('phone')
     message_text = request.form.get('message')
     
-    # هنا يتم وضع منطق الإرسال الفعلي عبر Meta WhatsApp API وحفظها في قاعدة البيانات
-    # ...
-    
-    # كمثال افتراضي بعد الحفظ، نقوم بإنشاء كائن رسالة صادرة مؤقت لعرضه مباشرة في الواجهة
     new_msg = WhatsAppMessageLog(
         direction='outbound',
-        sender_number='966500000000', # رقم النظام
+        sender_number='966500000000',
         recipient_number=phone,
         content=message_text,
         message_type='text',
@@ -135,7 +126,6 @@ def send_message_htmx():
     db.session.add(new_msg)
     db.session.commit()
     
-    # إرجاع HTML الرسالة الصادرة لكي يتم إضافتها بواسطة HTMX مباشرة داخل صندوق الرسائل
     return f"""
     <div class="flex flex-col items-end">
         <div class="max-w-[65%] bg-[#f3e8ff] rounded-2xl px-4 py-3 shadow-xs border border-purple-100 text-slate-800">
