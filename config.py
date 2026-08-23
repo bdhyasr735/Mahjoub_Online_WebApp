@@ -6,6 +6,10 @@ class Config:
     # 🗝️ مفاتيح الحماية والأمان الأساسية
     SECRET_KEY = os.environ.get('SECRET_KEY', 'default_secret_key_mahjoub_online')
     
+    # 🔄 إجبار Flask على إعادة تحميل القوالب وإلغاء تخزين الكاش للملفات
+    TEMPLATES_AUTO_RELOAD = True
+    SEND_FILE_MAX_AGE_DEFAULT = 0
+    
     # 🗄️ إعدادات قاعدة البيانات (PostgreSQL / SQLite)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
     if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
