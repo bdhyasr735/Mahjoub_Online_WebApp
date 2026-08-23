@@ -16,6 +16,13 @@ class Config:
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # 🔌 حماية محرك الاتصال من انقطاع SSL وإعادة الاتصال تلقائياً
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+        "pool_timeout": 30,
+    }
+
     # 🛡️ إعدادات حماية CSRF
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None
