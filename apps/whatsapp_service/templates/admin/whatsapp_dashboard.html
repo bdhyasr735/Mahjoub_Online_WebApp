@@ -1,181 +1,432 @@
-# coding: utf-8
-# 📂 apps/whatsapp_service/dashboard.py
+apps/whatsapp_service/templates/admin/whatsapp_dashboard.html
+<!-- 📂 apps/whatsapp_service/templates/admin/whatsapp_dashboard.html -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>مركز المراسلات والدعم | منصة محجوب أونلاين</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Tajawal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    body { font-family: 'Tajawal', sans-serif; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .contact-item { cursor: pointer; transition: background 0.15s; }
+    .contact-item:hover { background: #f8fafc; }
+    .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 h-screen h-[100dvh] flex flex-col overflow-hidden" dir="rtl">
 
-"""
-WhatsApp Service Dashboard & UI Routes Module for Mahjoub Online WebApp
-"""
+  <!-- الشريط العلوي (Header) الاحترافي -->
+  <header class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between shrink-0 z-30 shadow-xs">
+    <!-- اليمين: الشعار والعنوان -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
+        <span class="text-xs font-bold text-slate-700">مركز مراسلات واتساب</span>
+      </div>
+      <div class="flex items-center gap-2 bg-purple-50 border border-purple-100 px-3 py-1.5 rounded-xl">
+        <span class="text-xs font-bold text-[#570575]">محجوب أونلاين</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-200">
+          <span class="w-2 h-2 ml-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+          متصل بـ Meta API
+        </span>
+        <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md font-mono">24ms</span>
+      </div>
+    </div>
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
-from apps.extensions import db
-from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
+    <!-- الوسط: تبويبات التنقل الرئيسية -->
+    <div class="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+      <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 {{ 'bg-white text-[#570575] shadow-xs' if active_tab == 'chat' or not active_tab else 'text-slate-600 hover:text-slate-900' }}">
+        <i class="fa-solid fa-comments text-sm"></i>
+        <span>المحادثات المباشرة</span>
+      </a>
+      <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 {{ 'bg-white text-[#570575] shadow-xs' if active_tab == 'logs' else 'text-slate-600 hover:text-slate-900' }}">
+        <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+        <span>سجل الرسائل (Logs)</span>
+      </a>
+      <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" class="px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 {{ 'bg-white text-[#570575] shadow-xs' if active_tab == 'settings' else 'text-slate-600 hover:text-slate-900' }}">
+        <i class="fa-solid fa-gear text-sm"></i>
+        <span>الإعدادات</span>
+      </a>
+    </div>
 
-whatsapp_bp = Blueprint(
-    'whatsapp_service',
-    __name__,
-    template_folder='templates',
-    static_folder='static'
-)
+    <!-- اليسار: رقم الهاتف المرتبط والأداة -->
+    <div class="flex items-center gap-3">
+      <div class="text-left hidden sm:block">
+        <span class="block text-[10px] text-slate-400">رقم الهاتف المرتبط</span>
+        <span class="text-xs font-bold font-mono text-slate-700" dir="ltr">+966 50 000 0000</span>
+      </div>
+      <button onclick="window.location.reload();" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition" title="تحديث البيانات">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+    </div>
+  </header>
 
-@whatsapp_bp.route('/chat', methods=['GET'])
-def chat_dashboard():
-    """لوحة المحادثات المباشرة والرئيسية للواتساب"""
-    try:
-        contacts = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
-        
-        # اختيار أول عميل افتراضياً إذا لم يتم تحديد عميل
-        contact_id = request.args.get('contact_id', type=int)
-        current_contact = None
-        messages = []
-        
-        if contact_id:
-            current_contact = WhatsAppCustomerContact.query.get(contact_id)
-        elif contacts:
-            current_contact = contacts[0]
-            
-        if current_contact:
-            messages = WhatsAppMessageLog.query.filter(
-                (WhatsAppMessageLog.sender_number == current_contact.phone) | 
-                (WhatsAppMessageLog.recipient_number == current_contact.phone)
-            ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+  <!-- الحاوية الرئيسية -->
+  <div class="flex-1 flex flex-row overflow-hidden w-full relative">
+    
+    <!-- محتوى التبويبات -->
+    <main class="flex-1 h-full overflow-hidden flex flex-col bg-slate-100">
+      
+      {% if active_tab == 'chat' or not active_tab %}
+        <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
+          
+          <!-- 1. قائمة المحادثات (يمين داخل اللوحة) -->
+          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" 
+               id="sidebar-contacts-container"
+               hx-get="{{ url_for('whatsapp_service.partials_contacts', contact_id=current_contact.id if current_contact else none) }}" 
+               hx-trigger="every 3s" 
+               hx-swap="outerHTML">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                <span>المحادثات النشطة</span>
+                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] flex items-center justify-center font-mono">{{ contacts|length }}</span>
+              </h2>
+            </div>
+            
+            <!-- شريط البحث السريع واللحظي -->
+            <div class="p-3 border-b border-slate-100 bg-slate-50/50">
+              <div class="relative">
+                <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                  <i class="fa-solid fa-search text-xs"></i>
+                </span>
+                <input type="text" id="contact-search-input" onkeyup="filterContacts()" placeholder="بحث بالاسم أو الرقم..." class="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-[11px] focus:outline-none focus:border-[#570575]">
+              </div>
+            </div>
 
-        return render_template(
-            'admin/whatsapp_dashboard.html',
-            active_tab='chat',
-            contacts=contacts,
-            current_contact=current_contact,
-            messages=messages
-        )
-    except Exception as e:
-        print(f"⚠️ [Chat Dashboard Error]: {e}")
-        return render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=[], current_contact=None, messages=[])
+            <!-- قائمة الاتصالات (تحديث تلقائي عبر HTMX للنقر الفوري بدون مغادرة الصفحة) -->
+            <div class="divide-y divide-slate-100 flex-1 overflow-y-auto" id="contacts-list">
+              {% if contacts %}
+                {% for contact in contacts %}
+                  <div onclick="selectContact('{{ contact.id }}')" 
+                       class="contact-item {{ 'active' if current_contact and current_contact.id == contact.id else '' }} p-3.5 flex items-start gap-3 block text-right w-full"
+                       data-name="{{ contact.name | lower }}"
+                       data-phone="{{ contact.phone }}">
+                    <div class="relative shrink-0">
+                      <div class="w-10 h-10 rounded-full bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-sm border border-purple-200">
+                        {{ contact.name[0] if contact.name else '?' }}
+                      </div>
+                      <span class="absolute bottom-0 right-0 w-2.5 h-2.5 {{ 'bg-emerald-500' if contact.is_online else 'bg-slate-300' }} rounded-full border-2 border-white"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between mb-0.5">
+                        <h3 class="text-xs font-bold text-slate-800 truncate">{{ contact.name }}</h3>
+                        <span class="text-[10px] text-slate-400">{{ contact.last_timestamp.strftime('%I:%M %p') if contact.last_timestamp else '' }}</span>
+                      </div>
+                      <p class="text-[10px] text-slate-400 truncate mb-1" dir="ltr">{{ contact.phone }}</p>
+                      <p class="text-[11px] text-slate-600 truncate">{{ contact.last_message or 'لا توجد رسائل بعد' }}</p>
+                      <div class="mt-1.5 flex items-center justify-between">
+                        {% if contact.unread_count and contact.unread_count > 0 %}
+                          <span class="w-4 h-4 bg-[#570575] text-white rounded-full text-[9px] flex items-center justify-center font-bold">{{ contact.unread_count }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="p-6 text-center text-slate-400 text-xs">
+                  لا توجد محادثات نشطة حالياً.
+                </div>
+              {% endif %}
+            </div>
+          </div>
 
+          <!-- 2. منطقة الدردشة (منتصف) - يتم تحديثها ديناميكياً عند اختيار العميل أو وصول رسائل -->
+          <div class="flex-1 h-full flex flex-col bg-slate-50 border-l border-slate-200 overflow-hidden relative" id="chat-area-container"
+               {% if current_contact %}
+               hx-get="{{ url_for('whatsapp_service.partials_chat_window', contact_id=current_contact.id) }}"
+               hx-trigger="every 3s"
+               hx-swap="outerHTML"
+               {% endif %}>
+            
+            {% if current_contact %}
+              <!-- رأس المحادثة -->
+              <div class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                  <div class="relative">
+                    <div class="w-9 h-9 rounded-full bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-xs border border-purple-200">
+                      {{ current_contact.name[0] if current_contact.name else '?' }}
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-2 h-2 {{ 'bg-emerald-500' if current_contact.is_online else 'bg-slate-300' }} rounded-full border border-white"></span>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h2 class="text-xs font-bold text-slate-800">{{ current_contact.name }}</h2>
+                      <span class="text-[10px] font-mono text-slate-400" dir="ltr">{{ current_contact.phone }}</span>
+                    </div>
+                    <span class="text-[10px] {{ 'text-emerald-600' if current_contact.is_online else 'text-slate-400' }} font-medium">
+                      {{ 'متصل الآن' if current_contact.is_online else 'غير متصل' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500 font-mono bg-slate-100 px-3 py-1 rounded-xl">منصة محجوب أونلاين</span>
+                </div>
+              </div>
 
-@whatsapp_bp.route('/logs', methods=['GET'])
-def logs_dashboard():
-    """لوحة سجل الرسائل والـ Logs"""
-    try:
-        logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).limit(100).all()
-        return render_template(
-            'admin/whatsapp_dashboard.html',
-            active_tab='logs',
-            logs=logs
-        )
-    except Exception as e:
-        print(f"⚠️ [Logs Dashboard Error]: {e}")
-        return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=[])
+              <!-- صندوق الرسائل -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" id="message-box-scroll">
+                {% if messages %}
+                  {% for msg in messages %}
+                    {% if msg.direction == 'outbound' %}
+                      <!-- رسالة صادرة -->
+                      <div class="flex flex-col items-end">
+                        <div class="max-w-[65%] bg-[#f3e8ff] rounded-2xl px-4 py-3 shadow-xs border border-purple-100 text-slate-800">
+                          <p class="text-xs leading-relaxed">{{ msg.content }}</p>
+                          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                            <span>{{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}</span>
+                            <i class="fa-solid fa-check-double text-purple-600 text-[9px]"></i>
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <!-- رسالة واردة -->
+                      <div class="flex flex-col items-start">
+                        <div class="max-w-[65%] bg-white rounded-2xl px-4 py-3 shadow-xs border border-slate-200 text-slate-800">
+                          <p class="text-xs leading-relaxed">{{ msg.content }}</p>
+                          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                            <span>{{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <div class="flex items-center justify-center h-full text-slate-400 text-xs">
+                    لا توجد رسائل سابقة في هذه المحادثة. ابدأ الإرسال أدناه.
+                  </div>
+                {% endif %}
+              </div>
 
+              <!-- شريط الكتابة والإرسال (المعدل) -->
+              <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
+                    hx-target="#message-box-scroll" 
+                    hx-swap="beforeend" 
+                    hx-on::after-request="if(event.detail.successful) { this.reset(); scrollToBottom(); }" 
+                    class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
+                <input type="hidden" name="contact_id" value="{{ current_contact.id }}">
+                <input type="hidden" name="phone" value="{{ current_contact.phone }}">
+                <div class="flex items-center gap-2">
+                  <input type="text" name="message" id="chat-message-input" placeholder="اكتب رسالتك للعميل هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
+                  <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs flex items-center gap-2">
+                    <span>إرسال</span>
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                  </button>
+                </div>
+              </form>
+            {% else %}
+              <div class="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
+                <i class="fa-solid fa-comments text-4xl text-slate-300"></i>
+                <p>اختر محادثة من القائمة الجانبية لبدء استعراض الرسائل.</p>
+              </div>
+            {% endif %}
+          </div>
 
-@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
-def settings_dashboard():
-    """لوحة إعدادات Meta WhatsApp API"""
-    is_connected = True  # يمكنك ربطها بالتحقق من وجود المفاتيح في قاعدة البيانات أو الإعدادات العامة
-    
-    if request.method == 'POST':
-        phone_number_id = request.form.get('phone_number_id')
-        business_account_id = request.form.get('business_account_id')
-        access_token = request.form.get('access_token')
-        
-        # هنا يمكنك إضافة كود حفظ الإعدادات في جدول إعدادات النظام
-        flash("تم حفظ إعدادات Meta API بنجاح", "success")
-        return redirect(url_for('whatsapp_service.settings_dashboard'))
-        
-    return render_template(
-        'admin/whatsapp_dashboard.html',
-        active_tab='settings',
-        is_connected=is_connected
-    )
+          <!-- 3. تفاصيل العميل (يسار) -->
+          <div class="w-[300px] shrink-0 bg-white h-full overflow-y-auto shadow-sm p-6 flex flex-col gap-6" id="client-details-panel">
+            {% if current_contact %}
+              <div class="text-center pb-6 border-b border-slate-100">
+                <div class="relative w-20 h-20 mx-auto mb-3">
+                  <div class="w-full h-full rounded-2xl bg-purple-100 text-[#570575] flex items-center justify-center font-bold text-2xl border-2 border-purple-100 shadow-inner">
+                    {{ current_contact.name[0] if current_contact.name else '?' }}
+                  </div>
+                  <span class="absolute bottom-0 right-0 w-3.5 h-3.5 {{ 'bg-emerald-500' if current_contact.is_online else 'bg-slate-300' }} rounded-full border-2 border-white"></span>
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 mb-1">{{ current_contact.name }}</h3>
+                <p class="text-xs font-mono text-slate-600 bg-slate-50 py-1 rounded-lg mt-2" dir="ltr">{{ current_contact.phone }}</p>
+              </div>
+              <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-800">حالة الاتصال</span>
+                <span class="inline-flex items-center text-xs font-bold text-emerald-600">
+                  <span class="w-2 h-2 ml-1.5 {{ 'bg-emerald-500' if current_contact.is_online else 'bg-slate-300' }} rounded-full"></span>
+                  {{ 'متصل الآن' if current_contact.is_online else 'غير متصل' }}
+                </span>
+              </div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <span class="text-[11px] font-bold text-slate-500 block">إحصائيات المراسلة (PROPERTIES)</span>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-600">آخر رسالة</span>
+                  <span class="font-bold font-mono text-[#570575] truncate max-w-[140px]">{{ current_contact.last_message or '-' }}</span>
+                </div>
+              </div>
+            {% else %}
+              <div class="text-center text-slate-400 text-xs py-10">
+                لا يوجد عميل محدد.
+              </div>
+            {% endif %}
+          </div>
 
+        </div>
+      {% elif active_tab == 'logs' %}
+        <!-- تبويب سجل الرسائل (Logs) -->
+        <div class="p-6 h-full overflow-y-auto space-y-4">
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <table class="w-full text-right border-collapse">
+              <thead class="bg-slate-50 text-slate-700 text-xs border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5">المعرف (WAMID)</th>
+                  <th class="p-3.5">الاتجاه</th>
+                  <th class="p-3.5">المرسل</th>
+                  <th class="p-3.5">المستقبل</th>
+                  <th class="p-3.5">نص الرسالة</th>
+                  <th class="p-3.5">النوع</th>
+                  <th class="p-3.5">الحالة</th>
+                  <th class="p-3.5">التوقيت</th>
+                </tr>
+              </thead>
+              <tbody class="text-xs divide-y divide-slate-100">
+                {% if logs %}
+                  {% for log in logs %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                      <td class="p-3.5 font-mono text-slate-500 truncate max-w-[120px]">{{ log.wamid or 'N/A' }}</td>
+                      <td class="p-3.5">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium {{ 'bg-blue-50 text-blue-700 border-blue-200' if log.direction == 'inbound' else 'bg-emerald-50 text-emerald-700 border-emerald-200' }} border">
+                          {{ 'وارد (Inbound)' if log.direction == 'inbound' else 'صادر (Outbound)' }}
+                        </span>
+                      </td>
+                      <td class="p-3.5 font-bold text-slate-800 font-mono" dir="ltr">{{ log.sender_number }}</td>
+                      <td class="p-3.5 font-bold text-slate-800 font-mono" dir="ltr">{{ log.recipient_number }}</td>
+                      <td class="p-3.5 text-slate-700 max-w-xs truncate">{{ log.content }}</td>
+                      <td class="p-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">{{ log.message_type }}</span></td>
+                      <td class="p-3.5 text-slate-600 font-medium">{{ log.status }}</td>
+                      <td class="p-3.5 text-slate-500 text-[11px]">{{ log.timestamp.strftime('%Y-%m-%d %I:%M %p') if log.timestamp else '' }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="8" class="p-6 text-center text-slate-400">لا توجد سجلات رسائل متاحة حالياً.</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% elif active_tab == 'settings' %}
+        <!-- تبويب الإعدادات -->
+        <div class="p-8 h-full overflow-y-auto max-w-3xl mx-auto">
+          <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-6">
+            <div>
+              <h2 class="text-sm font-bold text-slate-800 mb-1">إعدادات ربط Meta WhatsApp API</h2>
+              <p class="text-xs text-slate-500">قم بتحديث بيانات المصادقة ومعرف الهاتف الخاص بمنصة محجوب أونلاين.</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-slate-700 block">حالة الاتصال العامة</span>
+                <span class="text-[11px] text-slate-500">التحقق من توفر مفاتيح الربط البرمجية</span>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-bold {{ 'bg-emerald-50 text-emerald-700 border border-emerald-200' if is_connected else 'bg-amber-50 text-amber-700 border border-amber-200' }}">
+                {{ 'متصل وجاهز' if is_connected else 'يحتاج إعداد المفاتيح' }}
+              </span>
+            </div>
+            <form action="{{ url_for('whatsapp_service.settings_dashboard') }}" method="POST" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
+                <input type="text" name="phone_number_id" placeholder="مثال: 105629931234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account ID</label>
+                <input type="text" name="business_account_id" placeholder="مثال: 109823451234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Access Token (Permanent / System User Token)</label>
+                <textarea name="access_token" rows="3" placeholder="ضع رمز الوصول الخاص بـ Meta هنا..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-[#570575]"></textarea>
+              </div>
+              <div class="pt-2">
+                <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs">
+                  حفظ الإعدادات والتغييرات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </main>
 
-# --- مسارات الـ Partials الخاصة بـ HTMX لتحديث الأجزاء ديناميكياً ---
+    <!-- القائمة الجانبية للأيقونات (أقصى اليسار) -->
+    <aside class="w-16 bg-[#1a0b2e] flex flex-col items-center justify-between py-5 shrink-0 shadow-xl z-20 border-r border-purple-900/40">
+      <div class="flex flex-col items-center gap-5 w-full">
+        <div class="w-10 h-10 rounded-xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center p-1 shadow-md">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCm47_tKjb9Qhn6mPX1sd0qGSuGPXs8R8TgcOWlnf5AnEjRUps" alt="Logo" class="w-full h-full object-contain rounded-lg">
+        </div>
+        <div class="w-8 h-[1px] bg-purple-900/60"></div>
+        <div class="flex flex-col gap-2 w-full px-2">
+          <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="p-2.5 rounded-xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-md border border-[#D4AF37]/30' if active_tab == 'chat' or not active_tab else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+            <i class="fa-solid fa-comments text-base"></i>
+          </a>
+          <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="p-2.5 rounded-xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-md border border-[#D4AF37]/30' if active_tab == 'logs' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+            <i class="fa-solid fa-clock-rotate-left text-base"></i>
+          </a>
+        </div>
+      </div>
+      <div class="w-full px-2">
+        <a href="{{ url_for('whatsapp_service.settings_dashboard') }}" title="الإعدادات" class="p-2.5 rounded-xl transition-all flex justify-center {{ 'bg-[#570575] text-white shadow-md border border-[#D4AF37]/30' if active_tab == 'settings' else 'text-purple-300 hover:bg-purple-900/50 hover:text-white' }}">
+          <i class="fa-solid fa-gear text-base"></i>
+        </a>
+      </div>
+    </aside>
 
-@whatsapp_bp.route('/partials/contacts', methods=['GET'])
-def partials_contacts():
-    """تحديث قائمة المحادثات الجانبية تلقائياً"""
-    contacts = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
-    current_contact_id = request.args.get('contact_id', type=int)
-    current_contact = WhatsAppCustomerContact.query.get(current_contact_id) if current_contact_id else (contacts[0] if contacts else None)
-    
-    # إرجاع القائمة الجانبية فقط أو القالب المخصص للـ contacts
-    return render_template(
-        'admin/partials/contacts_list.html', 
-        contacts=contacts, 
-        current_contact=current_contact
-    ) if False else render_template('admin/whatsapp_dashboard.html', active_tab='chat', contacts=contacts, current_contact=current_contact, messages=[])
+  </div>
 
+  <script>
+    // التمرير التلقائي لصندوق الرسائل إلى الأسفل عند الفتح أو التحديث
+    function scrollToBottom() {
+      const msgBox = document.getElementById('message-box-scroll');
+      if (msgBox) {
+        msgBox.scrollTop = msgBox.scrollHeight;
+      }
+    }
 
-@whatsapp_bp.route('/partials/chat-window', methods=['GET'])
-def partials_chat_window():
-    """جلب صندوق المحادثة والرسائل لعميل معين عند النقر عليه"""
-    contact_id = request.args.get('contact_id', type=int)
-    current_contact = WhatsAppCustomerContact.query.get_or_404(contact_id)
-    
-    messages = WhatsAppMessageLog.query.filter(
-        (WhatsAppMessageLog.sender_number == current_contact.phone) | 
-        (WhatsAppMessageLog.recipient_number == current_contact.phone)
-    ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
-    
-    # تحديث حالة قراءة الرسائل إن وجد
-    current_contact.unread_count = 0
-    db.session.commit()
+    window.addEventListener('DOMContentLoaded', scrollToBottom);
+    
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+      if(evt.detail.target.id === 'message-box-scroll' || evt.detail.target.id === 'chat-area-container') {
+        scrollToBottom();
+      }
+    });
 
-    return render_template(
-        'admin/partials/chat_window_content.html',
-        current_contact=current_contact,
-        messages=messages
-    )
+    // 1. البحث اللحظي الفوري في قائمة جهات الاتصال (بدون خوادم وبدون تحديث)
+    function filterContacts() {
+      const input = document.getElementById('contact-search-input');
+      const filter = input.value.toLowerCase().trim();
+      const contactsList = document.getElementById('contacts-list');
+      const items = contactsList.getElementsByClassName('contact-item');
 
+      for (let i = 0; i < items.length; i++) {
+        const name = items[i].getAttribute('data-name') || '';
+        const phone = items[i].getAttribute('data-phone') || '';
+        if (name.includes(filter) || phone.includes(filter)) {
+          items[i].style.display = "";
+        } else {
+          items[i].style.display = "none";
+        }
+      }
+    }
 
-@whatsapp_bp.route('/partials/client-details', methods=['GET'])
-def partials_client_details():
-    """جلب تفاصيل العميل الجانبية اليسرى"""
-    contact_id = request.args.get('contact_id', type=int)
-    current_contact = WhatsAppCustomerContact.query.get(contact_id) if contact_id else None
-    
-    return render_template(
-        'admin/partials/client_details.html',
-        current_contact=current_contact
-    )
+    // 2. النقر الفوري على جهة الاتصال لجلب الشات وتحديث اليمين واليسار بدون مغادرة الصفحة
+    function selectContact(contactId) {
+      // إزالة التنشيط عن الجميع وإضافة النشيط للعنصر الحالي
+      const items = document.querySelectorAll('.contact-item');
+      items.forEach(el => el.classList.remove('active'));
+      event.currentTarget.classList.add('active');
 
-
-@whatsapp_bp.route('/send-message', methods=['POST'])
-def send_message_htmx():
-    """إرسال رسالة جديدة للعميل عبر واجهة HTMX"""
-    contact_id = request.form.get('contact_id')
-    phone = request.form.get('phone')
-    message_content = request.form.get('message')
-    
-    if not message_content or not phone:
-        return jsonify({"error": "Missing data"}), 400
-        
-    try:
-        # هنا يتم استدعاء دالة الإرسال عبر Meta Cloud API الفعلية لديك
-        # from apps.whatsapp_service.api import send_whatsapp_text_message
-        # send_whatsapp_text_message(phone, message_content)
-        
-        # حفظ الرسالة في السجلات كـ outbound
-        new_log = WhatsAppMessageLog(
-            sender_number="system",
-            recipient_number=phone,
-            content=message_content,
-            direction="outbound",
-            message_type="text",
-            status="sent"
-        )
-        db.session.add(new_log)
-        db.session.commit()
-        
-        # إرجاع عنصر الرسالة الجديدة لعرضه مباشرة في الشات
-        return f"""
-        <div class="flex flex-col items-end">
-          <div class="max-w-[65%] bg-[#f3e8ff] rounded-2xl px-4 py-3 shadow-xs border border-purple-100 text-slate-800">
-            <p class="text-xs leading-relaxed">{message_content}</p>
-            <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
-              <span>الآن</span>
-              <i class="fa-solid fa-check-double text-purple-600 text-[9px]"></i>
-            </div>
-          </div>
-        </div>
-        """
-    except Exception as e:
-        print(f"❌ [Send Message Error]: {e}")
-        return f"<div class='text-red-500 text-xs'>فشل إرسال الرسالة: {e}</div>", 500
+      // طلب منطقة الدردشة وتفاصيل العميل عبر HTMX لجلبها ديناميكياً في مكانها
+      htmx.ajax('GET', '{{ url_for("whatsapp_service.partials_chat_window") }}?contact_id=' + contactId, {target: '#chat-area-container', swap: 'outerHTML'});
+      htmx.ajax('GET', '{{ url_for("whatsapp_service.partials_client_details") }}?contact_id=' + contactId, {target: '#client-details-panel', swap: 'outerHTML'});
+    }
+  </script>
+</body>
+</html>
