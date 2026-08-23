@@ -38,7 +38,7 @@ def chat_dashboard(contact_id=None):
             ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
 
         return render_template(
-            'admin/whatsapp_dashboard.html',
+            'admin/dashboard.html',
             active_tab='chat',
             contacts=contacts,
             selected_contact=current_contact,
@@ -47,7 +47,7 @@ def chat_dashboard(contact_id=None):
     except Exception as e:
         current_app.logger.error(f"⚠️ [Chat Dashboard Error]: {e}")
         return render_template(
-            'admin/whatsapp_dashboard.html',
+            'admin/dashboard.html',
             active_tab='chat',
             contacts=[],
             selected_contact=None,
@@ -173,14 +173,14 @@ def logs_dashboard():
             WhatsAppMessageLog.timestamp.desc()
         ).limit(150).all()
         return render_template(
-            'admin/whatsapp_dashboard.html',
+            'admin/dashboard.html',
             active_tab='logs',
             logs=logs
         )
     except Exception as e:
         current_app.logger.error(f"⚠️ [Logs Dashboard Error]: {e}")
         return render_template(
-            'admin/whatsapp_dashboard.html',
+            'admin/dashboard.html',
             active_tab='logs',
             logs=[]
         )
@@ -198,7 +198,7 @@ def settings_dashboard():
         return redirect(url_for('whatsapp_service.settings_dashboard', saved='true'))
 
     return render_template(
-        'admin/whatsapp_dashboard.html',
+        'admin/dashboard.html',
         active_tab='settings',
         settings={
             "phone_number_id": current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', ''),
