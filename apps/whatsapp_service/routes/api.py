@@ -1,41 +1,28 @@
 # coding: utf-8
 # 📂 apps/whatsapp_service/routes/api.py
 
-import os
-from flask import request, jsonify, current_app
+"""
+RESTful API Endpoints for WhatsApp Service
+Provides JSON responses for external integrations and JavaScript fetch calls
+"""
+
+from flask import request, jsonify
 from sqlalchemy import or_
-
-try:
-    from ..whatsapp_api import send_text_message
-except ImportError:
-    from apps.whatsapp_service.whatsapp_api import send_text_message
-
-from apps.models.whatsapp_models import (
-    WhatsAppMessageLog,
-    WhatsAppCustomerContact
-)
-from apps.extensions import db
 from . import whatsapp_bp
-
-DEFAULT_QUICK_TEMPLATES = [
-    {"id": 1, "title": "ترحيب بالعميل", "content": "مرحباً بك في منصة محجوب أونلاين! كيف يمكننا خدمة طلبك وتجربتك التسوقية اليوم؟ 🛍️✨"},
-    {"id": 2, "title": "تأكيد الطلب", "content": "تم استلام طلبكم بنجاح في محجوب أونلاين ✅ وسيتم تجهيزه وشحنه في أقرب وقت."},
-    {"id": 3, "title": "متابعة الشحن", "content": "طلبك قيد التوصيل حالياً، وسيتواصل معك مندوب الشحن لتسليم الطلب قريباً."},
-    {"id": 4, "title": "خدمة الدعم الفني", "content": "نحن هنا لمساعدتك! إذا كان لديك أي استفسار حول المنتجات أو الطلبات، تفضل بطرحه."}
-]
+from apps.whatsapp_service.whatsapp_api import send_text_message
+from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
+from apps.extensions import db
 
 
-@whatsapp_bp.route('/api/templates', methods=['GET'])
-def get_quick_templates_api():
-    return jsonify({
-        "success": True,
-        "platform": "محجوب أونلاين",
-        "templates": DEFAULT_QUICK_TEMPLATES
-    })
-
-
+# =========================================================
+# 1. جلب محادثة عميل معين (JSON)
+# =========================================================
 @whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
 def get_conversation_data(phone):
+    """
+    جلب جميع رسائل عميل معين بصيغة JSON.
+    - تُستخدم من قبل JavaScript لتحديث الشات يدوياً.
+    """
     contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
     if contact and contact.unread_count > 0:
         contact.unread_count = 0
@@ -72,18 +59,52 @@ def get_conversation_data(phone):
     })
 
 
+# =========================================================
+# 2. إرسال رسالة عبر JSON (API)
+# =========================================================
 @whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
 def send_message_api():
+    """
+    إرسال رسالة عبر JSON (للاستخدام مع التطبيقات الخارجية).
+    - تُستخدم من قبل Postman أو تطبيقات أخرى.
+    """
     data = request.get_json(silent=True) or {}
     phone = data.get('phone')
     message = data.get('message')
+    order_id = data.get('order_id')
+
     if not phone or not message:
         return jsonify({"success": False, "error": "بيانات ناقصة"}), 400
 
     success, response_data = send_text_message(phone, message)
-    return jsonify({"success": success, "meta_response": response_data}), 200 if success else 500
+
+    # تسجيل الرسالة في قاعدة البيانات إذا نجحت
+    if success:
+        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
+        if contact:
+            contact.last_message = message
+            contact.last_timestamp = datetime.utcnow()
+            db.session.commit()
+
+    return jsonify({
+        "success": success,
+        "meta_response": response_data,
+        "message": "تم الإرسال بنجاح" if success else "فشل الإرسال"
+    }), 200 if success else 500
 
 
-@whatsapp_bp.route('/ping')
-def ping():
-    return jsonify({"status": "active", "service": "WhatsApp Service", "version": "1.0", "platform": "محجوب أونلاين"})
+# =========================================================
+# 3. اختبار صحة الاتصال (Ping)
+# =========================================================
+@whatsapp_bp.route('/api/whatsapp/ping', methods=['GET'])
+def ping_api():
+    """
+    اختبار صحة الخدمة.
+    - تُستخدم لمراقبة الخادم (Health Check).
+    """
+    return jsonify({
+        "status": "active",
+        "service": "WhatsApp Service",
+        "version": "1.2.0",
+        "timestamp": datetime.utcnow().isoformat()
+    })
