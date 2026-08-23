@@ -449,6 +449,7 @@ def create_app():
     # 🔄 التسجيل الديناميكي التلقائي للموديولات عبر ملف الـ registry.py
     # ============================================================
     apps_dir = app.root_path
+    # تم إزالة 'whatsapp_service' من القائمة أدناه ليتم اكتشافه وتسجيله تلقائياً
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
