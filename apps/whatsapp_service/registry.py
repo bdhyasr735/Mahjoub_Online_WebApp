@@ -4,26 +4,31 @@
 """
 WhatsApp Service Registry Entry for Mahjoub Online
 --------------------------------------------------
-مسؤول عن تسجيل الموديول في القائمة الجانبية (Sidebar) والـ Blueprints تلقائياً.
+مسؤول عن تسجيل الموديول والروابط الخاصة به تلقائياً في القائمة الجانبية (Sidebar) والهيكل العام للنظام.
 """
 
+# الاسم الظاهر في القائمة الجانبية
 MODULE_NAME = "خدمة الواتساب"
-MODULE_ICON = "fa-brands fa-whatsapp"  # أو "fa-comments"
-SHOW_IN_SUPPLIER = False  # إظهاره في لوحة الإدارة العامة (Admin)
 
-# الروابط التي ستظهر في القائمة الجانبية تحت موديول الواتساب
+# الأيقونة الخاصة بالموديول (FontAwesome)
+MODULE_ICON = "fa-brands fa-whatsapp"
+
+# لتحديد ما إذا كان الموديول يظهر في لوحة الموردين أم لوحة الإدارة (False = Admin)
+SHOW_IN_SUPPLIER = False
+
+# الروابط الفرعية التي ستظهر داخل قائمة الموديول في القائمة الجانبية
 NAV_ITEMS = [
     {"endpoint": "whatsapp.chat_dashboard", "title": "المحادثات المباشرة"},
     {"endpoint": "whatsapp.logs_dashboard", "title": "سجل الرسائل"},
     {"endpoint": "whatsapp.settings_dashboard", "title": "إعدادات Meta API"},
 ]
 
+
 def register_module(app):
-    """تسجيل الـ Blueprint وحمايات CSRF الخاصة بالموديول"""
+    """دالة تسجيل الـ Blueprint وإعفائه من CSRF تلقائياً عند تشغيل النظام"""
     from apps.whatsapp_service.routes import whatsapp_bp
     from apps.extensions import csrf
-    
-    # تسجيل الـ Blueprint إذا لم يكن مسجلاً مسبقاً
+
     if 'whatsapp' not in app.blueprints:
         app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         csrf.exempt(whatsapp_bp)
