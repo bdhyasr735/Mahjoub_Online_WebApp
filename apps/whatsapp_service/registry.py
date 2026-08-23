@@ -4,18 +4,18 @@
 from apps.whatsapp_service.routes import whatsapp_bp
 
 MODULE_NAME = "خدمة الواتساب"
-MODULE_ICON = "fab fa-whatsapp text-amber-400"
+MODULE_ICON = "fab fa-whatsapp text-emerald-400"
 
-# الروابط التي ستظهر تلقائياً في القائمة الجانبية (تأكد أن أسماء الـ endpoints تطابق ما لديك)
+# الروابط والأزرار التي ستظهر في القائمة الجانبية
 LINKS = {
-    'whatsapp.dashboard': 'لوحة التحكم',
+    'whatsapp.dashboard': 'لوحة التحكم والمحادثات',
     'whatsapp.logs': 'سجل الرسائل',
     'whatsapp.settings': 'إعدادات الربط'
 }
 
 def register_module(app):
     """
-    تسجيل Blueprint الواتساب وتحديد بادئة المسار (URL Prefix)
+    تسجيل Blueprint الواتساب وتحديد بادئة المسار
     """
     if 'whatsapp' not in app.blueprints:
         app.register_blueprint(whatsapp_bp, url_prefix='/whatsapp')
