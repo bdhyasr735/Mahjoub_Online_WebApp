@@ -1,10 +1,9 @@
-
 # coding: utf-8
 # 📂 apps/whatsapp_service/__init__.py
 
 from flask import Blueprint
 
-# تعريف البلوبرنت الأساسي للخدمة (يتم استخدامه وتسجيله ديناميكياً عبر registry.py)
+# تعريف البلوبرنت الخاص بالخدمة وتحديد مسارات القوالب والملفات الثابتة
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
@@ -12,5 +11,5 @@ whatsapp_bp = Blueprint(
     static_folder='static'
 )
 
-# استيراد المسارات والملفات التابعة للموديول لضمان تسجيل الروابط عند تحميله
+# استيراد مجلد/ملفات المسارات لتفعيل الـ Routes الخاصة بالموديول
 from apps.whatsapp_service import routes
