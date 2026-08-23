@@ -8,9 +8,9 @@
       <h2 class="text-base font-bold text-[#1a0b2e]">📋 سجل رسائل واتساب (WhatsApp Messages Log)</h2>
       <p class="text-xs text-slate-500 mt-1">سجلات الإرسال والاستقبال المباشرة المرتبطة بطلبات متجر محجوب أونلاين</p>
     </div>
-    <div class="flex gap-2 w-full md:w-auto">
-      <input type="text" id="logSearchInput" placeholder="🔍 بحث في السجلات..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] transition-all">
-      <select id="logStatusFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] transition-all text-slate-700">
+    <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+      <input type="text" id="logSearchInput" placeholder="🔍 بحث (رقم، معرف، نص...)" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] focus:bg-white transition-all">
+      <select id="logStatusFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#570575] focus:bg-white transition-all text-slate-700">
         <option value="all">كل الحالات</option>
         <option value="sent">✅ تم الإرسال</option>
         <option value="delivered">📬 تم التسليم</option>
@@ -40,9 +40,10 @@
         <tbody class="divide-y divide-slate-100" id="logsTableBody">
           {% if logs and logs|length > 0 %}
             {% for log in logs %}
-            <tr class="hover:bg-purple-50/30 transition-colors" 
-                data-status="{{ log.status|lower }}"
-                data-content="{{ log.content|lower }}">
+            {% set search_searchable = [log.id, log.sender_number, log.recipient_number, log.content]|reject('none')|join(' ')|lower %}
+            <tr class="log-row hover:bg-purple-50/30 transition-colors" 
+                data-status="{{ (log.status or '')|lower }}"
+                data-content="{{ search_searchable }}">
               <td class="px-4 py-3 font-mono text-slate-500 text-[11px]">#{{ log.id }}</td>
               <td class="px-4 py-3">
                 {% if log.direction == 'inbound' %}
@@ -54,42 +55,43 @@
                     <span>📤</span> صادر
                   </span>
                 {% else %}
-                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 font-semibold text-[11px]">{{ log.direction }}</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 font-semibold text-[11px]">{{ log.direction or 'غير محدد' }}</span>
                 {% endif %}
               </td>
-              <td class="px-4 py-3 font-mono text-slate-700 text-[11px]" dir="ltr">{{ log.sender_number|default('-') }}</td>
-              <td class="px-4 py-3 font-mono text-slate-700 text-[11px]" dir="ltr">{{ log.recipient_number|default('-') }}</td>
-              <td class="px-4 py-3 max-w-[200px] truncate text-slate-600" title="{{ log.content|default('') }}">
-                {{ log.content|default('-')|truncate(50) }}
+              <td class="px-4 py-3 font-mono text-slate-700 text-[11px]" dir="ltr">{{ log.sender_number or '-' }}</td>
+              <td class="px-4 py-3 font-mono text-slate-700 text-[11px]" dir="ltr">{{ log.recipient_number or '-' }}</td>
+              <td class="px-4 py-3 max-w-[200px] truncate text-slate-600" title="{{ log.content or '' }}">
+                {{ (log.content or '-')|truncate(50) }}
               </td>
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">
-                  {{ log.message_type|default('text') }}
+                  {{ log.message_type or 'text' }}
                 </span>
               </td>
               <td class="px-4 py-3">
-                {% if log.status == 'sent' %}
+                {% set status = (log.status or '')|lower %}
+                {% if status == 'sent' %}
                   <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px] flex items-center gap-1 w-fit">
                     <span>✅</span> مرسلة
                   </span>
-                {% elif log.status == 'delivered' %}
+                {% elif status == 'delivered' %}
                   <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[11px] flex items-center gap-1 w-fit">
                     <span>📬</span> مسلمة
                   </span>
-                {% elif log.status == 'read' %}
+                {% elif status == 'read' %}
                   <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold text-[11px] flex items-center gap-1 w-fit">
                     <span>👁️</span> مقروءة
                   </span>
-                {% elif log.status == 'failed' %}
+                {% elif status == 'failed' %}
                   <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px] flex items-center gap-1 w-fit">
                     <span>❌</span> فشلت
                   </span>
-                {% elif log.status == 'received' %}
+                {% elif status == 'received' %}
                   <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[11px] flex items-center gap-1 w-fit">
                     <span>📥</span> مستلمة
                   </span>
                 {% else %}
-                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[11px]">{{ log.status|default('غير معروف') }}</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[11px]">{{ log.status or 'غير معروف' }}</span>
                 {% endif %}
               </td>
               <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">
@@ -97,6 +99,11 @@
               </td>
             </tr>
             {% endfor %}
+            <tr id="noResultsRow" class="hidden">
+              <td colspan="8" class="px-4 py-8 text-center text-slate-400 text-xs">
+                🔍 لا توجد نتائج تطابق معايير البحث الحالية
+              </td>
+            </tr>
           {% else %}
             <tr>
               <td colspan="8" class="px-4 py-12 text-center text-slate-400 text-sm">
@@ -115,49 +122,59 @@
     <!-- Footer with stats -->
     <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between text-[11px] text-slate-500">
       <div>
-        إجمالي السجلات: <span class="font-bold text-slate-700">{{ logs|length if logs else 0 }}</span>
+        إجمالي السجلات المعروضة: <span id="displayedCount" class="font-bold text-slate-700">{{ logs|length if logs else 0 }}</span> / <span class="font-bold text-slate-700">{{ logs|length if logs else 0 }}</span>
       </div>
       <div class="flex items-center gap-4">
-        <span>✅ مرسلة: <span class="font-bold text-emerald-600">{{ logs|selectattr('status', 'equalto', 'sent')|list|length if logs else 0 }}</span></span>
-        <span>📥 واردة: <span class="font-bold text-purple-600">{{ logs|selectattr('direction', 'equalto', 'inbound')|list|length if logs else 0 }}</span></span>
-        <span>📤 صادرة: <span class="font-bold text-blue-600">{{ logs|selectattr('direction', 'equalto', 'outbound')|list|length if logs else 0 }}</span></span>
+        <span>✅ مرسلة: <span class="font-bold text-emerald-600">{{ logs|selectattr('status', 'defined')|selectattr('status', 'equalto', 'sent')|list|length if logs else 0 }}</span></span>
+        <span>📥 واردة: <span class="font-bold text-purple-600">{{ logs|selectattr('direction', 'defined')|selectattr('direction', 'equalto', 'inbound')|list|length if logs else 0 }}</span></span>
+        <span>📤 صادرة: <span class="font-bold text-blue-600">{{ logs|selectattr('direction', 'defined')|selectattr('direction', 'equalto', 'outbound')|list|length if logs else 0 }}</span></span>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // وظيفة البحث والتصفية في سجل الرسائل
   document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('logSearchInput');
     const statusFilter = document.getElementById('logStatusFilter');
-    const tableBody = document.getElementById('logsTableBody');
-    const rows = tableBody ? tableBody.querySelectorAll('tr') : [];
+    const rows = document.querySelectorAll('.log-row');
+    const noResultsRow = document.getElementById('noResultsRow');
+    const displayedCountEl = document.getElementById('displayedCount');
 
     function filterTable() {
       const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
-      const statusValue = statusFilter ? statusFilter.value : 'all';
+      const statusValue = statusFilter ? statusFilter.value.toLowerCase() : 'all';
+      let visibleCount = 0;
 
       rows.forEach(row => {
         const content = row.getAttribute('data-content') || '';
         const status = row.getAttribute('data-status') || '';
         
-        const matchesSearch = content.includes(searchTerm);
+        const matchesSearch = !searchTerm || content.includes(searchTerm);
         const matchesStatus = statusValue === 'all' || status === statusValue;
         
         if (matchesSearch && matchesStatus) {
           row.style.display = '';
+          visibleCount++;
         } else {
           row.style.display = 'none';
         }
       });
+
+      if (noResultsRow) {
+        if (visibleCount === 0 && rows.length > 0) {
+          noResultsRow.classList.remove('hidden');
+        } else {
+          noResultsRow.classList.add('hidden');
+        }
+      }
+
+      if (displayedCountEl) {
+        displayedCountEl.textContent = visibleCount;
+      }
     }
 
-    if (searchInput) {
-      searchInput.addEventListener('keyup', filterTable);
-    }
-    if (statusFilter) {
-      statusFilter.addEventListener('change', filterTable);
-    }
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (statusFilter) statusFilter.addEventListener('change', filterTable);
   });
 </script>
