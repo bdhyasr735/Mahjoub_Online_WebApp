@@ -9,19 +9,20 @@ MODULE_NAME = 'مركز الواتساب'
 MODULE_ICON = 'fa-brands fa-whatsapp'
 SHOW_IN_SUPPLIER = False
 
+# تم استخدام المسارات المباشرة (التي تبدأ بـ /) لضمان تحويل القالب المباشر دون المرور بدالة safe_url_for
 NAV_ITEMS = [
     {
-        'endpoint': 'whatsapp_service.chat_dashboard',
+        'endpoint': '/admin/whatsapp/dashboard',
         'title': 'صندوق الرسائل',
         'icon': 'fa-solid fa-comments'
     },
     {
-        'endpoint': 'whatsapp_service.logs_dashboard',
+        'endpoint': '/admin/whatsapp/logs',
         'title': 'سجل الرسائل',
         'icon': 'fa-solid fa-list-check'
     },
     {
-        'endpoint': 'whatsapp_service.settings_dashboard',
+        'endpoint': '/admin/whatsapp/settings',
         'title': 'إعدادات الربط',
         'icon': 'fa-solid fa-gear'
     }
@@ -60,7 +61,7 @@ def register_module(app):
             app.register_blueprint(
                 whatsapp_bp, 
                 url_prefix='/admin/whatsapp',
-                name='whatsapp_service'  # ضمان مطابقة الـ endpoint المستخدم في NAV_ITEMS
+                name='whatsapp_service'
             )
             print("✅ [WhatsApp Module]: تم تسجيل الـ Blueprint بنجاح.")
 
