@@ -1,24 +1,19 @@
 # coding: utf-8
 # 📂 apps/whatsapp_service/routes/__init__.py
 
-"""
-مجلد مسارات خدمة الواتساب (WhatsApp Service Routes)
-يتم هنا تعريف الـ Blueprint الرئيسي واستيراد وحدات المسارات الفرعية.
-"""
-
+import os
 from flask import Blueprint
 
-# 1. إنشاء الـ Blueprint الخاص بخدمة الواتساب
+# تحديد المسار المطلق لمجلد templates الخاص بموديول الواتساب
+# نرجع خطوة للخلف من مجلد routes للوصول لـ templates
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
-    template_folder='../templates'
+    template_folder=TEMPLATE_DIR
 )
 
-# 2. استيراد وحدات المسارات (Routes) لربطها بالـ Blueprint
-# ملاحظة: تم وضع الاستيراد هنا أسفل إنشاء whatsapp_bp لمنع الدوران الدائري (Circular Imports)
+# استيراد المسارات
 from . import dashboard
-
-# إذا كانت لديك ملفات مسارات فرعية أخرى للسجلات والإعدادات، يمكنك تفعيل استيرادها هنا:
-# from . import logs
-# from . import settings
