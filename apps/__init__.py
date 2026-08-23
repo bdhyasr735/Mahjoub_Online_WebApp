@@ -162,6 +162,19 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
 
+    # ============================================================
+    # 🔌 إعدادات الاتصال بقاعدة البيانات (قبل db.init_app)
+    # ============================================================
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+    }
+
+    db.init_app(app)
+
     app.jinja_env.globals.update(getattr=getattr)
 
     CORS(app, resources={
@@ -185,18 +198,19 @@ def create_app():
         }
     })
 
-    db.init_app(app)
+    # ============================================================
+    # ⚙️ تنظيف وتفريغ الجلسات عند انتهاء الطلب أو وقوع خطأ
+    # ============================================================
+    @app.teardown_request
+    def shutdown_session(exception=None):
+        if exception:
+            db.session.rollback()
+        db.session.remove()
 
-    # ============================================================
-    # 🔌 إعدادات الاتصال بقاعدة البيانات (منع انقطاع SSL)
-    # ============================================================
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 280,
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-    }
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        db.session.rollback()
+        return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
     # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل بناءً على متغير البيئة
@@ -265,26 +279,31 @@ def create_app():
             
         user_type = session.get('user_type')
         
-        if user_type == 'admin': 
-            return db.session.get(AdminUser, user_id_int)
-        elif user_type == 'admin_staff':
-            return db.session.get(AdminStaff, user_id_int)
-        elif user_type == 'supplier_staff':
-            return db.session.get(SupplierStaff, user_id_int)
-        elif user_type == 'supplier': 
-            return db.session.get(Supplier, user_id_int)
-        elif user_type == 'staff': 
-            staff_admin = db.session.get(AdminStaff, user_id_int)
-            if staff_admin:
-                return staff_admin
-            return db.session.get(SupplierStaff, user_id_int)
+        try:
+            if user_type == 'admin': 
+                return db.session.get(AdminUser, user_id_int)
+            elif user_type == 'admin_staff':
+                return db.session.get(AdminStaff, user_id_int)
+            elif user_type == 'supplier_staff':
+                return db.session.get(SupplierStaff, user_id_int)
+            elif user_type == 'supplier': 
+                return db.session.get(Supplier, user_id_int)
+            elif user_type == 'staff': 
+                staff_admin = db.session.get(AdminStaff, user_id_int)
+                if staff_admin:
+                    return staff_admin
+                return db.session.get(SupplierStaff, user_id_int)
 
-        return (
-            db.session.get(AdminUser, user_id_int) or 
-            db.session.get(AdminStaff, user_id_int) or
-            db.session.get(Supplier, user_id_int) or
-            db.session.get(SupplierStaff, user_id_int)
-        )
+            return (
+                db.session.get(AdminUser, user_id_int) or 
+                db.session.get(AdminStaff, user_id_int) or
+                db.session.get(Supplier, user_id_int) or
+                db.session.get(SupplierStaff, user_id_int)
+            )
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [load_user Error]: {e}")
+            return None
 
     @login_manager.unauthorized_handler
     def unauthorized():
@@ -355,7 +374,7 @@ def create_app():
             'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
             'img-src': ["'self'", "data:", "https://*"],
             'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.apollographql.com"]
+            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com"]
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
@@ -437,7 +456,7 @@ def create_app():
         pass
 
     # ============================================================
-    # 🟢 تسجيل موديول الواتساب (تم تصحيح المسار)
+    # 🟢 تسجيل موديول الواتساب
     # ============================================================
     try:
         from apps.whatsapp_service.routes import whatsapp_bp
@@ -527,6 +546,7 @@ def create_app():
                                 'supplier_wallet': wallet_obj
                             })
             except Exception as e:
+                db.session.rollback()
                 print(f"⚠️ [Context Processor Error]: {e}")
 
         return {
