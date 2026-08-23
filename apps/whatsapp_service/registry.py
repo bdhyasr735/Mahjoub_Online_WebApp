@@ -47,18 +47,30 @@ SERVICE_METADATA = {
     ]
 }
 
+
 def register_module(app):
     """
-    تسجيل موديول الواتساب في التطبيق الرئيسي.
+    تسجيل موديول الواتساب والـ Blueprint في التطبيق الرئيسي.
     """
     try:
-        # تسجيل في قاموس الخدمات
+        # 1. تسجيل الـ Blueprint الخاص بالموديول إذا لم يكن مسجلاً
+        from apps.whatsapp_service.routes import whatsapp_bp
+        
+        if 'whatsapp_service' not in app.blueprints:
+            app.register_blueprint(
+                whatsapp_bp, 
+                url_prefix='/admin/whatsapp',
+                name='whatsapp_service'  # ضمان مطابقة الـ endpoint المستخدم في NAV_ITEMS
+            )
+            print("✅ [WhatsApp Module]: تم تسجيل الـ Blueprint بنجاح.")
+
+        # 2. تسجيل في قاموس الخدمات المتاحة
         if not hasattr(app, 'registered_services'):
             app.registered_services = {}
         app.registered_services['whatsapp_service'] = SERVICE_METADATA
-        print("✅ [WhatsApp Module]: تم تسجيل 'مركز الواتساب' في التطبيق الرئيسي.")
+        print("✅ [WhatsApp Module]: تم تسجيل 'مركز الواتساب' في الخدمة الرئيسية.")
 
-        # إضافة إلى ADMIN_MODULES إذا كان موجوداً
+        # 3. إضافة القائمة إلى ADMIN_MODULES
         if hasattr(app, 'admin_modules'):
             app.admin_modules['whatsapp_service'] = {
                 'display_name': MODULE_NAME,
