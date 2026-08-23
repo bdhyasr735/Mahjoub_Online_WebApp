@@ -60,7 +60,7 @@ def verify_webhook():
         # بعض عملاء ميتا يرسلون challenge فقط
         return str(challenge), 200
 
-    logger.warning(f"⚠️ Webhook verification failed: mode={mode}, token={token[:5]}...")
+    logger.warning(f"⚠️ Webhook verification failed: mode={mode}, token={token[:5] if token else 'None'}...")
     return "Verification token mismatch", 403
 
 
@@ -133,7 +133,7 @@ def handle_webhook():
 
 
 # =========================================================
-# 4. معالجة الرسائل الواردة
+# 4. معالجة الرسائل الواردة (مصححة ومحسنة)
 # =========================================================
 def process_incoming_messages(value, phone_id):
     """
@@ -142,99 +142,129 @@ def process_incoming_messages(value, phone_id):
     - تحديث أو إنشاء جهة اتصال.
     """
     for msg in value.get('messages', []):
-        sender = msg.get('from')
-        msg_type = msg.get('type', 'text')
-        wamid = msg.get('id')
-        timestamp = msg.get('timestamp')
+        try:
+            sender = msg.get('from')
+            msg_type = msg.get('type', 'text')
+            wamid = msg.get('id')
+            timestamp = msg.get('timestamp')
 
-        # استخراج محتوى الرسالة حسب النوع
-        if msg_type == 'text':
-            text = msg.get('text', {}).get('body', '')
-        elif msg_type == 'image':
-            text = "📷 [صورة]"
-        elif msg_type == 'video':
-            text = "🎬 [فيديو]"
-        elif msg_type == 'document':
-            text = "📄 [مستند]"
-        elif msg_type == 'audio':
-            text = "🎵 [صوت]"
-        else:
-            text = f"[{msg_type}]"
+            # استخراج محتوى الرسالة حسب النوع
+            if msg_type == 'text':
+                text = msg.get('text', {}).get('body', '')
+            elif msg_type == 'image':
+                text = "📷 [صورة]"
+            elif msg_type == 'video':
+                text = "🎬 [فيديو]"
+            elif msg_type == 'document':
+                text = "📄 [مستند]"
+            elif msg_type == 'audio':
+                text = "🎵 [صوت]"
+            else:
+                text = f"[{msg_type}]"
 
-        # استخراج اسم العميل من بيانات ميتا
-        contacts_list = value.get('contacts', [])
-        customer_name = f"عميل ({sender})"
-        if contacts_list:
-            profile_name = contacts_list[0].get('profile', {}).get('name')
-            if profile_name:
-                customer_name = profile_name
+            # استخراج اسم العميل من بيانات ميتا
+            contacts_list = value.get('contacts', [])
+            customer_name = f"عميل ({sender})"
+            whatsapp_profile_name = None
+            if contacts_list:
+                profile_name = contacts_list[0].get('profile', {}).get('name')
+                if profile_name:
+                    customer_name = profile_name
+                    whatsapp_profile_name = profile_name
 
-        # التحقق من عدم تكرار الرسالة (باستخدام WAMID)
-        existing = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
-        if existing:
-            logger.debug(f"⏭️ Duplicate message {wamid}, skipping")
-            continue
+            # التحقق من عدم تكرار الرسالة (باستخدام WAMID)
+            existing = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+            if existing:
+                logger.debug(f"⏭️ Duplicate message {wamid}, skipping")
+                continue
 
-        # 1. حفظ الرسالة في قاعدة البيانات
-        log_entry = WhatsAppMessageLog(
-            wamid=wamid,
-            direction='inbound',
-            sender_number=sender,
-            recipient_number=phone_id,
-            message_type=msg_type,
-            content=text,
-            status='received',
-            timestamp=datetime.fromtimestamp(int(timestamp)) if timestamp else datetime.utcnow()
-        )
-        db.session.add(log_entry)
+            # تحويل التوقيت بشكل آمن
+            try:
+                msg_timestamp = datetime.fromtimestamp(int(timestamp)) if timestamp else datetime.utcnow()
+            except (ValueError, TypeError):
+                msg_timestamp = datetime.utcnow()
 
-        # 2. تحديث أو إنشاء جهة اتصال
-        contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
-        if contact:
-            # تحديث الاسم إذا كان افتراضياً
-            if contact.name.startswith("عميل ("):
-                contact.name = customer_name
-            contact.last_message = text
-            contact.last_timestamp = datetime.utcnow()
-            contact.unread_count = (contact.unread_count or 0) + 1
-        else:
-            new_contact = WhatsAppCustomerContact(
-                phone=sender,
-                name=customer_name,
-                last_message=text,
-                last_timestamp=datetime.utcnow(),
-                unread_count=1,
-                is_online=True
+            # 1. حفظ الرسالة في قاعدة البيانات
+            log_entry = WhatsAppMessageLog(
+                wamid=wamid,
+                direction='inbound',
+                sender_number=sender,
+                recipient_number=phone_id,
+                message_type=msg_type,
+                content=text,
+                status='received',
+                timestamp=msg_timestamp
             )
-            db.session.add(new_contact)
+            db.session.add(log_entry)
 
-        db.session.commit()
-        logger.info(f"📩 New message from {sender}: {text[:50]}...")
+            # 2. تحديث أو إنشاء جهة اتصال
+            contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=sender).first()
+            if contact:
+                # تحديث الاسم إذا كان افتراضياً أو مختلفاً
+                if contact.name.startswith("عميل (") or contact.name != customer_name:
+                    contact.name = customer_name
+                if whatsapp_profile_name and contact.whatsapp_profile_name != whatsapp_profile_name:
+                    contact.whatsapp_profile_name = whatsapp_profile_name
+                contact.last_message = text
+                contact.last_timestamp = datetime.utcnow()
+                contact.unread_count = (contact.unread_count or 0) + 1
+                contact.is_online = True
+            else:
+                new_contact = WhatsAppCustomerContact(
+                    phone=sender,
+                    name=customer_name,
+                    whatsapp_profile_name=whatsapp_profile_name,
+                    last_message=text,
+                    last_timestamp=datetime.utcnow(),
+                    unread_count=1,
+                    is_online=True
+                )
+                db.session.add(new_contact)
+
+            db.session.commit()
+            logger.info(f"📩 New message from {sender} ({customer_name}): {text[:30]}...")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Failed to save message from {sender}: {e}")
+            continue
 
 
 # =========================================================
-# 5. معالجة تحديثات حالة الرسائل
+# 5. معالجة تحديثات حالة الرسائل (مصححة)
 # =========================================================
 def process_status_updates(value):
     """
     معالجة تحديثات حالة الرسائل (مرسلة، مسلمة، مقروءة، فشلت).
     """
     for st in value.get('statuses', []):
-        wamid = st.get('id')
-        status = st.get('status')
-        recipient = st.get('recipient_id')
-        timestamp = st.get('timestamp')
+        try:
+            wamid = st.get('id')
+            status = st.get('status')
+            recipient = st.get('recipient_id')
+            timestamp = st.get('timestamp')
 
-        if not wamid:
+            if not wamid:
+                continue
+
+            # تحويل التوقيت بشكل آمن
+            try:
+                status_timestamp = datetime.fromtimestamp(int(timestamp)) if timestamp else None
+            except (ValueError, TypeError):
+                status_timestamp = None
+
+            # تحديث حالة الرسالة في قاعدة البيانات
+            msg_log = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+            if msg_log:
+                msg_log.status = status
+                if status_timestamp:
+                    msg_log.timestamp = status_timestamp
+                db.session.commit()
+                logger.debug(f"📨 Status update: {wamid} → {status}")
+            else:
+                logger.warning(f"⚠️ Status update for unknown message: {wamid}")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Failed to update status for {wamid}: {e}")
             continue
-
-        # تحديث حالة الرسالة في قاعدة البيانات
-        msg_log = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
-        if msg_log:
-            msg_log.status = status
-            if timestamp:
-                msg_log.timestamp = datetime.fromtimestamp(int(timestamp))
-            db.session.commit()
-            logger.debug(f"📨 Status update: {wamid} → {status}")
-        else:
-            logger.warning(f"⚠️ Status update for unknown message: {wamid}")
