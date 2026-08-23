@@ -425,13 +425,16 @@ def create_app():
     except ImportError:
         pass
 
-    # تسجيل موديول الواتساب مع استثنائه تلقائياً من حماية الـ CSRF
+    # ============================================================
+    # 🟢 تسجيل موديول الواتساب (تم تصحيح المسار)
+    # ============================================================
     try:
-        from apps.whatsapp_service.routes.whatsapp_controller import whatsapp_bp
+        from apps.whatsapp_service.routes import whatsapp_bp
         app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
-        csrf.exempt(whatsapp_bp) 
-    except ImportError:
-        pass
+        csrf.exempt(whatsapp_bp)
+        print("✅ [WhatsApp]: تم تسجيل Blueprint بنجاح مع المسار /admin/whatsapp")
+    except ImportError as e:
+        print(f"⚠️ [WhatsApp]: فشل استيراد whatsapp_bp: {e}")
 
     # ============================================================
     # 🔄 التسجيل الديناميكي التلقائي للموديولات عبر ملف الـ registry.py
