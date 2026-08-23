@@ -15,18 +15,18 @@ SERVICE_METADATA = {
     "admin_menu": [
         {
             "title": "محادثات العملاء",
-            "endpoint": "/admin/whatsapp/dashboard/chat",
+            "endpoint": "whatsapp_service.chat_dashboard",
             "icon": "fas fa-comments",
             "badge": "unread_count"
         },
         {
             "title": "سجل الرسائل",
-            "endpoint": "/admin/whatsapp/dashboard/logs",
+            "endpoint": "whatsapp_service.logs_dashboard",
             "icon": "fas fa-database"
         },
         {
             "title": "إعدادات Meta Cloud API",
-            "endpoint": "/admin/whatsapp/dashboard/settings",
+            "endpoint": "whatsapp_service.settings_dashboard",
             "icon": "fas fa-cog"
         }
     ],
@@ -58,25 +58,20 @@ def register_module(app):
     تسجيل موديول الواتساب ومساراته تلقائياً في التطبيق الرئيسي
     """
     try:
-        # 🔗 استيراد الـ Blueprint المتوافق مع الاسم المعتمد
         from apps.whatsapp_service.routes import whatsapp_service
         
-        # تسجيل الـ Blueprint إذا لم يكن مسجلاً من قبل لتجنب التكرار
         if 'whatsapp_service' not in app.blueprints:
             app.register_blueprint(whatsapp_service, url_prefix='/admin/whatsapp')
         
-        # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً وضمان تفعيلها
         with app.app_context():
             try:
                 from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
                 from apps.extensions import db
                 
                 db.create_all()
-                print("✅ [WhatsApp Module]: تم التحقق من إنشاء جداول قاعدة البيانات بنجاح.")
             except Exception as db_err:
                 print(f"⚠️ [WhatsApp DB Creation Warning]: {db_err}")
 
-        # تسجيل بيانات الموديول والخدمة في التطبيق
         if not hasattr(app, 'registered_services'):
             app.registered_services = {}
             
