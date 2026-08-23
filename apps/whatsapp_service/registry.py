@@ -2,83 +2,29 @@
 # 📂 apps/whatsapp_service/registry.py
 
 """
-تسجيل خدمة واتساب في النظام الرئيسي (القائمة الجانبية والصلاحيات)
+WhatsApp Service Registry Entry for Mahjoub Online
+--------------------------------------------------
+مسؤول عن تسجيل الموديول في القائمة الجانبية (Sidebar) والـ Blueprints تلقائياً.
 """
 
-MODULE_NAME = 'مركز الواتساب'
-MODULE_ICON = 'fa-brands fa-whatsapp'
-SHOW_IN_SUPPLIER = False
+MODULE_NAME = "خدمة الواتساب"
+MODULE_ICON = "fa-brands fa-whatsapp"  # أو "fa-comments"
+SHOW_IN_SUPPLIER = False  # إظهاره في لوحة الإدارة العامة (Admin)
 
-# تم استخدام المسارات المباشرة (التي تبدأ بـ /) لضمان تحويل القالب المباشر دون المرور بدالة safe_url_for
+# الروابط التي ستظهر في القائمة الجانبية تحت موديول الواتساب
 NAV_ITEMS = [
-    {
-        'endpoint': '/admin/whatsapp/dashboard',
-        'title': 'صندوق الرسائل',
-        'icon': 'fa-solid fa-comments'
-    },
-    {
-        'endpoint': '/admin/whatsapp/logs',
-        'title': 'سجل الرسائل',
-        'icon': 'fa-solid fa-list-check'
-    },
-    {
-        'endpoint': '/admin/whatsapp/settings',
-        'title': 'إعدادات الربط',
-        'icon': 'fa-solid fa-gear'
-    }
+    {"endpoint": "whatsapp.chat_dashboard", "title": "المحادثات المباشرة"},
+    {"endpoint": "whatsapp.logs_dashboard", "title": "سجل الرسائل"},
+    {"endpoint": "whatsapp.settings_dashboard", "title": "إعدادات Meta API"},
 ]
 
-# ============================================================
-# متغيرات إضافية مطلوبة للنظام الرئيسي
-# ============================================================
-
-LINKS = {item['endpoint']: item['title'] for item in NAV_ITEMS}
-
-SERVICE_METADATA = {
-    'name': 'whatsapp_service',
-    'display_name': MODULE_NAME,
-    'icon': MODULE_ICON,
-    'admin_menu': NAV_ITEMS,
-    'links': LINKS,
-    'permissions': [
-        'whatsapp.view_chat',
-        'whatsapp.send_message',
-        'whatsapp.view_logs',
-        'whatsapp.admin_settings'
-    ]
-}
-
-
 def register_module(app):
-    """
-    تسجيل موديول الواتساب والـ Blueprint في التطبيق الرئيسي.
-    """
-    try:
-        # 1. تسجيل الـ Blueprint الخاص بالموديول إذا لم يكن مسجلاً
-        from apps.whatsapp_service.routes import whatsapp_bp
-        
-        if 'whatsapp_service' not in app.blueprints:
-            app.register_blueprint(
-                whatsapp_bp, 
-                url_prefix='/admin/whatsapp',
-                name='whatsapp_service'
-            )
-            print("✅ [WhatsApp Module]: تم تسجيل الـ Blueprint بنجاح.")
-
-        # 2. تسجيل في قاموس الخدمات المتاحة
-        if not hasattr(app, 'registered_services'):
-            app.registered_services = {}
-        app.registered_services['whatsapp_service'] = SERVICE_METADATA
-        print("✅ [WhatsApp Module]: تم تسجيل 'مركز الواتساب' في الخدمة الرئيسية.")
-
-        # 3. إضافة القائمة إلى ADMIN_MODULES
-        if hasattr(app, 'admin_modules'):
-            app.admin_modules['whatsapp_service'] = {
-                'display_name': MODULE_NAME,
-                'icon': MODULE_ICON,
-                'links': LINKS
-            }
-            print("✅ [WhatsApp Module]: تم إضافة عناصر القائمة إلى ADMIN_MODULES.")
-
-    except Exception as e:
-        print(f"❌ [WhatsApp Module]: فشل تسجيل الموديول: {e}")
+    """تسجيل الـ Blueprint وحمايات CSRF الخاصة بالموديول"""
+    from apps.whatsapp_service.routes import whatsapp_bp
+    from apps.extensions import csrf
+    
+    # تسجيل الـ Blueprint إذا لم يكن مسجلاً مسبقاً
+    if 'whatsapp' not in app.blueprints:
+        app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
+        csrf.exempt(whatsapp_bp)
+        print("✅ [WhatsApp Registry]: تم تسجيل موديول الواتساب بنجاح عبر Registry.")
