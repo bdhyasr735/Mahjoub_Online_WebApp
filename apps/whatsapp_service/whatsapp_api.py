@@ -73,3 +73,16 @@ class WhatsAppAPI:
         except Exception as e:
             logger.error(f"⚠️ [WhatsApp Connection Test Error]: {e}")
             return False
+
+
+def send_meta_whatsapp_message(recipient_phone, message_body):
+    """
+    دالة مساعدة لربط استدعاءات ملف الـ dashboard.py بكلاس WhatsAppAPI
+    """
+    client = WhatsAppAPI()
+    result = client.send_text_message(recipient_phone, message_body)
+    
+    if result.get("success"):
+        return result.get("data", {"messages": [{"id": "sent_success"}]})
+    else:
+        return {}
