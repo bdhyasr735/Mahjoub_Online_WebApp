@@ -20,6 +20,9 @@
     .contact-item { cursor: pointer; transition: background 0.15s; }
     .contact-item:hover { background: #f8fafc; }
     .contact-item.active { background: #f3e8ff; border-right: 4px solid #570575; }
+    .htmx-indicator { display: none; }
+    .htmx-request .htmx-indicator { display: inline-block; }
+    .htmx-request.htmx-indicator { display: inline-block; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 h-screen h-[100dvh] flex flex-col overflow-hidden" dir="rtl">
@@ -38,7 +41,7 @@
           <span class="w-2 h-2 ml-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
           متصل بـ Meta API
         </span>
-        <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md font-mono">24ms</span>
+        <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md font-mono">Live</span>
       </div>
     </div>
 
@@ -60,7 +63,7 @@
     <div class="flex items-center gap-3">
       <div class="text-left hidden sm:block">
         <span class="block text-[10px] text-slate-400">رقم الهاتف المرتبط</span>
-        <span class="text-xs font-bold font-mono text-slate-700" dir="ltr">+966 50 000 0000</span>
+        <span class="text-xs font-bold font-mono text-slate-700" dir="ltr">{{ sender_phone or '+966 50 000 0000' }}</span>
       </div>
       <button onclick="window.location.reload();" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition" title="تحديث البيانات">
         <i class="fa-solid fa-rotate"></i>
@@ -76,8 +79,14 @@
       {% if active_tab == 'chat' or not active_tab %}
         <div class="flex-1 flex flex-row overflow-hidden w-full h-full">
           
-          <!-- 1. قائمة المحادثات -->
-          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" id="sidebar-contacts-container">
+          <!-- 1. قائمة المحادثات (تحديث تلقائي كل 10 ثوانٍ) -->
+          <div class="w-[320px] shrink-0 border-l border-slate-200 bg-white h-full overflow-y-auto shadow-sm flex flex-col" 
+               id="sidebar-contacts-container"
+               hx-get="{{ url_for('whatsapp_service.get_contacts_partial') }}" 
+               hx-trigger="every 10s" 
+               hx-select="#sidebar-contacts-container" 
+               hx-swap="outerHTML">
+            
             <div class="p-4 border-b border-slate-100 flex items-center justify-between">
               <h2 class="text-xs font-bold text-slate-700 flex items-center gap-2">
                 <span>المحادثات النشطة</span>
@@ -157,14 +166,20 @@
                 </div>
               </div>
 
-              <!-- صندوق الرسائل -->
-              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" id="message-box-scroll">
+              <!-- صندوق الرسائل (جلب تلقائي كل 3 ثوانٍ للرسائل الجديدة) -->
+              <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#efeae2]/30" 
+                   id="message-box-scroll"
+                   hx-get="/admin/whatsapp/client/{{ selected_contact.id }}/messages" 
+                   hx-trigger="every 3s" 
+                   hx-swap="innerHTML"
+                   hx-on::after-swap="scrollToBottom()">
+                
                 {% if messages %}
                   {% for msg in messages %}
                     {% if msg.direction == 'outbound' %}
                       <div class="flex flex-col items-end">
                         <div class="max-w-[65%] bg-[#f3e8ff] rounded-2xl px-4 py-3 shadow-xs border border-purple-100 text-slate-800">
-                          <p class="text-xs leading-relaxed">{{ msg.content }}</p>
+                          <p class="text-xs leading-relaxed whitespace-pre-wrap">{{ msg.content }}</p>
                           <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
                             <span>{{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}</span>
                             <i class="fa-solid fa-check-double text-purple-600 text-[9px]"></i>
@@ -174,7 +189,7 @@
                     {% else %}
                       <div class="flex flex-col items-start">
                         <div class="max-w-[65%] bg-white rounded-2xl px-4 py-3 shadow-xs border border-slate-200 text-slate-800">
-                          <p class="text-xs leading-relaxed">{{ msg.content }}</p>
+                          <p class="text-xs leading-relaxed whitespace-pre-wrap">{{ msg.content }}</p>
                           <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
                             <span>{{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}</span>
                           </div>
@@ -197,11 +212,13 @@
                     class="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
                 <input type="hidden" name="contact_id" value="{{ selected_contact.id }}">
                 <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
+                
                 <div class="flex items-center gap-2">
-                  <input type="text" name="message" id="chat-message-input" placeholder="اكتب رسالتك للعميل هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
+                  <input type="text" name="message" id="chat-message-input" autocomplete="off" placeholder="اكتب رسالتك للعميل هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#570575]">
                   <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs flex items-center gap-2">
                     <span>إرسال</span>
                     <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <i class="fa-solid fa-spinner fa-spin htmx-indicator ml-1 text-xs" id="send-spinner"></i>
                   </button>
                 </div>
               </form>
@@ -312,15 +329,15 @@
             <form action="{{ url_for('whatsapp_service.settings_dashboard') }}" method="POST" class="space-y-4">
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
-                <input type="text" name="phone_number_id" placeholder="مثال: 105629931234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
+                <input type="text" name="phone_number_id" value="{{ phone_number_id or '' }}" placeholder="مثال: 105629931234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account ID</label>
-                <input type="text" name="business_account_id" placeholder="مثال: 109823451234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
+                <input type="text" name="business_account_id" value="{{ business_account_id or '' }}" placeholder="مثال: 109823451234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-[#570575]">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Access Token</label>
-                <textarea name="access_token" rows="3" placeholder="ضع رمز الوصول الخاص بـ Meta هنا..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-[#570575]"></textarea>
+                <textarea name="access_token" rows="3" placeholder="ضع رمز الوصول الخاص بـ Meta هنا..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-[#570575]">{{ access_token or '' }}</textarea>
               </div>
               <div class="pt-2">
                 <button type="submit" class="bg-[#570575] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#632C8F] transition shadow-xs">
@@ -392,12 +409,12 @@
     }
 
     function selectContact(contactId) {
-      // إزالة التنشيط عن الجميع وإضافة النشيط للعنصر الحالي
       const items = document.querySelectorAll('.contact-item');
       items.forEach(el => el.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
 
-      // جلب منطقة الدردشة وتفاصيل العميل عبر HTMX
       htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/chat', {target: '#chat-area-container', swap: 'outerHTML'});
       htmx.ajax('GET', '/admin/whatsapp/client/' + contactId + '/details', {target: '#client-details-panel', swap: 'outerHTML'});
     }
