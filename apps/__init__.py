@@ -446,31 +446,10 @@ def create_app():
         pass
 
     # ============================================================
-    # 📱 التسجيل المباشر المضمون لخدمة الواتساب (مسارات مباشرة)
-    # ============================================================
-    try:
-        from apps.whatsapp_service.routes import whatsapp_bp
-        if 'whatsapp_service' not in app.blueprints:
-            app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
-        
-        ADMIN_MODULES['whatsapp_service'] = {
-            "display_name": "خدمة الواتساب",
-            "icon": "fas fa-comments",
-            "links": {
-                '/admin/whatsapp/': 'إدارة مراسلات الواتساب',
-                '/admin/whatsapp/logs': 'سجلات النظام',
-                '/admin/whatsapp/settings': 'إعدادات الواتساب'
-            }
-        }
-        print("✅ [WhatsApp Service]: تم تسجيل موديول الواتساب بنجاح تام.")
-    except Exception as e:
-        print(f"❌ [WhatsApp Service Error]: فشل تسجيل الموديول: {e}")
-
-    # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لبقية الموديولات عبر ملف الـ registry.py
+    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات عبر ملف الـ registry.py
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
