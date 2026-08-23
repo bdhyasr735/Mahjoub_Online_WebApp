@@ -88,7 +88,7 @@ def send_message_htmx():
             
         db.session.commit()
 
-        # 3. إرجاع مكون HTML المباشر لـ HTMX
+        # 3. إرجاع مكون HTML المباشر لـ HTMX (تم الحفاظ على ألوان التصميم الخاصة بك)
         time_str = datetime.now().strftime('%I:%M %p')
         return f'''
         <div class="max-w-md self-end bg-[#570575] text-white p-3.5 rounded-2xl rounded-tl-none text-xs md:text-sm shadow-xs">
@@ -144,7 +144,7 @@ def start_new_chat():
     message = request.form.get('message', '').strip()
 
     if not phone:
-        flash("يرجى أدخال رقم الهاتف بشكل صحيح", "danger")
+        flash("يرجى إدخال رقم الهاتف بشكل صحيح", "danger")
         return redirect(url_for('whatsapp.chat_dashboard'))
 
     try:
@@ -196,6 +196,9 @@ def settings_dashboard():
 
         flash("تم حفظ إعدادات Meta API بنجاح", "success")
         return redirect(url_for('whatsapp.settings_dashboard', saved='true'))
+
+        # ملاحظة: في بيئة الإنتاج يفضل حفظ هذه القيم في قاعدة البيانات (جدول الإعدادات) 
+        # بدلاً من current_app.config لضمان استمراريتها بعد إعادة تشغيل الخادم.
 
     return render_template(
         'admin/dashboard.html',
