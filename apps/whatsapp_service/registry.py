@@ -15,18 +15,18 @@ SERVICE_METADATA = {
     "admin_menu": [
         {
             "title": "محادثات العملاء",
-            "endpoint": "whatsapp_service.chat_dashboard",
+            "endpoint": "/admin/whatsapp/dashboard/chat",
             "icon": "fas fa-comments",
             "badge": "unread_count"
         },
         {
             "title": "سجل الرسائل",
-            "endpoint": "whatsapp_service.logs_dashboard",
+            "endpoint": "/admin/whatsapp/dashboard/logs",
             "icon": "fas fa-database"
         },
         {
             "title": "إعدادات Meta Cloud API",
-            "endpoint": "whatsapp_service.settings_dashboard",
+            "endpoint": "/admin/whatsapp/dashboard/settings",
             "icon": "fas fa-cog"
         }
     ],
