@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/whatsapp_service/whatsapp_api.py
 
 import requests
