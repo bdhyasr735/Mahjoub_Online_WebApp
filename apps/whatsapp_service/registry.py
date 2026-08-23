@@ -5,7 +5,6 @@ MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "fas fa-comments"
 SHOW_IN_ADMIN = True
 
-# الروابط المطابقة تماماً لأسماء الدوال في ملفات الـ Routes
 LINKS = {
     'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب',
     'whatsapp_service.logs_dashboard': 'سجلات النظام',
