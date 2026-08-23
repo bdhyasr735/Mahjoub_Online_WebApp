@@ -13,9 +13,9 @@ SERVICE_METADATA = {
     "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v21.0 لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات ORD-#",
     "icon": "fab fa-whatsapp",
     "admin_menu": {
-        "/admin/whatsapp/dashboard/chat": "محادثات العملاء",
-        "/admin/whatsapp/dashboard/logs": "سجل الرسائل",
-        "/admin/whatsapp/dashboard/settings": "إعدادات Meta Cloud API"
+        "/admin/whatsapp/chat": "محادثات العملاء",
+        "/admin/whatsapp/logs": "سجل الرسائل",
+        "/admin/whatsapp/settings": "إعدادات Meta Cloud API"
     },
     "permissions": [
         "whatsapp.view_chat",
@@ -39,9 +39,8 @@ def register_module(app):
     تسجيل موديول الواتساب ومساراته تلقائياً في التطبيق الرئيسي
     """
     try:
-        from apps.whatsapp_service.routes import whatsapp_bp
+        from apps.whatsapp_service.dashboard import whatsapp_bp  # الاستيراد من dashboard.py بناءً على هيكلة ملفاتك
         
-        # التأكد من عدم تسجيل الـ Blueprint مرتين لمنع تضارب المسارات
         if 'whatsapp_service' not in app.blueprints and 'whatsapp_bp' not in [bp.name for bp in app.blueprints.values()]:
             app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         
