@@ -5,16 +5,21 @@ MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "fas fa-comments"
 SHOW_IN_ADMIN = True
 
-# توفير كلا الصيغتين (النصية المباشرة والـ Endpoint) لضمان التقاطها أياً كانت الطريقة التي يقرأ بها القالب
+# الروابط الكاملة لشمل لوحة التحكم، المحادثات، السجلات، والإعدادات
 LINKS = {
-    'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب',
-    '/admin/whatsapp/dashboard': 'إدارة مراسلات الواتساب'
+    'whatsapp_service.dashboard': 'لوحة التحكم الرئيسية',
+    'whatsapp_service.chat_view': 'مراسلات الواتساب المباشرة',
+    'whatsapp_service.logs_view': 'سجلات النظام',
+    'whatsapp_service.settings_view': 'إعدادات الواتساب'
 }
 
 def get_admin_links():
-    """دالة مساعدة احتياطية في حال كانت لوحة التحكم تبحث عن دالة جلب الروابط مباشرة"""
+    """دالة مساعدة لإرجاع كافة روابط الخدمة لوحة التحكم الإدارية"""
     return [
-        {"endpoint": "whatsapp_service.chat_dashboard", "label": "إدارة مراسلات الواتساب"}
+        {"endpoint": "whatsapp_service.dashboard", "label": "لوحة التحكم الرئيسية"},
+        {"endpoint": "whatsapp_service.chat_view", "label": "مراسلات الواتساب المباشرة"},
+        {"endpoint": "whatsapp_service.logs_view", "label": "سجلات النظام"},
+        {"endpoint": "whatsapp_service.settings_view", "label": "إعدادات الواتساب"}
     ]
 
 def register_module(app):
