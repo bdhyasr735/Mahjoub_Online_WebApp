@@ -7,12 +7,11 @@ import secrets
 import string
 import click
 from datetime import datetime
-from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
+from flask import Flask, redirect, session, url_for, request, jsonify, make_response
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_cors import CORS
-from werkzeug.routing import BuildError
 from sqlalchemy import text, select
 import config
 from apps.extensions import db, login_manager, migrate, limiter
@@ -23,7 +22,7 @@ SUPPLIER_MODULES = {}
 
 
 def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول"""
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول."""
     models_dir = os.path.join(os.path.dirname(__file__), 'models')
     if os.path.exists(models_dir):
         for file in os.listdir(models_dir):
@@ -36,7 +35,7 @@ def import_all_models():
 
 
 def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة الرصيد الافتتاحي بشكل ديناميكي وآمن"""
+    """زراعة البيانات المبدئية وتسجيل حركة الرصيد الافتتاحي بشكل ديناميكي وآمن."""
     try:
         from apps.models.admin_db import AdminUser
         from apps.models.admin_staff_db import AdminStaff
@@ -106,11 +105,11 @@ def seed_database():
             date_str = now.strftime('%Y%m%d')
             time_stamp = now.strftime('%H%M%S%f')[:9]
             characters = string.ascii_uppercase + string.digits
-            
+
             while True:
                 random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
                 candidate_ref = f"TRX-{supplier.supplier_code}-{date_str}-{time_stamp}-{random_6_code}"
-                
+
                 exists_ref = db.session.scalar(
                     select(WalletTransaction.id).where(WalletTransaction.reference_number == candidate_ref)
                 )
@@ -145,7 +144,7 @@ def seed_database():
             db.session.add(treasury_entry)
 
             db.session.commit()
-            print(f"✅ [Seed]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
+            print("✅ [Seed]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Seed Error - Supplier]: {e}")
@@ -163,7 +162,7 @@ def create_app():
     )
 
     # ============================================================
-    # 🔌 إعدادات الاتصال بقاعدة البيانات (قبل db.init_app)
+    # 🔌 إعدادات الاتصال بقاعدة البيانات
     # ============================================================
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
@@ -174,23 +173,22 @@ def create_app():
     }
 
     db.init_app(app)
-
     app.jinja_env.globals.update(getattr=getattr)
 
     CORS(app, resources={
         r"/admin/graphql*": {
             "origins": [
-                "https://studio.apollographql.com", 
-                "https://embed.apollographql.com", 
+                "https://studio.apollographql.com",
+                "https://embed.apollographql.com",
                 "https://sandbox.embed.apollographql.com",
-                "http://localhost:5000", 
+                "http://localhost:5000",
                 "https://mahjoub.online"
             ],
             "methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": [
-                "Content-Type", 
-                "Authorization", 
-                "X-Requested-With", 
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
                 "Apollo-Require-Preflight",
                 "Accept"
             ],
@@ -213,7 +211,7 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ إعادة بناء الجداول تلقائياً وبشكل إجباري عند التشغيل/الرفع
+    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل
     # ============================================================
     with app.app_context():
         import_all_models()
@@ -264,31 +262,31 @@ def create_app():
         from apps.models.admin_staff_db import AdminStaff
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
-        
+
         try:
             user_id_int = int(user_id)
         except (ValueError, TypeError):
             return None
-            
+
         user_type = session.get('user_type')
-        
+
         try:
-            if user_type == 'admin': 
+            if user_type == 'admin':
                 return db.session.get(AdminUser, user_id_int)
             elif user_type == 'admin_staff':
                 return db.session.get(AdminStaff, user_id_int)
             elif user_type == 'supplier_staff':
                 return db.session.get(SupplierStaff, user_id_int)
-            elif user_type == 'supplier': 
+            elif user_type == 'supplier':
                 return db.session.get(Supplier, user_id_int)
-            elif user_type == 'staff': 
+            elif user_type == 'staff':
                 staff_admin = db.session.get(AdminStaff, user_id_int)
                 if staff_admin:
                     return staff_admin
                 return db.session.get(SupplierStaff, user_id_int)
 
             return (
-                db.session.get(AdminUser, user_id_int) or 
+                db.session.get(AdminUser, user_id_int) or
                 db.session.get(AdminStaff, user_id_int) or
                 db.session.get(Supplier, user_id_int) or
                 db.session.get(SupplierStaff, user_id_int)
@@ -313,25 +311,24 @@ def create_app():
         from apps.models.supplier_staff_db import SupplierStaff
 
         path = request.path
-        
+
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
             return
 
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
         exempt_prefixes = [
-            '/static', 
-            '/graphql', 
-            '/admin/graphql', 
-            '/favicon.ico', 
-            '/m7jb_test_connection', 
-            '/supplier/login', 
+            '/static',
+            '/graphql',
+            '/admin/graphql',
+            '/favicon.ico',
+            '/m7jb_test_connection',
+            '/supplier/login',
             '/supplier/register',
             '/supplier/forgot-password',
-            admin_login_path, 
+            admin_login_path,
             '/auth',
-            '/api/whatsapp',
-            '/admin/whatsapp'
+            '/api/whatsapp'  # إبقاء مسار الـ Webhook الخارجي فقط إن وُجد
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -359,7 +356,7 @@ def create_app():
         return redirect(admin_login_path)
 
     talisman = Talisman()
-    talisman.init_app(app, 
+    talisman.init_app(app,
         content_security_policy={
             'default-src': ["'self'"],
             'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
@@ -419,12 +416,12 @@ def create_app():
     def index():
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
-        
+
         if current_user.is_authenticated:
             if isinstance(current_user, (Supplier, SupplierStaff)):
                 return redirect('/supplier/dashboard')
             return redirect('/dashboard')
-            
+
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         return redirect(admin_login_path)
 
@@ -442,7 +439,7 @@ def create_app():
         print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
 
     try:
-        from apps.admin.graphql_routes import graphql_bp 
+        from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
         csrf.exempt(graphql_bp)
     except ImportError:
@@ -453,7 +450,7 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
-    
+
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -491,9 +488,9 @@ def create_app():
                             "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
                             "links": links_data,
                         }
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False): 
+                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
-                        else: 
+                        else:
                             ADMIN_MODULES[item] = mod_data
                 except Exception as e:
                     print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
@@ -501,9 +498,11 @@ def create_app():
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
-            try: return url_for(endpoint, **values)
-            except Exception: return '#'
-            
+            try:
+                return url_for(endpoint, **values)
+            except Exception:
+                return '#'
+
         supplier_context = {
             'current_supplier': None, 'owner_full_name': '', 'supplier_bank_name': '',
             'supplier_bank_account': '', 'supplier_wallet': None,
