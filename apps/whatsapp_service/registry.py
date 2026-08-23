@@ -39,18 +39,15 @@ SERVICE_METADATA = {
     ]
 }
 
-# المتغيرات المطلوبة ليتعرف عليها نظام التسجيل الديناميكي بسلاسة
 MODULE_NAME = SERVICE_METADATA["display_name"]
 MODULE_ICON = SERVICE_METADATA["icon"]
 SHOW_IN_SUPPLIER = False
 
-# تحويل قائمة القنوات الإدارية إلى قاموس (Links) ليتوافق مع الفحص الديناميكي في القالب
 LINKS = {
     item["endpoint"]: item["title"] 
     for item in SERVICE_METADATA.get("admin_menu", [])
 }
 
-# حقن الـ links داخل الـ Metadata ليتوافق مع ما يبحث عنه admin_base.html
 SERVICE_METADATA["links"] = LINKS
 
 def register_module(app):
@@ -58,14 +55,14 @@ def register_module(app):
     تسجيل موديول الواتساب ومساراته تلقائياً في التطبيق الرئيسي
     """
     try:
-        # 🔗 تم التعديل للاستيراد من ملف dashboard.py بناءً على هيكلة المجلد لدعوات المسارات الصحيحة
-        from apps.whatsapp_service.dashboard import whatsapp_service
+        # 🔗 الاستيراد الصحيح للـ Blueprint من مجلد الـ routes بناءً على ملف __init__.py الجديد
+        from apps.whatsapp_service.routes import whatsapp_bp
         
         # تسجيل الـ Blueprint إذا لم يكن مسجلاً من قبل لتجنب التكرار
         if 'whatsapp_service' not in app.blueprints:
-            app.register_blueprint(whatsapp_service, url_prefix='/admin/whatsapp')
+            app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         
-        # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً وضمان تفعيلها
+        # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً
         with app.app_context():
             try:
                 from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
