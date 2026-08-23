@@ -1,13 +1,6 @@
 <!-- 📂 apps/whatsapp_service/templates/admin/settings_view.html -->
-<!-- Settings View Jinja2 Component (ديناميكي مع قاعدة البيانات) -->
-<div class="max-w-4xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full" 
-     x-data="{ 
-       isLoading: false,
-       saved: false,
-       showAlert: false,
-       alertType: 'success',
-       alertMessage: ''
-     }">
+<!-- Settings View Jinja2 Component -->
+<div class="max-w-4xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full">
   
   <!-- Title Section -->
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
@@ -52,8 +45,7 @@
   <form id="settingsForm" 
         action="{{ url_for('whatsapp_service.settings_save') }}" 
         method="POST" 
-        class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4"
-        @submit.prevent="submitForm">
+        class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
     
     <!-- CSRF Token -->
     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
@@ -62,11 +54,12 @@
     <div class="space-y-4">
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">🔗 Webhook Callback URL:</label>
+        {% set webhook_url = url_for('whatsapp_service.webhook', _external=True) if has_endpoint('whatsapp_service.webhook') else request.host_url ~ 'admin/whatsapp/webhook' %}
         <div class="flex gap-2">
-          <input type="text" readonly value="{{ request.host_url }}admin/whatsapp/webhook" 
-                 class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-[#570575] cursor-default" dir="ltr">
+          <input type="text" readonly value="{{ webhook_url }}" 
+                 class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-[#570575] cursor-default select-all" dir="ltr">
           <button type="button" 
-                  onclick="copyToClipboard('{{ request.host_url }}admin/whatsapp/webhook')" 
+                  onclick="copyToClipboard('{{ webhook_url }}')" 
                   class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
             <span>📋</span> نسخ
           </button>
@@ -78,7 +71,7 @@
         <div class="flex gap-2">
           <input type="text" readonly id="verify-token-display" 
                  value="{{ settings.verify_token or config.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026') }}" 
-                 class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-[#570575] cursor-default" dir="ltr">
+                 class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-[#570575] cursor-default select-all" dir="ltr">
           <button type="button" 
                   onclick="copyToClipboard(document.getElementById('verify-token-display').value)" 
                   class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
@@ -118,7 +111,7 @@
           <input type="text" name="whatsapp_phone_number" 
                  value="{{ settings.whatsapp_phone_number or '' }}" 
                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
-                 dir="ltr" placeholder="+966500000000">
+                 dir="ltr" placeholder="+967700000000">
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1.5">🚀 إصدار API:</label>
@@ -128,7 +121,7 @@
             <option value="v19.0" {% if settings.api_version == 'v19.0' %}selected{% endif %}>v19.0</option>
             <option value="v20.0" {% if settings.api_version == 'v20.0' %}selected{% endif %}>v20.0</option>
             <option value="v21.0" {% if settings.api_version == 'v21.0' %}selected{% endif %}>v21.0</option>
-            <option value="v22.0" {% if settings.api_version == 'v22.0' %}selected{% endif %}>v22.0</option>
+            <option value="v22.0" {% if settings.api_version == 'v22.0' or not settings.api_version %}selected{% endif %}>v22.0</option>
           </select>
         </div>
       </div>
@@ -138,7 +131,8 @@
         <div class="relative">
           <input type="password" name="access_token" id="access-token-input"
                  value="{{ settings.access_token or '' }}" 
-                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all pr-10" 
+                 autocomplete="off"
+                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all pl-10" 
                  dir="ltr" placeholder="EAAG...">
           <button type="button" 
                   onclick="toggleTokenVisibility()" 
@@ -155,7 +149,7 @@
     <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div class="text-[10px] text-slate-400">
         {% if settings.updated_at %}
-          📅 آخر تحديث: <span class="font-mono text-slate-600">{{ settings.updated_at.strftime('%Y-%m-%d %I:%M %p') if settings.updated_at else 'غير محدد' }}</span>
+          📅 آخر تحديث: <span class="font-mono text-slate-600">{{ settings.updated_at.strftime('%Y-%m-%d %I:%M %p') }}</span>
         {% else %}
           <span class="text-amber-600">⚠️ لم يتم حفظ أي إعدادات بعد</span>
         {% endif %}
@@ -185,6 +179,11 @@
 
 <!-- JavaScript لتشغيل التفاعلات -->
 <script>
+  // الحصول على رمز CSRF
+  function getCsrfToken() {
+    return document.querySelector('input[name="csrf_token"]')?.value || '';
+  }
+
   // ============================================================
   // 1. إظهار/إخفاء التنبيهات
   // ============================================================
@@ -211,7 +210,6 @@
     titleEl.textContent = title;
     msgEl.textContent = message;
     
-    // Auto hide after 5 seconds
     setTimeout(closeAlert, 5000);
   }
   
@@ -223,18 +221,23 @@
   // 2. نسخ إلى الحافظة
   // ============================================================
   function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      showAlert('success', '✅ تم النسخ!', 'تم نسخ النص إلى الحافظة بنجاح');
-    }).catch(() => {
-      // Fallback
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      showAlert('success', '✅ تم النسخ!', 'تم نسخ النص إلى الحافظة بنجاح');
-    });
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        showAlert('success', '✅ تم النسخ!', 'تم نسخ النص إلى الحافظة بنجاح');
+      }).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showAlert('success', '✅ تم النسخ!', 'تم نسخ النص إلى الحافظة بنجاح');
   }
   
   // ============================================================
@@ -247,6 +250,7 @@
       method: 'POST',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': getCsrfToken(),
         'Content-Type': 'application/json'
       }
     })
@@ -259,9 +263,7 @@
         showAlert('error', '❌ فشل التجديد', data.message || 'حدث خطأ أثناء تجديد الرمز');
       }
     })
-    .catch(err => {
-      showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم');
-    });
+    .catch(() => showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم'));
   }
   
   // ============================================================
@@ -278,7 +280,7 @@
   }
   
   // ============================================================
-  // 5. إرسال النموذج (مع معالجة AJAX)
+  // 5. إرسال النموذج (AJAX)
   // ============================================================
   document.getElementById('settingsForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -297,20 +299,19 @@
       method: 'POST',
       body: formData,
       headers: {
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': getCsrfToken()
       }
     })
     .then(res => res.json())
     .then(data => {
       if (data.success) {
         showAlert('success', '✅ تم الحفظ!', data.message || 'تم حفظ الإعدادات بنجاح');
-        // تحديث حالة الاتصال
         const badge = document.getElementById('api-status-badge');
         if (data.is_connected) {
           badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200';
           badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ✅ متصل بـ Meta API';
         }
-        // تحديث وقت آخر تحديث
         if (data.updated_at) {
           const updatedEl = document.querySelector('.text-slate-400 .font-mono');
           if (updatedEl) updatedEl.textContent = data.updated_at;
@@ -319,9 +320,7 @@
         showAlert('error', '❌ فشل الحفظ', data.message || 'حدث خطأ أثناء حفظ الإعدادات');
       }
     })
-    .catch(err => {
-      showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم');
-    })
+    .catch(() => showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم'))
     .finally(() => {
       btn.disabled = false;
       btnIcon.textContent = '💾';
@@ -350,10 +349,10 @@
       } else {
         badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200';
         badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> ❌ فشل الاتصال';
-        showAlert('error', '❌ فشل الاتصال', data.message || 'تعذر الاتصال بـ Meta API، تأكد من الإعدادات');
+        showAlert('error', '❌ فشل الاتصال', data.message || 'تعذر الاتصال بـ Meta API');
       }
     })
-    .catch(err => {
+    .catch(() => {
       badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200';
       badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> ❌ خطأ في الاتصال';
       showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم');
@@ -371,7 +370,10 @@
     
     fetch('{{ url_for("whatsapp_service.test_webhook") }}', {
       method: 'POST',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      headers: { 
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': getCsrfToken()
+      }
     })
     .then(res => res.json())
     .then(data => {
@@ -383,28 +385,18 @@
         resultEl.textContent = '❌ ' + (data.message || 'فشل اختبار Webhook');
       }
     })
-    .catch(err => {
+    .catch(() => {
       resultEl.className = 'mt-3 p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-700';
       resultEl.textContent = '❌ فشل الاتصال بالخادم';
     });
   }
   
-  // ============================================================
-  // 8. معالجة رسائل الفلاش (Flash Messages)
-  // ============================================================
+  // Flash Messages
   document.addEventListener('DOMContentLoaded', function() {
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          {% if category == 'success' %}
-            showAlert('success', '✅ نجاح', '{{ message }}');
-          {% elif category == 'error' %}
-            showAlert('error', '❌ خطأ', '{{ message }}');
-          {% elif category == 'warning' %}
-            showAlert('warning', '⚠️ تنبيه', '{{ message }}');
-          {% else %}
-            showAlert('info', 'ℹ️ معلومات', '{{ message }}');
-          {% endif %}
+          showAlert('{{ category }}', '{{ message }}');
         {% endfor %}
       {% endif %}
     {% endwith %}
