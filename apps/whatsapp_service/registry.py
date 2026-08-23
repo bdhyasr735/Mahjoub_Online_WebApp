@@ -12,24 +12,11 @@ SERVICE_METADATA = {
     "author": "Mahgoob Online Dev Team",
     "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v21.0 لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات ORD-#",
     "icon": "fab fa-whatsapp",
-    "admin_menu": [
-        {
-            "title": "محادثات العملاء",
-            "endpoint": "whatsapp_service.chat_dashboard",
-            "icon": "fas fa-comments",
-            "badge": "unread_count"
-        },
-        {
-            "title": "سجل الرسائل",
-            "endpoint": "whatsapp_service.logs_dashboard",
-            "icon": "fas fa-database"
-        },
-        {
-            "title": "إعدادات Meta Cloud API",
-            "endpoint": "whatsapp_service.settings_dashboard",
-            "icon": "fas fa-cog"
-        }
-    ],
+    "admin_menu": {
+        "/admin/whatsapp/dashboard/chat": "محادثات العملاء",
+        "/admin/whatsapp/dashboard/logs": "سجل الرسائل",
+        "/admin/whatsapp/dashboard/settings": "إعدادات Meta Cloud API"
+    },
     "permissions": [
         "whatsapp.view_chat",
         "whatsapp.send_message",
@@ -43,11 +30,8 @@ MODULE_NAME = SERVICE_METADATA["display_name"]
 MODULE_ICON = SERVICE_METADATA["icon"]
 SHOW_IN_SUPPLIER = False
 
-LINKS = {
-    item["endpoint"]: item["title"] 
-    for item in SERVICE_METADATA.get("admin_menu", [])
-}
-
+# جعل الروابط متوافقة مع القالب الديناميكي
+LINKS = SERVICE_METADATA["admin_menu"]
 SERVICE_METADATA["links"] = LINKS
 
 def register_module(app):
@@ -55,25 +39,20 @@ def register_module(app):
     تسجيل موديول الواتساب ومساراته تلقائياً في التطبيق الرئيسي
     """
     try:
-        # 🔗 الاستيراد الصحيح للـ Blueprint من مجلد الـ routes بناءً على ملف __init__.py الجديد
         from apps.whatsapp_service.routes import whatsapp_bp
         
-        # تسجيل الـ Blueprint إذا لم يكن مسجلاً من قبل لتجنب التكرار
         if 'whatsapp_service' not in app.blueprints:
             app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
         
-        # 🔗 استيراد وإنشاء الجداول في قاعدة البيانات تلقائياً
         with app.app_context():
             try:
                 from apps.models.whatsapp_models import WhatsAppMessageLog, WhatsAppWebhookEvent, WhatsAppCustomerContact
                 from apps.extensions import db
                 
                 db.create_all()
-                print("✅ [WhatsApp Module]: تم التحقق من إنشاء جداول قاعدة البيانات بنجاح.")
             except Exception as db_err:
                 print(f"⚠️ [WhatsApp DB Creation Warning]: {db_err}")
 
-        # تسجيل بيانات الموديول والخدمة في التطبيق
         if not hasattr(app, 'registered_services'):
             app.registered_services = {}
             
