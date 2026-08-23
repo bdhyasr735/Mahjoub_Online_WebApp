@@ -38,7 +38,7 @@
     <!-- Contact items (تمرير داخلي مستقل للقائمة) -->
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% for contact in contacts|default([]) %}
-      <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-3.5 hover:bg-purple-50/40 cursor-pointer transition-colors {{ 'bg-purple-50/80 border-r-4 border-[#570575]' if current_contact and current_contact.id == contact.id }}">
+      <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="block p-3.5 hover:bg-purple-50/40 cursor-pointer transition-colors {{ 'bg-purple-50/80 border-r-4 border-[#570575]' if selected_contact and selected_contact.id == contact.id }}">
         <div class="flex justify-between items-start font-bold text-xs text-slate-900">
           <span class="truncate">👤 {{ contact.name or contact.phone }}</span>
           <span class="text-[10px] text-slate-400 font-mono" dir="ltr">📞 {{ contact.phone }}</span>
@@ -60,23 +60,23 @@
   <!-- Messages conversation canvas (مساحة المحادثة الثابتة بالكامل) -->
   <div class="flex-1 flex flex-col h-full bg-slate-50 relative overflow-hidden">
     
-    {% if current_contact %}
+    {% if selected_contact %}
     <!-- Header with Customer Details (ثابت في الأعلى) -->
     <div class="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-xs shrink-0 z-10">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-purple-50 text-[#570575] flex items-center justify-center font-bold text-sm border border-purple-200 shrink-0">
-          {{ current_contact.name[0] if current_contact.name else '👤' }}
+          {{ selected_contact.name[0] if selected_contact.name else '👤' }}
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h2 class="font-bold text-slate-900 text-sm">{{ current_contact.name }}</h2>
-            {% if current_contact.is_online %}
+            <h2 class="font-bold text-slate-900 text-sm">{{ selected_contact.name }}</h2>
+            {% if selected_contact.is_online %}
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="متصل الآن"></span>
             {% endif %}
           </div>
           <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-xs text-slate-500 font-mono" dir="ltr">📞 {{ current_contact.phone }}</span>
-            <span class="text-[11px] text-slate-400">• 🕒 آخر ظهور: {{ current_contact.last_seen | default('غير متوفر') }}</span>
+            <span class="text-xs text-slate-500 font-mono" dir="ltr">📞 {{ selected_contact.phone }}</span>
+            <span class="text-[11px] text-slate-400">• 🕒 آخر ظهور: {{ selected_contact.last_seen | default('غير متوفر') }}</span>
           </div>
         </div>
       </div>
@@ -91,10 +91,10 @@
     </div>
 
     <!-- Customer Orders (الطلبات المرتبطة - ثابت) -->
-    {% if current_contact.orders %}
+    {% if selected_contact.orders %}
     <div class="bg-white border-b border-slate-100 p-2.5 flex items-center gap-2 overflow-x-auto shrink-0">
       <span class="text-xs font-bold text-slate-500">🛒 الطلبات المرتبطة:</span>
-      {% for order in current_contact.orders %}
+      {% for order in selected_contact.orders %}
         <div class="border border-slate-200 bg-slate-50 rounded-xl px-3 py-1 text-xs flex items-center gap-2 shrink-0">
           <span class="font-bold font-mono text-slate-800">#{{ order.id }}</span>
           <span class="text-[#570575] bg-purple-50 px-2 py-0.5 rounded-lg text-[10px] font-semibold">📦 {{ order.status }}</span>
@@ -129,10 +129,10 @@
       {% endfor %}
     </div>
 
-    <!-- Send Message Form (ثابتใน الأسفل دائماً) -->
+    <!-- Send Message Form (ثابت في الأسفل دائماً) -->
     <div class="p-3 md:p-4 bg-white border-t border-slate-200 shrink-0 z-10">
       <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="flex items-center gap-2">
-        <input type="hidden" name="phone" value="{{ current_contact.phone }}">
+        <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
         <input 
           type="text" 
           name="message" 
