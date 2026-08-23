@@ -10,7 +10,7 @@ from flask import request, render_template
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 from . import whatsapp_bp
-from apps.whatsapp_service.whatsapp_api import send_text_message
+from apps.whatsapp_service.whatsapp_api import send_text_message, clean_phone_number
 from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
 from apps.extensions import db
 
@@ -21,27 +21,24 @@ from apps.extensions import db
 @whatsapp_bp.route('/send_message', methods=['POST'])
 def send_message_htmx():
     """
-    استقبال رسالة جديدة من الواجهة وإرسالها عبر ميتا.
-    - تُحدث قاعدة البيانات.
-    - تعيد تحميل قائمة جهات الاتصال لتحديث آخر رسالة.
+    استقبال رسالة جديدة من الواجهة وإرسالها عبر ميتا وتحديث جهة الاتصال.
     """
     phone = request.form.get('phone')
     message = request.form.get('message')
 
     if not phone or not message:
-        return "بيانات ناقصة", 400
+        return "<div class='text-danger p-2'>بيانات ناقصة (الرقم أو الرسالة)</div>", 400
 
-    # 1. إرسال الرسالة عبر ميتا
-    success, response_data = send_text_message(phone, message)
+    cleaned_phone = clean_phone_number(phone)
 
-    # 2. تحديث جهة الاتصال في قاعدة البيانات
-    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
-    if contact:
-        contact.last_message = message
-        contact.last_timestamp = datetime.utcnow()
-        db.session.commit()
+    # 1. إرسال الرسالة عبر API Meta (يقوم تلقائياً بتحديث السجلات وآخر محادثة)
+    success, response_data = send_text_message(cleaned_phone, message)
 
-    # 3. إعادة تحميل قائمة جهات الاتصال (تحديث HTMX)
+    if not success:
+        error_msg = response_data.get('error', 'فشل إرسال الرسالة عبر Meta API')
+        print(f"⚠️ [HTMX Send Error]: {error_msg}")
+
+    # 2. إعادة تحميل قائمة جهات الاتصال المحدثة لجانب الواجهة
     return refresh_contacts()
 
 
@@ -51,26 +48,28 @@ def send_message_htmx():
 @whatsapp_bp.route('/client/<int:contact_id>/chat')
 def get_chat_area(contact_id):
     """
-    جلب منطقة المحادثة بالكامل لعميل معين.
-    - تُستخدم عند النقر على جهة اتصال في القائمة الجانبية.
-    - تعيد مكون _chat_area.html فقط.
+    جلب منطقة المحادثة بالكامل لعميل معين وتصفير الرسائل غير المقروءة.
     """
     contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
     if not contact:
-        return "العميل غير موجود", 404
+        return "<div class='p-3 text-muted'>العميل غير موجود</div>", 404
 
-    # تحديث عدد الرسائل غير المقروءة إلى صفر
+    cleaned_phone = clean_phone_number(contact.phone)
+
+    # تصفير عدد الرسائل غير المقروءة عند دخول المحادثة
     if contact.unread_count and contact.unread_count > 0:
         contact.unread_count = 0
         db.session.commit()
 
-    # جلب آخر 50 رسالة من المحادثة
+    # جلب الرسائل المطابقة للرقم الأصلي والرقم المُنظّف
     messages = db.session.query(WhatsAppMessageLog).filter(
         or_(
             WhatsAppMessageLog.sender_number == contact.phone,
-            WhatsAppMessageLog.recipient_number == contact.phone
+            WhatsAppMessageLog.recipient_number == contact.phone,
+            WhatsAppMessageLog.sender_number == cleaned_phone,
+            WhatsAppMessageLog.recipient_number == cleaned_phone
         )
-    ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(50).all()
+    ).order_by(WhatsAppMessageLog.timestamp.asc()).limit(100).all()
 
     return render_template('admin/components/_chat_area.html', contact=contact, messages=messages)
 
@@ -81,12 +80,11 @@ def get_chat_area(contact_id):
 @whatsapp_bp.route('/client/<int:contact_id>/details')
 def get_client_details(contact_id):
     """
-    جلب تفاصيل العميل الجانبية (اللوحة اليسرى).
-    - تعيد مكون _client_details.html فقط.
+    جلب اللوحة الجانبية لتفاصيل العميل.
     """
     contact = db.session.query(WhatsAppCustomerContact).get(contact_id)
     if not contact:
-        return "العميل غير موجود", 404
+        return "<div class='p-3 text-muted'>العميل غير موجود</div>", 404
 
     return render_template('admin/components/_client_details.html', contact=contact)
 
@@ -97,15 +95,13 @@ def get_client_details(contact_id):
 @whatsapp_bp.route('/refresh_contacts')
 def refresh_contacts():
     """
-    تحديث قائمة جهات الاتصال في الشريط الجانبي.
-    - تُستخدم بعد إرسال رسالة أو عند تحديث البيانات.
-    - تعيد مكون _sidebar_contacts.html فقط.
+    تحديث قائمة جهات الاتصال في الشريط الجانبي مع احتساب حالة الاتصال الحالية.
     """
     contacts = db.session.query(WhatsAppCustomerContact).order_by(
-        WhatsAppCustomerContact.last_timestamp.desc()
+        WhatsAppCustomerContact.last_timestamp.desc().nullslast()
     ).all()
 
-    # تحديث حالة الاتصال (online/offline)
+    # تحديث حالة الاتصال المؤقتة بناءً على آخر نشاط
     for contact in contacts:
         if contact.last_timestamp:
             diff = datetime.utcnow() - contact.last_timestamp
