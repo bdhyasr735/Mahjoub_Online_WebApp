@@ -5,7 +5,7 @@ MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "bi-whatsapp"
 SHOW_IN_ADMIN = True
 
-# ربط الرابط باسم الـ Blueprint الصحيح
+# ربط القائمة الجانبية بلوحة محادثات الواتساب
 LINKS = {
     'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب'
 }
