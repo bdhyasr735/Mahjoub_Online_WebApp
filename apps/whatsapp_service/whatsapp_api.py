@@ -23,7 +23,7 @@ class WhatsAppAPI:
         إرسال رسالة نصية عبر WhatsApp Cloud API
         """
         if not self.token or not self.phone_number_id:
-            logger.error("⚠️ [WhatsApp API]: بيانات المصادقة أو معرف رقم الهاتف غير مفقودة في الإعدادات.")
+            logger.error("⚠️ [WhatsApp API]: بيانات المصادقة أو معرف رقم الهاتف مفقودة في الإعدادات.")
             return {"success": False, "error": "WhatsApp credentials not configured"}
 
         headers = {
