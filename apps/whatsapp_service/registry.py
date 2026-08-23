@@ -1,19 +1,17 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/whatsapp_service/registry.py
 
-from apps.whatsapp_service.routes import whatsapp_bp
-
 MODULE_NAME = "خدمة الواتساب"
-MODULE_ICON = "fab fa-whatsapp text-amber-400"
-SHOW_IN_SUPPLIER = False
+MODULE_ICON = "bi-whatsapp"
+SHOW_IN_ADMIN = True
 
-NAV_ITEMS = [
-    {"endpoint": "whatsapp.dashboard", "title": "لوحة التحكم"},
-    {"endpoint": "whatsapp.logs", "title": "سجل الرسائل"},
-    {"endpoint": "whatsapp.settings", "title": "إعدادات الربط"}
-]
+# روابط الموديول التي ستظهر في القائمة الجانبية لوحة التحكم
+LINKS = {
+    'whatsapp_service.index': 'إدارة مراسلات الواتساب'
+}
 
 def register_module(app):
-    """تسجيل الـ Blueprint الخاص بخدمة الواتساب تلقائياً"""
-    if 'whatsapp' not in app.blueprints:
-        app.register_blueprint(whatsapp_bp, url_prefix='/whatsapp')
+    from apps.whatsapp_service.routes import whatsapp_bp
+    
+    if 'whatsapp_bp' not in app.blueprints:
+        app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
