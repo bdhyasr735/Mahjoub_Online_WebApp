@@ -27,8 +27,12 @@ NAV_ITEMS = [
     }
 ]
 
-# متغيرات مطلوبة للنظام الرئيسي (للتسجيل الديناميكي)
+# ============================================================
+# متغيرات إضافية مطلوبة للنظام الرئيسي
+# ============================================================
+
 LINKS = {item['endpoint']: item['title'] for item in NAV_ITEMS}
+
 SERVICE_METADATA = {
     'name': 'whatsapp_service',
     'display_name': MODULE_NAME,
@@ -43,24 +47,18 @@ SERVICE_METADATA = {
     ]
 }
 
-
 def register_module(app):
     """
     تسجيل موديول الواتساب في التطبيق الرئيسي.
-    تضاف عناصر القائمة إلى ADMIN_MODULES أو SUPPLIER_MODULES.
     """
     try:
-        # التأكد من أن التطبيق يحتوي على قاموس الموديولات المسجلة
+        # تسجيل في قاموس الخدمات
         if not hasattr(app, 'registered_services'):
             app.registered_services = {}
-        
-        # تسجيل بيانات الموديول
         app.registered_services['whatsapp_service'] = SERVICE_METADATA
         print("✅ [WhatsApp Module]: تم تسجيل 'مركز الواتساب' في التطبيق الرئيسي.")
-        
-        # إضافة عناصر القائمة إلى ADMIN_MODULES (إن وجدت)
-        # ملاحظة: في `apps/__init__.py` يتم ملء ADMIN_MODULES تلقائياً من registry
-        # ولكننا نضعها هنا أيضاً للتأكد
+
+        # إضافة إلى ADMIN_MODULES إذا كان موجوداً
         if hasattr(app, 'admin_modules'):
             app.admin_modules['whatsapp_service'] = {
                 'display_name': MODULE_NAME,
@@ -68,6 +66,6 @@ def register_module(app):
                 'links': LINKS
             }
             print("✅ [WhatsApp Module]: تم إضافة عناصر القائمة إلى ADMIN_MODULES.")
-            
+
     except Exception as e:
         print(f"❌ [WhatsApp Module]: فشل تسجيل الموديول: {e}")
