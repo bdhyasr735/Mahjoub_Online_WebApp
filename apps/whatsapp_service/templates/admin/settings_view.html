@@ -1,76 +1,412 @@
 <!-- 📂 apps/whatsapp_service/templates/admin/settings_view.html -->
-<!-- Settings View Jinja2 Component -->
-<div class="max-w-4xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full">
+<!-- Settings View Jinja2 Component (ديناميكي مع قاعدة البيانات) -->
+<div class="max-w-4xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full" 
+     x-data="{ 
+       isLoading: false,
+       saved: false,
+       showAlert: false,
+       alertType: 'success',
+       alertMessage: ''
+     }">
   
   <!-- Title Section -->
-  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
     <div>
       <h2 class="text-base font-bold text-slate-900">⚙️ إعدادات ربط Meta WhatsApp Cloud API</h2>
       <p class="text-xs text-slate-500 mt-1">تكوين المتغيرات ورابط الـ Webhook الخاص بمنصة محجوب أونلاين</p>
     </div>
     <!-- API Connection Status -->
     <div class="flex items-center gap-2">
-      {% if is_connected %}
-        <span class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">🟢 متصل بـ Meta API</span>
-      {% else %}
-        <span class="px-3 py-1.5 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-bold">🔴 غير متصل بـ Meta API</span>
-      {% endif %}
+      <span id="api-status-badge" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 
+        {% if is_connected %}
+          bg-emerald-50 text-emerald-700 border border-emerald-200
+        {% else %}
+          bg-amber-50 text-amber-700 border border-amber-200
+        {% endif %}">
+        <span class="w-2 h-2 rounded-full {% if is_connected %}bg-emerald-500 animate-pulse{% else %}bg-amber-500{% endif %}"></span>
+        {% if is_connected %}
+          ✅ متصل بـ Meta API
+        {% else %}
+          ⚠️ يحتاج إعداد المفاتيح
+        {% endif %}
+      </span>
+      <button onclick="testConnection()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
+        <span>🔄</span> اختبار الاتصال
+      </button>
+    </div>
+  </div>
+
+  <!-- Alert Messages -->
+  <div id="alert-container" class="hidden transition-all duration-300">
+    <div class="p-4 rounded-2xl border flex items-center gap-3" id="alert-box">
+      <span id="alert-icon" class="text-xl"></span>
+      <div>
+        <p class="text-sm font-bold" id="alert-title"></p>
+        <p class="text-xs opacity-90" id="alert-message"></p>
+      </div>
+      <button onclick="closeAlert()" class="mr-auto text-slate-400 hover:text-slate-600 transition-colors">✕</button>
     </div>
   </div>
 
   <!-- Settings Form -->
-  <form action="{{ url_for('whatsapp_service.settings_save') }}" method="POST" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+  <form id="settingsForm" 
+        action="{{ url_for('whatsapp_service.settings_save') }}" 
+        method="POST" 
+        class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4"
+        @submit.prevent="submitForm">
+    
+    <!-- CSRF Token -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
     
     <!-- Webhook & Verify Token (Read-Only) -->
     <div class="space-y-4">
       <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">🔗 Webhook Callback URL:</label>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">🔗 Webhook Callback URL:</label>
         <div class="flex gap-2">
-          <input type="text" readonly value="{{ request.host_url }}whatsapp/webhook" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-[#570575]" dir="ltr">
-          <button type="button" onclick="navigator.clipboard.writeText('{{ request.host_url }}whatsapp/webhook')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer">📋 نسخ</button>
+          <input type="text" readonly value="{{ request.host_url }}admin/whatsapp/webhook" 
+                 class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-[#570575] cursor-default" dir="ltr">
+          <button type="button" 
+                  onclick="copyToClipboard('{{ request.host_url }}admin/whatsapp/webhook')" 
+                  class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
+            <span>📋</span> نسخ
+          </button>
         </div>
+        <p class="text-[10px] text-slate-400 mt-1.5">⚠️ يجب إدخال هذا الرابط في لوحة مطوري ميتا (Meta Developers Portal)</p>
       </div>
       <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">🔑 Verify Token:</label>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">🔑 Verify Token:</label>
         <div class="flex gap-2">
-          <input type="text" readonly value="{{ config.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026') }}" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-[#570575]" dir="ltr">
-          <button type="button" onclick="navigator.clipboard.writeText('{{ config.get('WHATSAPP_VERIFY_TOKEN', '') }}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer">📋 نسخ</button>
+          <input type="text" readonly id="verify-token-display" 
+                 value="{{ settings.verify_token or config.get('WHATSAPP_VERIFY_TOKEN', 'mahgoob_webhook_secret_2026') }}" 
+                 class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-[#570575] cursor-default" dir="ltr">
+          <button type="button" 
+                  onclick="copyToClipboard(document.getElementById('verify-token-display').value)" 
+                  class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
+            <span>📋</span> نسخ
+          </button>
+          <button type="button" 
+                  onclick="regenerateToken()" 
+                  class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1">
+            <span>🔄</span> تجديد
+          </button>
         </div>
+        <p class="text-[10px] text-slate-400 mt-1.5">🔒 رمز التحقق المستخدم في مرحلة Handshake مع ميتا</p>
       </div>
     </div>
 
     <hr class="border-slate-100">
 
     <!-- API Config Fields (Editable) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">📱 Phone Number ID:</label>
-        <input type="text" name="phone_number_id" value="{{ config.get('WHATSAPP_PHONE_NUMBER_ID', '') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] transition-all" dir="ltr" placeholder="1234567890">
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">📱 Phone Number ID:</label>
+          <input type="text" name="phone_number_id" 
+                 value="{{ settings.phone_number_id or '' }}" 
+                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
+                 dir="ltr" placeholder="أدخل معرف رقم الهاتف">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">🏢 Business Account ID:</label>
+          <input type="text" name="business_account_id" 
+                 value="{{ settings.business_account_id or '' }}" 
+                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
+                 dir="ltr" placeholder="أدخل معرف حساب الأعمال">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">📞 رقم الهاتف (WhatsApp):</label>
+          <input type="text" name="whatsapp_phone_number" 
+                 value="{{ settings.whatsapp_phone_number or '' }}" 
+                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
+                 dir="ltr" placeholder="+966500000000">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">🚀 إصدار API:</label>
+          <select name="api_version" 
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all">
+            <option value="v18.0" {% if settings.api_version == 'v18.0' %}selected{% endif %}>v18.0</option>
+            <option value="v19.0" {% if settings.api_version == 'v19.0' %}selected{% endif %}>v19.0</option>
+            <option value="v20.0" {% if settings.api_version == 'v20.0' %}selected{% endif %}>v20.0</option>
+            <option value="v21.0" {% if settings.api_version == 'v21.0' %}selected{% endif %}>v21.0</option>
+            <option value="v22.0" {% if settings.api_version == 'v22.0' %}selected{% endif %}>v22.0</option>
+          </select>
+        </div>
       </div>
+      
       <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">🏢 Business Account ID:</label>
-        <input type="text" name="business_account_id" value="{{ config.get('WHATSAPP_BUSINESS_ACCOUNT_ID', '') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] transition-all" dir="ltr" placeholder="1234567890">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">📞 Phone Number (+9665...):</label>
-        <input type="text" name="whatsapp_phone_number" value="{{ config.get('WHATSAPP_PHONE_NUMBER', '') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] transition-all" dir="ltr" placeholder="+9665000000">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">🚀 API Version:</label>
-        <input type="text" name="api_version" value="{{ config.get('WHATSAPP_API_VERSION', 'v21.0') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] transition-all" dir="ltr" placeholder="v21.0">
-      </div>
-      <div class="md:col-span-2">
-        <label class="block text-xs font-bold text-slate-700 mb-1">🔒 Access Token (Secret):</label>
-        <input type="password" name="access_token" value="{{ config.get('WHATSAPP_ACCESS_TOKEN', '') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] transition-all" dir="ltr" placeholder="EAAG...">
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">🔒 Access Token (Permanent / System User Token):</label>
+        <div class="relative">
+          <input type="password" name="access_token" id="access-token-input"
+                 value="{{ settings.access_token or '' }}" 
+                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all pr-10" 
+                 dir="ltr" placeholder="EAAG...">
+          <button type="button" 
+                  onclick="toggleTokenVisibility()" 
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer text-sm"
+                  title="إظهار/إخفاء الرمز">
+            <span id="token-eye-icon">👁️</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1.5">🔐 رمز الوصول الدائم من لوحة مطوري ميتا (System User Access Token)</p>
       </div>
     </div>
 
-    <!-- Save Button -->
-    <div class="pt-4 border-t border-slate-100 flex justify-end">
-      <button type="submit" class="bg-[#570575] hover:bg-[#632C8F] text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer">
-        💾 حفظ الإعدادات وتحديث الحالة
+    <!-- Save Button & Last Updated -->
+    <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="text-[10px] text-slate-400">
+        {% if settings.updated_at %}
+          📅 آخر تحديث: <span class="font-mono text-slate-600">{{ settings.updated_at.strftime('%Y-%m-%d %I:%M %p') if settings.updated_at else 'غير محدد' }}</span>
+        {% else %}
+          <span class="text-amber-600">⚠️ لم يتم حفظ أي إعدادات بعد</span>
+        {% endif %}
+      </div>
+      <button type="submit" id="save-settings-btn"
+              class="bg-[#570575] hover:bg-[#632C8F] text-white px-8 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all hover:shadow-md cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <span id="save-btn-icon">💾</span>
+        <span id="save-btn-text">حفظ الإعدادات</span>
       </button>
     </div>
   </form>
 
+  <!-- Webhook Test Section -->
+  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+    <h3 class="text-xs font-bold text-slate-700 mb-3">🧪 اختبار Webhook</h3>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <p class="text-xs text-slate-500 flex-1">إرسال طلب اختبار للتأكد من أن Webhook يعمل بشكل صحيح مع ميتا</p>
+      <button onclick="testWebhook()" 
+              class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+        <span>🚀</span> اختبار Webhook
+      </button>
+    </div>
+    <div id="webhook-test-result" class="hidden mt-3 p-3 rounded-xl text-xs"></div>
+  </div>
+
 </div>
+
+<!-- JavaScript لتشغيل التفاعلات -->
+<script>
+  // ============================================================
+  // 1. إظهار/إخفاء التنبيهات
+  // ============================================================
+  function showAlert(type, title, message) {
+    const container = document.getElementById('alert-container');
+    const box = document.getElementById('alert-box');
+    const icon = document.getElementById('alert-icon');
+    const titleEl = document.getElementById('alert-title');
+    const msgEl = document.getElementById('alert-message');
+    
+    container.classList.remove('hidden');
+    
+    const configs = {
+      success: { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: '✅', color: 'text-emerald-700' },
+      error: { bg: 'bg-rose-50', border: 'border-rose-200', icon: '❌', color: 'text-rose-700' },
+      warning: { bg: 'bg-amber-50', border: 'border-amber-200', icon: '⚠️', color: 'text-amber-700' },
+      info: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'ℹ️', color: 'text-blue-700' }
+    };
+    
+    const cfg = configs[type] || configs.info;
+    box.className = `p-4 rounded-2xl border flex items-center gap-3 ${cfg.bg} ${cfg.border}`;
+    icon.textContent = cfg.icon;
+    titleEl.className = `text-sm font-bold ${cfg.color}`;
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    
+    // Auto hide after 5 seconds
+    setTimeout(closeAlert, 5000);
+  }
+  
+  function closeAlert() {
+    document.getElementById('alert-container').classList.add('hidden');
+  }
+  
+  // ============================================================
+  // 2. نسخ إلى الحافظة
+  // ============================================================
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      showAlert('success', '✅ تم النسخ!', 'تم نسخ النص إلى الحافظة بنجاح');
+    }).catch(() => {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showAlert('success', '✅ تم النسخ!', 'تم نسخ النص إلى الحافظة بنجاح');
+    });
+  }
+  
+  // ============================================================
+  // 3. تجديد Verify Token
+  // ============================================================
+  function regenerateToken() {
+    if (!confirm('⚠️ هل أنت متأكد من تجديد رمز التحقق؟ سيؤدي ذلك إلى إلغاء صلاحية الرمز الحالي.')) return;
+    
+    fetch('{{ url_for("whatsapp_service.regenerate_verify_token") }}', {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('verify-token-display').value = data.token;
+        showAlert('success', '✅ تم التجديد!', 'تم تجديد رمز التحقق بنجاح');
+      } else {
+        showAlert('error', '❌ فشل التجديد', data.message || 'حدث خطأ أثناء تجديد الرمز');
+      }
+    })
+    .catch(err => {
+      showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم');
+    });
+  }
+  
+  // ============================================================
+  // 4. إظهار/إخفاء Access Token
+  // ============================================================
+  let tokenVisible = false;
+  
+  function toggleTokenVisibility() {
+    const input = document.getElementById('access-token-input');
+    const icon = document.getElementById('token-eye-icon');
+    tokenVisible = !tokenVisible;
+    input.type = tokenVisible ? 'text' : 'password';
+    icon.textContent = tokenVisible ? '🙈' : '👁️';
+  }
+  
+  // ============================================================
+  // 5. إرسال النموذج (مع معالجة AJAX)
+  // ============================================================
+  document.getElementById('settingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const btn = document.getElementById('save-settings-btn');
+    const btnText = document.getElementById('save-btn-text');
+    const btnIcon = document.getElementById('save-btn-icon');
+    
+    btn.disabled = true;
+    btnIcon.textContent = '⏳';
+    btnText.textContent = 'جاري الحفظ...';
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showAlert('success', '✅ تم الحفظ!', data.message || 'تم حفظ الإعدادات بنجاح');
+        // تحديث حالة الاتصال
+        const badge = document.getElementById('api-status-badge');
+        if (data.is_connected) {
+          badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200';
+          badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ✅ متصل بـ Meta API';
+        }
+        // تحديث وقت آخر تحديث
+        if (data.updated_at) {
+          const updatedEl = document.querySelector('.text-slate-400 .font-mono');
+          if (updatedEl) updatedEl.textContent = data.updated_at;
+        }
+      } else {
+        showAlert('error', '❌ فشل الحفظ', data.message || 'حدث خطأ أثناء حفظ الإعدادات');
+      }
+    })
+    .catch(err => {
+      showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم');
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btnIcon.textContent = '💾';
+      btnText.textContent = 'حفظ الإعدادات';
+    });
+  });
+  
+  // ============================================================
+  // 6. اختبار الاتصال بـ Meta API
+  // ============================================================
+  function testConnection() {
+    const badge = document.getElementById('api-status-badge');
+    badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200';
+    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> ⏳ جاري الاختبار...';
+    
+    fetch('{{ url_for("whatsapp_service.test_connection") }}', {
+      method: 'GET',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ✅ ' + data.message;
+        showAlert('success', '✅ الاتصال ناجح', data.message || 'تم الاتصال بـ Meta API بنجاح');
+      } else {
+        badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> ❌ فشل الاتصال';
+        showAlert('error', '❌ فشل الاتصال', data.message || 'تعذر الاتصال بـ Meta API، تأكد من الإعدادات');
+      }
+    })
+    .catch(err => {
+      badge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200';
+      badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span> ❌ خطأ في الاتصال';
+      showAlert('error', '❌ خطأ', 'فشل الاتصال بالخادم');
+    });
+  }
+  
+  // ============================================================
+  // 7. اختبار Webhook
+  // ============================================================
+  function testWebhook() {
+    const resultEl = document.getElementById('webhook-test-result');
+    resultEl.className = 'mt-3 p-3 rounded-xl text-xs bg-amber-50 border border-amber-200 text-amber-700';
+    resultEl.textContent = '⏳ جاري اختبار Webhook...';
+    resultEl.classList.remove('hidden');
+    
+    fetch('{{ url_for("whatsapp_service.test_webhook") }}', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        resultEl.className = 'mt-3 p-3 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-700';
+        resultEl.textContent = '✅ ' + data.message;
+      } else {
+        resultEl.className = 'mt-3 p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-700';
+        resultEl.textContent = '❌ ' + (data.message || 'فشل اختبار Webhook');
+      }
+    })
+    .catch(err => {
+      resultEl.className = 'mt-3 p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-700';
+      resultEl.textContent = '❌ فشل الاتصال بالخادم';
+    });
+  }
+  
+  // ============================================================
+  // 8. معالجة رسائل الفلاش (Flash Messages)
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% if category == 'success' %}
+            showAlert('success', '✅ نجاح', '{{ message }}');
+          {% elif category == 'error' %}
+            showAlert('error', '❌ خطأ', '{{ message }}');
+          {% elif category == 'warning' %}
+            showAlert('warning', '⚠️ تنبيه', '{{ message }}');
+          {% else %}
+            showAlert('info', 'ℹ️ معلومات', '{{ message }}');
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  });
+</script>
