@@ -2,9 +2,10 @@
 # 📂 apps/whatsapp_service/__init__.py
 
 """
-WhatsApp Service Package Initialization
+WhatsApp Service Module for Mahjoub Online WebApp
+-------------------------------------------------
+يقدم هذا الموديول خدمات التكامل مع Meta WhatsApp Business API:
+- إدارة لوحة المحادثات المباشرة (Chat Dashboard).
+- إرسال الرسائل الفردية والجماعية.
+- استقبال وتتبع الـ Webhooks.
 """
-
-from .registry import register_module, SERVICE_METADATA
-
-__all__ = ['register_module', 'SERVICE_METADATA']
