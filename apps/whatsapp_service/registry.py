@@ -1,24 +1,23 @@
 # coding: utf-8
-# 📂 apps/whatsapp/registry.py
+# 📂 apps/whatsapp_service/registry.py
 
 from flask import Flask
+# نفترض أنك قمت بتعريف whatsapp_bp في ملف __init__.py داخل مجلد routes
 from .routes import whatsapp_bp
 
-# ⚙️ إعدادات واجهة الموديول
-MODULE_NAME = "بوابة الواتساب"
-MODULE_ICON = "fa-brands fa-whatsapp"  # أيقونة الواتساب
-SHOW_IN_SUPPLIER = False  # إبقاء الموديول خاصاً بالإدارة فقط (لوحة تحكم الإدارة)
+MODULE_NAME = "خدمة الواتساب"
+MODULE_ICON = "fa-brands fa-whatsapp"
+SHOW_IN_SUPPLIER = False  # إبقاء الصلاحية للإدارة فقط
 
-# 🔗 الروابط التي ستظهر في القائمة الجانبية
+# روابط القائمة الجانبية التي ستظهر تلقائياً
 NAV_ITEMS = [
-    {
-        "endpoint": "whatsapp_admin.index", 
-        "title": "إدارة الرسائل"
-    }
+    {"endpoint": "whatsapp.chat_dashboard", "title": "المحادثات المباشرة"},
+    {"endpoint": "whatsapp.logs_dashboard", "title": "سجل الرسائل"},
+    {"endpoint": "whatsapp.settings_dashboard", "title": "إعدادات الربط"}
 ]
 
 def register_module(app: Flask):
     """
-    تسجيل الـ Blueprint الخاص بالواتساب في التطبيق الرئيسي.
+    تسجيل موديول الواتساب تحت المسار المحمي /admin/whatsapp
     """
     app.register_blueprint(whatsapp_bp, url_prefix='/admin/whatsapp')
