@@ -446,7 +446,7 @@ def create_app():
         pass
 
     # ============================================================
-    # 📱 التسجيل المباشر المضمون لخدمة الواتساب
+    # 📱 التسجيل المباشر المضمون لخدمة الواتساب (مسارات مباشرة)
     # ============================================================
     try:
         from apps.whatsapp_service.routes import whatsapp_bp
@@ -457,9 +457,9 @@ def create_app():
             "display_name": "خدمة الواتساب",
             "icon": "fas fa-comments",
             "links": {
-                'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب',
-                'whatsapp_service.logs_dashboard': 'سجلات النظام',
-                'whatsapp_service.settings_dashboard': 'إعدادات الواتساب'
+                '/admin/whatsapp/': 'إدارة مراسلات الواتساب',
+                '/admin/whatsapp/logs': 'سجلات النظام',
+                '/admin/whatsapp/settings': 'إعدادات الواتساب'
             }
         }
         print("✅ [WhatsApp Service]: تم تسجيل موديول الواتساب بنجاح تام.")
