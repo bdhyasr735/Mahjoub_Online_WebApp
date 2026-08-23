@@ -13,7 +13,7 @@ class WhatsAppAPI:
         تهيئة عميل واتساب (WhatsApp Cloud API Client)
         يمكن جلب البيانات مباشرة من إعدادات التطبيق أو تمريرها كمعاملات.
         """
-        self.token = token or current_app.config.get('WHATSAPP_TOKEN', '')
+        self.token = token or current_app.config.get('WHATSAPP_TOKEN', '') or current_app.config.get('WHATSAPP_ACCESS_TOKEN', '')
         self.phone_number_id = phone_number_id or current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', '')
         self.api_version = api_version or current_app.config.get('WHATSAPP_API_VERSION', 'v17.0')
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
