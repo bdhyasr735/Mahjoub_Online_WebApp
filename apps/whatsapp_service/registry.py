@@ -5,7 +5,7 @@ MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "fas fa-comments"
 SHOW_IN_ADMIN = True
 
-# استخدام الـ Endpoint الصحيح الذي يبدأ بـ whatsapp_service (اسم الـ Blueprint)
+# ربط القائمة الجانبية بالـ Endpoint الصحيح الخاص بالـ Blueprint
 LINKS = {
     'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب'
 }
