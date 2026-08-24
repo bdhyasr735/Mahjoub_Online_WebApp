@@ -17,7 +17,7 @@ class WhatsAppWebhookEvent(db.Model):
     __table_args__ = (
         db.Index('idx_webhook_created', 'created_at'),
         db.Index('idx_webhook_processed', 'processed'),
-        {'extend_existing': True}   # ✅ إضافة هذا السطر
+        {'extend_existing': True}
     )
     
     id = db.Column(db.Integer, primary_key=True)
@@ -39,7 +39,7 @@ class WhatsAppMessageLog(db.Model):
         db.Index('idx_msg_direction', 'direction'),
         db.Index('idx_msg_customer', 'customer_id'),
         db.Index('idx_msg_conversation', 'conversation_id'),
-        {'extend_existing': True}   # ✅
+        {'extend_existing': True}
     )
     
     id = db.Column(db.Integer, primary_key=True)
@@ -110,7 +110,7 @@ class WhatsAppCustomerContact(db.Model):
         db.Index('idx_contact_unread', 'unread_count'),
         db.Index('idx_contact_customer', 'customer_id'),
         db.Index('idx_contact_supplier', 'supplier_id'),
-        {'extend_existing': True}   # ✅
+        {'extend_existing': True}
     )
     
     id = db.Column(db.Integer, primary_key=True)
@@ -128,7 +128,8 @@ class WhatsAppCustomerContact(db.Model):
     is_archived = db.Column(db.Boolean, default=False)
     notes = db.Column(db.Text, nullable=True)
     tags = db.Column(db.JSON, nullable=True)
-    metadata = db.Column(db.JSON, nullable=True)
+    # ✅ تم تغيير اسم العمود من 'metadata' إلى 'extra_data'
+    extra_data = db.Column(db.JSON, nullable=True)
     customer_id = db.Column(db.Integer, nullable=True)
     supplier_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -167,7 +168,7 @@ class WhatsAppSettings(db.Model):
     __tablename__ = 'whatsapp_settings'
     
     __table_args__ = (
-        {'extend_existing': True}   # ✅
+        {'extend_existing': True}
     )
     
     id = db.Column(db.Integer, primary_key=True)
