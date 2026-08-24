@@ -11,7 +11,7 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
-          <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
+          <a href="{{ url_for('whatsapp_service_bp.chat_dashboard', contact_id=contact.id) }}" class="flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
             <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">
               {{ contact.name[0] if contact.name else 'ع' }}
             </div>
@@ -81,7 +81,7 @@
       </div>
 
       <!-- نموذج إرسال الرسالة الفورية -->
-      <form action="{{ url_for('whatsapp_service.actions_send_message_htmx') }}" method="POST" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+      <form action="{{ url_for('whatsapp_service_bp.send_message_htmx') }}" method="POST" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
         <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
         <input type="text" name="message" placeholder="اكتب رسالتك هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600">
         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">إرسال</button>
@@ -99,7 +99,7 @@
 <div id="newChatModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center">
   <div class="bg-white rounded-2xl w-96 p-5 shadow-xl border border-slate-200">
     <h3 class="font-bold text-sm text-slate-900 mb-4">بدء محادثة جديدة</h3>
-    <form action="{{ url_for('whatsapp_service.start_new_chat') }}" method="POST">
+    <form action="{{ url_for('whatsapp_service_bp.start_new_chat') }}" method="POST">
       <div class="mb-3">
         <label class="block text-xs font-bold text-slate-700 mb-1">رقم الهاتف (مع رمز الدولة)</label>
         <input type="text" name="phone" placeholder="966500000000" required dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
