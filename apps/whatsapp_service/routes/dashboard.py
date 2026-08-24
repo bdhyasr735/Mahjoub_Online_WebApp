@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/whatsapp_service/routes/dashboard.py
 
 """
@@ -13,6 +13,7 @@ from apps.whatsapp_service.whatsapp_api import send_meta_whatsapp_message
 from . import whatsapp_bp
 
 
+@whatsapp_bp.route('/', methods=['GET'])
 @whatsapp_bp.route('/dashboard', methods=['GET'])
 @whatsapp_bp.route('/dashboard/<int:contact_id>', methods=['GET'])
 def chat_dashboard(contact_id=None):
