@@ -10,7 +10,7 @@ DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
 ICON = "fab fa-whatsapp"
 SHOW_IN_SUPPLIER = False
 
-# استخدام المسارات المباشرة التي يتوقعها محرك القوائم الجانبية لديك
+# استخدام المسارات المباشرة لضمان عمل القائمة الجانبية
 NAV_ITEMS = [
     {
         "title": "محادثات العملاء",
@@ -26,7 +26,6 @@ NAV_ITEMS = [
     }
 ]
 
-# قاموس الروابط المتوافق مع محرك admin_base.html والقائمة الجانبية
 LINKS_DICT = {
     "/whatsapp/dashboard": "محادثات العملاء",
     "/whatsapp/logs": "سجل الرسائل",
@@ -51,14 +50,12 @@ SERVICE_METADATA = {
     ]
 }
 
-def register_module(app):
-    """الدالة الأساسية لتسجيل الـ Blueprint والخدمة ديناميكياً في تطبيق Flask"""
-    
-    # 1. تسجيل الـ Blueprint مع تحديد url_prefix ليطابق المسارات (/whatsapp)
+def register_service(app):
+    """دالة التسجيل التي يبحث عنها المحرك الديناميكي لتفادي خطأ ImportError"""
+    # 1. تسجيل الـ Blueprint مع تحديد url_prefix لتفادي خطأ 404
     try:
-        whatsapp_routes = importlib.import_module("apps.whatsapp.routes")
+        whatsapp_routes = importlib.import_module("apps.whatsapp_service.routes")
         if hasattr(whatsapp_routes, 'whatsapp_bp'):
-            # التأكد من عدم تسجيل الـ Blueprint مسبقاً لمنع حدوث تكرار
             blueprint_names = [bp.name for bp in app.blueprints.values()]
             if 'whatsapp' not in blueprint_names:
                 app.register_blueprint(whatsapp_routes.whatsapp_bp, url_prefix='/whatsapp')
@@ -66,7 +63,7 @@ def register_module(app):
     except Exception as e:
         print(f"❌ [Mahgoob WhatsApp Service] Failed to register blueprint: {e}")
 
-    # 2. تسجيل البيانات الوصفية والقوائم لكي يقرأها النظام الديناميكي
+    # 2. تسجيل البيانات الوصفية والقوائم
     if not hasattr(app, 'registered_services'):
         app.registered_services = {}
     app.registered_services['whatsapp_service'] = SERVICE_METADATA
@@ -75,4 +72,8 @@ def register_module(app):
         app.registered_modules = {}
     app.registered_modules['whatsapp_service'] = SERVICE_METADATA
     
-    print("✅ [Mahgoob WhatsApp Service] Registered successfully via dynamic engine.")
+    print("✅ [Mahgoob WhatsApp Service] Service registered successfully.")
+
+def register_module(app):
+    """الدالة الأساسية البديلة للتسجيل الديناميكي"""
+    register_service(app)
