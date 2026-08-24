@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, current_app, flash
 from apps.extensions import db, csrf
 from apps.models.whatsapp_models import (
@@ -49,31 +49,37 @@ def chat_dashboard():
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
     
+    # ✅ توحيد تنسيق الرقم (إزالة + وأي أحرف غير رقمية)
+    if selected_phone:
+        selected_phone = ''.join(filter(str.isdigit, selected_phone))
+    
     messages = []
     active_contact = None
 
     if contact_id:
         active_contact = WhatsAppCustomerContact.query.get(contact_id)
         if active_contact:
-            selected_phone = active_contact.phone
+            selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
     elif selected_phone:
         active_contact = WhatsAppCustomerContact.query.filter_by(phone=selected_phone).first()
     elif contacts:
         active_contact = contacts[0]
-        selected_phone = active_contact.phone
+        selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
 
     if active_contact and selected_phone:
         if active_contact.unread_count and active_contact.unread_count > 0:
             active_contact.unread_count = 0
             db.session.commit()
         
+        # ✅ استخدام الرقم الموحد في الاستعلام
         messages = WhatsAppMessageLog.query.filter(
             (WhatsAppMessageLog.sender_number == selected_phone) |
             (WhatsAppMessageLog.recipient_number == selected_phone)
         ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
 
-    # ✅ إضافة متغير now إلى سياق القالب
     now = datetime.now(timezone.utc)
+    today = now.strftime('%Y-%m-%d')
+    yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
 
     return render_template(
         'admin/whatsapp_dashboard.html',
@@ -82,7 +88,9 @@ def chat_dashboard():
         selected_contact=active_contact,
         messages=messages,
         selected_phone=selected_phone,
-        now=now  # ✅ هام جداً: تمرير now للقالب
+        now=now,
+        today=today,
+        yesterday=yesterday
     )
 
 
@@ -137,6 +145,9 @@ def start_new_chat():
     if not phone:
         flash('رقم الهاتف مطلوب لبدء المحادثة', 'error')
         return redirect(url_for('whatsapp_service.chat_dashboard'))
+
+    # ✅ توحيد تنسيق الرقم
+    phone = ''.join(filter(str.isdigit, phone))
 
     contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
     if not contact:
@@ -239,6 +250,8 @@ def webhook_handler():
                     messages = value.get('messages', [])
                     for msg in messages:
                         sender = msg.get('from')
+                        # ✅ توحيد تنسيق الرقم للمرسل
+                        sender = ''.join(filter(str.isdigit, sender))
                         msg_body = msg.get('text', {}).get('body', '')
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
