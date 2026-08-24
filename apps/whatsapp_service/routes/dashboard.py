@@ -9,7 +9,7 @@ from flask_login import login_required
 from datetime import datetime
 from sqlalchemy import or_
 from . import whatsapp_bp
-from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
+from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog, WhatsAppSettings
 from apps.extensions import db
 import os
 
@@ -152,13 +152,13 @@ def webhook_dashboard():
 @whatsapp_bp.route('/settings', methods=['GET'])
 @login_required
 def settings_dashboard():
-    """عرض صفحة إعدادات ربط Meta WhatsApp API مع جلب القيم تلقائياً من متغيرات البيئة"""
+    """عرض صفحة إعدادات ربط Meta WhatsApp API مع جلب القيم من قاعدة البيانات"""
     try:
         class SettingsObj:
-            phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
-            business_account_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
-            api_version = os.getenv("WHATSAPP_API_VERSION", "v21.0")
-            access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+            phone_number_id = WhatsAppSettings.get_setting("WHATSAPP_PHONE_NUMBER_ID", "")
+            business_account_id = WhatsAppSettings.get_setting("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+            api_version = WhatsAppSettings.get_setting("WHATSAPP_API_VERSION", "v21.0")
+            access_token = WhatsAppSettings.get_setting("WHATSAPP_ACCESS_TOKEN", "")
             verify_token = WEBHOOK_VERIFY_TOKEN
             updated_at = None
 
@@ -179,7 +179,7 @@ def settings_dashboard():
 @whatsapp_bp.route('/settings/save', methods=['POST'])
 @login_required
 def settings_save():
-    """حفظ إعدادات Meta API"""
+    """حفظ إعدادات Meta API بشكل دائم في قاعدة البيانات"""
     try:
         data = request.get_json(silent=True) or request.form
         
@@ -188,20 +188,27 @@ def settings_save():
         api_version = data.get('api_version')
         access_token = data.get('access_token')
 
-        if phone_number_id:
-            os.environ["WHATSAPP_PHONE_NUMBER_ID"] = phone_number_id
-        if business_account_id:
-            os.environ["WHATSAPP_BUSINESS_ACCOUNT_ID"] = business_account_id
-        if api_version:
-            os.environ["WHATSAPP_API_VERSION"] = api_version
-        if access_token:
-            os.environ["WHATSAPP_ACCESS_TOKEN"] = access_token
+        if phone_number_id is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_PHONE_NUMBER_ID", phone_number_id.strip())
+            os.environ["WHATSAPP_PHONE_NUMBER_ID"] = phone_number_id.strip()
+            
+        if business_account_id is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_BUSINESS_ACCOUNT_ID", business_account_id.strip())
+            os.environ["WHATSAPP_BUSINESS_ACCOUNT_ID"] = business_account_id.strip()
+            
+        if api_version is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_API_VERSION", api_version.strip())
+            os.environ["WHATSAPP_API_VERSION"] = api_version.strip()
+            
+        if access_token is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_ACCESS_TOKEN", access_token.strip())
+            os.environ["WHATSAPP_ACCESS_TOKEN"] = access_token.strip()
 
         is_connected = bool(access_token and phone_number_id)
         
         return jsonify({
             'success': True,
-            'message': 'تم حفظ الإعدادات بنجاح',
+            'message': 'تم حفظ الإعدادات بنجاح بشكل دائم',
             'is_connected': is_connected,
             'updated_at': datetime.now().strftime('%Y-%m-%d %I:%M %p')
         })
