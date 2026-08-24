@@ -181,10 +181,23 @@ def settings_dashboard():
 def settings_save():
     """حفظ إعدادات Meta API"""
     try:
-        phone_number_id = request.form.get('phone_number_id')
-        business_account_id = request.form.get('business_account_id')
-        api_version = request.form.get('api_version')
-        access_token = request.form.get('access_token')
+        # دعم استقبال البيانات سواء أرسلت كـ JSON أو كـ Form Data
+        data = request.get_json(silent=True) or request.form
+        
+        phone_number_id = data.get('phone_number_id')
+        business_account_id = data.get('business_account_id')
+        api_version = data.get('api_version')
+        access_token = data.get('access_token')
+
+        # تحديث متغيرات البيئة مؤقتاً في الذاكرة لتطبيق التغييرات فوريًا
+        if phone_number_id:
+            os.environ["WHATSAPP_PHONE_NUMBER_ID"] = phone_number_id
+        if business_account_id:
+            os.environ["WHATSAPP_BUSINESS_ACCOUNT_ID"] = business_account_id
+        if api_version:
+            os.environ["WHATSAPP_API_VERSION"] = api_version
+        if access_token:
+            os.environ["WHATSAPP_ACCESS_TOKEN"] = access_token
 
         is_connected = bool(access_token and phone_number_id)
         
