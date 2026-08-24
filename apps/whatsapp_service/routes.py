@@ -325,7 +325,29 @@ def test_webhook():
 
 
 # ==========================================
-# 4. معالج الويب هوك الموحد (Webhook)
+# 4. مسارات التبويبات الإضافية (Logs, Webhook, Settings Views)
+# ==========================================
+@whatsapp_bp.route('/logs', methods=['GET'])
+@login_required
+def logs_dashboard():
+    """عرض سجل الرسائل"""
+    return redirect(url_for('whatsapp_service.chat_dashboard', tab='logs'))
+
+@whatsapp_bp.route('/webhook-sim', methods=['GET'])
+@login_required
+def webhook_dashboard():
+    """عرض محاكي الويب هوك"""
+    return redirect(url_for('whatsapp_service.chat_dashboard', tab='webhook'))
+
+@whatsapp_bp.route('/settings', methods=['GET'])
+@login_required
+def settings_dashboard():
+    """عرض صفحة الإعدادات"""
+    return redirect(url_for('whatsapp_service.chat_dashboard', tab='settings'))
+
+
+# ==========================================
+# 5. معالج الويب هوك الموحد (Webhook)
 # ==========================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 @whatsapp_bp.route('/', methods=['GET', 'POST'])
