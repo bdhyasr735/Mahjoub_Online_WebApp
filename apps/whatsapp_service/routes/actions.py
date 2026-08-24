@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/whatsapp_service/routes/actions.py
+
 """
 WhatsApp User Actions & Form Handlers
 Handles form POST submissions for sending single messages, bulk broadcasts, and saving settings.
@@ -74,7 +76,7 @@ def send_bulk_broadcast():
         return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
-@whatsapp_bp.route('/settings/save', methods=['POST'])
+@whatsapp_bp.route('/settings/save', methods=['POST'], endpoint='actions_settings_save')
 def settings_save():
     """حفظ الإعدادات من واجهة لوحة التحكم"""
     flash("✅ تم حفظ إعدادات Meta API بنجاح", "success")
