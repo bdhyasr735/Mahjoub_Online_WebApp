@@ -3,32 +3,32 @@
 Service Registry & Permissions Module for Mahgoob Online
 """
 
+import importlib
+
 MODULE_NAME = "خدمة مراسلات واتساب"
 DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
 ICON = "fab fa-whatsapp"
 SHOW_IN_SUPPLIER = False
 
-# تعديل المسارات لتكون مسارات مباشرة تبدأ بـ / لتجنب خطأ URL rule must start with a slash
 NAV_ITEMS = [
     {
         "title": "محادثات العملاء",
-        "endpoint": "/whatsapp/dashboard"
+        "endpoint": "whatsapp.dashboard"
     },
     {
         "title": "سجل الرسائل",
-        "endpoint": "/whatsapp/logs"
+        "endpoint": "whatsapp.logs"
     },
     {
         "title": "إعدادات Meta Cloud API",
-        "endpoint": "/whatsapp/settings"
+        "endpoint": "whatsapp.settings"
     }
 ]
 
-# قاموس الروابط المتوافق مع محرك admin_base.html
 LINKS_DICT = {
-    "/whatsapp/dashboard": "محادثات العملاء",
-    "/whatsapp/logs": "سجل الرسائل",
-    "/whatsapp/settings": "إعدادات Meta Cloud API"
+    "whatsapp.dashboard": "محادثات العملاء",
+    "whatsapp.logs": "سجل الرسائل",
+    "whatsapp.settings": "إعدادات Meta Cloud API"
 }
 
 SERVICE_METADATA = {
@@ -49,18 +49,25 @@ SERVICE_METADATA = {
     ]
 }
 
-def register_service(app):
-    """التسجيل التقليدي للخدمة"""
+def register_module(app):
+    """الدالة الأساسية لتسجيل الـ Blueprint والخدمة ديناميكياً في تطبيق Flask"""
+    
+    # 1. تسجيل الـ Blueprint الخاصة بمسارات الواتساب لتفادي خطأ 404
+    try:
+        whatsapp_routes = importlib.import_module("apps.whatsapp.routes")
+        if hasattr(whatsapp_routes, 'whatsapp_bp'):
+            app.register_blueprint(whatsapp_routes.whatsapp_bp, url_prefix='/whatsapp')
+            print("✅ [Mahgoob WhatsApp Service] Blueprint registered successfully at /whatsapp.")
+    except Exception as e:
+        print(f"❌ [Mahgoob WhatsApp Service] Failed to register blueprint: {e}")
+
+    # 2. تسجيل البيانات الوصفية للخدمة
     if not hasattr(app, 'registered_services'):
         app.registered_services = {}
     app.registered_services['whatsapp_service'] = SERVICE_METADATA
     
-    # مزامنة محرك الـ registered_modules الديناميكي لكي يلتقطه القالب بسلاسة
     if not hasattr(app, 'registered_modules'):
         app.registered_modules = {}
     app.registered_modules['whatsapp_service'] = SERVICE_METADATA
-
-def register_module(app):
-    """الدالة الأساسية التي يبحث عنها النظام الديناميكي في apps/__init__.py"""
-    register_service(app)
+    
     print("✅ [Mahgoob WhatsApp Service] Registered successfully via dynamic engine.")
