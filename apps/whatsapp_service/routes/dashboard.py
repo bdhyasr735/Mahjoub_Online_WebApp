@@ -58,7 +58,7 @@ def start_new_chat():
         
         if not phone:
             flash("يرجى إدخال رقم الهاتف بشكل صحيح.", "danger")
-            return redirect(url_for('whatsapp_service.chat_dashboard'))
+            return redirect(url_for('whatsapp.chat_dashboard'))
             
         existing_contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
         
@@ -75,11 +75,11 @@ def start_new_chat():
             existing_contact = new_contact
             flash("تم إنشاء المحادثة بنجاح.", "success")
             
-        return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=existing_contact.id))
+        return redirect(url_for('whatsapp.chat_dashboard', contact_id=existing_contact.id))
     except Exception as e:
         db.session.rollback()
         flash(f"حدث خطأ أثناء بدء المحادثة: {str(e)}", "danger")
-        return redirect(url_for('whatsapp_service.chat_dashboard'))
+        return redirect(url_for('whatsapp.chat_dashboard'))
 
 
 @whatsapp_bp.route('/logs', methods=['GET'])
@@ -91,7 +91,7 @@ def logs_dashboard():
         return render_template('admin/whatsapp_dashboard.html', logs=logs, active_tab='logs')
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل السجلات: {str(e)}", "danger")
-        return redirect(url_for('whatsapp_service.chat_dashboard'))
+        return redirect(url_for('whatsapp.chat_dashboard'))
 
 
 @whatsapp_bp.route('/webhook-panel', methods=['GET'])
@@ -102,7 +102,7 @@ def webhook_dashboard():
         return render_template('admin/whatsapp_dashboard.html', active_tab='webhook')
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل لوحة الويب هوك: {str(e)}", "danger")
-        return redirect(url_for('whatsapp_service.chat_dashboard'))
+        return redirect(url_for('whatsapp.chat_dashboard'))
 
 
 @whatsapp_bp.route('/settings', methods=['GET'])
@@ -129,7 +129,7 @@ def settings_dashboard():
         )
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل صفحة الإعدادات: {str(e)}", "danger")
-        return redirect(url_for('whatsapp_service.chat_dashboard'))
+        return redirect(url_for('whatsapp.chat_dashboard'))
 
 
 @whatsapp_bp.route('/settings/save', methods=['POST'])
