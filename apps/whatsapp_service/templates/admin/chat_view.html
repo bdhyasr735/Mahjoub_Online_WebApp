@@ -12,8 +12,13 @@
       {% if contacts %}
         {% for contact in contacts %}
           <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" class="flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
-            <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">
-              {{ contact.name[0] if contact.name else 'ع' }}
+            <div class="relative">
+              <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">
+                {{ contact.name[0] if contact.name else 'ع' }}
+              </div>
+              {% if contact.is_online %}
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+              {% endif %}
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between mb-1">
@@ -36,15 +41,30 @@
   <!-- منطقة المحادثة النشطة (يسار) -->
   <div class="flex-1 flex flex-col h-full bg-slate-100">
     {% if selected_contact %}
-      <!-- رأس المحادثة مع البحث -->
-      <div class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between">
+      <!-- رأس المحادثة المتقدم -->
+      <div class="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3 flex-1 min-w-0">
-          <div class="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
-            {{ selected_contact.name[0] if selected_contact.name else 'ع' }}
+          <div class="relative">
+            <div class="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+              {{ selected_contact.name[0] if selected_contact.name else 'ع' }}
+            </div>
+            {% if selected_contact.is_online %}
+              <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+            {% endif %}
           </div>
           <div class="min-w-0 flex-1">
-            <h4 class="font-bold text-xs text-slate-900 truncate">{{ selected_contact.name }}</h4>
-            <span dir="ltr" class="text-[10px] text-slate-500">{{ selected_contact.phone }}</span>
+            <h4 class="font-bold text-sm text-slate-900 truncate">{{ selected_contact.name }}</h4>
+            <div class="flex items-center gap-2">
+              <span dir="ltr" class="text-[10px] text-slate-500">{{ selected_contact.phone }}</span>
+              <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+              {% if selected_contact.is_online %}
+                <span class="text-[10px] text-emerald-600 font-medium">● متصل الآن</span>
+              {% elif selected_contact.last_seen %}
+                <span class="text-[10px] text-slate-400">آخر ظهور {{ selected_contact.last_seen.strftime('%H:%M') }}</span>
+              {% else %}
+                <span class="text-[10px] text-slate-400">غير متصل</span>
+              {% endif %}
+            </div>
           </div>
         </div>
 
@@ -61,17 +81,30 @@
         </div>
       </div>
       
-      <!-- سجل الرسائل الحقيقي -->
-      <div id="chatMessagesContainer" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
-        <div class="text-center my-2">
-          <span class="bg-slate-200/70 text-slate-600 text-[10px] px-3 py-1 rounded-full">سجل المحادثة الحقيقي مع العميل</span>
-        </div>
-
+      <!-- سجل الرسائل المحسّن -->
+      <div id="chatMessagesContainer" class="flex-1 p-4 overflow-y-auto flex flex-col gap-1">
         {% if messages and messages|length > 0 %}
+          {% set current_date = None %}
           {% for msg in messages %}
+            {% set msg_date = msg.timestamp.strftime('%Y-%m-%d') if msg.timestamp else '' %}
+            {% if current_date != msg_date %}
+              {% set current_date = msg_date %}
+              <div class="text-center my-3">
+                <span class="bg-slate-200/70 text-slate-500 text-[10px] px-3 py-1 rounded-full">
+                  {% if msg.timestamp.strftime('%Y-%m-%d') == now.strftime('%Y-%m-%d') %}
+                    اليوم
+                  {% elif msg.timestamp.strftime('%Y-%m-%d') == now.strftime('%Y-%m-%d', days=-1) %}
+                    أمس
+                  {% else %}
+                    {{ msg.timestamp.strftime('%d %B %Y') }}
+                  {% endif %}
+                </span>
+              </div>
+            {% endif %}
+            
             {% set is_outbound = msg.direction == 'outbound' %}
-            <div class="message-item flex {{ 'justify-start' if is_outbound else 'justify-end' }}" data-content="{{ msg.content|lower }}">
-              <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs text-xs {{ 'bg-white text-slate-900 border border-slate-200' if is_outbound else 'bg-emerald-600 text-white' }}">
+            <div class="message-item flex {{ 'justify-start' if is_outbound else 'justify-end' }} animate-fadeIn" data-content="{{ msg.content|lower }}">
+              <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs {{ 'bg-white text-slate-900 border border-slate-200' if is_outbound else 'bg-emerald-600 text-white' }}">
                 <p class="whitespace-pre-wrap leading-relaxed message-text">{{ msg.content }}</p>
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[9px] {{ 'text-slate-400' if is_outbound else 'text-emerald-100' }}">
@@ -86,53 +119,58 @@
               </div>
             </div>
           {% endfor %}
-          <!-- عنصر لا توجد نتائج (يظهر عند البحث ولا يوجد مطابقات) -->
           <div id="noSearchResults" class="hidden text-center text-slate-400 text-xs py-10">
             🕵️ لا توجد رسائل تطابق البحث
           </div>
         {% else %}
-          <div class="text-center text-slate-400 text-xs py-10">
-            لا توجد رسائل سابقة في هذه المحادثة. ابدأ الإرسال الآن!
+          <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+            <svg class="w-16 h-16 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <p class="text-xs">لا توجد رسائل سابقة في هذه المحادثة</p>
+            <p class="text-[10px] text-slate-400 mt-1">ابدأ الإرسال الآن!</p>
           </div>
         {% endif %}
       </div>
 
-      <!-- نموذج إرسال الرسالة الفورية (مع HTMX) -->
+      <!-- نموذج إرسال الرسالة المتقدم -->
       <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
             hx-target="#chatMessagesContainer" 
             hx-swap="beforeend"
             hx-on::after-request="this.reset(); document.getElementById('chatMessagesContainer').scrollTop = document.getElementById('chatMessagesContainer').scrollHeight;"
-            class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+            class="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shadow-inner">
         <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
         <input type="text" name="message" placeholder="اكتب رسالتك هنا..." required 
-               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600">
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">إرسال</button>
+               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm hover:shadow-md">
+          إرسال
+        </button>
       </form>
     {% else %}
-      <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
-        <svg class="w-16 h-16 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-        <p class="text-xs">اختر محادثة من القائمة الجانبية للبدء</p>
+      <!-- حالة عدم اختيار محادثة -->
+      <div class="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+        <svg class="w-20 h-20 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <p class="text-sm font-medium text-slate-600">اختر محادثة</p>
+        <p class="text-xs text-slate-400 mt-1">من القائمة الجانبية للبدء</p>
       </div>
     {% endif %}
   </div>
 </div>
 
 <!-- نافذة محادثة جديدة -->
-<div id="newChatModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center">
-  <div class="bg-white rounded-2xl w-96 p-5 shadow-xl border border-slate-200">
+<div id="newChatModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl w-96 p-6 shadow-2xl border border-slate-200 animate-fadeIn">
     <h3 class="font-bold text-sm text-slate-900 mb-4">بدء محادثة جديدة</h3>
     <form action="{{ url_for('whatsapp_service.start_new_chat') }}" method="POST">
       <div class="mb-3">
         <label class="block text-xs font-bold text-slate-700 mb-1">رقم الهاتف (مع رمز الدولة)</label>
-        <input type="text" name="phone" placeholder="966500000000" required dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" name="phone" placeholder="966500000000" required dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition-all">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">اسم العميل</label>
-        <input type="text" name="name" placeholder="اسم العميل" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" name="name" placeholder="اسم العميل" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition-all">
       </div>
       <div class="flex items-center justify-end gap-2">
-        <button type="button" onclick="document.getElementById('newChatModal').classList.add('hidden')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-medium">إلغاء</button>
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold">بدء المحادثة</button>
+        <button type="button" onclick="document.getElementById('newChatModal').classList.add('hidden')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-1.5 rounded-xl text-xs font-medium transition-colors">إلغاء</button>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-xl text-xs font-bold transition-colors">بدء المحادثة</button>
       </div>
     </form>
   </div>
