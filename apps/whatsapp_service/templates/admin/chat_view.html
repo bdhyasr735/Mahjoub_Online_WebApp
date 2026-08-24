@@ -36,15 +36,28 @@
   <!-- منطقة المحادثة النشطة (يسار) -->
   <div class="flex-1 flex flex-col h-full bg-slate-100">
     {% if selected_contact %}
+      <!-- رأس المحادثة مع البحث -->
       <div class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
             {{ selected_contact.name[0] if selected_contact.name else 'ع' }}
           </div>
-          <div>
-            <h4 class="font-bold text-xs text-slate-900">{{ selected_contact.name }}</h4>
+          <div class="min-w-0 flex-1">
+            <h4 class="font-bold text-xs text-slate-900 truncate">{{ selected_contact.name }}</h4>
             <span dir="ltr" class="text-[10px] text-slate-500">{{ selected_contact.phone }}</span>
           </div>
+        </div>
+
+        <!-- 🔍 أداة البحث داخل المحادثة -->
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <input type="text" id="chatSearchInput" placeholder="🔍 بحث في الدردشة..." 
+                   class="w-48 px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600/30 transition-all">
+            <span id="searchResultsCount" class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-emerald-600 font-bold hidden"></span>
+          </div>
+          <button id="clearSearchBtn" onclick="clearSearch()" class="text-slate-400 hover:text-slate-600 text-xs hidden px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
+            ✕
+          </button>
         </div>
       </div>
       
@@ -57,9 +70,9 @@
         {% if messages and messages|length > 0 %}
           {% for msg in messages %}
             {% set is_outbound = msg.direction == 'outbound' %}
-            <div class="flex {{ 'justify-start' if is_outbound else 'justify-end' }}">
+            <div class="message-item flex {{ 'justify-start' if is_outbound else 'justify-end' }}" data-content="{{ msg.content|lower }}">
               <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs text-xs {{ 'bg-white text-slate-900 border border-slate-200' if is_outbound else 'bg-emerald-600 text-white' }}">
-                <p class="whitespace-pre-wrap leading-relaxed">{{ msg.content }}</p>
+                <p class="whitespace-pre-wrap leading-relaxed message-text">{{ msg.content }}</p>
                 <div class="flex items-center justify-end gap-1 mt-1">
                   <span class="text-[9px] {{ 'text-slate-400' if is_outbound else 'text-emerald-100' }}">
                     {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}
@@ -73,6 +86,10 @@
               </div>
             </div>
           {% endfor %}
+          <!-- عنصر لا توجد نتائج (يظهر عند البحث ولا يوجد مطابقات) -->
+          <div id="noSearchResults" class="hidden text-center text-slate-400 text-xs py-10">
+            🕵️ لا توجد رسائل تطابق البحث
+          </div>
         {% else %}
           <div class="text-center text-slate-400 text-xs py-10">
             لا توجد رسائل سابقة في هذه المحادثة. ابدأ الإرسال الآن!
@@ -123,5 +140,72 @@
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
+  });
+
+  // 🔍 وظيفة البحث داخل المحادثة
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('chatSearchInput');
+    const messages = document.querySelectorAll('.message-item');
+    const noResults = document.getElementById('noSearchResults');
+    const resultsCount = document.getElementById('searchResultsCount');
+    const clearBtn = document.getElementById('clearSearchBtn');
+
+    if (!searchInput || !messages.length) return;
+
+    function performSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      messages.forEach(msg => {
+        const content = msg.getAttribute('data-content') || '';
+        if (query === '') {
+          msg.style.display = '';
+          visibleCount++;
+        } else if (content.includes(query)) {
+          msg.style.display = '';
+          visibleCount++;
+        } else {
+          msg.style.display = 'none';
+        }
+      });
+
+      // إظهار/إخفاء رسالة "لا توجد نتائج"
+      if (noResults) {
+        if (query !== '' && visibleCount === 0) {
+          noResults.classList.remove('hidden');
+        } else {
+          noResults.classList.add('hidden');
+        }
+      }
+
+      // تحديث عدد النتائج
+      if (resultsCount) {
+        if (query !== '' && visibleCount > 0) {
+          resultsCount.textContent = `${visibleCount} نتيجة`;
+          resultsCount.classList.remove('hidden');
+        } else {
+          resultsCount.classList.add('hidden');
+        }
+      }
+
+      // إظهار/إخفاء زر المسح
+      if (clearBtn) {
+        if (query !== '') {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    // البحث الفوري عند الكتابة
+    searchInput.addEventListener('input', performSearch);
+
+    // دالة مسح البحث (زر ✕)
+    window.clearSearch = function() {
+      searchInput.value = '';
+      performSearch();
+      searchInput.focus();
+    };
   });
 </script>
