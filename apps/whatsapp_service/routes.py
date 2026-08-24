@@ -24,7 +24,6 @@ def chat_dashboard():
     if selected_phone:
         active_contact = WhatsAppCustomerContact.query.filter_by(phone=selected_phone).first()
         if active_contact:
-            # تحديث عدد الرسائل غير المقروءة إلى صفر عند فتح المحادثة
             active_contact.unread_count = 0
             db.session.commit()
             
@@ -61,7 +60,6 @@ def send_message_htmx():
     
     if success:
         if request.headers.get('HX-Request'):
-            # جلب الرسالة الأخيرة لعرضها مباشرة عبر HTMX
             new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
             return render_template('whatsapp/_message_bubble.html', msg=new_msg)
         return jsonify({"success": True, "result": result})
@@ -139,7 +137,6 @@ def whatsapp_webhook_handler():
                 for change in changes:
                     value = change.get('value', {})
                     
-                    # معالجة الرسائل الواردة
                     messages = value.get('messages', [])
                     for msg in messages:
                         sender = msg.get('from')
@@ -173,11 +170,10 @@ def whatsapp_webhook_handler():
                         
                         db.session.commit()
 
-                    # معالجة حالات الرسائل (Sent, Delivered, Read)
                     statuses = value.get('statuses', [])
                     for st in statuses:
                         wamid = st.get('id')
-                        status_type = st.get('status') # sent, delivered, read
+                        status_type = st.get('status')
                         msg_log = WhatsAppMessageLog.query.filter_by(wamid=wamid).first()
                         if msg_log:
                             msg_log.status = status_type
