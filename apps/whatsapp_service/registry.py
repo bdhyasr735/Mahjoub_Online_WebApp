@@ -3,18 +3,11 @@
 Service Registry & Permissions Module for Mahgoob Online
 """
 
-from flask import Blueprint
-
-# تعريف الـ Blueprint الخاص بخدمة الواتساب
-whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='templates', url_prefix='/admin/whatsapp')
-
-# المتطلبات التي يبحث عنها النظام الديناميكي في apps/__init__.py
 MODULE_NAME = "خدمة مراسلات واتساب"
 DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
 ICON = "fab fa-whatsapp"
 SHOW_IN_SUPPLIER = False
 
-# عناصر القائمة الجانبية بتوافق تام
 NAV_ITEMS = [
     {
         "title": "محادثات العملاء",
@@ -47,13 +40,14 @@ SERVICE_METADATA = {
     ]
 }
 
-def register_module(app):
-    """الدالة المعيارية التي يستدعيها النظام الديناميكي في apps/__init__.py"""
-    if not app.has_bp('whatsapp_service'): # أو التسجيل المباشر
-        app.register_blueprint(whatsapp_bp)
-    
-    # دعم التسجيل المخصص القديم إن احتجته في مكان آخر
+def register_service(app):
+    """التسجيل التقليدي للخدمة"""
     if not hasattr(app, 'registered_services'):
         app.registered_services = {}
     app.registered_services['whatsapp_service'] = SERVICE_METADATA
+
+def register_module(app):
+    """الدالة الأساسية التي يبحث عنها النظام الديناميكي في apps/__init__.py"""
+    register_service(app)
+    # ملاحظة: المسارات يتم تسجيلها عبر init_app في ملف __init__.py الخاص بالموديول
     print("✅ [Mahgoob WhatsApp Service] Registered successfully via dynamic engine.")
