@@ -35,7 +35,10 @@ def import_all_models():
 
 
 def seed_database():
-    """زراعة البيانات المبدئية وتسجيل حركة الرصيد الافتتاحي بشكل ديناميكي وآمن."""
+    """
+    زراعة البيانات المبدئية بشكل آمن وديناميكي.
+    يتم التحقق من وجود البيانات قبل إضافتها لتجنب التكرار.
+    """
     try:
         from apps.models.admin_db import AdminUser
         from apps.models.admin_staff_db import AdminStaff
@@ -43,10 +46,12 @@ def seed_database():
         from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
         from apps.models.treasury_db import TreasuryEntry
     except ImportError as ie:
-        print(f"⚠️ [تحذير استيراد الزراعة]: تعذر استيراد بعض النماذج أثناء عملية الزراعة: {ie}")
+        print(f"⚠️ [تحذير استيراد الزراعة]: تعذر استيراد بعض النماذج: {ie}")
         return
 
-    # 1. زراعة المالك
+    # ============================================================
+    # 1. زراعة حساب المالك (Owner)
+    # ============================================================
     try:
         if not AdminUser.query.filter_by(username='ali_mahjoub').first():
             admin = AdminUser(username='ali_mahjoub', role='Owner')
@@ -54,71 +59,97 @@ def seed_database():
             db.session.add(admin)
             db.session.commit()
             print("✅ [الزراعة]: تم زرع حساب المالك (ali_mahjoub) بنجاح.")
+        else:
+            print("ℹ️ [الزراعة]: حساب المالك موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المالك]: {e}")
 
-    # 2. زراعة موظف إدارة
+    # ============================================================
+    # 2. زراعة موظف إدارة (Admin Staff)
+    # ============================================================
     try:
-        existing_staff = AdminStaff.query.filter_by(username='admin_staff_test').first()
-        if not existing_staff:
+        if not AdminStaff.query.filter_by(username='admin_staff_test').first():
             staff = AdminStaff(
                 username='admin_staff_test',
                 name='موظف الإدارة التجريبي',
                 email='admin_staff@mahjoub.online',
                 role_title='مشرف عام الإدارة',
                 is_active=True,
-                permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
+                permissions={
+                    'manage_staff': True,
+                    'manage_suppliers': True,
+                    'manage_products': True,
+                    'manage_orders': True,
+                    'view_reports': True
+                }
             )
             staff.set_password('123')
             db.session.add(staff)
             db.session.commit()
-            print("✅ [الزراعة]: تم زرع موظف الإدارة التجريبي بنجاح.")
+            print("✅ [الزراعة]: تم زرع موظف الإدارة التجريبي (admin_staff_test) بنجاح.")
+        else:
+            print("ℹ️ [الزراعة]: موظف الإدارة موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة موظف الإدارة]: {e}")
 
-    # 3. زراعة مورد ومحفظته وقيد الخزينة العامة
+    # ============================================================
+    # 3. زراعة مورد تجريبي مع محفظة ورصيد افتتاحي
+    # ============================================================
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
+            # إنشاء المورد
             supplier = Supplier(
                 username='test_supplier',
-                trade_name='متجر تجريبي',
+                trade_name='متجر محجوب التجريبي',
                 owner_name='المورد التجريبي',
-                phone='779077746',
-                status='active',
-                supplier_code='SUP9631'
+                store_name='متجر محجوب أونلاين',
+                status='active'
             )
+            # تعيين رقم الهاتف (سيتم تشفيره تلقائياً)
+            supplier.phone = '779077746'
             supplier.set_password('123')
             db.session.add(supplier)
-            db.session.flush()
+            db.session.flush()  # للحصول على supplier.id
 
+            # إنشاء المحفظة
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=1000000.00
+                balance_sar=1000000.00,
+                status='active'
             )
             db.session.add(wallet)
             db.session.flush()
 
+            # إنشاء رقم مرجعي فريد
             now = datetime.utcnow()
             date_str = now.strftime('%Y%m%d')
             time_stamp = now.strftime('%H%M%S%f')[:9]
             characters = string.ascii_uppercase + string.digits
 
+            # توليد رقم مرجعي فريد
             while True:
                 random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
-                candidate_ref = f"TRX-{supplier.supplier_code}-{date_str}-{time_stamp}-{random_6_code}"
-
+                candidate_ref = f"TRX-SUP9631-{date_str}-{time_stamp}-{random_6_code}"
                 exists_ref = db.session.scalar(
-                    select(WalletTransaction.id).where(WalletTransaction.reference_number == candidate_ref)
+                    select(WalletTransaction.id).where(
+                        WalletTransaction.reference_number == candidate_ref
+                    )
                 )
                 if not exists_ref:
                     seed_ref_number = candidate_ref
                     break
 
-            seed_voucher_number = generate_unique_voucher_number(db.session.connection(), length=6, prefix="VCH-")
+            # توليد رقم سند فريد
+            seed_voucher_number = generate_unique_voucher_number(
+                db.session.connection(),
+                length=6,
+                prefix="VCH-"
+            )
 
+            # إنشاء حركة الإيداع الافتتاحية
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
                 trans_type='deposit',
@@ -131,6 +162,7 @@ def seed_database():
             )
             db.session.add(initial_transaction)
 
+            # إنشاء قيد الخزينة العامة
             treasury_entry = TreasuryEntry(
                 reference_number=seed_ref_number,
                 voucher_number=seed_voucher_number,
@@ -145,6 +177,11 @@ def seed_database():
 
             db.session.commit()
             print("✅ [الزراعة]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
+            print(f"   📌 كود المورد: SUP-963{supplier.id}")
+            print(f"   📌 كود المحفظة: WEL-963{supplier.id}")
+            print(f"   📌 رقم السند: {seed_voucher_number}")
+        else:
+            print("ℹ️ [الزراعة]: المورد التجريبي موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
@@ -216,15 +253,16 @@ def create_app():
     with app.app_context():
         import_all_models()
         try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
+            # ✅ إنشاء الجداول أولاً
             db.create_all()
+            print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
+
+            # ✅ زراعة البيانات بعد إنشاء الجداول
             seed_database()
-            print("✅ [إعادة بناء الجداول]: تم مسح وإعادة بناء القاعدة وزراعة البيانات بنجاح عند التشغيل.")
+            print("✅ [الزراعة]: تمت زراعة البيانات المبدئية بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"❌ [خطأ إعادة بناء الجداول]: {e}")
+            print(f"❌ [خطأ]: {e}")
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
@@ -254,7 +292,7 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
     
-    # ✅ التعديل الأساسي: استخدم الكائن المُستورد من extensions.py بدلاً من إنشاء كائن جديد
+    # ✅ استخدم الكائن المُستورد من extensions.py
     from apps.extensions import csrf, limiter
     csrf.init_app(app)
     limiter.init_app(app)
@@ -331,7 +369,7 @@ def create_app():
             '/supplier/forgot-password',
             admin_login_path,
             '/auth',
-            '/whatsapp' # استثناء مسارات الواتساب من حماية الـ Login
+            '/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -454,7 +492,7 @@ def create_app():
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات عبر ملف الـ registry.py
+    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
@@ -471,19 +509,17 @@ def create_app():
                     
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
-                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح عبر النظام الديناميكي.")
+                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
                         
-                        # استثناء موديول الواتساب تلقائياً من الـ CSRF إذا كان هو الموديول الحالي
                         if item == 'whatsapp_service' or 'whatsapp' in item:
                             try:
-                                # استخراج البلوبرنت واستثنائه
                                 if hasattr(module, 'whatsapp_bp'):
                                     csrf.exempt(module.whatsapp_bp)
-                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF بنجاح.")
+                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
                             except Exception as ex_csrf:
-                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول تلقائياً: {ex_csrf}")
+                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
                     else:
-                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' يحتوي على ملف registry.py ولكنّه لا يتضمن دالة register_module.")
+                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
 
                     try:
                         app_module = importlib.import_module(f"apps.{item}")
