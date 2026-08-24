@@ -15,6 +15,9 @@ from apps.whatsapp_service.config import WhatsAppServiceConfig
 # ✅ تعريف الـ Blueprint بالاسم المطلوب في القوالب
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='templates')
 
+# ✅ استثناء البلوبرنت بالكامل من CSRF (يُغني عن @csrf.exempt على كل دالة)
+csrf.exempt(whatsapp_bp)
+
 
 # ============================================================
 # ✅ Context Processor لتوفير الإعدادات لجميع القوالب تلقائياً
@@ -81,7 +84,6 @@ def chat_dashboard():
 
 
 @whatsapp_bp.route('/send-message', methods=['POST'])
-@csrf.exempt
 def send_message_htmx():
     """إرسال رسالة عبر واتساب مع دعم HTMX"""
     recipient = request.form.get('recipient') or request.json.get('recipient')
@@ -107,7 +109,6 @@ def send_message_htmx():
 
 
 @whatsapp_bp.route('/start-new-chat', methods=['POST'])
-@csrf.exempt
 def start_new_chat():
     """بدء محادثة جديدة مع عميل"""
     phone = request.form.get('phone')
@@ -184,7 +185,6 @@ def webhook_dashboard():
 # 🚨 المسار الرئيسي لـ Webhook (يجب أن يكون متطابقاً مع ما في ميتا)
 # ============================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
-@csrf.exempt
 def webhook_handler():
     """
     نقطة استقبال Webhook من ميتا (GET للتحقق، POST للاستقبال)
@@ -284,14 +284,12 @@ def webhook_handler():
 # نسخة احتياطية (للتوافق مع الإعدادات القديمة في ميتا)
 # ============================================================
 @whatsapp_bp.route('/webhook-handler', methods=['GET', 'POST'])
-@csrf.exempt
 def whatsapp_webhook_handler():
     """نسخة احتياطية من Webhook (تُعيد توجيه الطلب إلى المعالج الرئيسي)"""
     return webhook_handler()
 
 
 @whatsapp_bp.route('/settings/save', methods=['POST'])
-@csrf.exempt
 def settings_save():
     """نقطة API لحفظ الإعدادات عبر AJAX (تستخدم في settings_view.html)"""
     try:
