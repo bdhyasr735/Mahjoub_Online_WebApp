@@ -33,7 +33,8 @@ def send_text_message(recipient, message):
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        # إضافة Timeout بـ 10 ثوانٍ لضمان عدم تعليق الخادم في بيئة الإنتاج
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
         res_data = response.json() if response.content else {}
         
         db = get_db()
@@ -42,7 +43,7 @@ def send_text_message(recipient, message):
         wamid = None
         try:
             wamid = res_data.get('messages', [{}])[0].get('id')
-        except:
+        except Exception:
             pass
             
         status = 'sent' if response.status_code == 200 else 'failed'
@@ -77,5 +78,13 @@ def send_text_message(recipient, message):
             return True, res_data
         else:
             return False, response.text
+
+    except requests.exceptions.Timeout:
+        return False, "Request to WhatsApp API timed out."
     except Exception as e:
+        try:
+            db = get_db()
+            db.session.rollback()
+        except Exception:
+            pass
         return False, str(e)
