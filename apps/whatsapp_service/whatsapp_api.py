@@ -11,7 +11,6 @@ class WhatsAppAPI:
     def __init__(self, token=None, phone_number_id=None, api_version=None):
         """
         تهيئة عميل واتساب (WhatsApp Cloud API Client)
-        يمكن جلب البيانات مباشرة من إعدادات التطبيق أو تمريرها كمعاملات.
         """
         self.token = token or current_app.config.get('WHATSAPP_TOKEN', '') or current_app.config.get('WHATSAPP_ACCESS_TOKEN', '')
         self.phone_number_id = phone_number_id or current_app.config.get('WHATSAPP_PHONE_NUMBER_ID', '')
@@ -73,6 +72,15 @@ class WhatsAppAPI:
         except Exception as e:
             logger.error(f"⚠️ [WhatsApp Connection Test Error]: {e}")
             return False
+
+
+# 🌟 الدالة العامة المساعدة المطلوبة لتجنب خطأ الاستيراد (Import Error)
+def send_text_message(recipient_phone, message_body):
+    """
+    دالة مباشرة مستقلة لاستيرادها واستخدامها مباشرة
+    """
+    client = WhatsAppAPI()
+    return client.send_text_message(recipient_phone, message_body)
 
 
 def send_meta_whatsapp_message(recipient_phone, message_body):
