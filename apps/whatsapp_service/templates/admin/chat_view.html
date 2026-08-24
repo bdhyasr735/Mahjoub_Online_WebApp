@@ -7,7 +7,7 @@
         + محادثة جديدة
       </button>
     </div>
-    
+
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
@@ -41,7 +41,7 @@
   <!-- منطقة المحادثة النشطة (يسار) -->
   <div class="flex-1 flex flex-col h-full bg-slate-100">
     {% if selected_contact %}
-      <!-- رأس المحادثة المتقدم -->
+      <!-- رأس المحادثة -->
       <div class="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3 flex-1 min-w-0">
           <div class="relative">
@@ -68,10 +68,10 @@
           </div>
         </div>
 
-        <!-- 🔍 أداة البحث داخل المحادثة -->
+        <!-- البحث -->
         <div class="flex items-center gap-2">
           <div class="relative">
-            <input type="text" id="chatSearchInput" placeholder="🔍 بحث في الدردشة..." 
+            <input type="text" id="chatSearchInput" placeholder="🔍 بحث في الدردشة..."
                    class="w-48 px-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600/30 transition-all">
             <span id="searchResultsCount" class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-emerald-600 font-bold hidden"></span>
           </div>
@@ -80,8 +80,8 @@
           </button>
         </div>
       </div>
-      
-      <!-- سجل الرسائل المحسّن -->
+
+      <!-- سجل الرسائل -->
       <div id="chatMessagesContainer" class="flex-1 p-4 overflow-y-auto flex flex-col gap-1">
         {% if messages and messages|length > 0 %}
           {% set current_date = None %}
@@ -101,7 +101,7 @@
                 </span>
               </div>
             {% endif %}
-            
+
             {% set is_outbound = msg.direction == 'outbound' %}
             <div class="message-item flex {{ 'justify-start' if is_outbound else 'justify-end' }} animate-fadeIn" data-content="{{ msg.content|lower }}">
               <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs {{ 'bg-white text-slate-900 border border-slate-200' if is_outbound else 'bg-emerald-600 text-white' }}">
@@ -131,16 +131,12 @@
         {% endif %}
       </div>
 
-      <!-- نموذج إرسال الرسالة المتقدم -->
-      <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
-            hx-target="#chatMessagesContainer" 
-            hx-swap="beforeend"
-            hx-on::after-request="this.reset(); document.getElementById('chatMessagesContainer').scrollTop = document.getElementById('chatMessagesContainer').scrollHeight;"
-            class="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shadow-inner">
+      <!-- نموذج الإرسال (باستخدام Fetch) -->
+      <form id="chat-form" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shadow-inner">
         <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
-        <input type="text" name="message" placeholder="اكتب رسالتك هنا..." required 
+        <input type="text" name="message" id="message-input" placeholder="اكتب رسالتك هنا..." required
                class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm hover:shadow-md">
+        <button type="submit" id="send-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm hover:shadow-md">
           إرسال
         </button>
       </form>
@@ -177,7 +173,7 @@
 </div>
 
 <script>
-  // التمرير التلقائي لأسفل صندوق الرسائل عند الفتح
+  // التمرير التلقائي
   document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('chatMessagesContainer');
     if (container) {
@@ -185,7 +181,7 @@
     }
   });
 
-  // 🔍 وظيفة البحث داخل المحادثة
+  // 🔍 البحث
   document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('chatSearchInput');
     const messages = document.querySelectorAll('.message-item');
@@ -212,7 +208,6 @@
         }
       });
 
-      // إظهار/إخفاء رسالة "لا توجد نتائج"
       if (noResults) {
         if (query !== '' && visibleCount === 0) {
           noResults.classList.remove('hidden');
@@ -221,7 +216,6 @@
         }
       }
 
-      // تحديث عدد النتائج
       if (resultsCount) {
         if (query !== '' && visibleCount > 0) {
           resultsCount.textContent = `${visibleCount} نتيجة`;
@@ -231,7 +225,6 @@
         }
       }
 
-      // إظهار/إخفاء زر المسح
       if (clearBtn) {
         if (query !== '') {
           clearBtn.classList.remove('hidden');
@@ -241,14 +234,64 @@
       }
     }
 
-    // البحث الفوري عند الكتابة
     searchInput.addEventListener('input', performSearch);
 
-    // دالة مسح البحث (زر ✕)
     window.clearSearch = function() {
       searchInput.value = '';
       performSearch();
       searchInput.focus();
     };
+  });
+
+  // 📤 إرسال الرسالة باستخدام Fetch
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('message-input');
+    const container = document.getElementById('chatMessagesContainer');
+    const sendBtn = document.getElementById('send-btn');
+
+    if (!form) return;
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const phone = form.querySelector('input[name="phone"]').value;
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'جاري الإرسال...';
+
+      try {
+        const response = await fetch("{{ url_for('whatsapp_service.send_message_htmx') }}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: new URLSearchParams({
+            phone: phone,
+            message: message
+          })
+        });
+
+        const html = await response.text();
+
+        if (response.ok) {
+          container.insertAdjacentHTML('beforeend', html);
+          container.scrollTop = container.scrollHeight;
+          input.value = '';
+        } else {
+          alert('فشل الإرسال: ' + html);
+        }
+      } catch (error) {
+        console.error('فشل الإرسال:', error);
+        alert('حدث خطأ أثناء الإرسال. راجع السجلات.');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'إرسال';
+      }
+    });
   });
 </script>
