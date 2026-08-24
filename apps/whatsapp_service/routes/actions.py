@@ -66,3 +66,13 @@ def settings_save():
     """حفظ الإعدادات من واجهة لوحة التحكم"""
     flash("✅ تم حفظ إعدادات Meta API بنجاح", "success")
     return redirect(url_for('whatsapp_service.settings_dashboard'))
+
+
+@whatsapp_bp.route('/admin/whatsapp/regenerate-token', methods=['POST'])
+def regenerate_verify_token():
+    """توليد رمز تحقق جديد (Verify Token) للربط مع ميتا"""
+    import secrets
+    new_token = secrets.token_hex(16)
+    
+    # يمكنك إضافة كود حفظ الرمز الجديد في قاعدة البيانات هنا إذا احتجت لاحقاً
+    return jsonify({"success": True, "token": new_token})
