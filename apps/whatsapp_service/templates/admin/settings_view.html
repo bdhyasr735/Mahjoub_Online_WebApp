@@ -29,7 +29,7 @@
 </div>
 
 <script>
-  // حفظ الإعدادات عبر طلب AJAX متوافق مع المسار الصحيح في الـ routes.py
+  // حفظ الإعدادات عبر طلب AJAX مع تضمين توكن الحماية لمنع خطأ 400
   async function saveWhatsAppSettings(event) {
     event.preventDefault();
     const btn = document.getElementById('save-btn');
@@ -50,7 +50,8 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': "{{ csrf_token() }}" // تمرير توكن الحماية لتجاوز خطأ 400
         },
         body: JSON.stringify(formData)
       });
