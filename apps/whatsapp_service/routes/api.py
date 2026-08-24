@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/whatsapp_service/routes/api.py
-
 """
 WhatsApp JSON APIs
 Handles real-time polling data retrieval and AJAX live message sending.
@@ -21,7 +19,6 @@ from apps.extensions import db
 def get_conversations_list():
     """جلب قائمة المحادثات والعملاء النشطين بصيغة JSON"""
     try:
-        # استخدام last_timestamp مطابقةً لملفات الويب هوك ولوحة التحكم
         contacts = db.session.query(WhatsAppCustomerContact).order_by(
             WhatsAppCustomerContact.last_timestamp.desc()
         ).all()
