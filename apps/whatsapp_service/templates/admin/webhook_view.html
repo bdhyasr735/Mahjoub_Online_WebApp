@@ -1,23 +1,19 @@
 <div class="flex-1 bg-slate-50 overflow-y-auto p-6 lg:p-10 flex flex-col items-center">
   <div class="max-w-3xl w-full">
-    
-    <!-- رأس الصفحة -->
+
     <div class="mb-6">
       <h2 class="text-xl font-extrabold text-slate-900">إعدادات ومحاكي الويب هوك (Webhook)</h2>
       <p class="text-xs text-slate-500 mt-1">قم بربط وتكوين مسار استقبال الرسائل والإشعارات من منصة ميتا (Meta Developer Console).</p>
     </div>
 
-    <!-- بطاقة محتوى الويب هوك -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 lg:p-8 space-y-6">
-      
-      <!-- رابط الويب هوك الحالي -->
+
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">رابط الويب هوك (Callback URL) الذي يجب وضعه في منصة ميتا</label>
         <div class="flex items-center gap-2">
-          <!-- ✅ استخدام المسار الرئيسي webhook_handler (وليس whatsapp_webhook_handler) -->
-          <input type="text" readonly value="{{ request.host_url.rstrip('/') }}{{ url_for('whatsapp_service.webhook_handler') }}" 
+          <input type="text" readonly value="{{ request.host_url.rstrip('/') }}{{ url_for('whatsapp_service.webhook_handler') }}"
                  class="w-full bg-slate-100 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-800 font-mono select-all" dir="ltr" id="webhook-url-input">
-          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhook-url-input').value); alert('تم نسخ الرابط بنجاح!');" 
+          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhook-url-input').value); alert('تم نسخ الرابط بنجاح!');"
                   class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shrink-0 transition-all">
             نسخ الرابط
           </button>
@@ -25,13 +21,12 @@
         <p class="text-[11px] text-slate-500 mt-1">يجب أن يكون هذا الرابط مطابقاً لما هو مضبوط في لوحة مطوري ميتا.</p>
       </div>
 
-      <!-- رمز التحقق -->
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز التحقق (Verify Token)</label>
         <div class="flex items-center gap-2">
-          <input type="text" readonly value="{{ settings.verify_token }}" 
+          <input type="text" readonly value="{{ settings.verify_token }}"
                  class="w-full bg-slate-100 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-800 font-mono select-all" dir="ltr" id="verify-token-input">
-          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('verify-token-input').value); alert('تم نسخ رمز التحقق!');" 
+          <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('verify-token-input').value); alert('تم نسخ رمز التحقق!');"
                   class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shrink-0 transition-all">
             نسخ الرمز
           </button>
@@ -39,7 +34,6 @@
         <p class="text-[11px] text-slate-500 mt-1">قم بلصق هذا الرمز تماماً في خانة Verify Token عند إعداد الويب هوك في لوحة مطوري ميتا.</p>
       </div>
 
-      <!-- حالة الاتصال واستقبال الأحداث -->
       <div class="border-t border-slate-100 pt-6">
         <h3 class="text-sm font-bold text-slate-800 mb-3">حالة الاتصال بـ Webhook</h3>
         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
