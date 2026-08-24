@@ -1,74 +1,47 @@
-# -*- coding: utf-8 -*-
-"""
-Service Registry & Permissions Module for Mahgoob Online
-"""
+# coding: utf-8
+# 📂 apps/whatsapp_service/config.py
 
-import importlib
+import os
+from flask import current_app
 
-MODULE_NAME = "خدمة مراسلات واتساب"
-DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
-ICON = "fab fa-whatsapp"
-SHOW_IN_SUPPLIER = False
+class WhatsAppServiceConfig:
+    """إعدادات خدمة الواتساب المحلية ومطابقة المتغيرات البيئية بدقة ومرونة"""
 
-NAV_ITEMS = [
-    {"title": "محادثات العملاء", "endpoint": "/whatsapp/chat"},
-    {"title": "إعدادات Meta Cloud API", "endpoint": "/whatsapp/settings"}
-]
+    @classmethod
+    def _get_val(cls, *keys, default=''):
+        for k in keys:
+            try:
+                if current_app:
+                    val = current_app.config.get(k)
+                    if val:
+                        return str(val).strip()
+            except RuntimeError:
+                pass
+            env_val = os.environ.get(k)
+            if env_val:
+                return str(env_val).strip()
+        return default
 
-LINKS_DICT = {
-    "/whatsapp/chat": "محادثات العملاء",
-    "/whatsapp/settings": "إعدادات Meta Cloud API"
-}
+    @classmethod
+    def get_whatsapp_token(cls):
+        return cls._get_val('WHATSAPP_ACCESS_TOKEN', 'WHATSAPP ACCESS TOKEN')
 
-SERVICE_METADATA = {
-    "name": "whatsapp_service",
-    "display_name": DISPLAY_NAME,
-    "version": "1.2.0",
-    "author": "Mahgoob Online Dev Team",
-    "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات",
-    "icon": ICON,
-    "links": LINKS_DICT,
-    "admin_menu": NAV_ITEMS,
-    "permissions": [
-        "whatsapp.view_chat",
-        "whatsapp.send_message",
-        "whatsapp.manage_templates",
-        "whatsapp.view_logs",
-        "whatsapp.admin_settings"
-    ]
-}
+    @classmethod
+    def get_phone_number_id(cls):
+        return cls._get_val('WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP PHONE NUMBER ID', default='1336881386166971')
 
-def register_service(app):
-    try:
-        whatsapp_routes = importlib.import_module("apps.whatsapp_service.routes")
-        if hasattr(whatsapp_routes, 'whatsapp_service'):
-            bp = whatsapp_routes.whatsapp_service
-            if bp.name not in app.blueprints:
-                app.register_blueprint(bp, url_prefix='/whatsapp')
-                app.logger.info("✅ [WhatsApp Service] Blueprint registered at /whatsapp.")
-            else:
-                app.logger.info("ℹ️ [WhatsApp Service] Blueprint already registered.")
-        elif hasattr(whatsapp_routes, 'whatsapp_bp'):
-            bp = whatsapp_routes.whatsapp_bp
-            if bp.name not in app.blueprints:
-                app.register_blueprint(bp, url_prefix='/whatsapp')
-                app.logger.info("✅ [WhatsApp Service] Blueprint (legacy) registered at /whatsapp.")
-            else:
-                app.logger.info("ℹ️ [WhatsApp Service] Blueprint (legacy) already registered.")
-        else:
-            app.logger.error("❌ [WhatsApp Service] No blueprint found.")
-    except Exception as e:
-        app.logger.error(f"❌ [WhatsApp Service] Failed to register blueprint: {e}")
+    @classmethod
+    def get_business_account_id(cls):
+        return cls._get_val('WHATSAPP_BUSINESS_ACCOUNT_ID', 'WHATSAPP BUSINESS ACCOUNT ID', default='2280533956048577')
 
-    if not hasattr(app, 'registered_services'):
-        app.registered_services = {}
-    app.registered_services['whatsapp_service'] = SERVICE_METADATA
-    
-    if not hasattr(app, 'registered_modules'):
-        app.registered_modules = {}
-    app.registered_modules['whatsapp_service'] = SERVICE_METADATA
-    
-    app.logger.info("✅ [WhatsApp Service] Metadata registered.")
+    @classmethod
+    def get_verify_token(cls):
+        return cls._get_val('WHATSAPP_VERIFY_TOKEN', 'WHATSAPP VERIFY TOKEN', default='mahjoub_secure_webhook_token')
 
-def register_module(app):
-    register_service(app)
+    @classmethod
+    def get_webhook_secret(cls):
+        return cls._get_val('WEBHOOK_SECRET', 'WEBHOOK SECRET')
+
+    @classmethod
+    def get_api_version(cls):
+        return cls._get_val('WHATSAPP_API_VERSION', default='v21.0')
