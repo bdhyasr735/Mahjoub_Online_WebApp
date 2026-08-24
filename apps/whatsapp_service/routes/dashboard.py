@@ -256,7 +256,6 @@ def whatsapp_webhook_handler():
 
                                 msg_time = datetime.fromtimestamp(int(timestamp)) if timestamp else datetime.utcnow()
 
-                                # مطابقة حقل phone مع نموذج قاعدة البيانات
                                 contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone_number).first()
                                 
                                 if not contact:
@@ -278,7 +277,6 @@ def whatsapp_webhook_handler():
                                 
                                 db.session.commit()
 
-                                # مطابقة حقول سجل الرسائل مع WhatsAppMessageLog في whatsapp_api.py
                                 new_log = WhatsAppMessageLog(
                                     wamid=msg_id,
                                     direction='inbound',
