@@ -17,7 +17,7 @@ from apps.models.whatsapp_models import (
 from apps.extensions import db
 
 
-@whatsapp_bp.route('/send_message', methods=['POST'])
+@whatsapp_bp.route('/send_message', methods=['POST'], endpoint='actions_send_message_htmx')
 def send_message_htmx():
     """إرسال رسالة فردية لعميل من لوحة التحكم وإعادة التوجيه للمحادثة"""
     try:
@@ -42,7 +42,7 @@ def send_message_htmx():
         return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
-@whatsapp_bp.route('/send_bulk_broadcast', methods=['POST'])
+@whatsapp_bp.route('/send_bulk_broadcast', methods=['POST'], endpoint='actions_send_bulk_broadcast')
 def send_bulk_broadcast():
     """إرسال حملة رسائل جماعية للعملاء مع دعم التوجيه و JSON"""
     try:
@@ -83,7 +83,7 @@ def settings_save():
     return redirect(url_for('whatsapp_service.settings_dashboard'))
 
 
-@whatsapp_bp.route('/admin/whatsapp/regenerate-token', methods=['POST'])
+@whatsapp_bp.route('/admin/whatsapp/regenerate-token', methods=['POST'], endpoint='actions_regenerate_verify_token')
 def regenerate_verify_token():
     """توليد رمز تحقق جديد (Verify Token) للربط مع ميتا"""
     import secrets
@@ -91,13 +91,13 @@ def regenerate_verify_token():
     return jsonify({"success": True, "token": new_token})
 
 
-@whatsapp_bp.route('/admin/whatsapp/test-connection', methods=['GET'])
+@whatsapp_bp.route('/admin/whatsapp/test-connection', methods=['GET'], endpoint='actions_test_connection')
 def test_connection():
     """اختبار الاتصال بـ Meta WhatsApp Cloud API"""
     return jsonify({"success": True, "message": "تم الاتصال بنجاح بـ Meta API"})
 
 
-@whatsapp_bp.route('/admin/whatsapp/test-webhook', methods=['POST'])
+@whatsapp_bp.route('/admin/whatsapp/test-webhook', methods=['POST'], endpoint='actions_test_webhook')
 def test_webhook():
     """اختبار استجابة الـ Webhook"""
     return jsonify({"success": True, "message": "استجابة Webhook سليمة وتعمل بنجاح"})
