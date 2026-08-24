@@ -277,7 +277,7 @@ def whatsapp_webhook_handler():
                                 
                                 db.session.commit()
 
-                                # مطابقة حقول سجل الرسائل مع WhatsAppMessageLog في whatsapp_api.py
+                                # مطابقة حقول سجل الرسائل مع WhatsAppMessageLog
                                 new_log = WhatsAppMessageLog(
                                     wamid=msg_id,
                                     direction='inbound',
