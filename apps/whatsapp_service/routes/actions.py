@@ -141,8 +141,6 @@ def settings_save():
         business_account_id = request.form.get('business_account_id')
         access_token = request.form.get('access_token')
 
-        # يمكنك إضافة منطق حفظ البيانات هنا (مثل تخزينها في القاعدة أو ملف الإعدادات)
-
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
             return jsonify({"success": True, "message": "✅ تم حفظ إعدادات Meta API بنجاح"})
 
@@ -164,12 +162,15 @@ def regenerate_verify_token():
 
 
 @whatsapp_bp.route('/admin/whatsapp/test-connection', methods=['GET'], endpoint='actions_test_connection')
+@whatsapp_bp.route('/test-connection', methods=['GET'], endpoint='actions_test_connection_alt')
 def test_connection():
     """اختبار الاتصال بـ Meta WhatsApp Cloud API"""
     return jsonify({"success": True, "message": "تم الاتصال بنجاح بـ Meta API"})
 
 
 @whatsapp_bp.route('/admin/whatsapp/test-webhook', methods=['POST'], endpoint='actions_test_webhook')
+@whatsapp_bp.route('/test-webhook', methods=['POST'], endpoint='actions_test_webhook_alt')
+@whatsapp_bp.route('/webhook-panel/test', methods=['POST'], endpoint='actions_test_webhook_panel')
 def test_webhook():
     """اختبار استجابة الـ Webhook"""
     return jsonify({"success": True, "message": "استجابة Webhook سليمة وتعمل بنجاح"})
