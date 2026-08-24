@@ -129,7 +129,7 @@ class WhatsAppAPI:
             return False
 
 
-# الدوال العامة المساعدة التي تستوردها ملفات notifications.py و routes/api.py
+# الدوال العامة المساعدة التي تستوردها بقية ملفات المشروع
 def send_text_message(recipient_phone, message_body):
     client = WhatsAppAPI()
     return client.send_text_message(recipient_phone, message_body)
@@ -141,3 +141,12 @@ def send_template_message(recipient, template_name, language_code="ar", componen
 def send_media_message(recipient, media_url, media_type="image", caption=None):
     client = WhatsAppAPI()
     return client.send_media_message(recipient, media_url, media_type, caption)
+
+def send_meta_whatsapp_message(recipient_phone, message_body):
+    """دالة إضافية متوافقة مع الاستدعاءات القديمة"""
+    client = WhatsAppAPI()
+    status, response = client.send_text_message(recipient_phone, message_body)
+    if 200 <= status < 300:
+        return response if isinstance(response, dict) else {"messages": [{"id": "sent_success"}]}
+    else:
+        return {}
