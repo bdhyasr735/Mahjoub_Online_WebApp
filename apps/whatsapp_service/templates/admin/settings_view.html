@@ -106,14 +106,7 @@
                  class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
                  dir="ltr" placeholder="أدخل معرف حساب الأعمال">
         </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1.5">📞 رقم الهاتف (WhatsApp):</label>
-          <input type="text" name="whatsapp_phone_number" 
-                 value="{{ settings.whatsapp_phone_number or config.get('WHATSAPP_PHONE_NUMBER', '+967784439991') }}" 
-                 class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all" 
-                 dir="ltr" placeholder="+967784439991">
-        </div>
-        <div>
+        <div class="md:col-span-2">
           <label class="block text-xs font-bold text-slate-700 mb-1.5">🚀 إصدار API:</label>
           <select name="api_version" 
                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575] focus:bg-white transition-all">
