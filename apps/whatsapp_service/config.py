@@ -1,12 +1,6 @@
 # coding: utf-8
 # 📂 apps/whatsapp_service/config.py
 
-"""
-WhatsApp Service Configuration Module for Mahgoob Online
-Inherits and provides specific configurations for WhatsApp and Meta APIs.
-Supports flexible key lookups with both underscore and spaced variable names.
-"""
-
 import os
 from flask import current_app
 
@@ -15,7 +9,6 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def _get_val(cls, *keys, default=''):
-        """مساعد للبحث عن القيمة في إعدادات التطبيق أو بيئة التشغيل بعدة مسميات"""
         for k in keys:
             try:
                 if current_app:
@@ -24,7 +17,6 @@ class WhatsAppServiceConfig:
                         return str(val).strip()
             except RuntimeError:
                 pass
-            
             env_val = os.environ.get(k)
             if env_val:
                 return str(env_val).strip()
@@ -44,11 +36,7 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def get_verify_token(cls):
-        return cls._get_val(
-            'WHATSAPP_VERIFY_TOKEN', 
-            'WHATSAPP VERIFY TOKEN', 
-            default='mahjoub secure webhook token'
-        )
+        return cls._get_val('WHATSAPP_VERIFY_TOKEN', 'WHATSAPP VERIFY TOKEN', default='mahjoub_secure_webhook_token')
 
     @classmethod
     def get_webhook_secret(cls):
