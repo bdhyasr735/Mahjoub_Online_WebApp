@@ -18,8 +18,8 @@ from apps.extensions import db
 # =========================================================
 # 1. إرسال رسالة جديدة (HTMX)
 # =========================================================
-@whatsapp_bp.route('/send_message', methods=['POST'])
-def send_message_htmx():
+@whatsapp_bp.route('/send_action_message', methods=['POST'])
+def send_action_message_htmx():
     """
     استقبال رسالة جديدة من الواجهة وإرسالها عبر ميتا وتحديث جهة الاتصال.
     """
