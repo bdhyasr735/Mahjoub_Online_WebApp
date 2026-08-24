@@ -19,7 +19,7 @@ from apps.extensions import db
 
 @whatsapp_bp.route('/send_message', methods=['POST'], endpoint='actions_send_message_htmx')
 def send_message_htmx():
-    """إرسال رسالة فردية لعميل من لوحة التحكم وإعادة التوجيه للمحادثة"""
+    """إرسال رسالة فردية لعميل من لوحة التحكم وتسجيلها في السجلات وإعادة التوجيه للمحادثة"""
     try:
         phone = request.form.get('phone')
         message = request.form.get('message')
@@ -27,15 +27,47 @@ def send_message_htmx():
         if not phone or not message:
             return redirect(url_for('whatsapp_service.chat_dashboard'))
 
+        # إرسال الرسالة عبر Meta API
         success, response_data = send_text_message(phone, message)
 
+        wamid = None
+        if success and isinstance(response_data, dict):
+            messages_meta = response_data.get('messages', [])
+            if messages_meta:
+                wamid = messages_meta[0].get('id')
+
+        now_time = datetime.utcnow()
+
+        # حفظ الرسالة الصادرة في سجلات الرسائل لتظهر في المحادثة
+        new_log = WhatsAppMessageLog(
+            wamid=wamid,
+            direction='outbound',
+            sender_number='system',
+            recipient_number=phone,
+            content=message,
+            status='sent',
+            timestamp=now_time
+        )
+        db.session.add(new_log)
+
+        # تحديث بيانات جهة الاتصال (آخر رسالة وتوقيتها)
         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
         if contact:
             contact.last_message = message
-            contact.last_timestamp = datetime.utcnow()
-            db.session.commit()
+            contact.last_timestamp = now_time
+        else:
+            contact = WhatsAppCustomerContact(
+                phone=phone,
+                name=f"عميل ({phone})",
+                last_message=message,
+                last_timestamp=now_time,
+                unread_count=0
+            )
+            db.session.add(contact)
 
-        return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=contact.id if contact else None))
+        db.session.commit()
+
+        return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=contact.id))
     except Exception as e:
         db.session.rollback()
         flash(f"حدث خطأ أثناء إرسال الرسالة: {str(e)}", "danger")
@@ -44,7 +76,7 @@ def send_message_htmx():
 
 @whatsapp_bp.route('/send_bulk_broadcast', methods=['POST'], endpoint='actions_send_bulk_broadcast')
 def send_bulk_broadcast():
-    """إرسال حملة رسائل جماعية للعملاء مع دعم التوجيه و JSON"""
+    """إرسال حملة رسائل جماعية للعملاء مع توثيقها في السجلات ودعم التوجيه و JSON"""
     try:
         target = request.form.get('target_audience', 'all')
         content = request.form.get('message_content', '')
@@ -56,20 +88,45 @@ def send_bulk_broadcast():
             return redirect(url_for('whatsapp_service.chat_dashboard'))
 
         contacts = db.session.query(WhatsAppCustomerContact).all()
-        
         sent_count = 0
+        now_time = datetime.utcnow()
+
         for contact in contacts:
             if contact.phone:
-                success, _ = send_text_message(contact.phone, content)
+                success, response_data = send_text_message(contact.phone, content)
                 if success:
                     sent_count += 1
-                    
+                    wamid = None
+                    if isinstance(response_data, dict):
+                        messages_meta = response_data.get('messages', [])
+                        if messages_meta:
+                            wamid = messages_meta[0].get('id')
+
+                    # تسجيل كل رسالة حملة جماعية في سجلات النظام
+                    new_log = WhatsAppMessageLog(
+                        wamid=wamid,
+                        direction='outbound',
+                        sender_number='system',
+                        recipient_number=contact.phone,
+                        content=content,
+                        status='sent',
+                        timestamp=now_time
+                    )
+                    db.session.add(new_log)
+
+                    # تحديث آخر رسالة وتوقيتها للعميل
+                    contact.last_message = content
+                    contact.last_timestamp = now_time
+
+        db.session.commit()
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
             return jsonify({"success": True, "sent_count": sent_count, "target": target})
             
-        flash(f"✅ تم إرسال الحملة الجماعية بنجاح إلى {sent_count} عميل!", "success")
+        flash(f"✅ تم إرسال الحملة الجماعية بنجاح إلى {sent_count} عميل وتوثيقها في السجلات!", "success")
         return redirect(url_for('whatsapp_service.chat_dashboard'))
     except Exception as e:
+        db.session.rollback()
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
             return jsonify({"success": False, "message": str(e)}), 500
         flash(f"حدث خطأ أثناء إرسال الحملة: {str(e)}", "danger")
