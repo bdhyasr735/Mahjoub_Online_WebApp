@@ -1,15 +1,18 @@
 # coding: utf-8
 # 📂 apps/whatsapp_service/__init__.py
 
-from flask import Blueprint
+"""
+WhatsApp Service Module for Mahgoob Online (محجوب أونلاين)
+===========================================================
+Modular Flask Blueprint integrating Meta WhatsApp Cloud API v21.0
+"""
 
-# تعريف البلوبرنت الخاص بالخدمة وتحديد مسارات القوالب والملفات الثابتة
-whatsapp_bp = Blueprint(
-    'whatsapp_service',
-    __name__,
-    template_folder='templates',
-    static_folder='static'
-)
+from .routes import whatsapp_bp
+from .registry import register_service
 
-# استيراد مجلد/ملفات المسارات لتفعيل الـ Routes الخاصة بالموديول
-from apps.whatsapp_service import routes
+def init_app(app):
+    """Initializes the WhatsApp service module with Flask app."""
+    app.register_blueprint(whatsapp_bp)
+    register_service(app)
+
+__all__ = ['whatsapp_bp', 'init_app']
