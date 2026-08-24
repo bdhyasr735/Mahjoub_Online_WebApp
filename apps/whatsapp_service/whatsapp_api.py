@@ -2,7 +2,7 @@
 
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from .config import WhatsAppServiceConfig
 
 BASE_URL = "https://graph.facebook.com"
@@ -16,6 +16,9 @@ def get_db():
         return db
 
 def send_text_message(recipient, message):
+    # ✅ توحيد الرقم
+    recipient = ''.join(filter(str.isdigit, recipient))
+    
     phone_id = WhatsAppServiceConfig.get_phone_number_id()
     token = WhatsAppServiceConfig.get_whatsapp_token()
     version = WhatsAppServiceConfig.get_api_version()
@@ -28,12 +31,11 @@ def send_text_message(recipient, message):
         "text": {"body": message}
     }
     headers = {
-        "Authorization": f"Bearer {token}", 
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     
     try:
-        # إضافة Timeout بـ 10 ثوانٍ لضمان عدم تعليق الخادم في بيئة الإنتاج
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         res_data = response.json() if response.content else {}
         
@@ -50,10 +52,10 @@ def send_text_message(recipient, message):
         
         log_entry = WhatsAppMessageLog(
             wamid=wamid,
-            direction='outbound', 
-            sender_number=phone_id, 
-            recipient_number=recipient, 
-            content=message, 
+            direction='outbound',
+            sender_number=phone_id,
+            recipient_number=recipient,
+            content=message,
             status=status
         )
         db.session.add(log_entry)
@@ -61,13 +63,13 @@ def send_text_message(recipient, message):
         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=recipient).first()
         if contact:
             contact.last_message = message
-            contact.last_timestamp = datetime.utcnow()
+            contact.last_timestamp = datetime.now(timezone.utc)
         else:
             new_contact = WhatsAppCustomerContact(
                 phone=recipient,
                 name=f"عميل ({recipient})",
                 last_message=message,
-                last_timestamp=datetime.utcnow(),
+                last_timestamp=datetime.now(timezone.utc),
                 unread_count=0
             )
             db.session.add(new_contact)
