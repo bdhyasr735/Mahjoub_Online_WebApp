@@ -44,6 +44,40 @@ def chat_dashboard():
         )
 
 
+@whatsapp_bp.route('/start-new-chat', methods=['POST'])
+@login_required
+def start_new_chat():
+    """بدء محادثة جديدة مع رقم جديد"""
+    try:
+        phone = request.form.get('phone')
+        name = request.form.get('name', 'عميل جديد')
+        
+        if not phone:
+            flash("يرجى إدخال رقم الهاتف بشكل صحيح.", "danger")
+            return redirect(url_for('whatsapp_service.chat_dashboard'))
+            
+        # التحقق مما إذا كان العميل موجوداً مسبقاً
+        existing_contact = db.session.query(WhatsAppCustomerContact).filter_by(phone_number=phone).first()
+        
+        if not existing_contact:
+            new_contact = WhatsAppCustomerContact(
+                phone_number=phone,
+                name=name,
+                last_message="تم إنشاء المحادثة",
+                last_timestamp=db.func.current_timestamp()
+            )
+            db.session.add(new_contact)
+            db.session.commit()
+            existing_contact = new_contact
+            flash("تم إنشاء المحادثة بنجاح.", "success")
+            
+        return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=existing_contact.id))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"حدث خطأ أثناء بدء المحادثة: {str(e)}", "danger")
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
+
+
 @whatsapp_bp.route('/logs', methods=['GET'])
 @login_required
 def logs_dashboard():
