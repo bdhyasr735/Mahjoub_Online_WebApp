@@ -1,15 +1,73 @@
 <div class="flex-1 flex flex-col h-full bg-white p-6 overflow-y-auto">
   <h3 class="font-bold text-sm text-slate-900 mb-2">محاكي ومتابعة الويب هوك (Webhook Simulator)</h3>
-  <p class="text-xs text-slate-500 mb-6">يمكنك اختبار استقبال رسائل وهمية للتأكد من ربط ونشاط الـ Webhook بنجاح.</p>
+  <p class="text-xs text-slate-500 mb-6">يمكنك اختبار استقبال الرسائل والتحقق من نشاط وسلامة ربط الويب هوك بـ Meta API.</p>
+  
   <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-xl">
     <div class="mb-4">
       <label class="block text-xs font-bold text-slate-700 mb-1">رابط الويب هوك الخاص بك</label>
       <input type="text" readonly value="{{ request.host_url }}admin/whatsapp/webhook" dir="ltr" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
     </div>
+    
     <div class="mb-4">
       <label class="block text-xs font-bold text-slate-700 mb-1">رمز التحقق (Verify Token)</label>
-      <input type="text" readonly value="mahjoub_secure_webhook_token" dir="ltr" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
+      <input type="text" readonly value="{{ verify_token or 'mahjoub_secure_webhook_token' }}" dir="ltr" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
     </div>
-    <button onclick="alert('تم إرسال طلب اختبار الويب هوك بنجاح')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">اختبار استجابة Webhook</button>
+
+    <div class="flex items-center gap-3">
+      <button type="button" id="test-webhook-btn" onclick="testWebhookConnection()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">اختبار استجابة Webhook</button>
+      <span id="webhook-status" class="text-xs font-bold hidden"></span>
+    </div>
+
+    <!-- نافذة عرض استجابة الاختبار الفعلي -->
+    <div id="webhook-response-box" class="mt-4 hidden">
+      <label class="block text-xs font-bold text-slate-700 mb-1">نتيجة الفحص الفعلي:</label>
+      <pre id="webhook-response-content" dir="ltr" class="bg-slate-900 text-emerald-400 p-3 rounded-xl text-[11px] overflow-x-auto max-h-40"></pre>
+    </div>
   </div>
 </div>
+
+<script>
+  async function testWebhookConnection() {
+    const btn = document.getElementById('test-webhook-btn');
+    const status = document.getElementById('webhook-status');
+    const responseBox = document.getElementById('webhook-response-box');
+    const responseContent = document.getElementById('webhook-response-content');
+
+    btn.disabled = true;
+    btn.textContent = 'جاري اختبار الاتصال...';
+    status.classList.add('hidden');
+    responseBox.classList.add('hidden');
+
+    try {
+      const res = await fetch('/admin/whatsapp/test-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      const data = await res.json();
+      
+      status.classList.remove('hidden');
+      responseBox.classList.remove('hidden');
+      responseContent.textContent = JSON.stringify(data, null, 2);
+
+      if (res.ok && data.success) {
+        status.textContent = '✅ استجابة الويب هوك سليمة وتعمل بنجاح';
+        status.className = 'text-xs font-bold text-emerald-600';
+      } else {
+        status.textContent = '❌ فشل الاختبار: ' + (data.message || 'استجابة غير متوقعة');
+        status.className = 'text-xs font-bold text-red-600';
+      }
+    } catch (e) {
+      status.classList.remove('hidden');
+      status.textContent = '❌ حدث خطأ في الاتصال بالخادم';
+      status.className = 'text-xs font-bold text-red-600';
+      responseBox.classList.remove('hidden');
+      responseContent.textContent = e.toString();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'اختبار استجابة Webhook';
+    }
+  }
+</script>
