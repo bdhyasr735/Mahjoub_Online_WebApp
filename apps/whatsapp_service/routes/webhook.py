@@ -12,7 +12,6 @@ import os
 
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token")
 
-# تم إعطاء اسم فريد لكل endpoint لمنع التعارض نهائياً
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'], endpoint='webhook_main_route')
 @whatsapp_bp.route('/', methods=['GET', 'POST'], endpoint='webhook_root_route')
 def whatsapp_webhook_handler():
