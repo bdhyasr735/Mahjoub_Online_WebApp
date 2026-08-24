@@ -3,91 +3,27 @@
   <p class="text-xs text-slate-500 mb-6">قم بإدارة وتحديث بيانات الاعتماد الخاصة بحساب الأعمال على ميتا.</p>
   
   <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-xl">
-    <form id="whatsapp-settings-form" onsubmit="saveWhatsAppSettings(event)">
+    <!-- ✅ نموذج POST عادي (بدون AJAX) -->
+    <form action="{{ url_for('whatsapp_service.settings_view') }}" method="POST">
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
-        <input type="text" id="phone_number_id" name="phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" placeholder="أدخل معرّف رقم الهاتف" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono" dir="ltr">
+        <input type="text" name="whatsapp_phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" placeholder="أدخل معرّف رقم الهاتف" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono" dir="ltr">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account ID</label>
-        <input type="text" id="business_account_id" name="business_account_id" value="{{ settings.business_account_id if settings else '' }}" placeholder="أدخل معرّف حساب النشاط التجاري" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono" dir="ltr">
+        <input type="text" name="whatsapp_business_account_id" value="{{ settings.business_account_id if settings else '' }}" placeholder="أدخل معرّف حساب النشاط التجاري" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono" dir="ltr">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">API Version</label>
-        <input type="text" id="api_version" name="api_version" value="{{ settings.api_version if settings else 'v21.0' }}" placeholder="v21.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono" dir="ltr">
+        <input type="text" name="whatsapp_api_version" value="{{ settings.api_version if settings else 'v21.0' }}" placeholder="v21.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono" dir="ltr">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">Access Token (Permanent / Temporary)</label>
-        <textarea id="access_token" name="access_token" rows="3" placeholder="أدخل رمز الوصول" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono leading-relaxed" dir="ltr">{{ settings.access_token if settings else '' }}</textarea>
+        <textarea name="whatsapp_token" rows="3" placeholder="أدخل رمز الوصول" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 font-mono leading-relaxed" dir="ltr">{{ settings.access_token if settings else '' }}</textarea>
       </div>
       <div class="flex items-center gap-3">
-        <button type="submit" id="save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">حفظ الإعدادات</button>
-        <span id="save-status" class="text-xs font-bold hidden"></span>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">حفظ الإعدادات</button>
       </div>
     </form>
   </div>
 </div>
-
-<script>
-  // حفظ الإعدادات عبر طلب AJAX (بدون CSRF لأن الـ route معفى)
-  async function saveWhatsAppSettings(event) {
-    event.preventDefault();
-    const btn = document.getElementById('save-btn');
-    const status = document.getElementById('save-status');
-    
-    // جمع البيانات من النموذج
-    const phone_number_id = document.getElementById('phone_number_id').value.trim();
-    const business_account_id = document.getElementById('business_account_id').value.trim();
-    const api_version = document.getElementById('api_version').value.trim();
-    const access_token = document.getElementById('access_token').value.trim();
-
-    // تحقق بسيط: التأكد من أن الحقول الأساسية غير فارغة
-    if (!phone_number_id || !access_token) {
-      status.classList.remove('hidden');
-      status.textContent = '⚠️ Phone Number ID و Access Token مطلوبان';
-      status.className = 'text-xs font-bold text-amber-600';
-      setTimeout(() => status.classList.add('hidden'), 4000);
-      return;
-    }
-
-    const formData = {
-      phone_number_id: phone_number_id,
-      business_account_id: business_account_id,
-      api_version: api_version || 'v21.0',
-      access_token: access_token
-    };
-
-    btn.disabled = true;
-    btn.textContent = 'جاري الحفظ...';
-
-    try {
-      const response = await fetch("{{ url_for('whatsapp_service.settings_save') }}", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-          // ✅ تم إزالة X-CSRFToken لأن الـ route معفى من CSRF
-        },
-        body: JSON.stringify(formData)
-      });
-      
-      const result = await response.json();
-      status.classList.remove('hidden');
-      if (response.ok && result.success !== false) {
-        status.textContent = '✅ ' + (result.message || 'تم حفظ الإعدادات بنجاح');
-        status.className = 'text-xs font-bold text-emerald-600';
-      } else {
-        status.textContent = '❌ فشل الحفظ: ' + (result.message || 'خطأ غير معروف');
-        status.className = 'text-xs font-bold text-red-600';
-      }
-    } catch (e) {
-      status.classList.remove('hidden');
-      status.textContent = '❌ حدث خطأ في الاتصال بالخادم';
-      status.className = 'text-xs font-bold text-red-600';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'حفظ الإعدادات';
-      setTimeout(() => status.classList.add('hidden'), 5000);
-    }
-  }
-</script>
