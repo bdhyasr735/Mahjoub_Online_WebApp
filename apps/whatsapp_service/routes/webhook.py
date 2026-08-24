@@ -16,18 +16,25 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhoo
 @whatsapp_bp.route('/', methods=['GET', 'POST'], endpoint='webhook_root_route')
 def whatsapp_webhook_handler():
     """معالجة التحقق واستقبال الرسائل الواردة وتخزينها"""
+    print(f"📥 [Webhook Request Received] Method: {request.method}, Args: {request.args}")
+    
     if request.method == 'GET':
         mode = request.args.get('hub.mode')
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
 
+        print(f"🔍 [Verification Attempt] Mode: {mode}, Token: {token}, Challenge: {challenge}")
+
         if mode and token:
             if mode == 'subscribe' and token == WEBHOOK_VERIFY_TOKEN:
-                # Meta تتطلب إرجاع الـ challenge كنص صافي تماماً بدون أي JSON
-                return make_response(str(challenge), 200)
+                print("✅ [Webhook Verified Successfully]")
+                # Meta تتطلب إرجاع الـ challenge كنص صافي تماماً مع Content-Type نصي
+                return str(challenge), 200, {'Content-Type': 'text/plain; charset=utf-8'}
             else:
-                return make_response("Forbidden", 403)
-        return make_response("Bad Request", 400)
+                print("❌ [Webhook Verification Failed: Token or Mode Mismatch]")
+                return "Forbidden", 403
+        print("❌ [Webhook Verification Failed: Missing Parameters]")
+        return "Bad Request", 400
 
     else:
         try:
