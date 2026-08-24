@@ -7,6 +7,7 @@ Handles chat dashboard, settings, and incoming Webhook messages from Meta API.
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required
 from datetime import datetime
+from sqlalchemy import or_
 from . import whatsapp_bp
 from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
 from apps.extensions import db
@@ -18,7 +19,7 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhoo
 @whatsapp_bp.route('/dashboard', methods=['GET'])
 @login_required
 def chat_dashboard():
-    """عرض لوحة تحكم محادثات الواتساب الرئيسية"""
+    """عرض لوحة تحكم محادثات الواتساب الرئيسية مع جلب رسائل العميل المحدد"""
     try:
         contacts = db.session.query(WhatsAppCustomerContact).order_by(
             WhatsAppCustomerContact.last_timestamp.desc()
@@ -26,24 +27,44 @@ def chat_dashboard():
         
         selected_contact_id = request.args.get('contact_id', type=int)
         selected_contact = None
+        messages = []
         
         if selected_contact_id:
             selected_contact = db.session.query(WhatsAppCustomerContact).filter_by(id=selected_contact_id).first()
         elif contacts:
             selected_contact = contacts[0]
 
+        # إذا تم تحديد عميل، نقوم بجلب سجل الرسائل المتبادلة معه (واردة وصادرة)
+        if selected_contact:
+            # تصفية الرسائل بناءً على رقم هاتف العميل
+            phone = selected_contact.phone
+            messages = db.session.query(WhatsAppMessageLog).filter(
+                or_(
+                    WhatsAppMessageLog.sender_number == phone,
+                    WhatsAppMessageLog.recipient_number == phone
+                )
+            ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+
+            # تصفير عدد الرسائل غير المقروءة عند فتح المحادثة
+            if selected_contact.unread_count and selected_contact.unread_count > 0:
+                selected_contact.unread_count = 0
+                db.session.commit()
+
         return render_template(
             'admin/whatsapp_dashboard.html',
             contacts=contacts,
             selected_contact=selected_contact,
+            messages=messages,
             active_tab='chat'
         )
     except Exception as e:
+        db.session.rollback()
         flash(f"حدث خطأ أثناء تحميل لوحة المحادثات: {str(e)}", "danger")
         return render_template(
             'admin/whatsapp_dashboard.html',
             contacts=[],
             selected_contact=None,
+            messages=[],
             active_tab='chat'
         )
 
@@ -58,7 +79,7 @@ def start_new_chat():
         
         if not phone:
             flash("يرجى إدخال رقم الهاتف بشكل صحيح.", "danger")
-            return redirect(url_for('whatsapp.chat_dashboard'))
+            return redirect(url_for('whatsapp_service.chat_dashboard'))
             
         existing_contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
         
@@ -75,11 +96,11 @@ def start_new_chat():
             existing_contact = new_contact
             flash("تم إنشاء المحادثة بنجاح.", "success")
             
-        return redirect(url_for('whatsapp.chat_dashboard', contact_id=existing_contact.id))
+        return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=existing_contact.id))
     except Exception as e:
         db.session.rollback()
         flash(f"حدث خطأ أثناء بدء المحادثة: {str(e)}", "danger")
-        return redirect(url_for('whatsapp.chat_dashboard'))
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
 @whatsapp_bp.route('/logs', methods=['GET'])
@@ -91,7 +112,7 @@ def logs_dashboard():
         return render_template('admin/whatsapp_dashboard.html', logs=logs, active_tab='logs')
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل السجلات: {str(e)}", "danger")
-        return redirect(url_for('whatsapp.chat_dashboard'))
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
 @whatsapp_bp.route('/webhook-panel', methods=['GET'])
@@ -102,7 +123,7 @@ def webhook_dashboard():
         return render_template('admin/whatsapp_dashboard.html', active_tab='webhook')
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل لوحة الويب هوك: {str(e)}", "danger")
-        return redirect(url_for('whatsapp.chat_dashboard'))
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
 @whatsapp_bp.route('/settings', methods=['GET'])
@@ -129,7 +150,7 @@ def settings_dashboard():
         )
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل صفحة الإعدادات: {str(e)}", "danger")
-        return redirect(url_for('whatsapp.chat_dashboard'))
+        return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
 @whatsapp_bp.route('/settings/save', methods=['POST'])
@@ -208,12 +229,12 @@ def test_webhook():
 
 
 # ==========================================
-# معالج الويب هوك الموحد (التحقق واستقبال الرسائل)
+# معالج الويب هوك الموحد (التحقق واستقبال الرسائل والحالات)
 # ==========================================
-@whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
-@whatsapp_bp.route('/', methods=['GET', 'POST'])
+@whatsapp_bp.route('/webhook', methods=['GET', 'POST'], endpoint='webhook_main_route')
+@whatsapp_bp.route('/', methods=['GET', 'POST'], endpoint='webhook_root_route')
 def whatsapp_webhook_handler():
-    """معالجة طلبات التحقق واستقبال الرسائل الحقيقية من ميتا"""
+    """معالجة طلبات التحقق واستقبال الرسائل والحالات الحقيقية من ميتا"""
     if request.method == 'GET':
         mode = request.args.get('hub.mode')
         token = request.args.get('hub.verify_token')
@@ -221,7 +242,7 @@ def whatsapp_webhook_handler():
 
         if mode and token:
             if mode == 'subscribe' and token == WEBHOOK_VERIFY_TOKEN:
-                return challenge, 200
+                return str(challenge), 200, {'Content-Type': 'text/plain; charset=utf-8'}
             else:
                 return jsonify({"error": "Forbidden"}), 403
         return jsonify({"error": "Bad Request"}), 400
@@ -234,8 +255,9 @@ def whatsapp_webhook_handler():
                 for entry in data.get('entry', []):
                     for change in entry.get('changes', []):
                         value = change.get('value', {})
-                        messages = value.get('messages')
                         
+                        # 1. معالجة الرسائل الواردة
+                        messages = value.get('messages')
                         if messages:
                             for message in messages:
                                 phone_number = message.get('from')
@@ -287,6 +309,18 @@ def whatsapp_webhook_handler():
                                 )
                                 db.session.add(new_log)
                                 db.session.commit()
+
+                        # 2. معالجة تحديثات الحالة (sent, delivered, read)
+                        statuses = value.get('statuses')
+                        if statuses:
+                            for status_update in statuses:
+                                wamid = status_update.get('id')
+                                new_status = status_update.get('status')
+                                if wamid and new_status:
+                                    log_entry = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+                                    if log_entry:
+                                        log_entry.status = new_status
+                                        db.session.commit()
 
             return jsonify({"status": "success"}), 200
         except Exception as e:
