@@ -3,9 +3,18 @@
 
 import requests
 import logging
+import re
 from flask import current_app
 
 logger = logging.getLogger(__name__)
+
+def clean_phone_number(phone):
+    """تنظيف وتنسيق رقم الهاتف لإزالة الرموز الزائدة"""
+    if not phone:
+        return ""
+    # إزالة أي رموز غير الأرقام ما عدا علامة الزائد إن وجدت
+    cleaned = re.sub(r'[^\d+]', '', str(phone))
+    return cleaned
 
 class WhatsAppAPI:
     def __init__(self, token=None, phone_number_id=None, api_version=None):
@@ -15,9 +24,6 @@ class WhatsAppAPI:
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
 
     def send_text_message(self, recipient_phone, message_body):
-        """
-        إرسال رسالة نصية - تُرجع (status_code, response_dict) لتتطابق مع ملف notifications.py
-        """
         if not self.token or not self.phone_number_id:
             logger.error("⚠️ [WhatsApp API]: بيانات المصادقة أو معرف رقم الهاتف مفقودة.")
             return 400, {"error": "WhatsApp credentials not configured"}
@@ -30,7 +36,7 @@ class WhatsAppAPI:
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
-            "to": recipient_phone,
+            "to": clean_phone_number(recipient_phone),
             "type": "text",
             "text": {
                 "preview_url": False,
@@ -44,14 +50,12 @@ class WhatsAppAPI:
                 res_data = response.json()
             except:
                 res_data = {"raw_text": response.text}
-
             return response.status_code, res_data
-
         except requests.exceptions.RequestException as e:
             logger.error(f"⚠️ [WhatsApp API Exception]: {e}")
             return 500, {"error": str(e)}
 
-    def send_template_message(self, recipient_phone, template_name, language_code="ar", components=None):
+    def send_template_message(self, recipient, template_name, language_code="ar", components=None):
         if not self.token or not self.phone_number_id:
             return 400, {"error": "WhatsApp credentials not configured"}
 
@@ -62,7 +66,7 @@ class WhatsAppAPI:
 
         payload = {
             "messaging_product": "whatsapp",
-            "to": recipient_phone,
+            "to": clean_phone_number(recipient),
             "type": "template",
             "template": {
                 "name": template_name,
@@ -79,7 +83,36 @@ class WhatsAppAPI:
                 res_data = response.json()
             except:
                 res_data = {"raw_text": response.text}
+            return response.status_code, res_data
+        except requests.exceptions.RequestException as e:
+            return 500, {"error": str(e)}
 
+    def send_media_message(self, recipient, media_url, media_type="image", caption=None):
+        if not self.token or not self.phone_number_id:
+            return 400, {"error": "WhatsApp credentials not configured"}
+
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        media_obj = {"link": media_url}
+        if caption and media_type in ["image", "document", "video"]:
+            media_obj["caption"] = caption
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone_number(recipient),
+            "type": media_type,
+            media_type: media_obj
+        }
+
+        try:
+            response = requests.post(self.base_url, json=payload, headers=headers, timeout=20)
+            try:
+                res_data = response.json()
+            except:
+                res_data = {"raw_text": response.text}
             return response.status_code, res_data
         except requests.exceptions.RequestException as e:
             return 500, {"error": str(e)}
@@ -96,11 +129,15 @@ class WhatsAppAPI:
             return False
 
 
-# الدوال المساعدة التي يستوردها ملف notifications.py وباقي الموديولات
+# الدوال العامة المساعدة التي تستوردها ملفات notifications.py و routes/api.py
 def send_text_message(recipient_phone, message_body):
     client = WhatsAppAPI()
     return client.send_text_message(recipient_phone, message_body)
 
-def send_template_message(recipient_phone, template_name, language_code="ar", components=None):
+def send_template_message(recipient, template_name, language_code="ar", components=None):
     client = WhatsAppAPI()
-    return client.send_template_message(recipient_phone, template_name, language_code, components)
+    return client.send_template_message(recipient, template_name, language_code, components)
+
+def send_media_message(recipient, media_url, media_type="image", caption=None):
+    client = WhatsAppAPI()
+    return client.send_media_message(recipient, media_url, media_type, caption)
