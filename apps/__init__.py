@@ -211,7 +211,7 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل (مع إسقاط الأنواع والجداول بـ CASCADE لتجنب تداخل الـ ENUM)
+    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل
     # ============================================================
     with app.app_context():
         import_all_models()
@@ -327,8 +327,7 @@ def create_app():
             '/supplier/register',
             '/supplier/forgot-password',
             admin_login_path,
-            '/auth',
-            '/api/whatsapp'
+            '/auth'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
