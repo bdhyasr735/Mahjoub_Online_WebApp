@@ -103,6 +103,31 @@ def start_new_chat():
         return redirect(url_for('whatsapp_service.chat_dashboard'))
 
 
+@whatsapp_bp.route('/send-message', methods=['POST'])
+@login_required
+def send_dashboard_message():
+    """إرسال رسالة نصية مباشرة من لوحة التحكم للعميل المحدد عبر Meta API"""
+    try:
+        data = request.get_json() or {}
+        recipient = data.get('phone')
+        message = data.get('message')
+
+        if not recipient or not message:
+            return jsonify({'success': False, 'message': 'رقم الهاتف ونص الرسالة مطلوبان.'}), 400
+
+        # استدعاء دالة الإرسال من خدمة الواتساب
+        from apps.whatsapp_service.whatsapp_api import send_text_message
+        success, result = send_text_message(recipient, message)
+
+        if success:
+            return jsonify({'success': True, 'message': 'تم إرسال الرسالة بنجاح', 'data': result})
+        else:
+            return jsonify({'success': False, 'message': f'فشل الإرسال: {result}'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @whatsapp_bp.route('/logs', methods=['GET'])
 @login_required
 def logs_dashboard():
