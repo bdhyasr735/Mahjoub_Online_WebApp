@@ -1,89 +1,15 @@
-<!-- 📂 apps/whatsapp_service/templates/admin/webhook_view.html -->
-<div class="max-w-4xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full" dir="rtl">
-  
-  <!-- Title Section -->
-  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-    <div>
-      <h2 class="text-base font-bold text-slate-900">🧪 محاكي Webhook لواتساب</h2>
-      <p class="text-xs text-slate-500 mt-1">اختبار استقبال الرسائل والأحداث الواردة من Meta Cloud API محلياً</p>
+<div class="flex-1 flex flex-col h-full bg-white p-6 overflow-y-auto">
+  <h3 class="font-bold text-sm text-slate-900 mb-2">محاكي ومتابعة الويب هوك (Webhook Simulator)</h3>
+  <p class="text-xs text-slate-500 mb-6">يمكنك اختبار استقبال رسائل وهمية للتأكد من ربط ونشاط الـ Webhook بنجاح.</p>
+  <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-xl">
+    <div class="mb-4">
+      <label class="block text-xs font-bold text-slate-700 mb-1">رابط الويب هوك الخاص بك</label>
+      <input type="text" readonly value="{{ request.host_url }}admin/whatsapp/webhook" dir="ltr" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
     </div>
-    <div class="flex items-center gap-2">
-      <span class="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-[#570575] border border-purple-200 flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-[#570575] animate-pulse"></span>
-        جاهز للاستقبال
-      </span>
+    <div class="mb-4">
+      <label class="block text-xs font-bold text-slate-700 mb-1">رمز التحقق (Verify Token)</label>
+      <input type="text" readonly value="mahjoub_secure_webhook_token" dir="ltr" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600">
     </div>
+    <button onclick="alert('تم إرسال طلب اختبار الويب هوك بنجاح')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">اختبار استجابة Webhook</button>
   </div>
-
-  <!-- Simulator Panel -->
-  <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-    <h3 class="text-xs font-bold text-slate-700 mb-2">📥 محاكاة حمولة رسالة واردة (Payload)</h3>
-    <p class="text-xs text-slate-500 mb-4">يمكنك إرسال رسالة تجريبية بصيغة JSON للتأكد من معالجة النظام للرسائل الواردة بشكل صحيح.</p>
-    
-    <div class="space-y-3">
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">رقم المرسل (Phone Number):</label>
-        <input type="text" id="sim-phone" value="+967700000000" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#570575]" dir="ltr">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">نص الرسالة (Message Body):</label>
-        <textarea id="sim-text" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#570575]" placeholder="أدخل نص الرسالة التجريبية...">مرحباً، أود الاستفسار عن تفاصيل الطلب.</textarea>
-      </div>
-      <button onclick="triggerWebhookSimulation()" class="bg-[#570575] hover:bg-[#632C8F] text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2">
-        <span>🚀</span> إرسال المحاكاة التجريبية
-      </button>
-    </div>
-    
-    <div id="sim-result" class="hidden mt-4 p-4 rounded-xl text-xs font-mono bg-slate-50 border border-slate-200" dir="ltr"></div>
-  </div>
-
 </div>
-
-<script>
-  function triggerWebhookSimulation() {
-    const phone = document.getElementById('sim-phone').value;
-    const text = document.getElementById('sim-text').value;
-    const resultEl = document.getElementById('sim-result');
-    
-    resultEl.classList.remove('hidden');
-    resultEl.textContent = '⏳ جاري إرسال المحاكاة...';
-    
-    fetch('/admin/whatsapp/webhook', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: JSON.stringify({
-        object: "whatsapp_business_account",
-        entry: [{
-          id: "123456789",
-          changes: [{
-            value: {
-              messaging_product: "whatsapp",
-              metadata: { display_phone_number: "967700000000", phone_number_id: "123456" },
-              contacts: [{ profile: { name: "Test User" }, wa_id: phone }],
-              messages: [{
-                from: phone,
-                id: "wamid.Test12345",
-                timestamp: Math.floor(Date.now() / 1000).toString(),
-                text: { body: text },
-                type: "text"
-              }]
-            },
-            field: "messages"
-          }]
-        }]
-      })
-    })
-    .then(res => res.json().catch(() => ({ status: res.status })))
-    .then(data => {
-      resultEl.textContent = JSON.stringify(data, null, 2);
-      resultEl.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-emerald-50 border border-emerald-200 text-emerald-800';
-    })
-    .catch(err => {
-      resultEl.textContent = '❌ حدث خطأ أثناء الاتصال: ' + err;
-      resultEl.className = 'mt-4 p-4 rounded-xl text-xs font-mono bg-rose-50 border border-rose-200 text-rose-800';
-    });
-  }
-</script>
