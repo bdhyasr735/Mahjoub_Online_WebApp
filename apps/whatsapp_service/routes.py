@@ -9,7 +9,7 @@ from apps.models.whatsapp_models import (
     WhatsAppMessageLog, 
     WhatsAppSettings
 )
-from apps.services.whatsapp_api import send_text_message
+from apps.whatsapp_service.whatsapp_api import send_text_message
 from apps.config import WhatsAppServiceConfig
 
 whatsapp_bp = Blueprint('whatsapp_bp', __name__, template_folder='templates')
