@@ -10,7 +10,6 @@ DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
 ICON = "fab fa-whatsapp"
 SHOW_IN_SUPPLIER = False
 
-# استخدام المسارات المباشرة لضمان عمل القائمة الجانبية
 NAV_ITEMS = [
     {
         "title": "محادثات العملاء",
@@ -51,19 +50,21 @@ SERVICE_METADATA = {
 }
 
 def register_service(app):
-    """دالة التسجيل التي يبحث عنها المحرك الديناميكي لتفادي خطأ ImportError"""
-    # 1. تسجيل الـ Blueprint مع تحديد url_prefix لتفادي خطأ 404
+    """دالة التسجيل مع فحص عدم تكرار الـ Blueprint لمنع الخطأ"""
     try:
         whatsapp_routes = importlib.import_module("apps.whatsapp_service.routes")
         if hasattr(whatsapp_routes, 'whatsapp_bp'):
-            blueprint_names = [bp.name for bp in app.blueprints.values()]
-            if 'whatsapp' not in blueprint_names:
-                app.register_blueprint(whatsapp_routes.whatsapp_bp, url_prefix='/whatsapp')
+            bp = whatsapp_routes.whatsapp_bp
+            # التحقق مما إذا كان الـ Blueprint مسجلاً مسبقاً في التطبيق
+            if bp.name not in app.blueprints:
+                app.register_blueprint(bp, url_prefix='/whatsapp')
                 print("✅ [Mahgoob WhatsApp Service] Blueprint registered successfully at /whatsapp.")
+            else:
+                print("ℹ️ [Mahgoob WhatsApp Service] Blueprint is already registered.")
     except Exception as e:
         print(f"❌ [Mahgoob WhatsApp Service] Failed to register blueprint: {e}")
 
-    # 2. تسجيل البيانات الوصفية والقوائم
+    # تسجيل البيانات الوصفية والقوائم
     if not hasattr(app, 'registered_services'):
         app.registered_services = {}
     app.registered_services['whatsapp_service'] = SERVICE_METADATA
@@ -72,7 +73,7 @@ def register_service(app):
         app.registered_modules = {}
     app.registered_modules['whatsapp_service'] = SERVICE_METADATA
     
-    print("✅ [Mahgoob WhatsApp Service] Service registered successfully.")
+    print("✅ [Mahgoob WhatsApp Service] Service metadata registered successfully.")
 
 def register_module(app):
     """الدالة الأساسية البديلة للتسجيل الديناميكي"""
