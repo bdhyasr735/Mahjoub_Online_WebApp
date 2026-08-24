@@ -56,6 +56,49 @@ class WhatsAppAPI:
             logger.error(f"⚠️ [WhatsApp API Exception]: خطأ في الاتصال بالخادم الخارجي: {e}")
             return {"success": False, "error": str(e)}
 
+    def send_template_message(self, recipient_phone, template_name, language_code="ar", components=None):
+        """
+        إرسال رسالة قالب (Template Message) معتمدة من ميتا
+        """
+        if not self.token or not self.phone_number_id:
+            logger.error("⚠️ [WhatsApp API]: بيانات المصادقة أو معرف رقم الهاتف مفقودة في الإعدادات.")
+            return {"success": False, "error": "WhatsApp credentials not configured"}
+
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": recipient_phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {
+                    "code": language_code
+                }
+            }
+        }
+
+        if components:
+            payload["template"]["components"] = components
+
+        try:
+            response = requests.post(self.base_url, json=payload, headers=headers, timeout=15)
+            response_data = response.json()
+
+            if response.status_code == 200:
+                logger.info(f"✅ [WhatsApp API]: تم إرسال القالب '{template_name}' بنجاح إلى {recipient_phone}")
+                return {"success": True, "data": response_data}
+            else:
+                logger.error(f"❌ [WhatsApp Template Error]: فشل الإرسال - {response_data}")
+                return {"success": False, "error": response_data}
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"⚠️ [WhatsApp Template Exception]: خطأ في الاتصال بالخادم الخارجي: {e}")
+            return {"success": False, "error": str(e)}
+
     def test_connection(self):
         """
         اختبار الاتصال وصلاحية الرمز (Token) مع منصة ميتا
@@ -74,22 +117,18 @@ class WhatsAppAPI:
             return False
 
 
-# 🌟 الدالة العامة المساعدة المطلوبة لتجنب خطأ الاستيراد (Import Error)
+# 🌟 الدوال العامة المساعدة المطلوبة لتجنب أخطاء الاستيراد (Import Errors)
 def send_text_message(recipient_phone, message_body):
-    """
-    دالة مباشرة مستقلة لاستيرادها واستخدامها مباشرة
-    """
     client = WhatsAppAPI()
     return client.send_text_message(recipient_phone, message_body)
 
+def send_template_message(recipient_phone, template_name, language_code="ar", components=None):
+    client = WhatsAppAPI()
+    return client.send_template_message(recipient_phone, template_name, language_code, components)
 
 def send_meta_whatsapp_message(recipient_phone, message_body):
-    """
-    دالة مساعدة لربط استدعاءات ملف الـ dashboard.py بكلاس WhatsAppAPI
-    """
     client = WhatsAppAPI()
     result = client.send_text_message(recipient_phone, message_body)
-    
     if result.get("success"):
         return result.get("data", {"messages": [{"id": "sent_success"}]})
     else:
