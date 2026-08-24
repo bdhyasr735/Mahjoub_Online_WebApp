@@ -28,7 +28,7 @@
   // جلب البيانات ديناميكياً عند تحميل الصفحة
   async function loadWhatsAppSettings() {
     try {
-      const response = await fetch('/admin/whatsapp/api/settings'); // أو المسار المخصص لجلب الإعدادات إن وجد
+      const response = await fetch("{{ url_for('whatsapp_service_bp.get_settings_api') }}"); 
       const data = await response.json();
       if (data.success && data.settings) {
         document.getElementById('setting_phone_number_id').value = data.settings.phone_number_id || '';
@@ -40,7 +40,7 @@
     }
   }
 
-  // حفظ الإعدادات حقيقة عبر طلب AJAX
+  // حفظ الإعدادات عبر طلب AJAX متوافق مع مسارات الموديول
   async function saveWhatsAppSettings(event) {
     event.preventDefault();
     const btn = document.getElementById('save-btn');
@@ -56,7 +56,7 @@
     btn.textContent = 'جاري الحفظ...';
 
     try {
-      const response = await fetch('/settings/save', {
+      const response = await fetch("{{ url_for('whatsapp_service_bp.save_settings_api') }}", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,6 +85,6 @@
     }
   }
 
-  // تنفيذ جلب الإعدادات عند الفتح
+  // تنفيذ جلب الإعدادات عند تحميل الصفحة (تأكد من توفر مسار الـ API في الـ routes)
   // loadWhatsAppSettings();
 </script>
