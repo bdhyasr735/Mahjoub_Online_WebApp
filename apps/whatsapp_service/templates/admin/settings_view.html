@@ -6,15 +6,19 @@
     <form id="whatsapp-settings-form" onsubmit="saveWhatsAppSettings(event)">
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
-        <input type="text" id="setting_phone_number_id" name="phone_number_id" placeholder="أدخل معرّف رقم الهاتف" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" id="setting_phone_number_id" name="phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" placeholder="أدخل معرّف رقم الهاتف" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account ID</label>
-        <input type="text" id="setting_business_account_id" name="business_account_id" placeholder="أدخل معرّف حساب النشاط التجاري" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" id="setting_business_account_id" name="business_account_id" value="{{ settings.business_account_id if settings else '' }}" placeholder="أدخل معرّف حساب النشاط التجاري" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs font-bold text-slate-700 mb-1">API Version</label>
+        <input type="text" id="setting_api_version" name="api_version" value="{{ settings.api_version if settings else 'v21.0' }}" placeholder="v21.0" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">Access Token (Permanent / Temporary)</label>
-        <textarea id="setting_access_token" name="access_token" rows="3" placeholder="أدخل رمز الوصول" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600"></textarea>
+        <textarea id="setting_access_token" name="access_token" rows="3" placeholder="أدخل رمز الوصول" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">{{ settings.access_token if settings else '' }}</textarea>
       </div>
       <div class="flex items-center gap-3">
         <button type="submit" id="save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">حفظ الإعدادات</button>
@@ -25,22 +29,7 @@
 </div>
 
 <script>
-  // جلب البيانات ديناميكياً عند تحميل الصفحة
-  async function loadWhatsAppSettings() {
-    try {
-      const response = await fetch("{{ url_for('whatsapp_service_bp.get_settings_api') }}"); 
-      const data = await response.json();
-      if (data.success && data.settings) {
-        document.getElementById('setting_phone_number_id').value = data.settings.phone_number_id || '';
-        document.getElementById('setting_business_account_id').value = data.settings.business_account_id || '';
-        document.getElementById('setting_access_token').value = data.settings.access_token || '';
-      }
-    } catch (e) {
-      console.error('خطأ أثناء جلب الإعدادات:', e);
-    }
-  }
-
-  // حفظ الإعدادات عبر طلب AJAX متوافق مع مسارات الموديول
+  // حفظ الإعدادات عبر طلب AJAX متوافق مع المسار الصحيح في الـ routes.py
   async function saveWhatsAppSettings(event) {
     event.preventDefault();
     const btn = document.getElementById('save-btn');
@@ -49,6 +38,7 @@
     const formData = {
       phone_number_id: document.getElementById('setting_phone_number_id').value,
       business_account_id: document.getElementById('setting_business_account_id').value,
+      api_version: document.getElementById('setting_api_version').value,
       access_token: document.getElementById('setting_access_token').value
     };
 
@@ -56,7 +46,7 @@
     btn.textContent = 'جاري الحفظ...';
 
     try {
-      const response = await fetch("{{ url_for('whatsapp_service_bp.save_settings_api') }}", {
+      const response = await fetch("{{ url_for('whatsapp_service.settings_save') }}", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +74,4 @@
       setTimeout(() => status.classList.add('hidden'), 4000);
     }
   }
-
-  // تنفيذ جلب الإعدادات عند تحميل الصفحة (تأكد من توفر مسار الـ API في الـ routes)
-  // loadWhatsAppSettings();
 </script>
