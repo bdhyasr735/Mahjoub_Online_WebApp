@@ -15,7 +15,7 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhoo
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'], endpoint='webhook_main_route')
 @whatsapp_bp.route('/', methods=['GET', 'POST'], endpoint='webhook_root_route')
 def whatsapp_webhook_handler():
-    """معالجة التحقق واستقبال الرسائل الواردة وتخزينها"""
+    """معالجة التحقق واستقبال الرسائل الواردة وتحديث الحالات وتخزينها"""
     print(f"📥 [Webhook Request Received] Method: {request.method}, Args: {request.args}")
     
     if request.method == 'GET':
@@ -28,7 +28,6 @@ def whatsapp_webhook_handler():
         if mode and token:
             if mode == 'subscribe' and token == WEBHOOK_VERIFY_TOKEN:
                 print("✅ [Webhook Verified Successfully]")
-                # Meta تتطلب إرجاع الـ challenge كنص صافي تماماً مع Content-Type نصي
                 return str(challenge), 200, {'Content-Type': 'text/plain; charset=utf-8'}
             else:
                 print("❌ [Webhook Verification Failed: Token or Mode Mismatch]")
@@ -44,8 +43,9 @@ def whatsapp_webhook_handler():
                 for entry in data.get('entry', []):
                     for change in entry.get('changes', []):
                         value = change.get('value', {})
-                        messages = value.get('messages')
                         
+                        # 1. معالجة الرسائل الواردة (Messages)
+                        messages = value.get('messages')
                         if messages:
                             for message in messages:
                                 phone_number = message.get('from')
@@ -97,6 +97,19 @@ def whatsapp_webhook_handler():
                                 )
                                 db.session.add(new_log)
                                 db.session.commit()
+
+                        # 2. معالجة تحديثات حالة الرسائل الصادرة (Statuses: sent, delivered, read)
+                        statuses = value.get('statuses')
+                        if statuses:
+                            for status_update in statuses:
+                                wamid = status_update.get('id')
+                                new_status = status_update.get('status') # sent, delivered, read, failed
+                                
+                                if wamid and new_status:
+                                    log_entry = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+                                    if log_entry:
+                                        log_entry.status = new_status
+                                        db.session.commit()
 
             return jsonify({"status": "success"}), 200
         except Exception as e:
