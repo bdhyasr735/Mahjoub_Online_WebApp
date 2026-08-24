@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime, timezone
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, current_app, flash
 from apps.extensions import db, csrf
 from apps.models.whatsapp_models import (
     WhatsAppCustomerContact, 
@@ -114,6 +114,7 @@ def start_new_chat():
     name = request.form.get('name', f"عميل ({phone})")
 
     if not phone:
+        flash('رقم الهاتف مطلوب لبدء المحادثة', 'error')
         return redirect(url_for('whatsapp_service.chat_dashboard'))
 
     contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
@@ -149,9 +150,9 @@ def settings_view():
         WhatsAppSettings.set_setting('WHATSAPP_VERIFY_TOKEN', verify_token)
         WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
 
+        flash('تم حفظ الإعدادات بنجاح', 'success')
         return redirect(url_for('whatsapp_service.settings_view'))
 
-    # يتم جلب الإعدادات عبر Context Processor، لكن يمكن تمريرها هنا أيضاً
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='settings'
@@ -204,10 +205,22 @@ def webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
-        # معالجة الطلبات الواردة (نفس منطق whatsapp_webhook_handler)
+        # ✅ التحقق من وجود بيانات JSON صالحة
+        if not request.is_json:
+            current_app.logger.warning("Webhook POST: No JSON data received")
+            return jsonify({"status": "error", "message": "Expected JSON"}), 400
+
         data = request.json
+        if not data:
+            current_app.logger.warning("Webhook POST: Empty JSON data")
+            return jsonify({"status": "error", "message": "Empty data"}), 400
+
         try:
             entries = data.get('entry', [])
+            if not entries:
+                current_app.logger.info("Webhook POST: No entries in data")
+                return jsonify({"status": "success", "message": "No entries"}), 200
+
             for entry in entries:
                 changes = entry.get('changes', [])
                 for change in changes:
@@ -267,12 +280,13 @@ def webhook_handler():
         return jsonify({"status": "success"}), 200
 
 
-# تم الاحتفاظ بـ /webhook-handler كنسخة احتياطية (اختياري)
+# ============================================================
+# نسخة احتياطية (للتوافق مع الإعدادات القديمة في ميتا)
+# ============================================================
 @whatsapp_bp.route('/webhook-handler', methods=['GET', 'POST'])
 @csrf.exempt
 def whatsapp_webhook_handler():
-    """نسخة احتياطية من Webhook (يمكن إزالتها لاحقاً)"""
-    # نعيد توجيه الطلب إلى المعالج الرئيسي
+    """نسخة احتياطية من Webhook (تُعيد توجيه الطلب إلى المعالج الرئيسي)"""
     return webhook_handler()
 
 
@@ -282,6 +296,9 @@ def settings_save():
     """نقطة API لحفظ الإعدادات عبر AJAX (تستخدم في settings_view.html)"""
     try:
         data = request.json
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
         phone_number_id = data.get('phone_number_id')
         business_account_id = data.get('business_account_id')
         api_version = data.get('api_version')
