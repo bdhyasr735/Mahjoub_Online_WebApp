@@ -86,11 +86,17 @@ def chat_dashboard():
 @whatsapp_bp.route('/send-message', methods=['POST'])
 def send_message_htmx():
     """إرسال رسالة عبر واتساب مع دعم HTMX"""
-    recipient = request.form.get('recipient') or request.json.get('recipient')
+    # ✅ الحصول على recipient من form أولاً، ثم من JSON إذا كان الطلب JSON
+    recipient = request.form.get('recipient')
     if not recipient:
         recipient = request.form.get('phone')
+    if not recipient and request.is_json:
+        recipient = request.json.get('recipient')
     
-    message = request.form.get('message') or request.json.get('message')
+    # ✅ الحصول على message من form أولاً، ثم من JSON إذا كان الطلب JSON
+    message = request.form.get('message')
+    if not message and request.is_json:
+        message = request.json.get('message')
 
     if not recipient or not message:
         return jsonify({"success": False, "error": "المستلم أو نص الرسالة غير موجود."}), 400
@@ -142,13 +148,13 @@ def settings_view():
     """صفحة إعدادات واتساب (عرض وحفظ)"""
     if request.method == 'POST':
         phone_id = request.form.get('whatsapp_phone_number_id')
-        business_account_id = request.form.get('whatsapp_business_account_id')  # ✅ تمت الإضافة
+        business_account_id = request.form.get('whatsapp_business_account_id')
         token = request.form.get('whatsapp_token')
         verify_token = request.form.get('whatsapp_verify_token')
         api_version = request.form.get('whatsapp_api_version', 'v21.0')
 
         WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', phone_id)
-        WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)  # ✅ تمت الإضافة
+        WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)
         WhatsAppSettings.set_setting('WHATSAPP_TOKEN', token)
         WhatsAppSettings.set_setting('WHATSAPP_VERIFY_TOKEN', verify_token)
         WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
