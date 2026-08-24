@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/whatsapp_service/routes/__init__.py
-
 """
 Routes Blueprint initialization for WhatsApp Service Module
 """
