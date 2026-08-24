@@ -55,9 +55,5 @@ class WhatsAppServiceConfig:
         return cls._get_val('WEBHOOK_SECRET', 'WEBHOOK SECRET')
 
     @classmethod
-    def get_twilio_number(cls):
-        return cls._get_val('TWILIO_NUMBER', 'TWILIO NUMBER', 'WHATSAPP_PHONE_NUMBER', default='+967779077746')
-
-    @classmethod
     def get_api_version(cls):
         return cls._get_val('WHATSAPP_API_VERSION', default='v21.0')
