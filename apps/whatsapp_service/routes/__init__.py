@@ -1,8 +1,9 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/whatsapp_service/routes/__init__.py
 
 from flask import Blueprint
 
+# تعريف الـ Blueprint الخاص بخدمة الواتساب
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
@@ -10,5 +11,5 @@ whatsapp_bp = Blueprint(
     static_folder='../static'
 )
 
-# استيراد ملفات المسارات الداخلية لتفعيل الـ Routes
-from apps.whatsapp_service.routes import views, api
+# استيراد المسارات (Routes) هنا في الأسفل بعد إنشاء الـ Blueprint تماماً لتجنب الاستيراد الدائري
+from . import dashboard, api
