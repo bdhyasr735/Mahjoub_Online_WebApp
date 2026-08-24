@@ -1,8 +1,5 @@
-<!-- 📂 apps/whatsapp_service/templates/admin/logs_view.html -->
-<!-- Logs View Jinja2 Component -->
 <div class="max-w-7xl mx-auto w-full p-6 space-y-6 overflow-y-auto h-full">
-  
-  <!-- Header and Filters -->
+
   <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
     <div>
       <h2 class="text-base font-bold text-[#1a0b2e]">📋 سجل رسائل واتساب (WhatsApp Messages Log)</h2>
@@ -21,7 +18,6 @@
     </div>
   </div>
 
-  <!-- Logs Table -->
   <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
     <div class="overflow-x-auto">
       <table class="w-full text-right text-xs" id="logsTable">
@@ -41,7 +37,7 @@
           {% if logs and logs|length > 0 %}
             {% for log in logs %}
             {% set search_searchable = [log.id, log.sender_number, log.recipient_number, log.content]|reject('none')|join(' ')|lower %}
-            <tr class="log-row hover:bg-purple-50/30 transition-colors" 
+            <tr class="log-row hover:bg-purple-50/30 transition-colors"
                 data-status="{{ (log.status or '')|lower }}"
                 data-content="{{ search_searchable }}">
               <td class="px-4 py-3 font-mono text-slate-500 text-[11px]">#{{ log.id }}</td>
@@ -118,8 +114,7 @@
         </tbody>
       </table>
     </div>
-    
-    <!-- Footer with stats -->
+
     <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between text-[11px] text-slate-500">
       <div>
         إجمالي السجلات المعروضة: <span id="displayedCount" class="font-bold text-slate-700">{{ logs|length if logs else 0 }}</span> / <span class="font-bold text-slate-700">{{ logs|length if logs else 0 }}</span>
@@ -149,10 +144,10 @@
       rows.forEach(row => {
         const content = row.getAttribute('data-content') || '';
         const status = row.getAttribute('data-status') || '';
-        
+
         const matchesSearch = !searchTerm || content.includes(searchTerm);
         const matchesStatus = statusValue === 'all' || status === statusValue;
-        
+
         if (matchesSearch && matchesStatus) {
           row.style.display = '';
           visibleCount++;
