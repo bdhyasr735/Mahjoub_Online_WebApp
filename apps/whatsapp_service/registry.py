@@ -4,10 +4,10 @@
 MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "fas fa-comments"
 
-# الروابط التي تظهر في لوحة التحكم الإدارية
+# مطابقة أسماء الدوال الفعلية في ملف dashboard.py لتجنب خطأ عدم التحويل
 LINKS = {
-    'whatsapp_service.dashboard_index': 'إدارة مراسلات الواتساب',
-    'whatsapp_service.settings_view': 'إعدادات الواتساب'
+    'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب',
+    'whatsapp_service.settings_dashboard': 'إعدادات الواتساب'
 }
 
 def register_module(app):
@@ -15,7 +15,6 @@ def register_module(app):
     تسجيل بلوبرنت الواتساب تلقائياً في التطبيق الرئيسي بأمان تام
     """
     try:
-        # استيراد الـ Blueprint محلياً من مجلد المسارات لتجنب أي تداخل
         from apps.whatsapp_service.routes import whatsapp_bp
         
         if 'whatsapp_service' not in app.blueprints:
