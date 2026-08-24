@@ -7,12 +7,14 @@ Handles form POST submissions for sending single messages, bulk broadcasts, and 
 """
 
 from datetime import datetime
+import os
 from flask import request, redirect, url_for, flash, jsonify
 from . import whatsapp_bp
 from apps.whatsapp_service.whatsapp_api import send_text_message
 from apps.models.whatsapp_models import (
     WhatsAppMessageLog,
-    WhatsAppCustomerContact
+    WhatsAppCustomerContact,
+    WhatsAppSettings
 )
 from apps.extensions import db
 
@@ -135,16 +137,35 @@ def send_bulk_broadcast():
 
 @whatsapp_bp.route('/settings/save', methods=['POST'], endpoint='actions_settings_save')
 def settings_save():
-    """حفظ الإعدادات من واجهة لوحة التحكم مع دعم استجابة JSON والطلبات التقليدية"""
+    """حفظ الإعدادات من واجهة لوحة التحكم بشكل دائم في قاعدة البيانات ومتغيرات البيئة"""
     try:
-        phone_number_id = request.form.get('phone_number_id')
-        business_account_id = request.form.get('business_account_id')
-        access_token = request.form.get('access_token')
+        data = request.get_json(silent=True) or request.form
+        
+        phone_number_id = data.get('phone_number_id')
+        business_account_id = data.get('business_account_id')
+        api_version = data.get('api_version')
+        access_token = data.get('access_token')
+
+        if phone_number_id is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_PHONE_NUMBER_ID", phone_number_id.strip())
+            os.environ["WHATSAPP_PHONE_NUMBER_ID"] = phone_number_id.strip()
+            
+        if business_account_id is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_BUSINESS_ACCOUNT_ID", business_account_id.strip())
+            os.environ["WHATSAPP_BUSINESS_ACCOUNT_ID"] = business_account_id.strip()
+            
+        if api_version is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_API_VERSION", api_version.strip())
+            os.environ["WHATSAPP_API_VERSION"] = api_version.strip()
+            
+        if access_token is not None:
+            WhatsAppSettings.set_setting("WHATSAPP_ACCESS_TOKEN", access_token.strip())
+            os.environ["WHATSAPP_ACCESS_TOKEN"] = access_token.strip()
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-            return jsonify({"success": True, "message": "✅ تم حفظ إعدادات Meta API بنجاح"})
+            return jsonify({"success": True, "message": "✅ تم حفظ إعدادات Meta API بنجاح بشكل دائم"})
 
-        flash("✅ تم حفظ إعدادات Meta API بنجاح", "success")
+        flash("✅ تم حفظ إعدادات Meta API بنجاح بشكل دائم", "success")
         return redirect(url_for('whatsapp_service.settings_dashboard'))
     except Exception as e:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
