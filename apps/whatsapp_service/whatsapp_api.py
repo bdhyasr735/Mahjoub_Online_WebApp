@@ -1,5 +1,4 @@
 # coding: utf-8
-# 📂 apps/whatsapp_service/whatsapp_api.py
 
 import os
 import requests
@@ -16,9 +15,6 @@ def get_db():
         from app import db
         return db
 
-# ==========================================
-# الدالة العامة لإرسال رسائل النص (Core API Function)
-# ==========================================
 def send_text_message(recipient, message):
     phone_id = WhatsAppServiceConfig.get_phone_number_id()
     token = WhatsAppServiceConfig.get_whatsapp_token()
@@ -51,7 +47,6 @@ def send_text_message(recipient, message):
             
         status = 'sent' if response.status_code == 200 else 'failed'
         
-        # حفظ السجل
         log_entry = WhatsAppMessageLog(
             wamid=wamid,
             direction='outbound', 
@@ -62,7 +57,6 @@ def send_text_message(recipient, message):
         )
         db.session.add(log_entry)
 
-        # تحديث آخر رسالة وجهة الاتصال
         contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=recipient).first()
         if contact:
             contact.last_message = message
