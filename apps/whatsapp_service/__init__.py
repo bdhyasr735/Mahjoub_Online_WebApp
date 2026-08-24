@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/whatsapp_service/__init__.py
-
 """
 WhatsApp Service Module for Mahgoob Online (محجوب أونلاين)
 ===========================================================
