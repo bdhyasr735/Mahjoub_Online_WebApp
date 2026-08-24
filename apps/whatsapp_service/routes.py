@@ -142,11 +142,13 @@ def settings_view():
     """صفحة إعدادات واتساب (عرض وحفظ)"""
     if request.method == 'POST':
         phone_id = request.form.get('whatsapp_phone_number_id')
+        business_account_id = request.form.get('whatsapp_business_account_id')  # ✅ تمت الإضافة
         token = request.form.get('whatsapp_token')
         verify_token = request.form.get('whatsapp_verify_token')
         api_version = request.form.get('whatsapp_api_version', 'v21.0')
 
         WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', phone_id)
+        WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)  # ✅ تمت الإضافة
         WhatsAppSettings.set_setting('WHATSAPP_TOKEN', token)
         WhatsAppSettings.set_setting('WHATSAPP_VERIFY_TOKEN', verify_token)
         WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
