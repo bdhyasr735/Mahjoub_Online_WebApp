@@ -170,7 +170,7 @@ def logs_dashboard():
     )
 
 
-@whatsapp_bp.route('/webhook')
+@whatsapp_bp.route('/webhook-dashboard')
 def webhook_dashboard():
     """صفحة محاكي الـ Webhook (للعرض فقط)"""
     return render_template(
@@ -179,11 +179,18 @@ def webhook_dashboard():
     )
 
 
-@whatsapp_bp.route('/webhook-handler', methods=['GET', 'POST'])
+# ============================================================
+# 🚨 المسار الرئيسي لـ Webhook (يجب أن يكون متطابقاً مع ما في ميتا)
+# ============================================================
+@whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 @csrf.exempt
-def whatsapp_webhook_handler():
-    """نقطة استقبال Webhook من ميتا (GET للتحقق، POST للاستقبال)"""
+def webhook_handler():
+    """
+    نقطة استقبال Webhook من ميتا (GET للتحقق، POST للاستقبال)
+    هذا هو المسار الذي يجب إضافته في لوحة تحكم ميتا
+    """
     if request.method == 'GET':
+        # التحقق من التوكن
         mode = request.args.get('hub.mode')
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
@@ -197,6 +204,7 @@ def whatsapp_webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
+        # معالجة الطلبات الواردة (نفس منطق whatsapp_webhook_handler)
         data = request.json
         try:
             entries = data.get('entry', [])
@@ -257,6 +265,15 @@ def whatsapp_webhook_handler():
             return jsonify({"status": "error", "message": str(e)}), 500
 
         return jsonify({"status": "success"}), 200
+
+
+# تم الاحتفاظ بـ /webhook-handler كنسخة احتياطية (اختياري)
+@whatsapp_bp.route('/webhook-handler', methods=['GET', 'POST'])
+@csrf.exempt
+def whatsapp_webhook_handler():
+    """نسخة احتياطية من Webhook (يمكن إزالتها لاحقاً)"""
+    # نعيد توجيه الطلب إلى المعالج الرئيسي
+    return webhook_handler()
 
 
 @whatsapp_bp.route('/settings/save', methods=['POST'])
