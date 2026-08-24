@@ -15,16 +15,15 @@ from apps.whatsapp_service.config import WhatsAppServiceConfig
 # ✅ تعريف الـ Blueprint بالاسم المطلوب في القوالب
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='templates')
 
-# ✅ استثناء البلوبرنت بالكامل من CSRF (يُغني عن @csrf.exempt على كل دالة)
+# ✅ استثناء البلوبرنت بالكامل من CSRF
 csrf.exempt(whatsapp_bp)
 
 
 # ============================================================
-# ✅ Context Processor لتوفير الإعدادات لجميع القوالب تلقائياً
+# ✅ Context Processor لتوفير الإعدادات
 # ============================================================
 @whatsapp_bp.context_processor
 def inject_settings():
-    """حقن متغير settings في جميع قوالب الـ Blueprint"""
     settings = {
         'phone_number_id': WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID') or WhatsAppServiceConfig.get_phone_number_id(),
         'business_account_id': WhatsAppSettings.get_setting('WHATSAPP_BUSINESS_ACCOUNT_ID') or WhatsAppServiceConfig.get_business_account_id(),
@@ -37,7 +36,7 @@ def inject_settings():
 
 
 # ============================================================
-# المسارات (Routes)
+# المسارات
 # ============================================================
 
 @whatsapp_bp.route('/chat')
@@ -73,30 +72,25 @@ def chat_dashboard():
             (WhatsAppMessageLog.recipient_number == selected_phone)
         ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
 
+    # ✅ إضافة متغير now إلى سياق القالب
+    now = datetime.now(timezone.utc)
+
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='chat',
         contacts=contacts,
         selected_contact=active_contact,
         messages=messages,
-        selected_phone=selected_phone
+        selected_phone=selected_phone,
+        now=now  # ✅ هام جداً: تمرير now للقالب
     )
 
 
 @whatsapp_bp.route('/send-message', methods=['POST'])
 def send_message_htmx():
-    """إرسال رسالة عبر واتساب مع دعم HTMX"""
-    # ✅ الحصول على recipient من form أولاً، ثم من JSON إذا كان الطلب JSON
-    recipient = request.form.get('recipient')
-    if not recipient:
-        recipient = request.form.get('phone')
-    if not recipient and request.is_json:
-        recipient = request.json.get('recipient')
-    
-    # ✅ الحصول على message من form أولاً، ثم من JSON إذا كان الطلب JSON
+    """إرسال رسالة عبر واتساب مع دعم HTMX / Fetch"""
+    recipient = request.form.get('phone') or request.form.get('recipient')
     message = request.form.get('message')
-    if not message and request.is_json:
-        message = request.json.get('message')
 
     if not recipient or not message:
         return jsonify({"success": False, "error": "المستلم أو نص الرسالة غير موجود."}), 400
@@ -104,19 +98,39 @@ def send_message_htmx():
     success, result = send_text_message(recipient, message)
     
     if success:
-        if request.headers.get('HX-Request'):
+        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             new_msg = WhatsAppMessageLog.query.filter_by(
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
-            return render_template('whatsapp/_message_bubble.html', msg=new_msg)
+            if new_msg:
+                return render_template('whatsapp/_message_bubble.html', msg=new_msg)
+            else:
+                # إذا لم يتم العثور على الرسالة، نرسل رسالة نجاح بسيطة
+                return """
+                <div class="flex justify-start animate-fadeIn">
+                    <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-white text-slate-900 border border-slate-200">
+                        <p class="whitespace-pre-wrap leading-relaxed">✅ تم الإرسال بنجاح</p>
+                        <div class="flex items-center justify-end gap-1 mt-1">
+                            <span class="text-[9px] text-slate-400">الآن</span>
+                        </div>
+                    </div>
+                </div>
+                """
         return jsonify({"success": True, "result": result})
     else:
+        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return f"""
+            <div class="flex justify-start animate-fadeIn">
+                <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-red-50 text-red-700 border border-red-200">
+                    <p class="whitespace-pre-wrap leading-relaxed">❌ فشل الإرسال: {str(result)[:100]}</p>
+                </div>
+            </div>
+            """
         return jsonify({"success": False, "error": str(result)}), 500
 
 
 @whatsapp_bp.route('/start-new-chat', methods=['POST'])
 def start_new_chat():
-    """بدء محادثة جديدة مع عميل"""
     phone = request.form.get('phone')
     name = request.form.get('name', f"عميل ({phone})")
 
@@ -145,7 +159,6 @@ def start_new_chat():
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
-    """صفحة إعدادات واتساب (عرض وحفظ)"""
     if request.method == 'POST':
         phone_id = request.form.get('whatsapp_phone_number_id')
         business_account_id = request.form.get('whatsapp_business_account_id')
@@ -170,9 +183,7 @@ def settings_view():
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
-    """صفحة سجل الرسائل"""
     logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
-    
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='logs',
@@ -182,7 +193,6 @@ def logs_dashboard():
 
 @whatsapp_bp.route('/webhook-dashboard')
 def webhook_dashboard():
-    """صفحة محاكي الـ Webhook (للعرض فقط)"""
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='webhook'
@@ -190,20 +200,14 @@ def webhook_dashboard():
 
 
 # ============================================================
-# 🚨 المسار الرئيسي لـ Webhook (يجب أن يكون متطابقاً مع ما في ميتا)
+# Webhook الرئيسي
 # ============================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 def webhook_handler():
-    """
-    نقطة استقبال Webhook من ميتا (GET للتحقق، POST للاستقبال)
-    هذا هو المسار الذي يجب إضافته في لوحة تحكم ميتا
-    """
     if request.method == 'GET':
-        # التحقق من التوكن
         mode = request.args.get('hub.mode')
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
-
         verify_token = WhatsAppServiceConfig.get_verify_token()
         if mode and token:
             if mode == 'subscribe' and token == verify_token:
@@ -213,7 +217,6 @@ def webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
-        # ✅ التحقق من وجود بيانات JSON صالحة
         if not request.is_json:
             current_app.logger.warning("Webhook POST: No JSON data received")
             return jsonify({"status": "error", "message": "Expected JSON"}), 400
@@ -233,8 +236,6 @@ def webhook_handler():
                 changes = entry.get('changes', [])
                 for change in changes:
                     value = change.get('value', {})
-                    
-                    # معالجة الرسائل الواردة
                     messages = value.get('messages', [])
                     for msg in messages:
                         sender = msg.get('from')
@@ -267,10 +268,8 @@ def webhook_handler():
                                 unread_count=1
                             )
                             db.session.add(new_contact)
-                        
                         db.session.commit()
 
-                    # معالجة تحديثات حالة الرسائل
                     statuses = value.get('statuses', [])
                     for st in statuses:
                         wamid = st.get('id')
@@ -288,18 +287,13 @@ def webhook_handler():
         return jsonify({"status": "success"}), 200
 
 
-# ============================================================
-# نسخة احتياطية (للتوافق مع الإعدادات القديمة في ميتا)
-# ============================================================
 @whatsapp_bp.route('/webhook-handler', methods=['GET', 'POST'])
 def whatsapp_webhook_handler():
-    """نسخة احتياطية من Webhook (تُعيد توجيه الطلب إلى المعالج الرئيسي)"""
     return webhook_handler()
 
 
 @whatsapp_bp.route('/settings/save', methods=['POST'])
 def settings_save():
-    """نقطة API لحفظ الإعدادات عبر AJAX (تستخدم في settings_view.html)"""
     try:
         data = request.json
         if not data:
