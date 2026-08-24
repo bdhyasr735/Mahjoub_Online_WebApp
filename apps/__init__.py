@@ -327,7 +327,8 @@ def create_app():
             '/supplier/register',
             '/supplier/forgot-password',
             admin_login_path,
-            '/auth'
+            '/auth',
+            '/whatsapp' # استثناء مسارات الواتساب من حماية الـ Login
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -468,6 +469,16 @@ def create_app():
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
                         print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح عبر النظام الديناميكي.")
+                        
+                        # استثناء موديول الواتساب تلقائياً من الـ CSRF إذا كان هو الموديول الحالي
+                        if item == 'whatsapp_service' or 'whatsapp' in item:
+                            try:
+                                # استخراج البلوبرنت واستثنائه
+                                if hasattr(module, 'whatsapp_bp'):
+                                    csrf.exempt(module.whatsapp_bp)
+                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF بنجاح.")
+                            except Exception as ex_csrf:
+                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول تلقائياً: {ex_csrf}")
                     else:
                         print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' يحتوي على ملف registry.py ولكنّه لا يتضمن دالة register_module.")
 
