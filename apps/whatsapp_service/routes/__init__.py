@@ -3,7 +3,7 @@
 
 from flask import Blueprint
 
-# تعريف الـ Blueprint الخاص بخدمة الواتساب
+# 1. إنشاء الـ Blueprint أولاً
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
@@ -11,5 +11,5 @@ whatsapp_bp = Blueprint(
     static_folder='../static'
 )
 
-# استيراد المسارات (Routes) هنا في الأسفل بعد إنشاء الـ Blueprint تماماً لتجنب الاستيراد الدائري
-from . import dashboard, api
+# 2. استيراد ملفات المسارات في النهاية لتجنب Circular Import
+from . import dashboard, api, actions, webhook
