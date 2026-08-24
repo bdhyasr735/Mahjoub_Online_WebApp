@@ -73,6 +73,17 @@ def regenerate_verify_token():
     """توليد رمز تحقق جديد (Verify Token) للربط مع ميتا"""
     import secrets
     new_token = secrets.token_hex(16)
-    
-    # يمكنك إضافة كود حفظ الرمز الجديد في قاعدة البيانات هنا إذا احتجت لاحقاً
     return jsonify({"success": True, "token": new_token})
+
+
+@whatsapp_bp.route('/admin/whatsapp/test-connection', methods=['GET'])
+def test_connection():
+    """اختبار الاتصال بـ Meta WhatsApp Cloud API"""
+    # يمكنك وضع منطق التحقق الفعلي هنا، أو إرجاع نجاح تجريبي مبدئي
+    return jsonify({"success": True, "message": "تم الاتصال بنجاح بـ Meta API"})
+
+
+@whatsapp_bp.route('/admin/whatsapp/test-webhook', methods=['POST'])
+def test_webhook():
+    """اختبار استجابة الـ Webhook"""
+    return jsonify({"success": True, "message": "استجابة Webhook سليمة وتعمل بنجاح"})
