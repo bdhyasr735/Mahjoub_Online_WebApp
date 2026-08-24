@@ -7,6 +7,7 @@ except ImportError:
     from app import db
 
 from datetime import datetime
+import os
 
 class WhatsAppWebhookEvent(db.Model):
     __tablename__ = 'whatsapp_webhook_events'
@@ -84,3 +85,39 @@ class WhatsAppCustomerContact(db.Model):
     @property
     def status_label(self):
         return "نشط"
+
+class WhatsAppSettings(db.Model):
+    __tablename__ = 'whatsapp_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @classmethod
+    def get_setting(cls, key, default=""):
+        """جلب قيمة إعداد معين من قاعدة البيانات أو البيئة"""
+        try:
+            setting = cls.query.filter_by(key=key).first()
+            if setting and setting.value is not None:
+                return setting.value
+        except Exception:
+            pass
+        return os.getenv(key, default)
+
+    @classmethod
+    def set_setting(cls, key, value):
+        """حفظ أو تحديث إعداد معين في قاعدة البيانات"""
+        try:
+            setting = cls.query.filter_by(key=key).first()
+            if setting:
+                setting.value = value
+                setting.updated_at = datetime.utcnow()
+            else:
+                setting = cls(key=key, value=value)
+                db.session.add(setting)
+            db.session.commit()
+            return True
+        except Exception as e:
+            db.session.rollback()
+            return False
