@@ -48,11 +48,5 @@ def register_service(app):
 
 def register_module(app):
     """الدالة الأساسية التي يبحث عنها النظام الديناميكي في apps/__init__.py"""
-    try:
-        from apps.whatsapp_service import init_app
-        init_app(app)
-    except ImportError:
-        pass
-    
     register_service(app)
-    print("✅ [Mahgoob WhatsApp Service] Registered and initialized successfully via dynamic engine.")
+    print("✅ [Mahgoob WhatsApp Service] Registered successfully via dynamic engine.")
