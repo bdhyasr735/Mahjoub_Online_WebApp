@@ -121,14 +121,14 @@ class WhatsAppCustomerContact(db.Model):
     is_online = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime, nullable=True)
     last_message = db.Column(db.Text, nullable=True)
-    last_message_id = db.Column(db.Integer, nullable=True)
+    # ❌ تم حذف العمود last_message_id لأنه غير موجود في قاعدة البيانات
+    # last_message_id = db.Column(db.Integer, nullable=True)
     last_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     unread_count = db.Column(db.Integer, default=0)
     is_blocked = db.Column(db.Boolean, default=False)
     is_archived = db.Column(db.Boolean, default=False)
     notes = db.Column(db.Text, nullable=True)
     tags = db.Column(db.JSON, nullable=True)
-    # ✅ تم تغيير اسم العمود من 'metadata' إلى 'extra_data'
     extra_data = db.Column(db.JSON, nullable=True)
     customer_id = db.Column(db.Integer, nullable=True)
     supplier_id = db.Column(db.Integer, nullable=True)
