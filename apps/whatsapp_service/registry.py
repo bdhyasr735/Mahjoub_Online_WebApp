@@ -8,11 +8,27 @@ DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
 ICON = "fab fa-whatsapp"
 SHOW_IN_SUPPLIER = False
 
-# هيكل الروابط المتوافق تماماً مع حلقة القالب الديناميكي links في admin_base.html
+# تعديل المسارات لتكون مسارات مباشرة تبدأ بـ / لتجنب خطأ URL rule must start with a slash
+NAV_ITEMS = [
+    {
+        "title": "محادثات العملاء",
+        "endpoint": "/whatsapp/dashboard"
+    },
+    {
+        "title": "سجل الرسائل",
+        "endpoint": "/whatsapp/logs"
+    },
+    {
+        "title": "إعدادات Meta Cloud API",
+        "endpoint": "/whatsapp/settings"
+    }
+]
+
+# قاموس الروابط المتوافق مع محرك admin_base.html
 LINKS_DICT = {
-    "whatsapp_service.chat_dashboard": "محادثات العملاء",
-    "whatsapp_service.logs_dashboard": "سجل الرسائل",
-    "whatsapp_service.settings_dashboard": "إعدادات Meta Cloud API"
+    "/whatsapp/dashboard": "محادثات العملاء",
+    "/whatsapp/logs": "سجل الرسائل",
+    "/whatsapp/settings": "إعدادات Meta Cloud API"
 }
 
 SERVICE_METADATA = {
@@ -22,8 +38,8 @@ SERVICE_METADATA = {
     "author": "Mahgoob Online Dev Team",
     "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v21.0 لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات ORD-#",
     "icon": ICON,
-    "links": LINKS_DICT,  # هذا المفتاح الذي يقرأه admin_base.html مباشرة
-    "admin_menu": LINKS_DICT,
+    "links": LINKS_DICT,
+    "admin_menu": NAV_ITEMS,
     "permissions": [
         "whatsapp.view_chat",
         "whatsapp.send_message",
@@ -39,7 +55,7 @@ def register_service(app):
         app.registered_services = {}
     app.registered_services['whatsapp_service'] = SERVICE_METADATA
     
-    # للتأكد من توافق المحرك الديناميكي إذا كان يبحث عن registered_modules
+    # مزامنة محرك الـ registered_modules الديناميكي لكي يلتقطه القالب بسلاسة
     if not hasattr(app, 'registered_modules'):
         app.registered_modules = {}
     app.registered_modules['whatsapp_service'] = SERVICE_METADATA
