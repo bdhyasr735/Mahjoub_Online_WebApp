@@ -10,12 +10,32 @@ from apps.models.whatsapp_models import (
     WhatsAppSettings
 )
 from apps.whatsapp_service.whatsapp_api import send_text_message
-# ✅ التعديل الأساسي: استيراد الإعدادات من الملف الصحيح
 from apps.whatsapp_service.config import WhatsAppServiceConfig
 
-# ✅ تغيير اسم الـ Blueprint ليتوافق مع القوالب (كان whatsapp_bp)
+# ✅ تعريف الـ Blueprint بالاسم المطلوب في القوالب
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='templates')
 
+
+# ============================================================
+# ✅ Context Processor لتوفير الإعدادات لجميع القوالب تلقائياً
+# ============================================================
+@whatsapp_bp.context_processor
+def inject_settings():
+    """حقن متغير settings في جميع قوالب الـ Blueprint"""
+    settings = {
+        'phone_number_id': WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID') or WhatsAppServiceConfig.get_phone_number_id(),
+        'business_account_id': WhatsAppSettings.get_setting('WHATSAPP_BUSINESS_ACCOUNT_ID') or WhatsAppServiceConfig.get_business_account_id(),
+        'api_version': WhatsAppSettings.get_setting('WHATSAPP_API_VERSION') or WhatsAppServiceConfig.get_api_version(),
+        'access_token': WhatsAppSettings.get_setting('WHATSAPP_TOKEN') or WhatsAppServiceConfig.get_whatsapp_token(),
+        'verify_token': WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN') or WhatsAppServiceConfig.get_verify_token(),
+        'webhook_secret': WhatsAppSettings.get_setting('WEBHOOK_SECRET') or WhatsAppServiceConfig.get_webhook_secret(),
+    }
+    return {'settings': settings}
+
+
+# ============================================================
+# المسارات (Routes)
+# ============================================================
 
 @whatsapp_bp.route('/chat')
 def chat_dashboard():
@@ -24,7 +44,6 @@ def chat_dashboard():
         WhatsAppCustomerContact.last_timestamp.desc()
     ).all()
     
-    # دعم كلا المعاملين: contact_id (من القالب) أو phone (للتوافق)
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
     
@@ -38,13 +57,10 @@ def chat_dashboard():
     elif selected_phone:
         active_contact = WhatsAppCustomerContact.query.filter_by(phone=selected_phone).first()
     elif contacts:
-        # افتراضياً اختر أول جهة اتصال
         active_contact = contacts[0]
         selected_phone = active_contact.phone
 
-    # إذا تم تحديد جهة اتصال، اجلب رسائلها
     if active_contact and selected_phone:
-        # تصفير عدد الرسائل غير المقروءة
         if active_contact.unread_count and active_contact.unread_count > 0:
             active_contact.unread_count = 0
             db.session.commit()
@@ -54,14 +70,12 @@ def chat_dashboard():
             (WhatsAppMessageLog.recipient_number == selected_phone)
         ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
 
-    # ✅ استخدام القالب الرئيسي (الإطار) مع تضمين chat_view.html داخله
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='chat',
         contacts=contacts,
         selected_contact=active_contact,
         messages=messages,
-        # نمرر أيضاً المتغيرات المطلوبة في chat_view.html
         selected_phone=selected_phone
     )
 
@@ -70,10 +84,9 @@ def chat_dashboard():
 @csrf.exempt
 def send_message_htmx():
     """إرسال رسالة عبر واتساب مع دعم HTMX"""
-    # دعم كلا الصيغتين: recipient (من JSON) أو phone (من النموذج)
     recipient = request.form.get('recipient') or request.json.get('recipient')
     if not recipient:
-        recipient = request.form.get('phone')  # القالب يرسل phone في حقل مخفي
+        recipient = request.form.get('phone')
     
     message = request.form.get('message') or request.json.get('message')
 
@@ -83,7 +96,6 @@ def send_message_htmx():
     success, result = send_text_message(recipient, message)
     
     if success:
-        # إذا كان الطلب عبر HTMX، أعد فقاعة الرسالة الجديدة فقط
         if request.headers.get('HX-Request'):
             new_msg = WhatsAppMessageLog.query.filter_by(
                 recipient_number=recipient
@@ -116,7 +128,6 @@ def start_new_chat():
         db.session.add(contact)
         db.session.commit()
     else:
-        # إذا كان موجوداً، يمكن تحديث الاسم
         if name and name != contact.name:
             contact.name = name
             db.session.commit()
@@ -140,21 +151,10 @@ def settings_view():
 
         return redirect(url_for('whatsapp_service.settings_view'))
 
-    # قراءة الإعدادات من قاعدة البيانات (أو البيئة كاحتياطي)
-    settings = {
-        'phone_number_id': WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID') or WhatsAppServiceConfig.get_phone_number_id(),
-        'business_account_id': WhatsAppSettings.get_setting('WHATSAPP_BUSINESS_ACCOUNT_ID') or WhatsAppServiceConfig.get_business_account_id(),
-        'api_version': WhatsAppSettings.get_setting('WHATSAPP_API_VERSION') or WhatsAppServiceConfig.get_api_version(),
-        'access_token': WhatsAppSettings.get_setting('WHATSAPP_TOKEN') or WhatsAppServiceConfig.get_whatsapp_token(),
-        'verify_token': WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN') or WhatsAppServiceConfig.get_verify_token(),
-        'webhook_secret': WhatsAppSettings.get_setting('WEBHOOK_SECRET') or WhatsAppServiceConfig.get_webhook_secret(),
-    }
-
-    # ✅ استخدام القالب الرئيسي مع active_tab='settings'
+    # يتم جلب الإعدادات عبر Context Processor، لكن يمكن تمريرها هنا أيضاً
     return render_template(
         'admin/whatsapp_dashboard.html',
-        active_tab='settings',
-        settings=settings
+        active_tab='settings'
     )
 
 
@@ -163,7 +163,6 @@ def logs_dashboard():
     """صفحة سجل الرسائل"""
     logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
     
-    # ✅ استخدام القالب الرئيسي مع active_tab='logs'
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='logs',
@@ -174,7 +173,6 @@ def logs_dashboard():
 @whatsapp_bp.route('/webhook')
 def webhook_dashboard():
     """صفحة محاكي الـ Webhook (للعرض فقط)"""
-    # ✅ استخدام القالب الرئيسي مع active_tab='webhook'
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='webhook'
@@ -215,7 +213,6 @@ def whatsapp_webhook_handler():
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
 
-                        # تسجيل الرسالة
                         log_entry = WhatsAppMessageLog(
                             wamid=wamid,
                             direction='inbound',
@@ -227,7 +224,6 @@ def whatsapp_webhook_handler():
                         )
                         db.session.add(log_entry)
 
-                        # تحديث أو إنشاء جهة اتصال
                         contact = WhatsAppCustomerContact.query.filter_by(phone=sender).first()
                         if contact:
                             contact.last_message = msg_body
