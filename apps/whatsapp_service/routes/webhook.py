@@ -12,8 +12,8 @@ import os
 
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token")
 
-@whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
-@whatsapp_bp.route('/', methods=['GET', 'POST'])
+@whatsapp_bp.route('/webhook', methods=['GET', 'POST'], endpoint='whatsapp_webhook_handler')
+@whatsapp_bp.route('/', methods=['GET', 'POST'], endpoint='whatsapp_root_handler')
 def whatsapp_webhook_handler():
     """معالجة التحقق واستقبال الرسائل الواردة وتخزينها"""
     if request.method == 'GET':
@@ -40,11 +40,10 @@ def whatsapp_webhook_handler():
                         
                         if messages:
                             for message in messages:
-                                phone_number = message.get('from')  # رقم المرسل
+                                phone_number = message.get('from')
                                 msg_id = message.get('id')
                                 timestamp = message.get('timestamp')
                                 
-                                # محتوى الرسالة
                                 msg_body = ""
                                 msg_type = message.get('type')
                                 if msg_type == 'text':
@@ -52,7 +51,6 @@ def whatsapp_webhook_handler():
                                 else:
                                     msg_body = f"[{msg_type} message]"
                                     
-                                # اسم المرسل من الـ payload إن وجد
                                 profile_name = f"عميل ({phone_number})"
                                 contacts_info = value.get('contacts', [])
                                 if contacts_info:
@@ -60,7 +58,6 @@ def whatsapp_webhook_handler():
 
                                 msg_time = datetime.fromtimestamp(int(timestamp)) if timestamp else datetime.utcnow()
 
-                                # 1. البحث عن جهة الاتصال باستخدام حقل phone (المطابق لـ whatsapp_api.py)
                                 contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone_number).first()
                                 
                                 if not contact:
@@ -75,7 +72,6 @@ def whatsapp_webhook_handler():
                                 else:
                                     contact.last_message = msg_body
                                     contact.last_timestamp = msg_time
-                                    # زيادة عدد الرسائل غير المقروءة إن لم تكن المحادثة مفتوحة
                                     try:
                                         contact.unread_count = (contact.unread_count or 0) + 1
                                     except:
@@ -83,7 +79,6 @@ def whatsapp_webhook_handler():
                                 
                                 db.session.commit()
 
-                                # 2. حفظ سجل الرسالة الواردة (Inbound Log) مطابراً لـ WhatsAppMessageLog
                                 new_log = WhatsAppMessageLog(
                                     wamid=msg_id,
                                     direction='inbound',
