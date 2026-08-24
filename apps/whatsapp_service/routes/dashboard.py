@@ -36,7 +36,6 @@ def chat_dashboard():
 
         # إذا تم تحديد عميل، نقوم بجلب سجل الرسائل المتبادلة معه (واردة وصادرة)
         if selected_contact:
-            # تصفية الرسائل بناءً على رقم هاتف العميل
             phone = selected_contact.phone
             messages = db.session.query(WhatsAppMessageLog).filter(
                 or_(
@@ -115,7 +114,6 @@ def send_dashboard_message():
         if not recipient or not message:
             return jsonify({'success': False, 'message': 'رقم الهاتف ونص الرسالة مطلوبان.'}), 400
 
-        # استدعاء دالة الإرسال من خدمة الواتساب
         from apps.whatsapp_service.whatsapp_api import send_text_message
         success, result = send_text_message(recipient, message)
 
@@ -154,13 +152,13 @@ def webhook_dashboard():
 @whatsapp_bp.route('/settings', methods=['GET'])
 @login_required
 def settings_dashboard():
-    """عرض صفحة إعدادات ربط Meta WhatsApp API"""
+    """عرض صفحة إعدادات ربط Meta WhatsApp API مع جلب القيم تلقائياً من متغيرات البيئة"""
     try:
         class SettingsObj:
-            phone_number_id = ""
-            business_account_id = ""
-            api_version = "v21.0"
-            access_token = ""
+            phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1336881386166971")
+            business_account_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "2280533956048577")
+            api_version = os.getenv("WHATSAPP_API_VERSION", "v21.0")
+            access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
             verify_token = WEBHOOK_VERIFY_TOKEN
             updated_at = None
 
