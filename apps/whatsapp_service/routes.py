@@ -22,6 +22,12 @@ from apps.models.whatsapp_models import (
 )
 from apps.extensions import db
 
+# محاولة استيراد مانع الـ CSRF إن وجد لتطبيق الاستثناءات بأمان
+try:
+    from apps.extensions import csrf
+except ImportError:
+    csrf = None
+
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token")
 
 
@@ -442,3 +448,7 @@ def whatsapp_webhook_handler():
             db.session.rollback()
             print(f"Error handling webhook: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
+
+# تطبيق استثناء الويب هوك من فحص الـ CSRF في حال كانت مكتبة الحماية مفعلة
+if csrf:
+    csrf.exempt(whatsapp_webhook_handler)
