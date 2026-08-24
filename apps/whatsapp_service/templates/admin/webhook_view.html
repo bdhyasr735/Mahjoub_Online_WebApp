@@ -39,7 +39,7 @@
     responseBox.classList.add('hidden');
 
     try {
-      const res = await fetch("{{ url_for('whatsapp_service_bp.test_webhook') }}", {
+      const res = await fetch("{{ url_for('whatsapp_service.test_webhook') }}", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
