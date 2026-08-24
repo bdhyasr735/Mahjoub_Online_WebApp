@@ -104,7 +104,7 @@ def send_message_api():
             new_log = WhatsAppMessageLog(
                 wamid=wamid,
                 direction='outbound',
-                sender_number='system', # أو رقم هاتف النشاط التجاري الخاص بك
+                sender_number='system',
                 recipient_number=phone,
                 content=message,
                 status='sent',
