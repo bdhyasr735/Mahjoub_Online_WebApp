@@ -43,7 +43,7 @@
             min-height: 100vh;
         }
         
-        /* Sidebar السيادي الداكن (لخلق تباين عالمي راقٍ مع الخلفية الفاتحة) */
+        /* Sidebar السيادي الداكن (متوافق تماماً مع الاتجاه اليميني RTL) */
         .sidebar { 
             width: var(--sidebar-width); 
             height: 100vh; 
@@ -98,6 +98,7 @@
             cursor: pointer; 
             margin-bottom: 6px; 
             font-weight: 500;
+            text-align: right;
         }
         .nav-link-custom:hover, .nav-link-custom.active { 
             background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9)); 
@@ -107,7 +108,13 @@
         }
         .nav-link-custom i { width: 20px; text-align: center; }
         
-        .dropdown-content { display: none; list-style: none; padding-right: 30px; margin: 5px 0; }
+        .dropdown-content { 
+            display: none; 
+            list-style: none; 
+            padding-right: 30px; 
+            padding-left: 0;
+            margin: 5px 0; 
+        }
         .dropdown-content a { 
             display: block; 
             padding: 8px 12px; 
@@ -116,15 +123,20 @@
             border-radius: 8px; 
             font-size: 0.9rem; 
             transition: 0.2s; 
+            text-align: right;
         }
         .dropdown-content a:hover, .dropdown-content a.active-link { 
             color: var(--mahjoub-gold); 
             background: rgba(212, 175, 55, 0.1); 
         }
-        .nav-link-custom .fa-chevron-down { margin-left: auto; margin-right: 0; transition: transform 0.3s ease; }
+        .nav-link-custom .fa-chevron-down { 
+            margin-left: unset; 
+            margin-right: auto; 
+            transition: transform 0.3s ease; 
+        }
         .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
         
-        /* Main Layout */
+        /* Main Layout - ضبط الإزاحة من اليمين لتناسب مكان الشريط الجانبي */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             margin-left: 0;
@@ -219,6 +231,7 @@
         .table-mahjoub thead th {
             color: var(--mahjoub-gold) !important;
             border: none !important;
+            text-align: right;
         }
         .table-mahjoub th, .table-mahjoub td { 
             padding: 16px 18px !important; 
@@ -226,6 +239,7 @@
             white-space: nowrap; 
             border-bottom: 1px solid var(--dashboard-border) !important;
             color: var(--dashboard-text) !important;
+            text-align: right;
         }
         .table-mahjoub tbody tr {
             background-color: transparent !important;
@@ -287,7 +301,7 @@
                 {% for mod_name, module in registered_modules.items() %}
                     <div class="nav-item mt-2">
                         <div class="nav-link-custom" onclick="toggleSub(this)">
-                            <div>
+                            <div class="d-flex align-items-center gap-2">
                                 <i class="{{ module.icon|default('fas fa-folder') }}"></i>
                                 <span>{{ module.display_name }}</span>
                             </div>
@@ -301,7 +315,7 @@
                                     <li>
                                         {% if endpoint %}
                                             <a href="{{ endpoint if endpoint.startswith('/') else safe_url_for(endpoint) }}" class="{{ 'active-link' if request.path == endpoint or request.endpoint == endpoint }}">
-                                                <i class="fas fa-angle-left me-2"></i> {{ label }}
+                                                <i class="fas fa-angle-left ms-2"></i> {{ label }}
                                             </a>
                                         {% endif %}
                                     </li>
@@ -311,7 +325,7 @@
                                     <li>
                                         {% if item %}
                                             <a href="{{ item[0] if item[0].startswith('/') else safe_url_for(item[0]) }}" class="{{ 'active-link' if request.path == item[0] or request.endpoint == item[0] }}">
-                                                <i class="fas fa-angle-left me-2"></i> {{ item[1] }}
+                                                <i class="fas fa-angle-left ms-2"></i> {{ item[1] }}
                                             </a>
                                         {% endif %}
                                     </li>
@@ -336,7 +350,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="admin-badge">
-                    <i class="fas fa-crown me-1 text-amber-400"></i>
+                    <i class="fas fa-crown ms-1 text-amber-400"></i>
                     <span>بيئة التحكم السيادية</span>
                 </div>
             </div>
@@ -346,17 +360,16 @@
                 <div class="dropdown">
                     <button class="notification-bell-btn dropdown-toggle" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-bell"></i>
-                        <!-- نقطة أو عدد الإشعارات (يمكن جعله ديناميكياً لاحقاً) -->
                         <span class="notification-badge">3</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2 mt-2" aria-labelledby="notificationsDropdown" style="min-width: 300px; border-radius: 15px;">
                         <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
                             <span class="fw-bold text-dark">التنبيهات المركزية</span>
-                            <span class="badge bg-purple text-amber-400 font-monospace" style="background: var(--royal-purple);">جديد</span>
+                            <span class="badge text-amber-400 font-monospace" style="background: var(--royal-purple);">جديد</span>
                         </li>
-                        <li><a class="dropdown-item py-2 text-wrap small" href="#">طلب منتج جديد بانتظار الاعتماد</a></li>
-                        <li><a class="dropdown-item py-2 text-wrap small" href="#">تحديث مالي مسجل في الخزينة</a></li>
-                        <li><a class="dropdown-item py-2 text-wrap small" href="#">تنبيه أمني من نظام الحماية</a></li>
+                        <li><a class="dropdown-item py-2 text-wrap small text-end" href="#">طلب منتج جديد بانتظار الاعتماد</a></li>
+                        <li><a class="dropdown-item py-2 text-wrap small text-end" href="#">تحديث مالي مسجل في الخزينة</a></li>
+                        <li><a class="dropdown-item py-2 text-wrap small text-end" href="#">تنبيه أمني من نظام الحماية</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-center text-primary small fw-bold" href="#">عرض كل الإشعارات</a></li>
                     </ul>
@@ -378,7 +391,6 @@
             let drop = el.nextElementSibling;
             if (!drop) return;
             
-            // تبديل العرض بسلاسة
             let isVisible = drop.style.display === "block";
             drop.style.display = isVisible ? "none" : "block";
             
@@ -393,7 +405,6 @@
             backdrop.classList.toggle('active');
         }
         
-        // إغلاق القائمة عند النقر خارجها في الشاشات الصغيرة تلقائياً
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.btn-outline-dark');
