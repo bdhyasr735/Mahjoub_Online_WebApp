@@ -38,11 +38,15 @@ class Config:
     def validate_config():
         """التحقق من صحة المتغيرات الأساسية عند التشغيل لضمان عدم وجود نقص حرج"""
         missing = []
-        if not Config.SECRET_KEY:
+        if not Config.SECRET_KEY or Config.SECRET_KEY == 'default_secret_key_mahjoub_online':
             missing.append('SECRET_KEY')
+        if not Config.WHATSAPP_ACCESS_TOKEN:
+            missing.append('WHATSAPP_ACCESS_TOKEN')
+        if not Config.WHATSAPP_PHONE_NUMBER_ID:
+            missing.append('WHATSAPP_PHONE_NUMBER_ID')
         
         if missing:
-            print(f"⚠️ [Config Warning]: متغيرات البيئة التالية مفقودة: {', '.join(missing)}")
+            print(f"⚠️ [Config Warning]: متغيرات البيئة التالية مفقودة أو غير آمنة: {', '.join(missing)}")
         else:
             print("✅ [Config]: تم التحقق من سلامة إعدادات التكوين بنجاح.")
 
