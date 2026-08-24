@@ -3,7 +3,7 @@
 WhatsApp Webhook Handler (Integrated with WhatsApp API structure)
 """
 
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from datetime import datetime
 from . import whatsapp_bp
 from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
@@ -23,10 +23,11 @@ def whatsapp_webhook_handler():
 
         if mode and token:
             if mode == 'subscribe' and token == WEBHOOK_VERIFY_TOKEN:
-                return challenge, 200
+                # Meta تتطلب إرجاع الـ challenge كنص صافي تماماً بدون أي JSON
+                return make_response(str(challenge), 200)
             else:
-                return jsonify({"error": "Forbidden"}), 403
-        return jsonify({"error": "Bad Request"}), 400
+                return make_response("Forbidden", 403)
+        return make_response("Bad Request", 400)
 
     else:
         try:
