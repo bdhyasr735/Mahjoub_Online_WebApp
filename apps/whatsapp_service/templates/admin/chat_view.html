@@ -97,10 +97,15 @@
         {% endif %}
       </div>
 
-      <!-- نموذج إرسال الرسالة الفورية (بدون CSRF - تم استثناء البلوبرنت) -->
-      <form action="{{ url_for('whatsapp_service.send_message_htmx') }}" method="POST" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+      <!-- نموذج إرسال الرسالة الفورية (مع HTMX) -->
+      <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
+            hx-target="#chatMessagesContainer" 
+            hx-swap="beforeend"
+            hx-on::after-request="this.reset(); document.getElementById('chatMessagesContainer').scrollTop = document.getElementById('chatMessagesContainer').scrollHeight;"
+            class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
         <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
-        <input type="text" name="message" placeholder="اكتب رسالتك هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" name="message" placeholder="اكتب رسالتك هنا..." required 
+               class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600">
         <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">إرسال</button>
       </form>
     {% else %}
@@ -112,7 +117,7 @@
   </div>
 </div>
 
-<!-- نافذة محادثة جديدة (بدون CSRF - تم استثناء البلوبرنت) -->
+<!-- نافذة محادثة جديدة -->
 <div id="newChatModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center">
   <div class="bg-white rounded-2xl w-96 p-5 shadow-xl border border-slate-200">
     <h3 class="font-bold text-sm text-slate-900 mb-4">بدء محادثة جديدة</h3>
