@@ -48,14 +48,25 @@ def register_service(app):
     """دالة التسجيل مع فحص عدم تكرار الـ Blueprint لمنع الخطأ"""
     try:
         whatsapp_routes = importlib.import_module("apps.whatsapp_service.routes")
-        if hasattr(whatsapp_routes, 'whatsapp_bp'):
-            bp = whatsapp_routes.whatsapp_bp
+        # ✅ التعديل: تغيير الاسم من 'whatsapp_bp' إلى 'whatsapp_service' (حسب ما تم في routes.py)
+        if hasattr(whatsapp_routes, 'whatsapp_service'):
+            bp = whatsapp_routes.whatsapp_service
             # التحقق مما إذا كان الـ Blueprint مسجلاً مسبقاً في التطبيق
             if bp.name not in app.blueprints:
                 app.register_blueprint(bp, url_prefix='/whatsapp')
                 print("✅ [Mahgoob WhatsApp Service] Blueprint registered successfully at /whatsapp.")
             else:
                 print("ℹ️ [Mahgoob WhatsApp Service] Blueprint is already registered.")
+        # 🛡️ احتياطي: في حال بقاء الاسم القديم (للتوافق)
+        elif hasattr(whatsapp_routes, 'whatsapp_bp'):
+            bp = whatsapp_routes.whatsapp_bp
+            if bp.name not in app.blueprints:
+                app.register_blueprint(bp, url_prefix='/whatsapp')
+                print("✅ [Mahgoob WhatsApp Service] Blueprint (legacy name) registered successfully at /whatsapp.")
+            else:
+                print("ℹ️ [Mahgoob WhatsApp Service] Blueprint (legacy) is already registered.")
+        else:
+            print("❌ [Mahgoob WhatsApp Service] No blueprint found in routes module.")
     except Exception as e:
         print(f"❌ [Mahgoob WhatsApp Service] Failed to register blueprint: {e}")
 
