@@ -29,17 +29,32 @@
 </div>
 
 <script>
-  // حفظ الإعدادات عبر طلب AJAX مع تضمين توكن الحماية لمنع خطأ 400
+  // حفظ الإعدادات عبر طلب AJAX (بدون CSRF لأن الـ route معفى)
   async function saveWhatsAppSettings(event) {
     event.preventDefault();
     const btn = document.getElementById('save-btn');
     const status = document.getElementById('save-status');
     
+    // جمع البيانات من النموذج
+    const phone_number_id = document.getElementById('phone_number_id').value.trim();
+    const business_account_id = document.getElementById('business_account_id').value.trim();
+    const api_version = document.getElementById('api_version').value.trim();
+    const access_token = document.getElementById('access_token').value.trim();
+
+    // تحقق بسيط: التأكد من أن الحقول الأساسية غير فارغة
+    if (!phone_number_id || !access_token) {
+      status.classList.remove('hidden');
+      status.textContent = '⚠️ Phone Number ID و Access Token مطلوبان';
+      status.className = 'text-xs font-bold text-amber-600';
+      setTimeout(() => status.classList.add('hidden'), 4000);
+      return;
+    }
+
     const formData = {
-      phone_number_id: document.getElementById('phone_number_id').value,
-      business_account_id: document.getElementById('business_account_id').value,
-      api_version: document.getElementById('api_version').value,
-      access_token: document.getElementById('access_token').value
+      phone_number_id: phone_number_id,
+      business_account_id: business_account_id,
+      api_version: api_version || 'v21.0',
+      access_token: access_token
     };
 
     btn.disabled = true;
@@ -50,16 +65,16 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': "{{ csrf_token() }}" // تمرير توكن الحماية لتجاوز خطأ 400
+          'X-Requested-With': 'XMLHttpRequest'
+          // ✅ تم إزالة X-CSRFToken لأن الـ route معفى من CSRF
         },
         body: JSON.stringify(formData)
       });
       
       const result = await response.json();
       status.classList.remove('hidden');
-      if (response.ok && (result.success !== false)) {
-        status.textContent = '✅ تم حفظ الإعدادات بنجاح';
+      if (response.ok && result.success !== false) {
+        status.textContent = '✅ ' + (result.message || 'تم حفظ الإعدادات بنجاح');
         status.className = 'text-xs font-bold text-emerald-600';
       } else {
         status.textContent = '❌ فشل الحفظ: ' + (result.message || 'خطأ غير معروف');
@@ -72,7 +87,7 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'حفظ الإعدادات';
-      setTimeout(() => status.classList.add('hidden'), 4000);
+      setTimeout(() => status.classList.add('hidden'), 5000);
     }
   }
 </script>
