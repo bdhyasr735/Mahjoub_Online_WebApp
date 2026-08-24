@@ -10,25 +10,27 @@ DISPLAY_NAME = "خدمة مراسلات واتساب محجوب أونلاين"
 ICON = "fab fa-whatsapp"
 SHOW_IN_SUPPLIER = False
 
+# استخدام المسارات المباشرة التي يتوقعها محرك القوائم الجانبية لديك
 NAV_ITEMS = [
     {
         "title": "محادثات العملاء",
-        "endpoint": "whatsapp.dashboard"
+        "endpoint": "/whatsapp/dashboard"
     },
     {
         "title": "سجل الرسائل",
-        "endpoint": "whatsapp.logs"
+        "endpoint": "/whatsapp/logs"
     },
     {
         "title": "إعدادات Meta Cloud API",
-        "endpoint": "whatsapp.settings"
+        "endpoint": "/whatsapp/settings"
     }
 ]
 
+# قاموس الروابط المتوافق مع محرك admin_base.html والقائمة الجانبية
 LINKS_DICT = {
-    "whatsapp.dashboard": "محادثات العملاء",
-    "whatsapp.logs": "سجل الرسائل",
-    "whatsapp.settings": "إعدادات Meta Cloud API"
+    "/whatsapp/dashboard": "محادثات العملاء",
+    "/whatsapp/logs": "سجل الرسائل",
+    "/whatsapp/settings": "إعدادات Meta Cloud API"
 }
 
 SERVICE_METADATA = {
@@ -52,16 +54,19 @@ SERVICE_METADATA = {
 def register_module(app):
     """الدالة الأساسية لتسجيل الـ Blueprint والخدمة ديناميكياً في تطبيق Flask"""
     
-    # 1. تسجيل الـ Blueprint الخاصة بمسارات الواتساب لتفادي خطأ 404
+    # 1. تسجيل الـ Blueprint مع تحديد url_prefix ليطابق المسارات (/whatsapp)
     try:
         whatsapp_routes = importlib.import_module("apps.whatsapp.routes")
         if hasattr(whatsapp_routes, 'whatsapp_bp'):
-            app.register_blueprint(whatsapp_routes.whatsapp_bp, url_prefix='/whatsapp')
-            print("✅ [Mahgoob WhatsApp Service] Blueprint registered successfully at /whatsapp.")
+            # التأكد من عدم تسجيل الـ Blueprint مسبقاً لمنع حدوث تكرار
+            blueprint_names = [bp.name for bp in app.blueprints.values()]
+            if 'whatsapp' not in blueprint_names:
+                app.register_blueprint(whatsapp_routes.whatsapp_bp, url_prefix='/whatsapp')
+                print("✅ [Mahgoob WhatsApp Service] Blueprint registered successfully at /whatsapp.")
     except Exception as e:
         print(f"❌ [Mahgoob WhatsApp Service] Failed to register blueprint: {e}")
 
-    # 2. تسجيل البيانات الوصفية للخدمة
+    # 2. تسجيل البيانات الوصفية والقوائم لكي يقرأها النظام الديناميكي
     if not hasattr(app, 'registered_services'):
         app.registered_services = {}
     app.registered_services['whatsapp_service'] = SERVICE_METADATA
