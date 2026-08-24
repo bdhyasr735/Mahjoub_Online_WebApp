@@ -181,7 +181,6 @@ def settings_dashboard():
 def settings_save():
     """حفظ إعدادات Meta API"""
     try:
-        # دعم استقبال البيانات سواء أرسلت كـ JSON أو كـ Form Data
         data = request.get_json(silent=True) or request.form
         
         phone_number_id = data.get('phone_number_id')
@@ -189,7 +188,6 @@ def settings_save():
         api_version = data.get('api_version')
         access_token = data.get('access_token')
 
-        # تحديث متغيرات البيئة مؤقتاً في الذاكرة لتطبيق التغييرات فوريًا
         if phone_number_id:
             os.environ["WHATSAPP_PHONE_NUMBER_ID"] = phone_number_id
         if business_account_id:
