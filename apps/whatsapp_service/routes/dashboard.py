@@ -155,8 +155,8 @@ def settings_dashboard():
     """عرض صفحة إعدادات ربط Meta WhatsApp API مع جلب القيم تلقائياً من متغيرات البيئة"""
     try:
         class SettingsObj:
-            phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1336881386166971")
-            business_account_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "2280533956048577")
+            phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+            business_account_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
             api_version = os.getenv("WHATSAPP_API_VERSION", "v21.0")
             access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
             verify_token = WEBHOOK_VERIFY_TOKEN
