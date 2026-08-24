@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/whatsapp_service/routes/actions.py
-
 """
 WhatsApp User Actions & Form Handlers
 Handles form POST submissions for sending single messages, bulk broadcasts, and saving settings.
