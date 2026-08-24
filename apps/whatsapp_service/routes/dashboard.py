@@ -211,7 +211,7 @@ def test_webhook():
 # معالج الويب هوك الموحد (التحقق واستقبال الرسائل)
 # ==========================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
-@whatsapp_bp.route('', methods=['GET', 'POST'])
+@whatsapp_bp.route('/', methods=['GET', 'POST'])
 def whatsapp_webhook_handler():
     """معالجة طلبات التحقق واستقبال الرسائل الحقيقية من ميتا"""
     if request.method == 'GET':
