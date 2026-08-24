@@ -13,11 +13,7 @@ SHOW_IN_SUPPLIER = False
 NAV_ITEMS = [
     {
         "title": "محادثات العملاء",
-        "endpoint": "/whatsapp/dashboard"
-    },
-    {
-        "title": "سجل الرسائل",
-        "endpoint": "/whatsapp/logs"
+        "endpoint": "/whatsapp/chat"
     },
     {
         "title": "إعدادات Meta Cloud API",
@@ -26,8 +22,7 @@ NAV_ITEMS = [
 ]
 
 LINKS_DICT = {
-    "/whatsapp/dashboard": "محادثات العملاء",
-    "/whatsapp/logs": "سجل الرسائل",
+    "/whatsapp/chat": "محادثات العملاء",
     "/whatsapp/settings": "إعدادات Meta Cloud API"
 }
 
@@ -36,7 +31,7 @@ SERVICE_METADATA = {
     "display_name": DISPLAY_NAME,
     "version": "1.2.0",
     "author": "Mahgoob Online Dev Team",
-    "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v21.0 لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات ORD-#",
+    "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API لإدارة محادثات العملاء، قوالب الإشعارات، وربط الطلبات",
     "icon": ICON,
     "links": LINKS_DICT,
     "admin_menu": NAV_ITEMS,
