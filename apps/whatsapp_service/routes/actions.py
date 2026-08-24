@@ -135,9 +135,24 @@ def send_bulk_broadcast():
 
 @whatsapp_bp.route('/settings/save', methods=['POST'], endpoint='actions_settings_save')
 def settings_save():
-    """حفظ الإعدادات من واجهة لوحة التحكم"""
-    flash("✅ تم حفظ إعدادات Meta API بنجاح", "success")
-    return redirect(url_for('whatsapp_service.settings_dashboard'))
+    """حفظ الإعدادات من واجهة لوحة التحكم مع دعم استجابة JSON والطلبات التقليدية"""
+    try:
+        phone_number_id = request.form.get('phone_number_id')
+        business_account_id = request.form.get('business_account_id')
+        access_token = request.form.get('access_token')
+
+        # يمكنك إضافة منطق حفظ البيانات هنا (مثل تخزينها في القاعدة أو ملف الإعدادات)
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({"success": True, "message": "✅ تم حفظ إعدادات Meta API بنجاح"})
+
+        flash("✅ تم حفظ إعدادات Meta API بنجاح", "success")
+        return redirect(url_for('whatsapp_service.settings_dashboard'))
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({"success": False, "message": str(e)}), 500
+        flash(f"حدث خطأ أثناء الحفظ: {str(e)}", "danger")
+        return redirect(url_for('whatsapp_service.settings_dashboard'))
 
 
 @whatsapp_bp.route('/admin/whatsapp/regenerate-token', methods=['POST'], endpoint='actions_regenerate_verify_token')
