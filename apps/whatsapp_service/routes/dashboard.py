@@ -7,7 +7,7 @@ Renders the chat interface, logs table, settings view, and health check.
 """
 
 from datetime import datetime, timedelta
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for
 from sqlalchemy import or_
 from . import whatsapp_bp
 from apps.whatsapp_service.config import WhatsAppServiceConfig
@@ -110,6 +110,46 @@ def webhook_dashboard():
         'admin/whatsapp_dashboard.html',
         active_tab='webhook'
     )
+
+
+@whatsapp_bp.route('/chat/new', methods=['POST'])
+def start_new_chat():
+    """بدء محادثة جديدة أو حفظ رقم جديد"""
+    phone = request.form.get('phone')
+    name = request.form.get('name')
+    
+    if phone:
+        existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+        if not existing:
+            new_contact = WhatsAppCustomerContact(phone=phone, name=name)
+            db.session.add(new_contact)
+            db.session.commit()
+            return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=new_contact.id))
+        else:
+            return redirect(url_for('whatsapp_service.chat_dashboard', contact_id=existing.id))
+            
+    return redirect(url_for('whatsapp_service.chat_dashboard'))
+
+
+@whatsapp_bp.route('/chat/send', methods=['POST'])
+def send_message():
+    """إرسال رسالة جديدة من لوحة التحكم"""
+    phone = request.form.get('phone')
+    content = request.form.get('content')
+    
+    if phone and content:
+        new_log = WhatsAppMessageLog(
+            direction='outbound',
+            sender_number='system',
+            recipient_number=phone,
+            content=content,
+            message_type='text',
+            status='sent'
+        )
+        db.session.add(new_log)
+        db.session.commit()
+        
+    return redirect(request.referrer or url_for('whatsapp_service.chat_dashboard'))
 
 
 @whatsapp_bp.route('/ping')
