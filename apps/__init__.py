@@ -253,7 +253,10 @@ def create_app():
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    csrf = CSRFProtect(app)
+    
+    # ✅ التعديل الأساسي: استخدم الكائن المُستورد من extensions.py بدلاً من إنشاء كائن جديد
+    from apps.extensions import csrf, limiter
+    csrf.init_app(app)
     limiter.init_app(app)
 
     @login_manager.user_loader
