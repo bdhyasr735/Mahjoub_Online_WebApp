@@ -22,7 +22,7 @@ SUPPLIER_MODULES = {}
 
 
 def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول."""
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول والأنواع."""
     models_dir = os.path.join(os.path.dirname(__file__), 'models')
     if os.path.exists(models_dir):
         for file in os.listdir(models_dir):
@@ -211,7 +211,7 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل
+    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل (مع إسقاط الأنواع والجداول بـ CASCADE لتجنب تداخل الـ ENUM)
     # ============================================================
     with app.app_context():
         import_all_models()
@@ -455,7 +455,6 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
-    # تم إزالة استثناء whatsapp_service لضمان تحميله ديناميكياً
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -467,14 +466,12 @@ def create_app():
                 try:
                     module = importlib.import_module(f"apps.{item}.registry")
                     
-                    # 1. تسجيل الموديول عبر دالة التسجيل
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
                         print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح عبر النظام الديناميكي.")
                     else:
                         print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' يحتوي على ملف registry.py ولكنّه لا يتضمن دالة register_module.")
 
-                    # 2. محاولة تهيئة الموديول وتسجيل الـ Blueprint إن وجدت دالة init_app
                     try:
                         app_module = importlib.import_module(f"apps.{item}")
                         if hasattr(app_module, 'init_app'):
