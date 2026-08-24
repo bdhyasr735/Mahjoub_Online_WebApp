@@ -103,6 +103,15 @@ def settings_dashboard():
     )
 
 
+@whatsapp_bp.route('/webhook-simulator')
+def webhook_dashboard():
+    """محاكي الويب هوك لتفادي خطأ BuildError في القالب"""
+    return render_template(
+        'admin/whatsapp_dashboard.html',
+        active_tab='webhook'
+    )
+
+
 @whatsapp_bp.route('/ping')
 def ping():
     """فحص حالة الخدمة"""
