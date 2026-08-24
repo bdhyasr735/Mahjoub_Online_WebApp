@@ -1,21 +1,90 @@
 <div class="flex-1 flex flex-col h-full bg-white p-6 overflow-y-auto">
   <h3 class="font-bold text-sm text-slate-900 mb-2">إعدادات ربط Meta WhatsApp API</h3>
-  <p class="text-xs text-slate-500 mb-6">قم بإدخال بيانات الاعتماد الخاصة بحساب الأعمال على ميتا.</p>
+  <p class="text-xs text-slate-500 mb-6">قم بإدارة وتحديث بيانات الاعتماد الخاصة بحساب الأعمال على ميتا.</p>
+  
   <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-xl">
-    <form onsubmit="event.preventDefault(); alert('تم حفظ الإعدادات بنجاح');">
+    <form id="whatsapp-settings-form" onsubmit="saveWhatsAppSettings(event)">
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
-        <input type="text" name="phone_number_id" placeholder="أدخل معرّف رقم الهاتف" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" id="setting_phone_number_id" name="phone_number_id" placeholder="أدخل معرّف رقم الهاتف" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account ID</label>
-        <input type="text" name="business_account_id" placeholder="أدخل معرّف حساب النشاط التجاري" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+        <input type="text" id="setting_business_account_id" name="business_account_id" placeholder="أدخل معرّف حساب النشاط التجاري" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
       </div>
       <div class="mb-4">
         <label class="block text-xs font-bold text-slate-700 mb-1">Access Token (Permanent / Temporary)</label>
-        <textarea name="access_token" rows="3" placeholder="أدخل رمز الوصول" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600"></textarea>
+        <textarea id="setting_access_token" name="access_token" rows="3" placeholder="أدخل رمز الوصول" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600"></textarea>
       </div>
-      <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">حفظ الإعدادات</button>
+      <div class="flex items-center gap-3">
+        <button type="submit" id="save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">حفظ الإعدادات</button>
+        <span id="save-status" class="text-xs font-bold hidden"></span>
+      </div>
     </form>
   </div>
 </div>
+
+<script>
+  // جلب البيانات ديناميكياً عند تحميل الصفحة
+  async function loadWhatsAppSettings() {
+    try {
+      const response = await fetch('/admin/whatsapp/api/settings'); // أو المسار المخصص لجلب الإعدادات إن وجد
+      const data = await response.json();
+      if (data.success && data.settings) {
+        document.getElementById('setting_phone_number_id').value = data.settings.phone_number_id || '';
+        document.getElementById('setting_business_account_id').value = data.settings.business_account_id || '';
+        document.getElementById('setting_access_token').value = data.settings.access_token || '';
+      }
+    } catch (e) {
+      console.error('خطأ أثناء جلب الإعدادات:', e);
+    }
+  }
+
+  // حفظ الإعدادات حقيقة عبر طلب AJAX
+  async function saveWhatsAppSettings(event) {
+    event.preventDefault();
+    const btn = document.getElementById('save-btn');
+    const status = document.getElementById('save-status');
+    
+    const formData = {
+      phone_number_id: document.getElementById('setting_phone_number_id').value,
+      business_account_id: document.getElementById('setting_business_account_id').value,
+      access_token: document.getElementById('setting_access_token').value
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+
+    try {
+      const response = await fetch('/settings/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const result = await response.json();
+      status.classList.remove('hidden');
+      if (response.ok && (result.success !== false)) {
+        status.textContent = '✅ تم حفظ الإعدادات بنجاح';
+        status.className = 'text-xs font-bold text-emerald-600';
+      } else {
+        status.textContent = '❌ فشل الحفظ: ' + (result.message || 'خطأ غير معروف');
+        status.className = 'text-xs font-bold text-red-600';
+      }
+    } catch (e) {
+      status.classList.remove('hidden');
+      status.textContent = '❌ حدث خطأ في الاتصال بالخادم';
+      status.className = 'text-xs font-bold text-red-600';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'حفظ الإعدادات';
+      setTimeout(() => status.classList.add('hidden'), 4000);
+    }
+  }
+
+  // تنفيذ جلب الإعدادات عند الفتح
+  // loadWhatsAppSettings();
+</script>
