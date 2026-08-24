@@ -4,10 +4,10 @@
 MODULE_NAME = "خدمة الواتساب"
 MODULE_ICON = "fas fa-comments"
 
-# استخدام مسارات مباشرة تبدأ بـ '/' لكي يتعامل معها شرط القالب (endpoint.startswith('/')) مباشرة وبدون أخطاء
+# ربط الروابط بأسماء الـ Endpoints الموجودة فعلياً في بلوبرنت الواتساب الخاص بك
 LINKS = {
-    '/admin/whatsapp/': 'إدارة مراسلات الواتساب',
-    '/admin/whatsapp/settings': 'إعدادات الواتساب'
+    'whatsapp_service.chat_dashboard': 'إدارة مراسلات الواتساب',
+    'whatsapp_service.settings_dashboard': 'إعدادات الواتساب'
 }
 
 def register_module(app):
