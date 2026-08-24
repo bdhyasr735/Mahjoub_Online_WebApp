@@ -17,11 +17,30 @@ from apps.models.whatsapp_models import (
 from apps.extensions import db
 
 
+@whatsapp_bp.route('/api/whatsapp/conversations', methods=['GET'])
+def get_conversations_list():
+    """جلب قائمة المحادثات والعملاء النشطين بصيغة JSON"""
+    try:
+        contacts = db.session.query(WhatsAppCustomerContact).order_by(WhatsAppCustomerContact.updated_at.desc()).all()
+        conversations = []
+        for c in contacts:
+            conversations.append({
+                "phone": c.phone,
+                "name": c.name or c.phone,
+                "last_message": c.last_message or '',
+                "last_time": c.updated_at.strftime('%I:%M %p') if c.updated_at else '',
+                "unread_count": getattr(c, 'unread_count', 0)
+            })
+        return jsonify({"success": True, "conversations": conversations})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @whatsapp_bp.route('/api/whatsapp/conversation/<phone>', methods=['GET'])
 def get_conversation_data(phone):
     """جلب رسائل عميل معين بصيغة JSON لدعم المزامنة الحية التلقائية"""
     contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone).first()
-    if contact and contact.unread_count > 0:
+    if contact and getattr(contact, 'unread_count', 0) > 0:
         contact.unread_count = 0
         db.session.commit()
 
@@ -38,20 +57,14 @@ def get_conversation_data(phone):
         messages_data.append({
             "id": m.id,
             "direction": m.direction,
-            "message_body": m.content,
+            "body": m.content,
             "message_type": getattr(m, 'message_type', 'text'),
-            "timestamp": ts.strftime('%Y-%m-%d %H:%M:%S') if ts else '',
-            "status": m.status
+            "time": ts.strftime('%I:%M %p') if ts else '',
+            "status": getattr(m, 'status', 'sent')
         })
-
-    client_info = {
-        "name": contact.name if contact else phone,
-        "phone": phone
-    }
 
     return jsonify({
         "success": True,
-        "client": client_info,
         "messages": messages_data
     })
 
@@ -64,7 +77,12 @@ def send_message_api():
     message = data.get('message')
     
     if not phone or not message:
-        return jsonify({"success": False, "error": "بيانات ناقصة"}), 400
+        return jsonify({"success": False, "message": "بيانات ناقصة (رقم الهاتف أو نص الرسالة مفقود)"}), 400
 
     success, response_data = send_text_message(phone, message)
-    return jsonify({"success": success, "meta_response": response_data}), (200 if success else 500)
+    
+    if success:
+        return jsonify({"success": True, "message": "تم إرسال الرسالة بنجاح", "meta_response": response_data})
+    else:
+        error_msg = response_data.get('error', {}).get('message', 'خطأ غير معروف من ميتا') if isinstance(response_data, dict) else 'فشل الإرسال'
+        return jsonify({"success": False, "message": error_msg}), 500
