@@ -13,7 +13,7 @@ import os
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token")
 
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
-@whatsapp_bp.route('', methods=['GET', 'POST'])
+@whatsapp_bp.route('/', methods=['GET', 'POST'])
 def whatsapp_webhook_handler():
     """معالجة التحقق واستقبال الرسائل الواردة وتخزينها"""
     if request.method == 'GET':
