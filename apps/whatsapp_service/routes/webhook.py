@@ -3,14 +3,12 @@
 WhatsApp Webhook Handler (Integrated with WhatsApp API structure)
 """
 
-from flask import request, jsonify, make_response
+from flask import request, jsonify
 from datetime import datetime
 from . import whatsapp_bp
 from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
 from apps.extensions import db
-import os
-
-WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoub_secure_webhook_token")
+from apps.whatsapp_service.config import WhatsAppServiceConfig
 
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'], endpoint='webhook_main_route')
 @whatsapp_bp.route('/', methods=['GET', 'POST'], endpoint='webhook_root_route')
@@ -25,8 +23,10 @@ def whatsapp_webhook_handler():
 
         print(f"🔍 [Verification Attempt] Mode: {mode}, Token: {token}, Challenge: {challenge}")
 
+        verify_token = WhatsAppServiceConfig.get_verify_token()
+
         if mode and token:
-            if mode == 'subscribe' and token == WEBHOOK_VERIFY_TOKEN:
+            if mode == 'subscribe' and token == verify_token:
                 print("✅ [Webhook Verified Successfully]")
                 return str(challenge), 200, {'Content-Type': 'text/plain; charset=utf-8'}
             else:
@@ -37,9 +37,9 @@ def whatsapp_webhook_handler():
 
     else:
         try:
-            data = request.get_json()
+            data = request.get_json(silent=True) or {}
             
-            if data and data.get('object') == 'whatsapp_business_account':
+            if data.get('object') == 'whatsapp_business_account':
                 for entry in data.get('entry', []):
                     for change in entry.get('changes', []):
                         value = change.get('value', {})
@@ -52,7 +52,6 @@ def whatsapp_webhook_handler():
                                 msg_id = message.get('id')
                                 timestamp = message.get('timestamp')
                                 
-                                msg_body = ""
                                 msg_type = message.get('type')
                                 if msg_type == 'text':
                                     msg_body = message.get('text', {}).get('body', '')
@@ -66,53 +65,59 @@ def whatsapp_webhook_handler():
 
                                 msg_time = datetime.fromtimestamp(int(timestamp)) if timestamp else datetime.utcnow()
 
-                                contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone_number).first()
-                                
-                                if not contact:
-                                    contact = WhatsAppCustomerContact(
-                                        phone=phone_number,
-                                        name=profile_name,
-                                        last_message=msg_body,
-                                        last_timestamp=msg_time,
-                                        unread_count=1
-                                    )
-                                    db.session.add(contact)
-                                else:
-                                    contact.last_message = msg_body
-                                    contact.last_timestamp = msg_time
-                                    try:
+                                try:
+                                    contact = db.session.query(WhatsAppCustomerContact).filter_by(phone=phone_number).first()
+                                    
+                                    if not contact:
+                                        contact = WhatsAppCustomerContact(
+                                            phone=phone_number,
+                                            name=profile_name,
+                                            last_message=msg_body,
+                                            last_timestamp=msg_time,
+                                            unread_count=1
+                                        )
+                                        db.session.add(contact)
+                                    else:
+                                        contact.name = profile_name if profile_name else contact.name
+                                        contact.last_message = msg_body
+                                        contact.last_timestamp = msg_time
                                         contact.unread_count = (contact.unread_count or 0) + 1
-                                    except:
-                                        pass
-                                
-                                db.session.commit()
-
-                                new_log = WhatsAppMessageLog(
-                                    wamid=msg_id,
-                                    direction='inbound',
-                                    sender_number=phone_number,
-                                    recipient_number=value.get('metadata', {}).get('phone_number_id', ''),
-                                    content=msg_body,
-                                    status='received'
-                                )
-                                db.session.add(new_log)
-                                db.session.commit()
+                                    
+                                    recipient_id = value.get('metadata', {}).get('phone_number_id', '')
+                                    new_log = WhatsAppMessageLog(
+                                        wamid=msg_id,
+                                        direction='inbound',
+                                        sender_number=phone_number,
+                                        recipient_number=recipient_id,
+                                        content=msg_body,
+                                        status='received'
+                                    )
+                                    db.session.add(new_log)
+                                    db.session.commit()
+                                except Exception as db_err:
+                                    db.session.rollback()
+                                    print(f"⚠️ [DB Error in Inbound Message]: {db_err}")
 
                         # 2. معالجة تحديثات حالة الرسائل الصادرة (Statuses: sent, delivered, read)
                         statuses = value.get('statuses')
                         if statuses:
                             for status_update in statuses:
                                 wamid = status_update.get('id')
-                                new_status = status_update.get('status') # sent, delivered, read, failed
+                                new_status = status_update.get('status')
                                 
                                 if wamid and new_status:
-                                    log_entry = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
-                                    if log_entry:
-                                        log_entry.status = new_status
-                                        db.session.commit()
+                                    try:
+                                        log_entry = db.session.query(WhatsAppMessageLog).filter_by(wamid=wamid).first()
+                                        if log_entry:
+                                            log_entry.status = new_status
+                                            db.session.commit()
+                                    except Exception as status_err:
+                                        db.session.rollback()
+                                        print(f"⚠️ [DB Error in Status Update]: {status_err}")
 
             return jsonify({"status": "success"}), 200
+            
         except Exception as e:
             db.session.rollback()
-            print(f"Error handling webhook: {str(e)}")
+            print(f"❌ [Error handling webhook]: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
