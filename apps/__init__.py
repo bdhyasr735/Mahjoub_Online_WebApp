@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/__init__.py
 
 import os
@@ -31,7 +31,7 @@ def import_all_models():
                 try:
                     importlib.import_module(f"apps.models.{module_name}")
                 except Exception as e:
-                    print(f"⚠️ [Model Import Error] فشل استيراد {module_name}: {e}")
+                    print(f"⚠️ [خطأ في استيراد النموذج] فشل استيراد النموذج '{module_name}': {e}")
 
 
 def seed_database():
@@ -43,7 +43,7 @@ def seed_database():
         from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
         from apps.models.treasury_db import TreasuryEntry
     except ImportError as ie:
-        print(f"⚠️ [Seed Import Warning]: تعذر استيراد بعض النماذج أثناء الزراعة: {ie}")
+        print(f"⚠️ [تحذير استيراد الزراعة]: تعذر استيراد بعض النماذج أثناء عملية الزراعة: {ie}")
         return
 
     # 1. زراعة المالك
@@ -53,10 +53,10 @@ def seed_database():
             admin.set_password('123')
             db.session.add(admin)
             db.session.commit()
-            print("✅ [Seed]: تم زرع المالك (ali_mahjoub) بنجاح.")
+            print("✅ [الزراعة]: تم زرع حساب المالك (ali_mahjoub) بنجاح.")
     except Exception as e:
         db.session.rollback()
-        print(f"⚠️ [Seed Error - Admin]: {e}")
+        print(f"⚠️ [خطأ زراعة المالك]: {e}")
 
     # 2. زراعة موظف إدارة
     try:
@@ -73,10 +73,10 @@ def seed_database():
             staff.set_password('123')
             db.session.add(staff)
             db.session.commit()
-            print("✅ [Seed]: تم زرع موظف الإدارة التجريبي بنجاح.")
+            print("✅ [الزراعة]: تم زرع موظف الإدارة التجريبي بنجاح.")
     except Exception as e:
         db.session.rollback()
-        print(f"⚠️ [Seed Error - Staff]: {e}")
+        print(f"⚠️ [خطأ زراعة موظف الإدارة]: {e}")
 
     # 3. زراعة مورد ومحفظته وقيد الخزينة العامة
     try:
@@ -144,10 +144,10 @@ def seed_database():
             db.session.add(treasury_entry)
 
             db.session.commit()
-            print("✅ [Seed]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
+            print("✅ [الزراعة]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
     except Exception as e:
         db.session.rollback()
-        print(f"⚠️ [Seed Error - Supplier]: {e}")
+        print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
 
 
 def create_app():
@@ -221,10 +221,10 @@ def create_app():
             db.session.commit()
             db.create_all()
             seed_database()
-            print("✅ [Auto Schema Reset]: تم مسح وإعادة بناء القاعدة وزراعة البيانات بنجاح عند التشغيل.")
+            print("✅ [إعادة بناء الجداول]: تم مسح وإعادة بناء القاعدة وزراعة البيانات بنجاح عند التشغيل.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [Auto Schema Reset Error]: {e}")
+            print(f"❌ [خطأ إعادة بناء الجداول]: {e}")
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
@@ -232,24 +232,24 @@ def create_app():
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
         """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
-        click.echo("🔄 [DB Rebuild]: جاري حذف جميع الجداول...")
+        click.echo("🔄 [إعادة بناء القاعدة]: جاري حذف جميع الجداول...")
         import_all_models()
         try:
             db.session.execute(text("DROP SCHEMA public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
-            click.echo("✅ [Schema Reset]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
+            click.echo("✅ [إعادة تعيين الـ Schema]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
         except Exception as e:
             db.session.rollback()
-            click.echo(f"⚠️ [Schema Reset Error]: {e}")
+            click.echo(f"❌ [خطأ إعادة تعيين الـ Schema]: {e}")
 
-        click.echo("⚙️ [DB Rebuild]: جاري إنشاء الجداول بالهيكل الجديد...")
+        click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
         db.create_all()
-        click.echo("✅ [Schema Create]: تم إنشاء جميع الجداول بنجاح.")
+        click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
-        click.echo("🌱 [DB Rebuild]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
+        click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
         seed_database()
-        click.echo("🎉 [DB Rebuild]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
+        click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -293,7 +293,7 @@ def create_app():
             )
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [load_user Error]: {e}")
+            print(f"❌ [خطأ تحميل المستخدم load_user]: {e}")
             return None
 
     @login_manager.unauthorized_handler
@@ -428,22 +428,27 @@ def create_app():
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
+        print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
     except Exception as e:
-        print(f"❌ [Portal]: خطأ في تسجيل بوابة المصادقة الإدارية: {e}")
+        print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
     try:
         from apps.suppliers_auth_portal.routes import suppliers_bp
         app.register_blueprint(suppliers_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_bp)
+        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
     except Exception as e:
-        print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
+        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
     try:
         from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
         csrf.exempt(graphql_bp)
+        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
     except ImportError:
         pass
+    except Exception as e:
+        print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
     # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات عبر ملف الـ registry.py
@@ -462,6 +467,10 @@ def create_app():
                     module = importlib.import_module(f"apps.{item}.registry")
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
+                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح عبر النظام الديناميكي.")
+                    else:
+                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' يحتوي على ملف registry.py ولكنّه لا يتضمن دالة register_module.")
+
                     links_data = {}
                     if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
                         for nav in module.NAV_ITEMS:
@@ -493,7 +502,7 @@ def create_app():
                         else:
                             ADMIN_MODULES[item] = mod_data
                 except Exception as e:
-                    print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
+                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
     @app.context_processor
     def inject_vars():
@@ -528,7 +537,7 @@ def create_app():
                             })
             except Exception as e:
                 db.session.rollback()
-                print(f"⚠️ [Context Processor Error]: {e}")
+                print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
         return {
             'registered_modules': ADMIN_MODULES,
