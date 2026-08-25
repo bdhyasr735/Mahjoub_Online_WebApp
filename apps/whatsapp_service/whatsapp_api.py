@@ -16,7 +16,7 @@ def get_db():
         return db
 
 def send_text_message(recipient, message):
-    # ✅ توحيد الرقم
+    # ✅ توحيد الرقم (إزالة + وأي أحرف غير رقمية)
     recipient = ''.join(filter(str.isdigit, recipient))
     
     phone_id = WhatsAppServiceConfig.get_phone_number_id()
