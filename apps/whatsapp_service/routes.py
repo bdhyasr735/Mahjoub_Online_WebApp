@@ -57,9 +57,7 @@ def chat_dashboard():
             WhatsAppCustomerContact.last_timestamp.desc()
         ).all()
         
-        # ✅ حساب عدد المحادثات غير المقروءة للعداد في الشريط الجانبي
         unread_chats = sum(c.unread_count or 0 for c in contacts)
-
     except Exception:
         contacts = []
         unread_chats = 0
@@ -110,7 +108,7 @@ def chat_dashboard():
         now=now,
         today=today,
         yesterday=yesterday,
-        unread_chats=unread_chats  # ✅ تمرير العداد
+        unread_chats=unread_chats
     )
 
 
@@ -125,7 +123,6 @@ def send_message_htmx():
     success, result = send_text_message(recipient, message)
     
     if success:
-        # حفظ الرسالة محلياً في السجل كرسالة صادرة لضمان ظهورها الفوري
         try:
             outbound_log = WhatsAppMessageLog(
                 wamid=result.get('messages', [{}])[0].get('id', 'local_sent'),
@@ -138,7 +135,6 @@ def send_message_htmx():
             )
             db.session.add(outbound_log)
             
-            # تحديث آخر رسالة وجهة اتصال
             contact = WhatsAppCustomerContact.query.filter_by(phone=recipient).first()
             if contact:
                 contact.last_message = message
@@ -148,10 +144,10 @@ def send_message_htmx():
             current_app.logger.error(f"Error saving outbound message: {e}")
             db.session.rollback()
 
-        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if request.headers.get('HX-Request'):
             return f"""
-            <div class="flex justify-end animate-fadeIn">
-                <div class="max-w-[75%] bg-[#570575] border royal-border rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
+            <div class="flex justify-end animate-fadeIn mb-3">
+                <div class="max-w-[75%] bg-[#570575] border border-purple-500/30 rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
                     <p class="whitespace-pre-wrap leading-relaxed pb-3">{message}</p>
                     <div class="absolute bottom-1.5 left-3 flex items-center gap-1">
                         <span class="text-[9px] text-purple-200">الآن</span>
@@ -162,9 +158,9 @@ def send_message_htmx():
             """
         return jsonify({"success": True, "result": result})
     else:
-        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if request.headers.get('HX-Request'):
             return f"""
-            <div class="flex justify-start animate-fadeIn">
+            <div class="flex justify-start animate-fadeIn mb-3">
                 <div class="max-w-[75%] bg-red-950/40 border border-red-500/30 rounded-2xl px-4 py-2.5 shadow-md text-xs text-red-300">
                     <p class="whitespace-pre-wrap leading-relaxed">❌ فشل الإرسال: {str(result)[:100]}</p>
                 </div>
@@ -177,7 +173,7 @@ def send_message_htmx():
 def start_new_chat():
     phone = request.form.get('phone')
     if not phone:
-        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if request.headers.get('HX-Request'):
             return jsonify({"success": False, "error": "رقم الهاتف مطلوب"}), 400
         flash('رقم الهاتف مطلوب لبدء المحادثة', 'error')
         return redirect(url_for('whatsapp_service.chat_dashboard'))
@@ -204,13 +200,12 @@ def start_new_chat():
     except Exception:
         db.session.rollback()
 
-    if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    if request.headers.get('HX-Request'):
         return jsonify({"success": True, "phone": phone, "name": contact.name})
 
     return redirect(url_for('whatsapp_service.chat_dashboard', phone=phone))
 
 
-# ✅ دالة لعرض الإعدادات وحفظها (GET و POST)
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
     if request.method == 'POST':
@@ -242,7 +237,6 @@ def settings_view():
     )
 
 
-# ✅ دالة بديلة لحفظ الإعدادات عبر JSON
 @whatsapp_bp.route('/save-settings', methods=['POST'])
 def save_settings():
     try:
@@ -270,17 +264,14 @@ def save_settings():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-# ✅ دالة السجل (محدثة لتمرير الإحصائيات)
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
     try:
         logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
-        
         total_logs = len(logs)
         inbound_logs = sum(1 for log in logs if log.direction == 'inbound')
         outbound_logs = sum(1 for log in logs if log.direction == 'outbound')
-        unread_logs = sum(1 for log in logs if log.status == 'received' or log.status == 'sent')
-        
+        unread_logs = sum(1 for log in logs if log.status in ['received', 'sent'])
     except Exception:
         logs = []
         total_logs = inbound_logs = outbound_logs = unread_logs = 0
@@ -304,9 +295,6 @@ def webhook_dashboard():
     )
 
 
-# ============================================================
-# Webhook الرئيسي (محدث لاستقبال جميع أنواع الرسائل)
-# ============================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 def webhook_handler():
     if request.method == 'GET':
@@ -323,8 +311,6 @@ def webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
-        current_app.logger.info(f"Webhook Payload Received: {request.get_data(as_text=True)}")
-
         if not request.is_json:
             return jsonify({"status": "error", "message": "Expected JSON"}), 400
 
@@ -333,37 +319,15 @@ def webhook_handler():
             return jsonify({"status": "error", "message": "Empty data"}), 400
 
         try:
-            entries = data.get('entry', [])
-            if not entries:
-                return jsonify({"status": "success", "message": "No entries"}), 200
-
-            for entry in entries:
+            for entry in data.get('entry', []):
                 for change in entry.get('changes', []):
                     value = change.get('value', {})
-                    
-                    # استقبال الرسائل الواردة بجميع أنواعها
                     for msg in value.get('messages', []):
                         sender = ''.join(filter(str.isdigit, msg.get('from', '')))
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
                         
-                        msg_body = ""
-                        if msg_type == 'text':
-                            msg_body = msg.get('text', {}).get('body', '')
-                        elif msg_type == 'image':
-                            msg_body = "[صورة]"
-                        elif msg_type == 'video':
-                            msg_body = "[فيديو]"
-                        elif msg_type == 'audio':
-                            msg_body = "[صوت]"
-                        elif msg_type == 'document':
-                            msg_body = "[مستند]"
-                        elif msg_type == 'sticker':
-                            msg_body = "[ملصق]"
-                        elif msg_type == 'location':
-                            msg_body = "[موقع]"
-                        else:
-                            msg_body = f"[رسالة نوع {msg_type}]"
+                        msg_body = msg.get('text', {}).get('body', '') if msg_type == 'text' else f"[{msg_type}]"
 
                         log_entry = WhatsAppMessageLog(
                             wamid=wamid,
@@ -392,7 +356,6 @@ def webhook_handler():
                             db.session.add(new_contact)
                         db.session.commit()
 
-                    # استقبال تحديثات الحالة (قراءة/تسليم)
                     for st in value.get('statuses', []):
                         wamid = st.get('id')
                         status_type = st.get('status')
@@ -421,19 +384,15 @@ def settings_save():
         if not data:
             return jsonify({"success": False, "message": "No data"}), 400
 
-        phone_number_id = data.get('phone_number_id')
-        business_account_id = data.get('business_account_id')
-        api_version = data.get('api_version')
-        access_token = data.get('access_token')
-
-        if phone_number_id:
-            WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', phone_number_id)
-        if business_account_id:
-            WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)
-        if api_version:
-            WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
-        if access_token:
-            WhatsAppSettings.set_setting('WHATSAPP_TOKEN', access_token)
+        if data.get('phone_number_id'):
+            WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', data.get('phone_number_id'))
+        if data.get('business_account_id'):
+            WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', data.get('business_account_id'))
+        if data.get('api_version'):
+            WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', data.get('api_version'))
+        if data.get('access_token'):
+            WhatsAppAttributes = data.get('access_token')
+            WhatsAppSettings.set_setting('WHATSAPP_TOKEN', WhatsAppAttributes)
 
         return jsonify({"success": True, "message": "تم حفظ الإعدادات"})
     except Exception as e:
