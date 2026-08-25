@@ -123,22 +123,52 @@ def send_message_htmx():
 
     success, result = send_text_message(recipient, message)
     
+    # استخراج الـ wamid إن وجد من نتيجة الإرسال
+    wamid = None
+    if isinstance(result, dict):
+        # محاولة استخراج معرف الرسالة من رد الواتساب إن توفر
+        messages_meta = result.get('messages', [])
+        if messages_meta:
+            wamid = messages_meta[0].get('id')
+
     if success:
         try:
-            #ملاحظة: دالة send_text_message تقوم أصلاً بحفظ السجل، ولكن نتحقق هنا للتوافق مع الـ HTMX
+            # 1. حفظ السجل الصادر في جدول الرسائل لضمان ظهوره في الشات
+            outbound_log = WhatsAppMessageLog(
+                wamid=wamid or f"local_out_{datetime.now(timezone.utc).timestamp()}",
+                direction='outbound',
+                sender_number=WhatsAppServiceConfig.get_phone_number_id(),
+                recipient_number=recipient,
+                content=message,
+                message_type='text',
+                status='sent'
+            )
+            db.session.add(outbound_log)
+
+            # 2. تحديث تفاصيل جهة الاتصال (آخر رسالة وتوقيتها)
             contact = WhatsAppCustomerContact.query.filter_by(phone=recipient).first()
             if contact:
                 contact.last_message = message
                 contact.last_timestamp = datetime.now(timezone.utc)
-                db.session.commit()
+            else:
+                contact = WhatsAppCustomerContact(
+                    phone=recipient,
+                    name=f"عميل ({recipient})",
+                    last_message=message,
+                    last_timestamp=datetime.now(timezone.utc),
+                    unread_count=0
+                )
+                db.session.add(contact)
+
+            db.session.commit()
         except Exception as e:
-            current_app.logger.error(f"Error updating contact after send: {e}")
+            current_app.logger.error(f"Error saving outbound message log: {e}")
             db.session.rollback()
 
         if request.headers.get('HX-Request'):
             return f"""
             <div class="flex justify-end animate-fadeIn mb-3">
-                <div class="max-w-[75%] bg-[#570575] border border-purple-500/30 rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
+                <div class="max-w-[75%] bg-[#570575] border royal-border rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
                     <p class="whitespace-pre-wrap leading-relaxed pb-3">{message}</p>
                     <div class="absolute bottom-1.5 left-3 flex items-center gap-1">
                         <span class="text-[9px] text-purple-200">الآن</span>
