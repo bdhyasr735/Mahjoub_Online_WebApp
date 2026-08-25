@@ -1,1 +1,41 @@
+<div class="flex-1 p-6 bg-slate-50 overflow-auto">
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+    <h2 class="text-lg font-bold text-slate-800 mb-6">إعدادات الاتصال بـ Meta API</h2>
+    <form id="settingsForm" action="{{ url_for('whatsapp_service.settings_view') }}" method="POST" class="space-y-6">
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">رقم الهاتف المرتبط (Phone Number ID)</label>
+        <input type="text" name="whatsapp_phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+        <p class="text-[11px] text-slate-400 mt-1">معرّف رقم الهاتف من حساب Meta Business</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">رمز الوصول (Access Token)</label>
+        <input type="password" name="whatsapp_token" value="{{ settings.access_token if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+        <p class="text-[11px] text-slate-400 mt-1">توكن الوصول الدائم للاتصال بواجهة واتساب</p>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-2 h-2 rounded-full {% if settings and settings.access_token %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+          <span class="text-slate-600">حالة الاتصال الحالية:</span>
+          <strong>{% if settings and settings.access_token %}متصل ✓{% else %}غير متصل ✗{% endif %}</strong>
+        </div>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">حفظ الإعدادات</button>
+      </div>
+    </form>
+  </div>
+</div>
 
+<!-- إشعار تم الحفظ -->
+<div id="saveToast" class="hidden fixed top-5 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 text-sm font-bold">✅ تم حفظ الإعدادات بنجاح</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('settingsForm');
+    const toast = document.getElementById('saveToast');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(() => { toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); })
+      .catch(() => { form.submit(); });
+    });
+  });
+</script>
