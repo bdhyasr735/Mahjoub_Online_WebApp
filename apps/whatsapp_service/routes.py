@@ -72,15 +72,13 @@ def chat_dashboard():
     active_contact = None
 
     try:
+        # ✅ تم إزالة اختيار أول عميل تلقائياً، والاعتماد فقط على النقر أو تحديد المعرف/الرقم
         if contact_id:
             active_contact = WhatsAppCustomerContact.query.get(contact_id)
             if active_contact:
                 selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
         elif selected_phone:
             active_contact = WhatsAppCustomerContact.query.filter_by(phone=selected_phone).first()
-        elif contacts:
-            active_contact = contacts[0]
-            selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
 
         if active_contact and selected_phone:
             if active_contact.unread_count and active_contact.unread_count > 0:
