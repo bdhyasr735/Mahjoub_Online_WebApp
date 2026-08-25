@@ -9,6 +9,17 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def _get_val(cls, *keys, default=''):
+        # 1. محاولة الجلب من قاعدة البيانات أولاً (إذا تم حفظها من لوحة التحكم)
+        try:
+            from apps.models.whatsapp_models import WhatsAppSettings
+            for k in keys:
+                db_val = WhatsAppSettings.get_setting(k)
+                if db_val:
+                    return str(db_val).strip()
+        except Exception:
+            pass
+
+        # 2. محاولة الجلب من إعدادات تطبيق Flask
         for k in keys:
             try:
                 if current_app:
@@ -17,14 +28,18 @@ class WhatsAppServiceConfig:
                         return str(val).strip()
             except RuntimeError:
                 pass
+            
+            # 3. محاولة الجلب من ملف البيئة (.env)
             env_val = os.environ.get(k)
             if env_val:
                 return str(env_val).strip()
+                
         return default
 
     @classmethod
     def get_whatsapp_token(cls):
-        return cls._get_val('WHATSAPP_ACCESS_TOKEN', 'WHATSAPP ACCESS TOKEN')
+        # ✅ دعم كافة الاحتمالات لاسم التوكن (WHATSAPP_TOKEN أو WHATSAPP_ACCESS_TOKEN)
+        return cls._get_val('WHATSAPP_TOKEN', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP ACCESS TOKEN')
 
     @classmethod
     def get_phone_number_id(cls):
@@ -36,7 +51,6 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def get_verify_token(cls):
-        # ⚠️ تأكد من أن القيمة الافتراضية هنا هي نفسها المسجلة في لوحة Meta Developers
         return cls._get_val('WHATSAPP_VERIFY_TOKEN', 'WHATSAPP VERIFY TOKEN', default='mahjoob_webhook_secret_2026')
 
     @classmethod
