@@ -1,1 +1,26 @@
-
+<div class="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-auto bg-slate-50">
+  <div class="flex-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+    <h2 class="text-sm font-bold text-slate-800 mb-4">مراقبة الأحداث المباشرة</h2>
+    <div class="space-y-4">
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <p class="text-[10px] text-slate-400 mb-1">حالة الاستقبال:</p>
+        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-xs font-bold text-emerald-700">مباشر ومتصل</span></div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">آخر حمولة مستلمة</label>
+        <div class="h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 bg-slate-50 overflow-auto" dir="ltr">
+          {% if webhook_logs %}
+            {% for log in webhook_logs %}
+            <div class="mb-4 border-b border-slate-200 pb-2">
+              <div class="text-slate-400">{{ log.timestamp.strftime('%H:%M:%S') }}</div>
+              <pre class="whitespace-pre-wrap text-slate-600">{{ log.payload }}</pre>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-slate-400 text-center py-10">لا توجد أحداث بعد</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
