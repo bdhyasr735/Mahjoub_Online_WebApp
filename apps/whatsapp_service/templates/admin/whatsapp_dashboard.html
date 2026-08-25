@@ -146,8 +146,9 @@
                     <button onclick="toggleEditName()" class="text-gray-400 hover:text-white px-2 text-xs">إلغاء</button>
                 </div>
 
-                <div class="text-xs text-gray-400">
-                    معرف العميل: <span class="gold-text font-bold">#{{ selected_contact.id if selected_contact else '1' }}</span>
+                <!-- تم إزالة معرف العميل بناءً على رغبتك وجعل الهيدر أكثر احترافية كواتساب رسمي -->
+                <div class="flex items-center gap-3 text-gray-400">
+                    <button class="hover:text-white transition-colors" title="معلومات الاتصال"><i class="fa-solid fa-circle-info text-sm"></i></button>
                 </div>
             </div>
 
@@ -181,7 +182,7 @@
                 {% endfor %}
             </div>
 
-            <!-- شريط كتابة وإرسال الرسالة عبر HTMX -->
+            <!-- شريط كتابة وإرسال الرسالة عبر HTMX وتجربة واتساب الرسمية -->
             <div class="royal-purple-bg border-t royal-border p-4 shrink-0">
                 <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
                       hx-target="#messages-container" 
@@ -191,16 +192,15 @@
                     
                     <input type="hidden" name="phone" value="{{ selected_phone }}">
                     
-                    <button type="button" class="text-gray-400 hover:text-[#D4AF37] p-2 text-sm transition-colors">
+                    <button type="button" class="text-gray-400 hover:text-[#D4AF37] p-2 text-sm transition-colors" title="إرفاق ملف">
                         <i class="fa-solid fa-paperclip"></i>
                     </button>
                     
-                    <input type="text" name="message" placeholder="اكتب رسالتك الاحترافية هنا للعميل..." required
+                    <input type="text" id="messageInput" name="message" placeholder="اكتب رسالة..." required autofocus
                            class="flex-1 bg-[#0f071d] border royal-border rounded-xl px-4 py-3 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37] shadow-inner transition-all">
                            
-                    <button type="submit" class="bg-[#570575] hover:bg-[#632C8F] text-[#D4AF37] border royal-border px-6 py-3 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2">
-                        <span>إرسال</span>
-                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                    <button type="submit" class="w-10 h-10 rounded-xl bg-[#570575] hover:bg-[#632C8F] text-[#D4AF37] border royal-border flex items-center justify-center transition-all shadow-md" title="إرسال">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
                     </button>
                 </form>
             </div>
@@ -325,22 +325,22 @@
 
     </main>
 
-    <!-- نافذة منبثقة لبدء محادثة جديدة -->
+    <!-- نافذة منبثقة لبدء محادثة جديدة (معدلة لتجنب إعادة التوجيه 302 وحل مشاكل اللوقز) -->
     <div id="newChatModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="royal-purple-bg border royal-border rounded-2xl w-96 p-6 shadow-2xl animate-fadeIn">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-bold text-white">بدء محادثة جديدة</h3>
                 <button onclick="closeNewChatModal()" class="text-gray-400 hover:text-white text-xs"><i class="fa-solid fa-xmark text-sm"></i></button>
             </div>
-            <form action="{{ url_for('whatsapp_service.start_new_chat') }}" method="POST" class="space-y-4">
+            <form onsubmit="submitNewChat(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs text-gray-300 mb-1">رقم الهاتف (مع رمز الدولة)</label>
-                    <input type="text" name="phone" placeholder="967770000000" required dir="ltr"
+                    <input type="text" id="newChatPhone" name="phone" placeholder="967770000000" required dir="ltr"
                            class="w-full bg-[#0f071d] border royal-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]">
                 </div>
                 <div>
                     <label class="block text-xs text-gray-300 mb-1">اسم العميل / التاجر</label>
-                    <input type="text" name="name" placeholder="اسم العميل..." 
+                    <input type="text" id="newChatName" name="name" placeholder="اسم العميل..." 
                            class="w-full bg-[#0f071d] border royal-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]">
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -359,7 +359,13 @@
                 container.scrollTop = container.scrollHeight;
             }
         }
-        window.onload = scrollToBottom;
+        window.onload = function() {
+            scrollToBottom();
+            const msgInput = document.getElementById('messageInput');
+            if (msgInput) {
+                msgInput.focus();
+            }
+        };
 
         function selectContact(phone, name, contactId) {
             const cleanUrl = "{{ url_for('whatsapp_service.chat_dashboard') }}";
@@ -396,13 +402,46 @@
 
             fetch("{{ url_for('whatsapp_service.start_new_chat') }}", {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'HX-Request': 'true'
+                }
             }).then(response => {
                 if (response.ok) {
                     document.getElementById('activeContactNameHeader').innerText = newName;
                     toggleEditName();
                     location.reload(); 
                 }
+            });
+        }
+
+        function submitNewChat(event) {
+            event.preventDefault();
+            const phone = document.getElementById('newChatPhone').value;
+            const name = document.getElementById('newChatName').value;
+
+            const formData = new FormData();
+            formData.append('phone', phone);
+            formData.append('name', name);
+
+            fetch("{{ url_for('whatsapp_service.start_new_chat') }}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'HX-Request': 'true'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeNewChatModal();
+                    window.location.href = "{{ url_for('whatsapp_service.chat_dashboard') }}?phone=" + data.phone;
+                } else {
+                    alert(data.error || 'حدث خطأ أثناء إنشاء المحادثة');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
             });
         }
 
