@@ -10,7 +10,6 @@ from apps.models.whatsapp_models import (
     WhatsAppMessageLog, 
     WhatsAppSettings
 )
-# ✅ استيراد دالة إرسال الوسائط أيضاً
 from apps.whatsapp_service.whatsapp_api import send_text_message, send_media_message
 from apps.whatsapp_service.config import WhatsAppServiceConfig
 
@@ -500,7 +499,7 @@ def settings_save():
 
 
 # ============================================================
-# مسارات التحديث اللحظي للوحة التحكم (HTMX Fragments)
+# مسارات التحديث اللحظي لوحة التحكم (HTMX Fragments)
 # ============================================================
 
 @whatsapp_bp.route('/dashboard/stats-fragment')
