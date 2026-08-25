@@ -99,7 +99,6 @@ def seed_database():
     # ============================================================
     try:
         if not Supplier.query.filter_by(username='test_supplier').first():
-            # إنشاء المورد
             supplier = Supplier(
                 username='test_supplier',
                 trade_name='متجر محجوب التجريبي',
@@ -107,13 +106,11 @@ def seed_database():
                 store_name='متجر محجوب أونلاين',
                 status='active'
             )
-            # تعيين رقم الهاتف (سيتم تشفيره تلقائياً)
             supplier.phone = '779077746'
             supplier.set_password('123')
             db.session.add(supplier)
-            db.session.flush()  # للحصول على supplier.id
+            db.session.flush()
 
-            # إنشاء المحفظة
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
@@ -123,13 +120,11 @@ def seed_database():
             db.session.add(wallet)
             db.session.flush()
 
-            # إنشاء رقم مرجعي فريد
             now = datetime.utcnow()
             date_str = now.strftime('%Y%m%d')
             time_stamp = now.strftime('%H%M%S%f')[:9]
             characters = string.ascii_uppercase + string.digits
 
-            # توليد رقم مرجعي فريد
             while True:
                 random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
                 candidate_ref = f"TRX-SUP9631-{date_str}-{time_stamp}-{random_6_code}"
@@ -142,14 +137,12 @@ def seed_database():
                     seed_ref_number = candidate_ref
                     break
 
-            # توليد رقم سند فريد
             seed_voucher_number = generate_unique_voucher_number(
                 db.session.connection(),
                 length=6,
                 prefix="VCH-"
             )
 
-            # إنشاء حركة الإيداع الافتتاحية
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
                 trans_type='deposit',
@@ -162,7 +155,6 @@ def seed_database():
             )
             db.session.add(initial_transaction)
 
-            # إنشاء قيد الخزينة العامة
             treasury_entry = TreasuryEntry(
                 reference_number=seed_ref_number,
                 voucher_number=seed_voucher_number,
@@ -248,30 +240,25 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ إعادة بناء الجداول تلقائياً عند التشغيل (كل رفع)
+    # ⚙️ التهيئة الآمنة للجداول والبيانات (بدون حذف البيانات القديمة)
     # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            # 🔥 حذف جميع الجداول أولاً (لإعادة بناء كاملة)
-            db.drop_all()
-            print("✅ [إعادة البناء]: تم حذف جميع الجداول بنجاح.")
-
-            # ✅ إنشاء الجداول من جديد
+            # ✅ إنشاء الجداول المفقودة فقط (بدون استخدام db.drop_all لضمان سلامة البيانات)
             db.create_all()
-            print("✅ [إعادة البناء]: تم إنشاء جميع الجداول بنجاح.")
+            print("✅ [التهيئة الآمنة]: تم التحقق من إنشاء الجداول بنجاح دون المساس بالبيانات الموجودة.")
 
-            # ✅ زراعة البيانات المبدئية
+            # ✅ زراعة البيانات المبدئية إذا لم تكن موجودة
             seed_database()
-            print("✅ [إعادة البناء]: تمت زراعة البيانات المبدئية بنجاح.")
-            print("🎉 [إعادة البناء]: اكتملت عملية إعادة بناء قاعدة البيانات بالكامل!")
+            print("✅ [التهيئة الآمنة]: تمت مراجعة وزراعة البيانات المبدئية بنجاح.")
 
         except Exception as e:
             db.session.rollback()
-            print(f"❌ [خطأ في إعادة البناء]: {e}")
+            print(f"❌ [خطأ في التهيئة الآمنة]: {e}")
 
     # ============================================================
-    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
+    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً عند الحاجة القصوى
     # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
@@ -298,7 +285,6 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
     
-    # ✅ استخدم الكائن المُستورد من extensions.py
     from apps.extensions import csrf, limiter
     csrf.init_app(app)
     limiter.init_app(app)
