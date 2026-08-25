@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import json
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, current_app, flash
 from apps.extensions import db, csrf
@@ -9,7 +10,8 @@ from apps.models.whatsapp_models import (
     WhatsAppMessageLog, 
     WhatsAppSettings
 )
-from apps.whatsapp_service.whatsapp_api import send_text_message
+# ✅ استيراد دالة إرسال الوسائط أيضاً
+from apps.whatsapp_service.whatsapp_api import send_text_message, send_media_message
 from apps.whatsapp_service.config import WhatsAppServiceConfig
 
 # ✅ تعريف الـ Blueprint
@@ -110,7 +112,7 @@ def chat_dashboard():
         now=now,
         today=today,
         yesterday=yesterday,
-        unread_chats=unread_chats  # ✅ تمرير العداد
+        unread_chats=unread_chats
     )
 
 
@@ -130,7 +132,6 @@ def send_message_htmx():
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ تم تعديل المسار ليتوافق مع مجلد partials
                 return render_template('admin/whatsapp/partials/_message_bubble.html', msg=new_msg)
             else:
                 return """
@@ -154,6 +155,57 @@ def send_message_htmx():
             </div>
             """
         return jsonify({"success": False, "error": str(result)}), 500
+
+
+# ✅ مسار إرسال الوسائط (صور/فيديو)
+@whatsapp_bp.route('/send-media', methods=['POST'])
+def send_media():
+    recipient = request.form.get('phone')
+    media_type = request.form.get('media_type') # image, video, document
+    media_url = request.form.get('media_url') # رابط الملف (يجب رفعه أولاً أو رفعه للسيرفر)
+    caption = request.form.get('caption', '')
+
+    if not recipient or not media_type or not media_url:
+        return jsonify({"success": False, "error": "بيانات ناقصة"}), 400
+
+    success, result = send_media_message(recipient, media_type, media_url, caption)
+
+    if success:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
+            if new_msg:
+                return render_template('admin/whatsapp/partials/_message_bubble.html', msg=new_msg)
+        return jsonify({"success": True, "result": result})
+    else:
+        return jsonify({"success": False, "error": str(result)}), 500
+
+
+# ✅ مسار إرسال رسالة جماعية
+@whatsapp_bp.route('/send-bulk', methods=['POST'])
+def send_bulk_message():
+    try:
+        data = request.form
+        phones_json = data.get('phones')
+        message = data.get('message')
+        
+        if not phones_json or not message:
+            return jsonify({"success": False, "error": "اختر عملاء وأدخل نص الرسالة"}), 400
+
+        phones = json.loads(phones_json)
+        sent_count = 0
+        errors = []
+
+        for phone in phones:
+            success, result = send_text_message(phone, message)
+            if success:
+                sent_count += 1
+            else:
+                errors.append({"phone": phone, "error": str(result)[:100]})
+
+        return jsonify({"success": True, "sent_count": sent_count, "errors": errors})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @whatsapp_bp.route('/start-new-chat', methods=['POST'])
@@ -212,7 +264,6 @@ def settings_view():
 
         return redirect(url_for('whatsapp_service.settings_view'))
 
-    # تمرير الإعدادات مباشرة من دالة الحماية لضمان عدم فشل القالب
     settings_data = inject_settings()['settings']
     return render_template(
         'admin/whatsapp_dashboard.html',
@@ -255,12 +306,9 @@ def logs_dashboard():
     try:
         logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
         
-        # ✅ حساب الإحصائيات للعرض في البطاقات
         total_logs = len(logs)
         inbound_logs = sum(1 for log in logs if log.direction == 'inbound')
         outbound_logs = sum(1 for log in logs if log.direction == 'outbound')
-        
-        # ✅ حساب الرسائل غير المقروءة أو الجديدة (للعرض في الشريط الجانبي والبطاقة الصفراء)
         unread_logs = sum(1 for log in logs if log.status == 'received' or log.status == 'sent')
         
     except Exception:
@@ -274,7 +322,7 @@ def logs_dashboard():
         total_logs=total_logs,
         inbound_logs=inbound_logs,
         outbound_logs=outbound_logs,
-        unread_logs=unread_logs  # ✅ تمرير العداد
+        unread_logs=unread_logs
     )
 
 
@@ -297,7 +345,6 @@ def webhook_handler():
         challenge = request.args.get('hub.challenge')
         verify_token = WhatsAppServiceConfig.get_verify_token()
         
-        # تأكد أن verify_token في الكود يطابق المكتوب في لوحة ميتا!
         if mode and token:
             if mode == 'subscribe' and token == verify_token:
                 return challenge, 200
@@ -306,7 +353,6 @@ def webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
-        # ✅ طباعة الحمولة في السجل (Logs) للتأكد من وصولها
         current_app.logger.info(f"Webhook Payload Received: {request.get_data(as_text=True)}")
 
         if not request.is_json:
@@ -325,13 +371,11 @@ def webhook_handler():
                 for change in entry.get('changes', []):
                     value = change.get('value', {})
                     
-                    # استقبال الرسائل الواردة بجميع أنواعها
                     for msg in value.get('messages', []):
                         sender = ''.join(filter(str.isdigit, msg.get('from', '')))
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
                         
-                        # ✅ التعامل مع أنواع مختلفة من الرسائل:
                         msg_body = ""
                         if msg_type == 'text':
                             msg_body = msg.get('text', {}).get('body', '')
@@ -377,7 +421,6 @@ def webhook_handler():
                             db.session.add(new_contact)
                         db.session.commit()
 
-                    # استقبال تحديثات الحالة (قراءة/تسليم)
                     for st in value.get('statuses', []):
                         wamid = st.get('id')
                         status_type = st.get('status')
@@ -389,10 +432,8 @@ def webhook_handler():
         except Exception as e:
             current_app.logger.error(f"Webhook error: {str(e)}")
             db.session.rollback()
-            # ✅ دائماً نرجع 200 حتى لو حصل خطأ داخلي حتى لا يقوم Meta بإيقاف الخدمة
             return jsonify({"status": "error", "message": str(e)}), 200
 
-        # ✅ دائماً نرجع 200 بنجاح لـ Meta
         return jsonify({"status": "success"}), 200
 
 
