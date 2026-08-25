@@ -79,7 +79,7 @@ def chat_dashboard():
     yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
 
     return render_template(
-        'admin/whatsapp_dashboard.html',  # ✅ القالب الصحيح
+        'admin/whatsapp_dashboard.html',
         active_tab='chat',
         contacts=contacts,
         selected_contact=active_contact,
@@ -180,7 +180,7 @@ def settings_view():
         return redirect(url_for('whatsapp_service.settings_view'))
 
     return render_template(
-        'admin/whatsapp_dashboard.html',  # ✅ القالب الصحيح
+        'admin/whatsapp_dashboard.html',
         active_tab='settings'
     )
 
@@ -189,7 +189,7 @@ def settings_view():
 def logs_dashboard():
     logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
     return render_template(
-        'admin/whatsapp_dashboard.html',  # ✅ القالب الصحيح
+        'admin/whatsapp_dashboard.html',
         active_tab='logs',
         logs=logs
     )
@@ -198,7 +198,7 @@ def logs_dashboard():
 @whatsapp_bp.route('/webhook-dashboard')
 def webhook_dashboard():
     return render_template(
-        'admin/whatsapp_dashboard.html',  # ✅ القالب الصحيح
+        'admin/whatsapp_dashboard.html',
         active_tab='webhook'
     )
 
