@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محجوب أونلاين - مركز مراسلات واتساب</title>
+    <title>سوق محجوب أونلاين الذكي | مركز مراسلات واتساب</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- HTMX CDN -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Cairo', sans-serif; background-color: #0f071d; color: #e9edef; }
         .royal-purple-bg { background-color: #1a0b2e; }
         .royal-border { border-color: rgba(99, 44, 143, 0.4); }
@@ -20,31 +20,42 @@
         ::-webkit-scrollbar-track { background: #1a0b2e; }
         ::-webkit-scrollbar-thumb { background: #570575; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #632C8F; }
+        .header-glass { 
+            background: linear-gradient(135deg, rgba(26, 11, 46, 0.9) 0%, rgba(45, 21, 80, 0.95) 50%, rgba(26, 11, 46, 1) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <!-- شريط التنقل العلوي -->
-    <header class="h-16 royal-purple-bg border-b royal-border flex items-center justify-between px-6 shrink-0 shadow-lg">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#632C8F] to-[#570575] flex items-center justify-center border gold-border shadow-md">
-                <i class="fa-brands fa-whatsapp text-xl text-[#D4AF37]"></i>
+    <!-- شريط التنقل العلوي (أكثر احترافية) -->
+    <header class="h-20 header-glass border-b royal-border flex items-center justify-between px-8 shrink-0 shadow-2xl">
+        <div class="flex items-center gap-4">
+            <!-- أيقونة بيضاء ناصعة -->
+            <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 shadow-lg overflow-hidden">
+                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
+                     alt="شعار محجوب أونلاين" 
+                     class="w-full h-full object-contain p-1 filter brightness-0 invert">
             </div>
             <div>
-                <h1 class="font-bold text-sm text-white tracking-wide">محجوب أونلاين - إدارة واتساب</h1>
-                <p class="text-[10px] text-gray-400">متصل بـ Meta Cloud API (v21.0)</p>
+                <h1 class="text-lg font-extrabold text-white tracking-wide">سوق محجوب أونلاين الذكي</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <i class="fa-solid fa-circle text-[5px] text-emerald-400"></i>
+                    <p class="text-[11px] text-gray-300">مركز مراسلات واتساب - متصل بـ Meta Cloud API (v21.0)</p>
+                </div>
             </div>
         </div>
 
         <!-- الأزرار التبويبية العلوية -->
-        <nav class="flex items-center gap-2 bg-[#0f071d] p-1.5 rounded-xl border royal-border">
-            <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 {{ 'bg-[#570575] text-[#D4AF37] shadow' if active_tab == 'chat' else 'text-gray-300 hover:text-white' }}">
+        <nav class="flex items-center gap-2 bg-black/30 p-1.5 rounded-2xl border border-white/10 shadow-inner">
+            <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 {{ 'bg-gradient-to-r from-[#D4AF37] to-[#F5D061] text-black shadow-lg' if active_tab == 'chat' else 'text-white hover:bg-white/5' }}">
                 <i class="fa-solid fa-comments ml-1.5"></i> المحادثات والدردشة
             </a>
-            <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 {{ 'bg-[#570575] text-[#D4AF37] shadow' if active_tab == 'logs' else 'text-gray-300 hover:text-white' }}">
+            <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 {{ 'bg-gradient-to-r from-[#D4AF37] to-[#F5D061] text-black shadow-lg' if active_tab == 'logs' else 'text-white hover:bg-white/5' }}">
                 <i class="fa-solid fa-list-check ml-1.5"></i> السجلات والتقارير
             </a>
-            <a href="{{ url_for('whatsapp_service.settings_view') }}" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 {{ 'bg-[#570575] text-[#D4AF37] shadow' if active_tab == 'settings' else 'text-gray-300 hover:text-white' }}">
+            <a href="{{ url_for('whatsapp_service.settings_view') }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 {{ 'bg-gradient-to-r from-[#D4AF37] to-[#F5D061] text-black shadow-lg' if active_tab == 'settings' else 'text-white hover:bg-white/5' }}">
                 <i class="fa-solid fa-gear ml-1.5"></i> الإعدادات والربط
             </a>
         </nav>
@@ -57,15 +68,15 @@
         <!-- ================= تبويب الدردشة ================= -->
         <!-- القائمة الجانبية للجهات -->
         <aside class="w-80 royal-purple-bg border-l royal-border flex flex-col shrink-0">
-            <div class="p-3 border-b royal-border flex items-center justify-between">
-                <span class="text-xs font-bold text-gray-200">العملاء والرسائل الواردة</span>
-                <button onclick="document.getElementById('newChatModal').classList.remove('hidden')" class="bg-[#570575] hover:bg-[#632C8F] text-[#D4AF37] text-xs px-2.5 py-1.5 rounded-lg border royal-border transition flex items-center gap-1 shadow">
+            <div class="p-4 border-b royal-border flex items-center justify-between">
+                <span class="text-sm font-bold text-white">العملاء والرسائل الواردة</span>
+                <button onclick="document.getElementById('newChatModal').classList.remove('hidden')" class="bg-gradient-to-r from-[#570575] to-[#632C8F] hover:opacity-90 text-[#D4AF37] text-xs px-3 py-2 rounded-xl border royal-border transition flex items-center gap-2 shadow">
                     <i class="fa-solid fa-plus text-[10px]"></i> محادثة جديدة
                 </button>
             </div>
 
             <!-- شريط البحث الفوري داخل قائمة العملاء -->
-            <div class="p-3 border-b royal-border bg-[#0f071d]/40">
+            <div class="p-3 border-b royal-border bg-black/20">
                 <div class="relative">
                     <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
                         <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
@@ -370,6 +381,12 @@
                 }
             });
         }
+
+        // التمرير التلقائي للأسفل عند فتح المحادثة
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('chat-messages');
+            if (container) container.scrollTop = container.scrollHeight;
+        });
     </script>
 </body>
 </html>
