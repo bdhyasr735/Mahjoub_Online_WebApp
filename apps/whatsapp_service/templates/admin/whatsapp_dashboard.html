@@ -33,7 +33,6 @@
         <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'chat' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'chat' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
           <span class="sr-only">المحادثات</span>
-          <!-- عداد المحادثات غير المقروءة -->
           {% if unread_chats and unread_chats > 0 %}
           <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ unread_chats }}</span>
           {% endif %}
@@ -41,7 +40,6 @@
         <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'logs' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'logs' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
           <span class="sr-only">سجل الرسائل</span>
-          <!-- عداد الرسائل الجديدة -->
           {% if unread_logs and unread_logs > 0 %}
           <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ unread_logs }}</span>
           {% endif %}
@@ -111,7 +109,14 @@
           <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
             {% if contacts %}
               {% for contact in contacts %}
-                <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" hx-select="#chat-area" hx-target="#chat-area" hx-swap="outerHTML" hx-push-url="true" class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
+                <a href="#" 
+                   hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+                   hx-select="#chat-area" 
+                   hx-target="#chat-area" 
+                   hx-swap="outerHTML"
+                   hx-push-url="true"
+                   onclick="event.preventDefault();"
+                   class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
                   <div class="relative">
                     <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">{{ contact.name[0] if contact.name else 'ع' }}</div>
                     {% if contact.is_online %}<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>{% endif %}
@@ -252,12 +257,19 @@
       </div>
 
       <script>
-        // البحث في قائمة المحادثات النشطة
-        document.addEventListener('DOMContentLoaded', function() {
+        // ✅ دالة التمرير للأسفل (تعمل بعد كل تحديث)
+        function scrollToBottom() {
+          const container = document.getElementById('chatMessagesContainer');
+          if (container) container.scrollTop = container.scrollHeight;
+        }
+
+        // ✅ البحث في قائمة المحادثات النشطة (يعمل حتى بعد تحديث HTMX)
+        function setupContactSearch() {
           const searchInput = document.getElementById('contactSearchInput');
           const contactItems = document.querySelectorAll('.contact-item');
-          if (!searchInput || !contactItems.length) return;
-          searchInput.addEventListener('input', function() {
+          if (!searchInput) return;
+          
+          const filterContacts = function() {
             const query = searchInput.value.trim().toLowerCase();
             contactItems.forEach(item => {
               const name = item.querySelector('.contact-name').textContent.toLowerCase();
@@ -266,16 +278,42 @@
               if (name.includes(query) || phone.includes(query)) item.style.display = '';
               else item.style.display = 'none';
             });
-          });
+          };
+          
+          searchInput.addEventListener('input', filterContacts);
+        }
+
+        // ✅ عند تحميل الصفحة لأول مرة
+        document.addEventListener('DOMContentLoaded', function() {
+          scrollToBottom();
+          setupContactSearch();
         });
 
-        // البحث داخل الرسائل
+        // ✅ عند تحديث HTMX (تبديل محادثة أو استقبال رسالة جديدة)
+        document.addEventListener('htmx:afterSwap', function(event) {
+          if (event.detail.target.id === 'chatMessagesContainer') {
+            // التمرير للأسفل تلقائياً فقط إذا كان المستخدم قريباً من الأسفل
+            const container = document.getElementById('chatMessagesContainer');
+            if (container) {
+              const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+              if (isNearBottom) container.scrollTop = container.scrollHeight;
+            }
+          }
+          
+          // إعادة تفعيل البحث إذا تغيرت القائمة
+          if (event.detail.target.id === 'chat-area') {
+            setupContactSearch();
+          }
+        });
+
+        // ✅ البحث داخل الرسائل
         document.addEventListener('DOMContentLoaded', function() {
           const searchInput = document.getElementById('chatSearchInput');
           const messages = document.querySelectorAll('.message-item');
           const noResults = document.getElementById('noSearchResults');
           const clearBtn = document.getElementById('clearSearchBtn');
           if (!searchInput || !messages.length) return;
+          
           function performSearch() {
             const query = searchInput.value.trim().toLowerCase();
             let visibleCount = 0;
@@ -294,28 +332,25 @@
               else clearBtn.classList.add('hidden');
             }
           }
+          
           searchInput.addEventListener('input', performSearch);
           window.clearSearch = function() { searchInput.value = ''; performSearch(); searchInput.focus(); };
         });
 
-        // التمرير التلقائي
-        document.addEventListener('DOMContentLoaded', function() {
-          const container = document.getElementById('chatMessagesContainer');
-          if (container) container.scrollTop = container.scrollHeight;
-        });
-
-        // إرسال الرسالة
+        // ✅ إرسال الرسالة
         document.addEventListener('DOMContentLoaded', function() {
           const form = document.getElementById('chat-form');
           const input = document.getElementById('message-input');
           const container = document.getElementById('chatMessagesContainer');
           const sendBtn = document.getElementById('send-btn');
           if (!form) return;
+          
           form.addEventListener('submit', async function(e) {
             e.preventDefault();
             const phone = form.querySelector('input[name="phone"]').value;
             const message = input.value.trim();
             if (!message) return;
+            
             sendBtn.disabled = true;
             sendBtn.textContent = 'جاري الإرسال...';
             try {
@@ -334,17 +369,6 @@
             finally { sendBtn.disabled = false; sendBtn.textContent = 'إرسال'; }
           });
         });
-
-        // HTMX after swap
-        document.addEventListener('htmx:afterSwap', function(event) {
-          if (event.detail.target.id === 'chatMessagesContainer') {
-            const container = document.getElementById('chatMessagesContainer');
-            if (container) {
-              const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
-              if (isNearBottom) container.scrollTop = container.scrollHeight;
-            }
-          }
-        });
       </script>
 
       <!-- ============================================== -->
@@ -353,52 +377,31 @@
       {% elif active_tab == 'logs' %}
       <div class="flex-1 p-6 bg-slate-50 overflow-auto">
         
-        <!-- بطاقات الإحصائيات الاحترافية -->
+        <!-- بطاقات الإحصائيات -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 mb-1">إجمالي الرسائل</p>
-                    <p class="text-2xl font-bold text-slate-800">{{ total_logs if total_logs is defined else logs|length }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                </div>
+                <div><p class="text-xs text-slate-500 mb-1">إجمالي الرسائل</p><p class="text-2xl font-bold text-slate-800">{{ total_logs if total_logs is defined else logs|length }}</p></div>
+                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 mb-1">رسائل واردة</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ inbound_logs if inbound_logs is defined else 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                </div>
+                <div><p class="text-xs text-slate-500 mb-1">رسائل واردة</p><p class="text-2xl font-bold text-blue-600">{{ inbound_logs if inbound_logs is defined else 0 }}</p></div>
+                <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 mb-1">رسائل صادرة</p>
-                    <p class="text-2xl font-bold text-emerald-600">{{ outbound_logs if outbound_logs is defined else 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                </div>
+                <div><p class="text-xs text-slate-500 mb-1">رسائل صادرة</p><p class="text-2xl font-bold text-emerald-600">{{ outbound_logs if outbound_logs is defined else 0 }}</p></div>
+                <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 mb-1">غير مقروءة / جديدة</p>
-                    <p class="text-2xl font-bold text-amber-600">{{ unread_logs if unread_logs is defined else 0 }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                </div>
+                <div><p class="text-xs text-slate-500 mb-1">غير مقروءة</p><p class="text-2xl font-bold text-amber-600">{{ unread_logs if unread_logs is defined else 0 }}</p></div>
+                <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg></div>
             </div>
         </div>
 
-        <!-- الفلاتر والبحث الفوري -->
+        <!-- الفلاتر -->
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
             <div class="flex flex-wrap items-center gap-4">
                 <div class="relative flex-1 min-w-[250px]">
-                    <input type="text" id="logSearchInput" placeholder="🔍 بحث لحظي بالاسم أو الرقم أو المحتوى..." 
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
+                    <input type="text" id="logSearchInput" placeholder="بحث بالاسم أو الرقم..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
                 </div>
                 <select id="logDirectionFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600">
                     <option value="">الكل (وارد وصادر)</option>
@@ -407,18 +410,16 @@
                 </select>
                 <select id="logStatusFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600">
                     <option value="">جميع الحالات</option>
-                    <option value="received">وصلت (Received)</option>
-                    <option value="read">مقروءة (Read)</option>
-                    <option value="delivered">تم التسليم (Delivered)</option>
-                    <option value="failed">فشلت (Failed)</option>
+                    <option value="received">وصلت</option>
+                    <option value="read">مقروءة</option>
+                    <option value="delivered">تم التسليم</option>
+                    <option value="failed">فشلت</option>
                 </select>
-                <button onclick="filterLogs()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all">
-                    تصفية
-                </button>
+                <button onclick="filterLogs()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm">تصفية</button>
             </div>
         </div>
 
-        <!-- الجدول الاحترافي مع HTMX للتحديث اللحظي -->
+        <!-- الجدول -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-right">
@@ -426,38 +427,20 @@
                         <tr>
                             <th class="px-6 py-4 font-bold">المعرف</th>
                             <th class="px-6 py-4 font-bold">العميل / الهاتف</th>
-                            <th class="px-6 py-4 font-bold">نص الرسالة</th>
+                            <th class="px-6 py-4 font-bold">الرسالة</th>
                             <th class="px-6 py-4 font-bold">الاتجاه</th>
                             <th class="px-6 py-4 font-bold">الحالة</th>
                             <th class="px-6 py-4 font-bold">الوقت</th>
-                            <th class="px-6 py-4 font-bold">إجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="logsTableBody" class="divide-y divide-slate-100" 
-                           hx-get="{{ url_for('whatsapp_service.logs_dashboard') }}" 
-                           hx-trigger="every 5s" 
-                           hx-select="tbody" 
-                           hx-target="tbody" 
-                           hx-swap="outerHTML">
+                    <tbody id="logsTableBody" class="divide-y divide-slate-100">
                         {% if logs %}
                             {% for log in logs %}
-                            <tr class="log-row hover:bg-slate-50/80 transition-colors" 
-                                data-direction="{{ log.direction }}" 
-                                data-status="{{ log.status }}" 
-                                data-content="{{ log.content|lower }}">
+                            <tr class="log-row hover:bg-slate-50/80" data-direction="{{ log.direction }}" data-status="{{ log.status }}" data-content="{{ log.content|lower }}">
                                 <td class="px-6 py-4 font-mono text-xs text-slate-400">msg-{{ log.id }}</td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="relative">
-                                            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center">
-                                                {{ (log.contact_name or log.phone or 'ع')[0] }}
-                                            </div>
-                                            {% if log.direction == 'inbound' %}
-                                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
-                                            {% else %}
-                                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-slate-300 border-2 border-white rounded-full"></span>
-                                            {% endif %}
-                                        </div>
+                                        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center">{{ (log.contact_name or log.phone or 'ع')[0] }}</div>
                                         <div>
                                             <p class="font-bold text-slate-800">{{ log.contact_name or 'عميل' }}</p>
                                             <p class="text-xs text-slate-400" dir="ltr">{{ log.phone }}</p>
@@ -466,39 +449,16 @@
                                 </td>
                                 <td class="px-6 py-4 text-slate-600 max-w-xs truncate">{{ log.content }}</td>
                                 <td class="px-6 py-4">
-                                    {% if log.direction == 'inbound' %}
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700">وارد</span>
-                                    {% else %}
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">صادر</span>
-                                    {% endif %}
+                                    {% if log.direction == 'inbound' %}<span class="bg-blue-50 text-blue-700 px-2 py-1 rounded">وارد</span>{% else %}<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded">صادر</span>{% endif %}
                                 </td>
                                 <td class="px-6 py-4">
-                                    {% if log.status == 'delivered' %}
-                                        <span class="text-blue-600 font-bold">✓✓ تم التسليم</span>
-                                    {% elif log.status == 'read' %}
-                                        <span class="text-green-600 font-bold">✓✓ مقروءة</span>
-                                    {% elif log.status == 'sent' %}
-                                        <span class="text-slate-400">✓ تم الإرسال</span>
-                                    {% elif log.status == 'received' %}
-                                        <span class="text-slate-400">وصلت</span>
-                                    {% else %}
-                                        <span class="text-red-600 font-bold">فشلت</span>
-                                    {% endif %}
+                                    {% if log.status == 'delivered' %}<span class="text-blue-600 font-bold">✓✓</span>{% elif log.status == 'read' %}<span class="text-green-600 font-bold">✓✓</span>{% elif log.status == 'sent' %}<span class="text-slate-400">✓</span>{% elif log.status == 'received' %}<span class="text-slate-400">وصلت</span>{% else %}<span class="text-red-600 font-bold">فشلت</span>{% endif %}
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-400" dir="ltr">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
-                                <td class="px-6 py-4">
-                                    <button title="عرض التفاصيل" class="text-slate-400 hover:text-emerald-600 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    </button>
-                                </td>
+                                <td class="px-6 py-4 text-xs text-slate-400" dir="ltr">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                             </tr>
                             {% endfor %}
                         {% else %}
-                            <tr>
-                                <td colspan="7" class="p-10 text-center text-slate-400">
-                                    لا توجد رسائل في السجل حالياً
-                                </td>
-                            </tr>
+                            <tr><td colspan="6" class="p-10 text-center text-slate-400">لا توجد رسائل</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -506,46 +466,32 @@
         </div>
       </div>
 
-      <!-- سكربت البحث الفوري والفلترة -->
       <script>
-          // دالة البحث الفوري (Live Search)
-          function filterLogs() {
-              const search = document.getElementById('logSearchInput').value.trim().toLowerCase();
-              const direction = document.getElementById('logDirectionFilter').value;
-              const status = document.getElementById('logStatusFilter').value;
-              const rows = document.querySelectorAll('.log-row');
-              
-              rows.forEach(row => {
-                  const rd = row.getAttribute('data-direction');
-                  const rs = row.getAttribute('data-status');
-                  const rc = row.getAttribute('data-content') || '';
-                  
-                  let show = true;
-                  if (direction && rd !== direction) show = false;
-                  if (status && rs !== status) show = false;
-                  if (search && !rc.includes(search)) show = false;
-                  
-                  row.style.display = show ? '' : 'none';
-              });
-          }
+        function filterLogs() {
+            const search = document.getElementById('logSearchInput').value.trim().toLowerCase();
+            const direction = document.getElementById('logDirectionFilter').value;
+            const status = document.getElementById('logStatusFilter').value;
+            const rows = document.querySelectorAll('.log-row');
+            rows.forEach(row => {
+                const rd = row.getAttribute('data-direction');
+                const rs = row.getAttribute('data-status');
+                const rc = row.getAttribute('data-content') || '';
+                let show = true;
+                if (direction && rd !== direction) show = false;
+                if (status && rs !== status) show = false;
+                if (search && !rc.includes(search)) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
 
-          // ربط الأحداث للحظية
-          document.addEventListener('DOMContentLoaded', function() {
-              const searchInput = document.getElementById('logSearchInput');
-              const directionFilter = document.getElementById('logDirectionFilter');
-              const statusFilter = document.getElementById('logStatusFilter');
-              
-              if (searchInput) searchInput.addEventListener('input', filterLogs);
-              if (directionFilter) directionFilter.addEventListener('change', filterLogs);
-              if (statusFilter) statusFilter.addEventListener('change', filterLogs);
-          });
-
-          // إعادة التصفية بعد تحديث HTMX (حتى لا تضيع الفلاتر)
-          document.addEventListener('htmx:afterSwap', function(event) {
-              if (event.detail.target.id === 'logsTableBody') {
-                  filterLogs();
-              }
-          });
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('logSearchInput');
+            const directionFilter = document.getElementById('logDirectionFilter');
+            const statusFilter = document.getElementById('logStatusFilter');
+            if (searchInput) searchInput.addEventListener('input', filterLogs);
+            if (directionFilter) directionFilter.addEventListener('change', filterLogs);
+            if (statusFilter) statusFilter.addEventListener('change', filterLogs);
+        });
       </script>
 
       <!-- ============================================== -->
@@ -558,10 +504,7 @@
               <div class="space-y-4">
                   <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
                       <p class="text-[10px] text-slate-400 mb-1">حالة الاستقبال:</p>
-                      <div class="flex items-center gap-2">
-                          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                          <span class="text-xs font-bold text-emerald-700">مباشر ومتصل</span>
-                      </div>
+                      <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-xs font-bold text-emerald-700">مباشر ومتصل</span></div>
                   </div>
                   <div>
                       <label class="block text-xs font-bold text-slate-700 mb-1">آخر حمولة مستلمة</label>
@@ -583,7 +526,7 @@
       </div>
 
       <!-- ============================================== -->
-      <!-- 4. قسم الإعدادات (Settings) مع إشعار الحفظ    -->
+      <!-- 4. قسم الإعدادات (Settings)                     -->
       <!-- ============================================== -->
       {% elif active_tab == 'settings' %}
       <div class="flex-1 p-6 bg-slate-50 overflow-auto">
@@ -613,9 +556,7 @@
       </div>
 
       <!-- إشعار تم الحفظ -->
-      <div id="saveToast" class="hidden fixed top-5 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 text-sm font-bold">
-          ✅ تم حفظ الإعدادات بنجاح
-      </div>
+      <div id="saveToast" class="hidden fixed top-5 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 text-sm font-bold">✅ تم حفظ الإعدادات بنجاح</div>
 
       <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -623,17 +564,9 @@
             const toast = document.getElementById('saveToast');
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                }).then(() => {
-                    toast.classList.remove('hidden');
-                    setTimeout(() => toast.classList.add('hidden'), 3000);
-                }).catch(() => {
-                    // في حال عدم توفر AJAX، نترك الإرسال الطبيعي
-                    form.submit();
-                });
+                fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(() => { toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); })
+                .catch(() => { form.submit(); });
             });
         });
       </script>
