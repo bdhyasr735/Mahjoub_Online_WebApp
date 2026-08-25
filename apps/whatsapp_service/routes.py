@@ -49,6 +49,32 @@ def inject_settings():
 
 
 # ============================================================
+# دوال مساعدة للإحصائيات لتجنب التكرار
+# ============================================================
+def get_dashboard_stats():
+    try:
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        messages_sent_today = WhatsAppMessageLog.query.filter(
+            WhatsAppMessageLog.direction == 'outbound',
+            WhatsAppMessageLog.timestamp >= today_start,
+        ).count() or 0
+
+        failed_messages = WhatsAppMessageLog.query.filter_by(status='failed').count() or 0
+        
+        return {
+            'messages_sent_today': messages_sent_today,
+            'failed_messages': failed_messages,
+            'pending_queue': 0,
+        }
+    except Exception:
+        return {
+            'messages_sent_today': 0,
+            'failed_messages': 0,
+            'pending_queue': 0,
+        }
+
+
+# ============================================================
 # المسارات
 # ============================================================
 
@@ -93,6 +119,7 @@ def chat_dashboard():
     now = datetime.now(timezone.utc)
     today = now.strftime('%Y-%m-%d')
     yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+    stats = get_dashboard_stats()
 
     return render_template(
         'admin/whatsapp_dashboard.html',
@@ -104,7 +131,8 @@ def chat_dashboard():
         now=now,
         today=today,
         yesterday=yesterday,
-        unread_chats=unread_chats
+        unread_chats=unread_chats,
+        stats=stats
     )
 
 
@@ -247,12 +275,7 @@ def settings_view():
         return redirect(url_for('whatsapp_service.settings_view'))
 
     settings_data = inject_settings()['settings']
-     
-    stats = {
-        'messages_sent_today': 0,
-        'pending_queue': 0,
-        'failed_messages': 0
-    }
+    stats = get_dashboard_stats()
     recent_logs = []
      
     return render_template(
@@ -303,6 +326,8 @@ def logs_dashboard():
         logs = []
         total_logs = inbound_logs = outbound_logs = unread_logs = 0
          
+    stats = get_dashboard_stats()
+
     return render_template(
         'admin/whatsapp_dashboard.html', 
         active_tab='logs', 
@@ -310,13 +335,15 @@ def logs_dashboard():
         total_logs=total_logs, 
         inbound_logs=inbound_logs, 
         outbound_logs=outbound_logs, 
-        unread_logs=unread_logs
+        unread_logs=unread_logs,
+        stats=stats
     )
 
 
 @whatsapp_bp.route('/webhook-dashboard')
 def webhook_dashboard():
-    return render_template('admin/whatsapp_dashboard.html', active_tab='webhook')
+    stats = get_dashboard_stats()
+    return render_template('admin/whatsapp_dashboard.html', active_tab='webhook', stats=stats)
 
 
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
@@ -448,35 +475,7 @@ def settings_save():
 
 @whatsapp_bp.route('/dashboard/stats-fragment')
 def dashboard_stats_fragment():
-    try:
-        today_start = datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        messages_sent_today = (
-            WhatsAppMessageLog.query.filter(
-                WhatsAppMessageLog.direction == 'outbound',
-                WhatsAppMessageLog.timestamp >= today_start,
-            ).count()
-            or 0
-        )
-
-        failed_messages = (
-            WhatsAppMessageLog.query.filter_by(status='failed').count() or 0
-        )
-        pending_queue = 0
-
-        stats = {
-            'messages_sent_today': messages_sent_today,
-            'failed_messages': failed_messages,
-            'pending_queue': pending_queue,
-        }
-    except Exception:
-        stats = {
-            'messages_sent_today': 0,
-            'failed_messages': 0,
-            'pending_queue': 0,
-        }
-
+    stats = get_dashboard_stats()
     return render_template('admin/whatsapp/partials/stats_cards.html', stats=stats)
 
 
