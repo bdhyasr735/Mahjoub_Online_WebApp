@@ -91,7 +91,7 @@
     <main class="flex-1 flex overflow-hidden w-full relative" role="main">
 
       <!-- ============================================== -->
-      <!-- 1. قسم المحادثات (Chat) - الإنتاج المباشر      -->
+      <!-- 1. قسم المحادثات (Chat) - الإنتاج المباشر     -->
       <!-- ============================================== -->
       {% if active_tab == 'chat' %}
       <div class="flex-1 flex overflow-hidden w-full bg-white">
@@ -257,11 +257,13 @@
       </div>
 
       <script>
+        // ✅ دالة التمرير للأسفل (تعمل بعد كل تحديث)
         function scrollToBottom() {
           const container = document.getElementById('chatMessagesContainer');
           if (container) container.scrollTop = container.scrollHeight;
         }
 
+        // ✅ البحث في قائمة المحادثات النشطة (يعمل حتى بعد تحديث HTMX)
         function setupContactSearch() {
           const searchInput = document.getElementById('contactSearchInput');
           const contactItems = document.querySelectorAll('.contact-item');
@@ -277,27 +279,34 @@
               else item.style.display = 'none';
             });
           };
+          
           searchInput.addEventListener('input', filterContacts);
         }
 
+        // ✅ عند تحميل الصفحة لأول مرة
         document.addEventListener('DOMContentLoaded', function() {
           scrollToBottom();
           setupContactSearch();
         });
 
+        // ✅ عند تحديث HTMX (تبديل محادثة أو استقبال رسالة جديدة)
         document.addEventListener('htmx:afterSwap', function(event) {
           if (event.detail.target.id === 'chatMessagesContainer') {
+            // التمرير للأسفل تلقائياً فقط إذا كان المستخدم قريباً من الأسفل
             const container = document.getElementById('chatMessagesContainer');
             if (container) {
               const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
               if (isNearBottom) container.scrollTop = container.scrollHeight;
             }
           }
+          
+          // إعادة تفعيل البحث إذا تغيرت القائمة
           if (event.detail.target.id === 'chat-area') {
             setupContactSearch();
           }
         });
 
+        // ✅ البحث داخل الرسائل
         document.addEventListener('DOMContentLoaded', function() {
           const searchInput = document.getElementById('chatSearchInput');
           const messages = document.querySelectorAll('.message-item');
@@ -323,10 +332,12 @@
               else clearBtn.classList.add('hidden');
             }
           }
+          
           searchInput.addEventListener('input', performSearch);
           window.clearSearch = function() { searchInput.value = ''; performSearch(); searchInput.focus(); };
         });
 
+        // ✅ إرسال الرسالة
         document.addEventListener('DOMContentLoaded', function() {
           const form = document.getElementById('chat-form');
           const input = document.getElementById('message-input');
@@ -365,6 +376,7 @@
       <!-- ============================================== -->
       {% elif active_tab == 'logs' %}
       <div class="flex-1 p-6 bg-slate-50 overflow-auto">
+        
         <!-- بطاقات الإحصائيات -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -385,47 +397,179 @@
             </div>
         </div>
 
-        <!-- جدول أو قائمة السجلات -->
+        <!-- الفلاتر -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="relative flex-1 min-w-[250px]">
+                    <input type="text" id="logSearchInput" placeholder="بحث بالاسم أو الرقم..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
+                </div>
+                <select id="logDirectionFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600">
+                    <option value="">الكل (وارد وصادر)</option>
+                    <option value="inbound">وارد فقط</option>
+                    <option value="outbound">صادر فقط</option>
+                </select>
+                <select id="logStatusFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-600">
+                    <option value="">جميع الحالات</option>
+                    <option value="received">وصلت</option>
+                    <option value="read">مقروءة</option>
+                    <option value="delivered">تم التسليم</option>
+                    <option value="failed">فشلت</option>
+                </select>
+                <button onclick="filterLogs()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm">تصفية</button>
+            </div>
+        </div>
+
+        <!-- الجدول -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-            <h3 class="font-bold text-sm text-slate-800">سجل الرسائل والعمليات</h3>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-right text-xs">
-              <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th class="p-3 font-bold">المرسل / المستقبل</th>
-                  <th class="p-3 font-bold">الاتجاه</th>
-                  <th class="p-3 font-bold">المحتوى</th>
-                  <th class="p-3 font-bold">الحالة</th>
-                  <th class="p-3 font-bold">الوقت</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                {% if logs %}
-                  {% for log in logs %}
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                      <td class="p-3 font-medium text-slate-900" dir="ltr">{{ log.phone }}</td>
-                      <td class="p-3">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ 'bg-emerald-100 text-emerald-800' if log.direction == 'outbound' else 'bg-blue-100 text-blue-800' }}">
-                          {{ 'صادر' if log.direction == 'outbound' else 'وارد' }}
-                        </span>
-                      </td>
-                      <td class="p-3 text-slate-600 max-w-xs truncate">{{ log.content }}</td>
-                      <td class="p-3 text-slate-500">{{ log.status }}</td>
-                      <td class="p-3 text-slate-400 text-[10px]">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td colspan="5" class="p-8 text-center text-slate-400">لا توجد سجلات متاحة حالياً</td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-right">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                        <tr>
+                            <th class="px-6 py-4 font-bold">المعرف</th>
+                            <th class="px-6 py-4 font-bold">العميل / الهاتف</th>
+                            <th class="px-6 py-4 font-bold">الرسالة</th>
+                            <th class="px-6 py-4 font-bold">الاتجاه</th>
+                            <th class="px-6 py-4 font-bold">الحالة</th>
+                            <th class="px-6 py-4 font-bold">الوقت</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody" class="divide-y divide-slate-100">
+                        {% if logs %}
+                            {% for log in logs %}
+                            <tr class="log-row hover:bg-slate-50/80" data-direction="{{ log.direction }}" data-status="{{ log.status }}" data-content="{{ log.content|lower }}">
+                                <td class="px-6 py-4 font-mono text-xs text-slate-400">msg-{{ log.id }}</td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center">{{ (log.contact_name or log.phone or 'ع')[0] }}</div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">{{ log.contact_name or 'عميل' }}</p>
+                                            <p class="text-xs text-slate-400" dir="ltr">{{ log.phone }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600 max-w-xs truncate">{{ log.content }}</td>
+                                <td class="px-6 py-4">
+                                    {% if log.direction == 'inbound' %}<span class="bg-blue-50 text-blue-700 px-2 py-1 rounded">وارد</span>{% else %}<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded">صادر</span>{% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if log.status == 'delivered' %}<span class="text-blue-600 font-bold">✓✓</span>{% elif log.status == 'read' %}<span class="text-green-600 font-bold">✓✓</span>{% elif log.status == 'sent' %}<span class="text-slate-400">✓</span>{% elif log.status == 'received' %}<span class="text-slate-400">وصلت</span>{% else %}<span class="text-red-600 font-bold">فشلت</span>{% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-xs text-slate-400" dir="ltr">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="6" class="p-10 text-center text-slate-400">لا توجد رسائل</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
       </div>
+
+      <script>
+        function filterLogs() {
+            const search = document.getElementById('logSearchInput').value.trim().toLowerCase();
+            const direction = document.getElementById('logDirectionFilter').value;
+            const status = document.getElementById('logStatusFilter').value;
+            const rows = document.querySelectorAll('.log-row');
+            rows.forEach(row => {
+                const rd = row.getAttribute('data-direction');
+                const rs = row.getAttribute('data-status');
+                const rc = row.getAttribute('data-content') || '';
+                let show = true;
+                if (direction && rd !== direction) show = false;
+                if (status && rs !== status) show = false;
+                if (search && !rc.includes(search)) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('logSearchInput');
+            const directionFilter = document.getElementById('logDirectionFilter');
+            const statusFilter = document.getElementById('logStatusFilter');
+            if (searchInput) searchInput.addEventListener('input', filterLogs);
+            if (directionFilter) directionFilter.addEventListener('change', filterLogs);
+            if (statusFilter) statusFilter.addEventListener('change', filterLogs);
+        });
+      </script>
+
+      <!-- ============================================== -->
+      <!-- 3. قسم الويب هوك (Webhook) - مراقبة مباشرة    -->
+      <!-- ============================================== -->
+      {% elif active_tab == 'webhook' %}
+      <div class="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-auto bg-slate-50">
+          <div class="flex-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h2 class="text-sm font-bold text-slate-800 mb-4">مراقبة الأحداث المباشرة</h2>
+              <div class="space-y-4">
+                  <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <p class="text-[10px] text-slate-400 mb-1">حالة الاستقبال:</p>
+                      <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-xs font-bold text-emerald-700">مباشر ومتصل</span></div>
+                  </div>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">آخر حمولة مستلمة</label>
+                      <div class="h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 bg-slate-50 overflow-auto" dir="ltr">
+                          {% if webhook_logs %}
+                              {% for log in webhook_logs %}
+                              <div class="mb-4 border-b border-slate-200 pb-2">
+                                  <div class="text-slate-400">{{ log.timestamp.strftime('%H:%M:%S') }}</div>
+                                  <pre class="whitespace-pre-wrap text-slate-600">{{ log.payload }}</pre>
+                              </div>
+                              {% endfor %}
+                          {% else %}
+                              <p class="text-slate-400 text-center py-10">لا توجد أحداث بعد</p>
+                          {% endif %}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 4. قسم الإعدادات (Settings)                     -->
+      <!-- ============================================== -->
+      {% elif active_tab == 'settings' %}
+      <div class="flex-1 p-6 bg-slate-50 overflow-auto">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+              <h2 class="text-lg font-bold text-slate-800 mb-6">إعدادات الاتصال بـ Meta API</h2>
+              <form id="settingsForm" action="{{ url_for('whatsapp_service.settings_view') }}" method="POST" class="space-y-6">
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-2">رقم الهاتف المرتبط (Phone Number ID)</label>
+                      <input type="text" name="whatsapp_phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+                      <p class="text-[11px] text-slate-400 mt-1">معرّف رقم الهاتف من حساب Meta Business</p>
+                  </div>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-2">رمز الوصول (Access Token)</label>
+                      <input type="password" name="whatsapp_token" value="{{ settings.access_token if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+                      <p class="text-[11px] text-slate-400 mt-1">توكن الوصول الدائم للاتصال بواجهة واتساب</p>
+                  </div>
+                  <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                      <div class="flex items-center gap-2 text-xs">
+                          <span class="w-2 h-2 rounded-full {% if settings and settings.access_token %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+                          <span class="text-slate-600">حالة الاتصال الحالية:</span>
+                          <strong>{% if settings and settings.access_token %}متصل ✓{% else %}غير متصل ✗{% endif %}</strong>
+                      </div>
+                      <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">حفظ الإعدادات</button>
+                  </div>
+              </form>
+          </div>
+      </div>
+
+      <!-- إشعار تم الحفظ -->
+      <div id="saveToast" class="hidden fixed top-5 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 text-sm font-bold">✅ تم حفظ الإعدادات بنجاح</div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('settingsForm');
+            const toast = document.getElementById('saveToast');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(() => { toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 3000); })
+                .catch(() => { form.submit(); });
+            });
+        });
+      </script>
       {% endif %}
 
     </main>
