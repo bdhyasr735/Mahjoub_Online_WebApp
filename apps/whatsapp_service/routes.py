@@ -132,7 +132,8 @@ def send_message_htmx():
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                return render_template('admin/whatsapp/partials/_message_bubble.html', msg=new_msg)
+                # ✅ المسار الجديد بعد إزالة partials
+                return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
                 return """
                 <div class="flex justify-start animate-fadeIn">
@@ -174,7 +175,8 @@ def send_media():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                return render_template('admin/whatsapp/partials/_message_bubble.html', msg=new_msg)
+                # ✅ المسار الجديد بعد إزالة partials
+                return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
         return jsonify({"success": True, "result": result})
     else:
         return jsonify({"success": False, "error": str(result)}), 500
