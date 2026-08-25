@@ -33,16 +33,12 @@
         <a href="{{ url_for('whatsapp_service.chat_dashboard') }}" title="المحادثات المباشرة" class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'chat' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'chat' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
           <span class="sr-only">المحادثات</span>
-          {% if unread_chats and unread_chats > 0 %}
-          <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ unread_chats }}</span>
-          {% endif %}
+          {% if unread_chats and unread_chats > 0 %}<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ unread_chats }}</span>{% endif %}
         </a>
         <a href="{{ url_for('whatsapp_service.logs_dashboard') }}" title="سجل الرسائل" class="relative w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'logs' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'logs' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
           <span class="sr-only">سجل الرسائل</span>
-          {% if unread_logs and unread_logs > 0 %}
-          <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ unread_logs }}</span>
-          {% endif %}
+          {% if unread_logs and unread_logs > 0 %}<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ unread_logs }}</span>{% endif %}
         </a>
         <a href="{{ url_for('whatsapp_service.webhook_dashboard') }}" title="لوحة الويب هوك المباشرة" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'webhook' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'webhook' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -68,9 +64,7 @@
           <span dir="ltr" class="text-xs font-extrabold text-slate-900">{{ settings.phone_number_id if settings and settings.phone_number_id else 'غير محدد' }}</span>
         </div>
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold {% if settings and settings.access_token %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-rose-50 border border-rose-200 text-rose-800{% endif %}">
-          <span class="text-[10px] px-1.5 py-0.5 rounded {% if settings and settings.access_token %}bg-emerald-200{% else %}bg-rose-200{% endif %}">
-            {% if settings and settings.access_token %}✓ متصل{% else %}✗ غير متصل{% endif %}
-          </span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded {% if settings and settings.access_token %}bg-emerald-200{% else %}bg-rose-200{% endif %}">{% if settings and settings.access_token %}✓ متصل{% else %}✗ غير متصل{% endif %}</span>
           <span>{% if settings and settings.access_token %}متصل بـ Meta API{% else %}غير متصل{% endif %}</span>
         </div>
       </div>
@@ -99,7 +93,7 @@
     </main>
   </div>
   
-  <!-- النوافذ المنبثقة (تظهر في كل الأقسام) -->
+  <!-- النوافذ المنبثقة (تظهر فقط في المحادثات) -->
   {% if active_tab == 'chat' %}
     {% include 'whatsapp/partials/modals.html' %}
   {% endif %}
