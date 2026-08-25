@@ -12,9 +12,16 @@ from apps.models.whatsapp_models import (
 from apps.whatsapp_service.whatsapp_api import send_text_message
 from apps.whatsapp_service.config import WhatsAppServiceConfig
 
+# ✅ تعريف الـ Blueprint بالاسم المطلوب في القوالب
 whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='templates')
+
+# ✅ استثناء البلوبرنت بالكامل من CSRF
 csrf.exempt(whatsapp_bp)
 
+
+# ============================================================
+# ✅ Context Processor لتوفير الإعدادات
+# ============================================================
 @whatsapp_bp.context_processor
 def inject_settings():
     settings = {
@@ -27,8 +34,14 @@ def inject_settings():
     }
     return {'settings': settings}
 
+
+# ============================================================
+# المسارات
+# ============================================================
+
 @whatsapp_bp.route('/chat')
 def chat_dashboard():
+    """عرض لوحة المحادثات مع قائمة جهات الاتصال والرسائل"""
     contacts = WhatsAppCustomerContact.query.order_by(
         WhatsAppCustomerContact.last_timestamp.desc()
     ).all()
@@ -36,6 +49,7 @@ def chat_dashboard():
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
     
+    # توحيد تنسيق الرقم (إزالة + وأي أحرف غير رقمية)
     if selected_phone:
         selected_phone = ''.join(filter(str.isdigit, selected_phone))
     
@@ -67,7 +81,7 @@ def chat_dashboard():
     yesterday = (now - timedelta(days=1)).strftime('%Y-%m-%d')
 
     return render_template(
-        'admin/whatsapp_dashboard.html',
+        'admin/dashboard.html',  # ✅ القالب الموحد
         active_tab='chat',
         contacts=contacts,
         selected_contact=active_contact,
@@ -78,8 +92,10 @@ def chat_dashboard():
         yesterday=yesterday
     )
 
+
 @whatsapp_bp.route('/send-message', methods=['POST'])
 def send_message_htmx():
+    """إرسال رسالة عبر واتساب مع دعم HTMX / Fetch"""
     recipient = request.form.get('phone') or request.form.get('recipient')
     message = request.form.get('message')
 
@@ -118,13 +134,15 @@ def send_message_htmx():
             """
         return jsonify({"success": False, "error": str(result)}), 500
 
+
 @whatsapp_bp.route('/start-new-chat', methods=['POST'])
 def start_new_chat():
     phone = request.form.get('phone')
     if not phone:
-        flash('رقم الهاتف مطلوب', 'error')
+        flash('رقم الهاتف مطلوب لبدء المحادثة', 'error')
         return redirect(url_for('whatsapp_service.chat_dashboard'))
     
+    # توحيد تنسيق الرقم
     phone = ''.join(filter(str.isdigit, phone))
     name = request.form.get('name', f"عميل ({phone})")
 
@@ -146,6 +164,7 @@ def start_new_chat():
 
     return redirect(url_for('whatsapp_service.chat_dashboard', phone=phone))
 
+
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
     if request.method == 'POST':
@@ -164,17 +183,33 @@ def settings_view():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         return redirect(url_for('whatsapp_service.settings_view'))
 
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings')
+    return render_template(
+        'admin/dashboard.html',  # ✅ القالب الموحد
+        active_tab='settings'
+    )
+
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
     logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs)
+    return render_template(
+        'admin/dashboard.html',  # ✅ القالب الموحد
+        active_tab='logs',
+        logs=logs
+    )
+
 
 @whatsapp_bp.route('/webhook-dashboard')
 def webhook_dashboard():
-    return render_template('admin/whatsapp_dashboard.html', active_tab='webhook')
+    return render_template(
+        'admin/dashboard.html',  # ✅ القالب الموحد
+        active_tab='webhook'
+    )
 
+
+# ============================================================
+# 🚨 المسار الرئيسي لـ Webhook
+# ============================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 def webhook_handler():
     if request.method == 'GET':
@@ -207,6 +242,8 @@ def webhook_handler():
             for entry in entries:
                 for change in entry.get('changes', []):
                     value = change.get('value', {})
+                    
+                    # معالجة الرسائل الواردة
                     for msg in value.get('messages', []):
                         sender = ''.join(filter(str.isdigit, msg.get('from', '')))
                         msg_body = msg.get('text', {}).get('body', '')
@@ -240,6 +277,7 @@ def webhook_handler():
                             db.session.add(new_contact)
                         db.session.commit()
 
+                    # معالجة تحديثات حالة الرسائل
                     for st in value.get('statuses', []):
                         wamid = st.get('id')
                         status_type = st.get('status')
@@ -255,9 +293,11 @@ def webhook_handler():
 
         return jsonify({"status": "success"}), 200
 
+
 @whatsapp_bp.route('/webhook-handler', methods=['GET', 'POST'])
 def whatsapp_webhook_handler():
     return webhook_handler()
+
 
 @whatsapp_bp.route('/settings/save', methods=['POST'])
 def settings_save():
