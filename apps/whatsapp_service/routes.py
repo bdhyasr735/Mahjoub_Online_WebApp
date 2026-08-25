@@ -20,18 +20,32 @@ csrf.exempt(whatsapp_bp)
 
 
 # ============================================================
-# Context Processor لتوفير الإعدادات
+# Context Processor لتوفير الإعدادات (محمي ضد الأخطاء)
 # ============================================================
 @whatsapp_bp.context_processor
 def inject_settings():
-    settings = {
-        'phone_number_id': WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID') or WhatsAppServiceConfig.get_phone_number_id(),
-        'business_account_id': WhatsAppSettings.get_setting('WHATSAPP_BUSINESS_ACCOUNT_ID') or WhatsAppServiceConfig.get_business_account_id(),
-        'api_version': WhatsAppSettings.get_setting('WHATSAPP_API_VERSION') or WhatsAppServiceConfig.get_api_version(),
-        'access_token': WhatsAppSettings.get_setting('WHATSAPP_TOKEN') or WhatsAppServiceConfig.get_whatsapp_token(),
-        'verify_token': WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN') or WhatsAppServiceConfig.get_verify_token(),
-        'webhook_secret': WhatsAppSettings.get_setting('WEBHOOK_SECRET') or WhatsAppServiceConfig.get_webhook_secret(),
-    }
+    # استخدام try/except لمنع انهيار الموقع بالكامل إذا كانت قاعدة البيانات فارغة
+    try:
+        settings = {
+            'phone_number_id': WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID') or WhatsAppServiceConfig.get_phone_number_id(),
+            'business_account_id': WhatsAppSettings.get_setting('WHATSAPP_BUSINESS_ACCOUNT_ID') or WhatsAppServiceConfig.get_business_account_id(),
+            'api_version': WhatsAppSettings.get_setting('WHATSAPP_API_VERSION') or WhatsAppServiceConfig.get_api_version(),
+            'access_token': WhatsAppSettings.get_setting('WHATSAPP_TOKEN') or WhatsAppServiceConfig.get_whatsapp_token(),
+            'verify_token': WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN') or WhatsAppServiceConfig.get_verify_token(),
+            'webhook_secret': WhatsAppSettings.get_setting('WEBHOOK_SECRET') or WhatsAppServiceConfig.get_webhook_secret(),
+        }
+    except Exception as e:
+        # في حال حدوث أي مشكلة (جدول غير موجود، انقطاع قاعدة البيانات)
+        # نقوم بتسجيل الخطأ ونعيد قيم افتراضية فارغة بدلاً من الانهيار
+        current_app.logger.error(f"Error loading settings: {e}")
+        settings = {
+            'phone_number_id': None,
+            'business_account_id': None,
+            'api_version': 'v21.0',
+            'access_token': None,
+            'verify_token': None,
+            'webhook_secret': None,
+        }
     return {'settings': settings}
 
 
@@ -41,9 +55,12 @@ def inject_settings():
 
 @whatsapp_bp.route('/chat')
 def chat_dashboard():
-    contacts = WhatsAppCustomerContact.query.order_by(
-        WhatsAppCustomerContact.last_timestamp.desc()
-    ).all()
+    try:
+        contacts = WhatsAppCustomerContact.query.order_by(
+            WhatsAppCustomerContact.last_timestamp.desc()
+        ).all()
+    except Exception:
+        contacts = []
     
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
@@ -54,25 +71,28 @@ def chat_dashboard():
     messages = []
     active_contact = None
 
-    if contact_id:
-        active_contact = WhatsAppCustomerContact.query.get(contact_id)
-        if active_contact:
+    try:
+        if contact_id:
+            active_contact = WhatsAppCustomerContact.query.get(contact_id)
+            if active_contact:
+                selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
+        elif selected_phone:
+            active_contact = WhatsAppCustomerContact.query.filter_by(phone=selected_phone).first()
+        elif contacts:
+            active_contact = contacts[0]
             selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
-    elif selected_phone:
-        active_contact = WhatsAppCustomerContact.query.filter_by(phone=selected_phone).first()
-    elif contacts:
-        active_contact = contacts[0]
-        selected_phone = ''.join(filter(str.isdigit, active_contact.phone))
 
-    if active_contact and selected_phone:
-        if active_contact.unread_count and active_contact.unread_count > 0:
-            active_contact.unread_count = 0
-            db.session.commit()
-        
-        messages = WhatsAppMessageLog.query.filter(
-            (WhatsAppMessageLog.sender_number == selected_phone) |
-            (WhatsAppMessageLog.recipient_number == selected_phone)
-        ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+        if active_contact and selected_phone:
+            if active_contact.unread_count and active_contact.unread_count > 0:
+                active_contact.unread_count = 0
+                db.session.commit()
+            
+            messages = WhatsAppMessageLog.query.filter(
+                (WhatsAppMessageLog.sender_number == selected_phone) |
+                (WhatsAppMessageLog.recipient_number == selected_phone)
+            ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+    except Exception:
+        db.session.rollback()
 
     now = datetime.now(timezone.utc)
     today = now.strftime('%Y-%m-%d')
@@ -107,7 +127,6 @@ def send_message_htmx():
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ المسار الصحيح لملف فقاعة الرسالة
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
                 return """
@@ -143,21 +162,24 @@ def start_new_chat():
     phone = ''.join(filter(str.isdigit, phone))
     name = request.form.get('name', f"عميل ({phone})")
 
-    contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
-    if not contact:
-        contact = WhatsAppCustomerContact(
-            phone=phone,
-            name=name,
-            last_message="",
-            last_timestamp=datetime.now(timezone.utc),
-            unread_count=0
-        )
-        db.session.add(contact)
-        db.session.commit()
-    else:
-        if name and name != contact.name:
-            contact.name = name
+    try:
+        contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+        if not contact:
+            contact = WhatsAppCustomerContact(
+                phone=phone,
+                name=name,
+                last_message="",
+                last_timestamp=datetime.now(timezone.utc),
+                unread_count=0
+            )
+            db.session.add(contact)
             db.session.commit()
+        else:
+            if name and name != contact.name:
+                contact.name = name
+                db.session.commit()
+    except Exception:
+        db.session.rollback()
 
     return redirect(url_for('whatsapp_service.chat_dashboard', phone=phone))
 
@@ -165,30 +187,41 @@ def start_new_chat():
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
     if request.method == 'POST':
-        phone_id = request.form.get('whatsapp_phone_number_id')
-        business_account_id = request.form.get('whatsapp_business_account_id')
-        token = request.form.get('whatsapp_token')
-        verify_token = request.form.get('whatsapp_verify_token')
-        api_version = request.form.get('whatsapp_api_version', 'v21.0')
+        try:
+            phone_id = request.form.get('whatsapp_phone_number_id')
+            business_account_id = request.form.get('whatsapp_business_account_id')
+            token = request.form.get('whatsapp_token')
+            verify_token = request.form.get('whatsapp_verify_token')
+            api_version = request.form.get('whatsapp_api_version', 'v21.0')
 
-        WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', phone_id)
-        WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)
-        WhatsAppSettings.set_setting('WHATSAPP_TOKEN', token)
-        WhatsAppSettings.set_setting('WHATSAPP_VERIFY_TOKEN', verify_token)
-        WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
+            WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', phone_id)
+            WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)
+            WhatsAppSettings.set_setting('WHATSAPP_TOKEN', token)
+            WhatsAppSettings.set_setting('WHATSAPP_VERIFY_TOKEN', verify_token)
+            WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
 
-        flash('تم حفظ الإعدادات بنجاح', 'success')
+            flash('تم حفظ الإعدادات بنجاح', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء الحفظ: {str(e)}', 'error')
+
         return redirect(url_for('whatsapp_service.settings_view'))
 
+    # تمرير الإعدادات مباشرة من دالة الحماية لضمان عدم فشل القالب
+    settings_data = inject_settings()['settings']
     return render_template(
         'admin/whatsapp_dashboard.html',
-        active_tab='settings'
+        active_tab='settings',
+        settings=settings_data
     )
 
 
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
-    logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
+    try:
+        logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
+    except Exception:
+        logs = []
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='logs',
