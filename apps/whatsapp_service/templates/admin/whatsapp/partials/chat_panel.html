@@ -65,7 +65,7 @@
               {% set current_date = msg_date %}
               <div class="text-center my-3"><span class="bg-slate-200/70 text-slate-500 text-[10px] px-3 py-1 rounded-full">{% if msg_date == today %}اليوم{% elif msg_date == yesterday %}أمس{% else %}{{ msg.timestamp.strftime('%d %B %Y') }}{% endif %}</span></div>
             {% endif %}
-            {% include 'whatsapp/partials/_message_bubble.html' with context %}
+            {% include 'admin/whatsapp/partials/_message_bubble.html' with context %}
           {% endfor %}
           <div id="noSearchResults" class="hidden text-center text-slate-400 text-xs py-10">🕵️ لا توجد رسائل تطابق البحث</div>
         {% else %}
