@@ -286,7 +286,7 @@ def webhook_dashboard():
 
 
 # ============================================================
-# Webhook الرئيسي
+# Webhook الرئيسي (محدث لاستقبال جميع أنواع الرسائل)
 # ============================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 def webhook_handler():
@@ -295,6 +295,8 @@ def webhook_handler():
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
         verify_token = WhatsAppServiceConfig.get_verify_token()
+        
+        # تأكد أن verify_token في الكود يطابق المكتوب في لوحة ميتا!
         if mode and token:
             if mode == 'subscribe' and token == verify_token:
                 return challenge, 200
@@ -303,13 +305,14 @@ def webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
+        # ✅ طباعة الحمولة في السجل (Logs) للتأكد من وصولها
+        current_app.logger.info(f"Webhook Payload Received: {request.get_data(as_text=True)}")
+
         if not request.is_json:
-            current_app.logger.warning("Webhook POST: No JSON")
             return jsonify({"status": "error", "message": "Expected JSON"}), 400
 
         data = request.json
         if not data:
-            current_app.logger.warning("Webhook POST: Empty data")
             return jsonify({"status": "error", "message": "Empty data"}), 400
 
         try:
@@ -321,11 +324,30 @@ def webhook_handler():
                 for change in entry.get('changes', []):
                     value = change.get('value', {})
                     
+                    # استقبال الرسائل الواردة بجميع أنواعها
                     for msg in value.get('messages', []):
                         sender = ''.join(filter(str.isdigit, msg.get('from', '')))
-                        msg_body = msg.get('text', {}).get('body', '')
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
+                        
+                        # ✅ التعامل مع أنواع مختلفة من الرسائل:
+                        msg_body = ""
+                        if msg_type == 'text':
+                            msg_body = msg.get('text', {}).get('body', '')
+                        elif msg_type == 'image':
+                            msg_body = "[صورة]"
+                        elif msg_type == 'video':
+                            msg_body = "[فيديو]"
+                        elif msg_type == 'audio':
+                            msg_body = "[صوت]"
+                        elif msg_type == 'document':
+                            msg_body = "[مستند]"
+                        elif msg_type == 'sticker':
+                            msg_body = "[ملصق]"
+                        elif msg_type == 'location':
+                            msg_body = "[موقع]"
+                        else:
+                            msg_body = f"[رسالة نوع {msg_type}]"
 
                         log_entry = WhatsAppMessageLog(
                             wamid=wamid,
@@ -354,6 +376,7 @@ def webhook_handler():
                             db.session.add(new_contact)
                         db.session.commit()
 
+                    # استقبال تحديثات الحالة (قراءة/تسليم)
                     for st in value.get('statuses', []):
                         wamid = st.get('id')
                         status_type = st.get('status')
@@ -365,8 +388,10 @@ def webhook_handler():
         except Exception as e:
             current_app.logger.error(f"Webhook error: {str(e)}")
             db.session.rollback()
-            return jsonify({"status": "error", "message": str(e)}), 500
+            # ✅ دائماً نرجع 200 حتى لو حصل خطأ داخلي حتى لا يقوم Meta بإيقاف الخدمة
+            return jsonify({"status": "error", "message": str(e)}), 200
 
+        # ✅ دائماً نرجع 200 بنجاح لـ Meta
         return jsonify({"status": "success"}), 200
 
 
