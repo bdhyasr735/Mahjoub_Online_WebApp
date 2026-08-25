@@ -11,7 +11,12 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
-          <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" hx-select="#chat-area" hx-target="#chat-area" hx-swap="outerHTML" hx-push-url="true" onclick="event.preventDefault();" class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
+          <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+             hx-target="#chat-area" 
+             hx-swap="innerHTML" 
+             hx-push-url="true" 
+             onclick="event.preventDefault();" 
+             class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
             <div class="relative">
               <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">{{ contact.name[0] if contact.name else 'ع' }}</div>
               {% if contact.is_online %}<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>{% endif %}
@@ -56,7 +61,12 @@
         </div>
       </div>
 
-      <div id="chatMessagesContainer" class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" hx-select="#chatMessagesContainer" hx-target="#chatMessagesContainer" hx-swap="outerHTML" hx-trigger="every 5s">
+      <div id="chatMessagesContainer" 
+           class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" 
+           hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
+           hx-target="#chatMessagesContainer" 
+           hx-swap="innerHTML" 
+           hx-trigger="every 5s">
         {% if messages and messages|length > 0 %}
           {% set current_date = None %}
           {% for msg in messages %}
@@ -117,6 +127,8 @@
     scrollToBottom();
     setupContactSearch();
   });
+  
+  // ✅ التعديل السحري: إعادة تهيئة HTMX بعد كل تبديل
   document.addEventListener('htmx:afterSwap', function(event) {
     if (event.detail.target.id === 'chatMessagesContainer') {
       const container = document.getElementById('chatMessagesContainer');
@@ -124,9 +136,15 @@
         const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
         if (isNearBottom) container.scrollTop = container.scrollHeight;
       }
+      // إعادة تهيئة روابط الـ HTMX والبحث داخل المحتوى الجديد
+      if (window.htmx) htmx.process(container);
     }
-    if (event.detail.target.id === 'chat-area') setupContactSearch();
+    if (event.detail.target.id === 'chat-area') {
+      setupContactSearch();
+      if (window.htmx) htmx.process(document.body);
+    }
   });
+  
   document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('chatSearchInput');
     const messages = document.querySelectorAll('.message-item');
