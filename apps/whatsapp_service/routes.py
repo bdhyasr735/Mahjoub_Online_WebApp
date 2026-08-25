@@ -7,7 +7,8 @@ from apps.models.whatsapp_models import (
     WhatsAppSettings, 
     WhatsAppWebhookEvent
 )
-import requests
+# استيراد دوال الإرسال الاحترافية الجاهزة لديك
+from apps.whatsapp_service.whatsapp_api import send_text_message
 
 whatsapp_bp = Blueprint(
     'whatsapp_service',
@@ -22,7 +23,7 @@ def whatsapp_dashboard():
     active_tab = request.args.get('tab', 'chat')
     contact_id = request.args.get('contact_id', type=int)
     
-    # جلب الإعدادات عبر نظام المفتاح والقيمة (Key-Value) المدمج في النموذج لديك
+    # جلب الإعدادات عبر نظام المفتاح والقيمة (Key-Value)
     phone_number_id = WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID', '')
     access_token = WhatsAppSettings.get_setting('WHATSAPP_ACCESS_TOKEN', '')
     verify_token = WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN', 'mahjoub_verify')
@@ -36,7 +37,7 @@ def whatsapp_dashboard():
     if contact_id:
         selected_contact = WhatsAppCustomerContact.query.get(contact_id)
         if selected_contact:
-            # جلب الرسائل المرتبطة برقم هاتف العميل (سواء صادرة أو واردة)
+            # جلب الرسائل المرتبطة برقم هاتف العميل
             messages = WhatsAppMessageLog.query.filter(
                 (WhatsAppMessageLog.sender_number == selected_contact.phone) | 
                 (WhatsAppMessageLog.recipient_number == selected_contact.phone)
@@ -58,54 +59,16 @@ def whatsapp_dashboard():
         flash('تم حفظ الإعدادات بنجاح', 'success')
         return redirect(url_for('whatsapp_service.whatsapp_dashboard', tab='settings'))
 
-    # معالجة إرسال رسالة جديدة عبر HTMX من تبويب المحادثات
+    # معالجة إرسال رسالة جديدة عبر HTMX باستخدام دالة send_text_message الجاهزة
     if request.method == 'POST' and active_tab == 'chat':
         phone = request.form.get('phone')
         message_text = request.form.get('message')
         
         if message_text and phone and selected_contact:
-            # إرسال الرسالة فعلياً عبر Meta Cloud API
-            url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "messaging_product": "whatsapp",
-                "to": phone,
-                "type": "text",
-                "text": {"body": message_text}
-            }
+            # استخدام دالة الإرسال المركزية من whatsapp_api.py (تتولى الإرسال والتسجيل في قاعدة البيانات تلقائياً)
+            success, res_data = send_text_message(phone, message_text)
             
-            wamid = None
-            api_status = "sent"
-            try:
-                api_res = requests.post(url, json=payload, headers=headers, timeout=10)
-                res_data = api_res.json()
-                wamid = res_data.get("messages", [{}])[0].get("id")
-            except Exception:
-                api_status = "failed"
-
-            # تخزين الرسالة في سجل الرسائل (WhatsAppMessageLog)
-            new_msg = WhatsAppMessageLog(
-                wamid=wamid,
-                direction='outbound',
-                sender_number=phone_number_id, # أو الرقم الرئيسي للمنصة
-                recipient_number=phone,
-                customer_id=selected_contact.id,
-                message_type='text',
-                content=message_text,
-                status=api_status
-            )
-            
-            # تحديث بيانات جهة الاتصال الأخيرة
-            selected_contact.last_message = message_text
-            selected_contact.last_timestamp = datetime.utcnow()
-            
-            db.session.add(new_msg)
-            db.session.commit()
-            
-            # إرجاع مقتطف HTML للرسالة عبر HTMX للتحديث اللحظي الفوري
+            # إرجاع مقتطف HTML للرسالة عبر HTMX للتحديث اللحظي الفوري في واجهة المستخدم
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return f'''
                 <div class="message-item flex justify-start">
@@ -113,7 +76,7 @@ def whatsapp_dashboard():
                     <p class="whitespace-pre-wrap leading-relaxed pt-0.5 pb-1">{message_text}</p>
                     <div class="flex items-center justify-end gap-1 float-left ml-1 mt-[-6px]">
                       <span class="text-[9px] text-[#e9edef]/60">{datetime.now().strftime('%I:%M %p')}</span>
-                      <span class="text-[10px] font-bold text-[#D4AF37]">✓✓</span>
+                      <span class="text-[10px] font-bold text-[#D4AF37]">{'✓✓' if success else '❌'}</span>
                     </div>
                   </div>
                 </div>
@@ -151,7 +114,7 @@ def webhook_handler():
     elif request.method == 'POST':
         data = request.json
         
-        # حفظ الحدث الخام في جدول Webhook Events للتتبع والتصحيح
+        # حفظ الحدث الخام في جدول Webhook Events للتتبع
         try:
             webhook_event = WhatsAppWebhookEvent(
                 event_type='messages_webhook',
@@ -168,15 +131,15 @@ def webhook_handler():
             changes = entry.get('changes', [])[0]
             value = changes.get('value', {})
             
-            # معالجة الرسائل الواردة من العملاء / التجار
+            # معالجة الرسائل الواردة من العملاء
             if 'messages' in value:
                 msg_data = value['messages'][0]
                 phone = msg_data.get('from')
                 wamid = msg_data.get('id')
                 msg_body = msg_data.get('text', {}).get('body', '')
-                profile_name = value.get('contacts', [{}])[0].get('profile', {}).get('name', 'عميل محجوب أونلاين')
+                profile_name = value.get('contacts', [{}])[0].get('profile', {}).get('name', f'عميل ({phone})')
                 
-                # البحث عن جهة الاتصال أو إنشاؤها تلقائياً باستخدام نموذج WhatsAppCustomerContact الصحيح
+                # البحث عن جهة الاتصال أو إنشاؤها تلقائياً
                 contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
                 if not contact:
                     contact = WhatsAppCustomerContact(
@@ -191,7 +154,7 @@ def webhook_handler():
                 contact.last_timestamp = datetime.utcnow()
                 contact.unread_count = (contact.unread_count or 0) + 1
                 
-                # تسجيل الرسالة الواردة في WhatsAppMessageLog
+                # تسجيل الرسالة الواردة في سجل الرسائل
                 new_msg = WhatsAppMessageLog(
                     wamid=wamid,
                     direction='inbound',
@@ -206,7 +169,6 @@ def webhook_handler():
                 db.session.add(new_msg)
                 db.session.commit()
                 
-                # تحديث حالة معالجة الحدث الخام
                 webhook_event.processed = True
                 db.session.commit()
                 
