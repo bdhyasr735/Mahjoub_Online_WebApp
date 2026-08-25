@@ -64,12 +64,24 @@
                 </button>
             </div>
 
+            <!-- شريط البحث الفوري داخل قائمة العملاء -->
+            <div class="p-3 border-b royal-border bg-[#0f071d]/40">
+                <div class="relative">
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+                    </span>
+                    <input type="text" id="contactSearchInput" placeholder="بحث بالاسم أو رقم الهاتف..." onkeyup="filterContacts()"
+                           class="w-full bg-[#0f071d] border royal-border rounded-xl pr-9 pl-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] transition shadow-inner">
+                </div>
+            </div>
+
             <!-- قائمة العملاء -->
-            <div class="flex-1 overflow-y-auto divide-y divide-purple-950/40">
+            <div id="contactsListContainer" class="flex-1 overflow-y-auto divide-y divide-purple-950/40">
                 {% if contacts %}
                     {% for c in contacts %}
                     <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=c.id) }}" 
-                       class="flex items-center gap-3 p-3 transition hover:bg-purple-900/20 {% if selected_contact and selected_contact.id == c.id %}bg-[#570575]/30 border-r-4 gold-border{% endif %}">
+                       data-name="{{ (c.name or '') | lower }}" data-phone="{{ (c.phone or '') | lower }}"
+                       class="contact-item flex items-center gap-3 p-3 transition hover:bg-purple-900/20 {% if selected_contact and selected_contact.id == c.id %}bg-[#570575]/30 border-r-4 gold-border{% endif %}">
                         <div class="w-10 h-10 rounded-full bg-[#570575] flex items-center justify-center font-bold text-xs text-[#D4AF37] shrink-0 border royal-border">
                             {{ c.name[:2] if c.name else 'عميل' }}
                         </div>
@@ -90,7 +102,7 @@
                     </a>
                     {% endfor %}
                 {% else %}
-                    <div class="p-6 text-center text-gray-400 text-xs">لا توجد جهات اتصال مسجلة حتى الآن.</div>
+                    <div id="noContactsMsg" class="p-6 text-center text-gray-400 text-xs">لا توجد جهات اتصال مسجلة حتى الآن.</div>
                 {% endif %}
             </div>
         </aside>
@@ -148,7 +160,9 @@
             <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}"
                   hx-target="#chat-messages"
                   hx-swap="beforeend"
-                  hx-on::after-request="this.reset(); document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;"
+                  hx-encoding="application/x-www-form-urlencoded"
+                  hx-on::before-request="if(!event.detail.elt.querySelector('input[name=message]').value.trim()) event.preventDefault();"
+                  hx-on::after-request="if(event.detail.successful) { this.reset(); var container = document.getElementById('chat-messages'); container.scrollTop = container.scrollHeight; }"
                   class="p-4 royal-purple-bg border-t royal-border flex items-center gap-3 shrink-0">
                 <input type="hidden" name="phone" value="{{ selected_phone }}">
                 <input type="text" name="message" placeholder="اكتب رسالتك الاحترافية هنا للعميل..." required
@@ -338,5 +352,24 @@
         </div>
     </div>
 
+    <!-- جافاسكريبت مخصص للبحث الفوري -->
+    <script>
+        function filterContacts() {
+            const input = document.getElementById('contactSearchInput');
+            const filter = input.value.toLowerCase().trim();
+            const items = document.querySelectorAll('.contact-item');
+            
+            items.forEach(item => {
+                const name = item.getAttribute('data-name');
+                const phone = item.getAttribute('data-phone');
+                
+                if (name.includes(filter) || phone.includes(filter)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 </html>
