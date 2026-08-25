@@ -24,7 +24,6 @@ csrf.exempt(whatsapp_bp)
 # ============================================================
 @whatsapp_bp.context_processor
 def inject_settings():
-    # استخدام try/except لمنع انهيار الموقع بالكامل إذا كانت قاعدة البيانات فارغة
     try:
         settings = {
             'phone_number_id': WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID') or WhatsAppServiceConfig.get_phone_number_id(),
@@ -35,8 +34,6 @@ def inject_settings():
             'webhook_secret': WhatsAppSettings.get_setting('WEBHOOK_SECRET') or WhatsAppServiceConfig.get_webhook_secret(),
         }
     except Exception as e:
-        # في حال حدوث أي مشكلة (جدول غير موجود، انقطاع قاعدة البيانات)
-        # نقوم بتسجيل الخطأ ونعيد قيم افتراضية فارغة بدلاً من الانهيار
         current_app.logger.error(f"Error loading settings: {e}")
         settings = {
             'phone_number_id': None,
@@ -184,6 +181,7 @@ def start_new_chat():
     return redirect(url_for('whatsapp_service.chat_dashboard', phone=phone))
 
 
+# ✅ دالة لعرض الإعدادات وحفظها (GET و POST)
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
     if request.method == 'POST':
@@ -214,6 +212,34 @@ def settings_view():
         active_tab='settings',
         settings=settings_data
     )
+
+
+# ✅ دالة بديلة لحفظ الإعدادات عبر JSON (لمنع خطأ BuildError)
+@whatsapp_bp.route('/save-settings', methods=['POST'])
+def save_settings():
+    try:
+        data = request.form if request.form else request.json
+        if not data:
+            return jsonify({"success": False, "message": "No data"}), 400
+
+        phone_number_id = data.get('phone_number_id') or data.get('whatsapp_phone_number_id')
+        business_account_id = data.get('business_account_id') or data.get('whatsapp_business_account_id')
+        api_version = data.get('api_version') or data.get('whatsapp_api_version')
+        access_token = data.get('access_token') or data.get('whatsapp_token')
+
+        if phone_number_id:
+            WhatsAppSettings.set_setting('WHATSAPP_PHONE_NUMBER_ID', phone_number_id)
+        if business_account_id:
+            WhatsAppSettings.set_setting('WHATSAPP_BUSINESS_ACCOUNT_ID', business_account_id)
+        if api_version:
+            WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', api_version)
+        if access_token:
+            WhatsAppSettings.set_setting('WHATSAPP_TOKEN', access_token)
+
+        return jsonify({"success": True, "message": "تم حفظ الإعدادات"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @whatsapp_bp.route('/logs')
