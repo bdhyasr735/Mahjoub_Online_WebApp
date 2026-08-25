@@ -1,4 +1,5 @@
 # coding: utf-8
+# 📂 apps/whatsapp_service/whatsapp_api.py
 
 import os
 import requests
@@ -48,7 +49,7 @@ def send_text_message(recipient, message):
         except Exception:
             pass
             
-        status = 'sent' if response.status_code == 200 else 'failed'
+        status = 'sent' if 200 <= response.status_code < 300 else 'failed'
         
         log_entry = WhatsAppMessageLog(
             wamid=wamid,
@@ -79,6 +80,8 @@ def send_text_message(recipient, message):
         if 200 <= response.status_code < 300:
             return True, res_data
         else:
+            # 🔍 طباعة خطأ ميتا بوضوح في الـ Logs لتشخيصه فوراً
+            print(f"❌ WHATSAPP API ERROR (Text): Status {response.status_code} - Response: {response.text}")
             return False, response.text
 
     except requests.exceptions.Timeout:
@@ -95,12 +98,6 @@ def send_text_message(recipient, message):
 def send_media_message(recipient, media_type, media_url, caption=None, filename=None):
     """
     ✅ دالة إرسال الوسائط (صور، فيديو، صوت، مستندات)
-    المتغيرات:
-    - recipient: رقم العميل
-    - media_type: 'image', 'video', 'audio', 'document'
-    - media_url: رابط الملف المرفوع على الإنترنت (يجب أن يكون HTTPS)
-    - caption: نص توضيحي اختياري (للصور والفيديو)
-    - filename: اسم الملف (للمستندات فقط)
     """
     # ✅ توحيد الرقم
     recipient = ''.join(filter(str.isdigit, recipient))
@@ -145,7 +142,7 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
         except Exception:
             pass
             
-        status = 'sent' if response.status_code == 200 else 'failed'
+        status = 'sent' if 200 <= response.status_code < 300 else 'failed'
         
         # نص مختصر يظهر في السجل
         display_content = caption if caption else (f"[{media_type}]")
@@ -181,6 +178,8 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
         if 200 <= response.status_code < 300:
             return True, res_data
         else:
+            # 🔍 طباعة خطأ ميتا بوضوح في الـ Logs لتشخيصه فوراً
+            print(f"❌ WHATSAPP API ERROR (Media): Status {response.status_code} - Response: {response.text}")
             return False, response.text
 
     except requests.exceptions.Timeout:
