@@ -49,6 +49,8 @@
         border-radius: 50rem;
     }
 </style>
+<!-- تضمين مكتبة HTMX للتحديث اللحظي والتفاعل -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 {% endblock %}
 
 {% block content %}
@@ -59,20 +61,32 @@
             <h2 class="fw-bold" style="color: var(--whatsapp-primary);">
                 <i class="fab fa-whatsapp text-success me-2"></i> لوحة تحكم خدمة واتساب
             </h2>
-            <p class="text-muted">متابعة حالة الاتصال، الرسائل المرسلة، وإدارة الجلسات البرمجية.</p>
+            <p class="text-muted">متابعة حالة الاتصال، الرسائل المرسلة، وإدارة الجلسات البرمجية لحظياً.</p>
         </div>
         <div class="col-md-6 text-md-end">
-            <button class="btn btn-gold me-2" id="restart-btn">
+            <button class="btn btn-gold me-2" 
+                    hx-post="{{ url_for('whatsapp_service.restart_session') }}" 
+                    hx-target="#restart-response"
+                    hx-indicator="#spinner-restart"
+                    id="restart-btn">
+                <span id="spinner-restart" class="htmx-indicator spinner-border spinner-border-sm me-1"></span>
                 <i class="fas fa-sync-alt me-1"></i> إعادة تشغيل الجلسة
             </button>
-            <button class="btn btn-royal-purple" style="background-color: var(--whatsapp-primary); color: white;" data-bs-toggle="modal" data-bs-target="#broadcastModal">
+            <button class="btn btn-royal-purple" data-bs-toggle="modal" data-bs-target="#broadcastModal">
                 <i class="fas fa-paper-plane me-1"></i> إرسال رسالة جماعية
             </button>
         </div>
     </div>
 
-    <!-- بطاقات الإحصائيات -->
-    <div class="row g-4 mb-4">
+    <!-- مكان لعرض تنبيهات إعادة التشغيل -->
+    <div id="restart-response" class="mb-3"></div>
+
+    <!-- بطاقات الإحصائيات (تتحدث تلقائياً كل 5 ثوانٍ عبر HTMX) -->
+    <div class="row g-4 mb-4" 
+         hx-get="{{ url_for('whatsapp_service.dashboard_stats_fragment') }}" 
+         hx-trigger="every 5s" 
+         hx-swap="outerHTML">
+        
         <div class="col-md-3">
             <div class="card wa-card bg-white p-3 border-start border-4 border-primary">
                 <div class="d-flex justify-content-between align-items-center">
@@ -94,7 +108,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-muted mb-1">الرسائل المرسلة اليوم</h6>
-                        <h4 class="fw-bold mb-0 text-dark">{{ stats.messages_sent_today|default('1,248') }}</h4>
+                        <h4 class="fw-bold mb-0 text-dark">{{ stats.messages_sent_today|default('0') }}</h4>
                     </div>
                     <div class="fs-1 opacity-50 text-gold">
                         <i class="fas fa-envelope-open-text"></i>
@@ -108,7 +122,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-muted mb-1">قائمة الانتظار</h6>
-                        <h4 class="fw-bold mb-0 text-dark" id="queue-count">{{ stats.pending_queue|default('12') }}</h4>
+                        <h4 class="fw-bold mb-0 text-dark" id="queue-count">{{ stats.pending_queue|default('0') }}</h4>
                     </div>
                     <div class="fs-1 text-warning opacity-50">
                         <i class="fas fa-hourglass-half"></i>
@@ -122,7 +136,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-muted mb-1">أخطاء الإرسال</h6>
-                        <h4 class="fw-bold mb-0 text-dark">{{ stats.failed_messages|default('3') }}</h4>
+                        <h4 class="fw-bold mb-0 text-dark">{{ stats.failed_messages|default('0') }}</h4>
                     </div>
                     <div class="fs-1 text-danger opacity-50">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -132,15 +146,18 @@
         </div>
     </div>
 
-    <!-- جدول أحدث الرسائل والسجلات -->
+    <!-- جدول أحدث الرسائل والسجلات (يتم تحديثه لحظياً) -->
     <div class="card wa-card bg-white mb-4">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold" style="color: var(--whatsapp-primary);">
-                <i class="fas fa-list-ul me-2"></i> سجل الرسائل الأخيرة
+                <i class="fas fa-list-ul me-2"></i> سجل الرسائل الأخيرة (تحديث لحظي)
             </h5>
-            <a href="#" class="btn btn-sm btn-outline-secondary">عرض الكل</a>
+            <span class="spinner-border spinner-border-sm text-purple htmx-indicator" id="table-loader"></span>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body p-0" 
+             hx-get="{{ url_for('whatsapp_service.recent_logs_fragment') }}" 
+             hx-trigger="load, every 4s" 
+             hx-swap="innerHTML">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -154,32 +171,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for log in recent_logs %}
                         <tr>
-                            <td>{{ log.id }}</td>
-                            <td class="fw-semibold">{{ log.recipient }}</td>
-                            <td><span class="badge bg-light text-dark border">{{ log.msg_type }}</span></td>
-                            <td>
-                                {% if log.status == 'sent' %}
-                                    <span class="badge bg-success">تم الإرسال</span>
-                                {% elif log.status == 'pending' %}
-                                    <span class="badge bg-warning text-dark">قيد الانتظار</span>
-                                {% else %}
-                                    <span class="badge bg-danger">فشل</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-muted small">{{ log.timestamp }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-light text-primary" title="إعادة إرسال">
-                                    <i class="fas fa-redo"></i>
-                                </button>
-                            </td>
+                            <td colspan="6" class="text-center py-4 text-muted">جاري تحميل السجلات...</td>
                         </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">لا توجد سجلات رسائل حديثة متاحة.</td>
-                        </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -187,7 +181,7 @@
     </div>
 </div>
 
-<!-- Modal إرسال رسالة جماعية -->
+<!-- Modal إرسال رسالة جماعية (البث) -->
 <div class="modal fade" id="broadcastModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -195,11 +189,12 @@
                 <h5 class="modal-title"><i class="fas fa-bullhorn me-2"></i> إرسال حملة رسائل واتساب</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="broadcast-form">
+            <form hx-post="{{ url_for('whatsapp_service.send_broadcast') }}" hx-target="#broadcast-response" hx-indicator="#broadcast-spinner">
+                <div class="modal-body">
+                    <div id="broadcast-response"></div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">الفئة المستهدفة</label>
-                        <select class="form-select">
+                        <select name="target_group" class="form-select" required>
                             <option value="all">جميع العملاء</option>
                             <option value="vendors">الموردون والتجار</option>
                             <option value="active">العملاء النشطون</option>
@@ -207,14 +202,17 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">محتوى الرسالة</label>
-                        <textarea class="form-control" rows="4" placeholder="اكتب نص الرسالة هنا..."></textarea>
+                        <textarea name="message_content" class="form-control" rows="4" placeholder="اكتب نص الرسالة هنا..." required></textarea>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-gold">بدء الإرسال</button>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-gold">
+                        <span id="broadcast-spinner" class="htmx-indicator spinner-border spinner-border-sm me-1"></span>
+                        بدء الإرسال الفوري
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -222,8 +220,11 @@
 
 {% block extra_js %}
 <script>
-    document.getElementById('restart-btn').addEventListener('click', function() {
-        alert('جاري إرسال أمر إعادة تشغيل خدمة واتساب...');
+    // إضافات برمجية تفاعلية إضافية إذا لزم الأمر
+    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+        if (evt.detail.pathInfo.requestPath.includes('broadcast')) {
+            // يمكن إغلاق النافذة المنفذة تلقائياً عند النجاح
+        }
     });
 </script>
 {% endblock %}
