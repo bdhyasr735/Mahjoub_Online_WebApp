@@ -39,7 +39,7 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def get_whatsapp_token(cls):
-        # ✅ دعم كافة الاحتمالات لاسم التوكن
+        # ✅ مطابقة تامة مع مفاتيح Railway وتوفير الدعم البديل
         return cls._get_val('WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_TOKEN', 'WHATSAPP ACCESS TOKEN')
 
     @classmethod
