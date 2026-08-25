@@ -82,20 +82,20 @@
     <!-- المحتوى الرئيسي -->
     <main class="flex-1 flex overflow-hidden w-full relative" role="main">
       {% if active_tab == 'chat' %}
-        {% include 'whatsapp/partials/chat_panel.html' %}
+        {% include 'admin/whatsapp/partials/chat_panel.html' %}
       {% elif active_tab == 'logs' %}
-        {% include 'whatsapp/partials/logs_panel.html' %}
+        {% include 'admin/whatsapp/partials/logs_panel.html' %}
       {% elif active_tab == 'webhook' %}
-        {% include 'whatsapp/partials/webhook_panel.html' %}
+        {% include 'admin/whatsapp/partials/webhook_panel.html' %}
       {% elif active_tab == 'settings' %}
-        {% include 'whatsapp/partials/settings_panel.html' %}
+        {% include 'admin/whatsapp/partials/settings_panel.html' %}
       {% endif %}
     </main>
   </div>
   
   <!-- النوافذ المنبثقة (تظهر فقط في المحادثات) -->
   {% if active_tab == 'chat' %}
-    {% include 'whatsapp/partials/modals.html' %}
+    {% include 'admin/whatsapp/partials/modals.html' %}
   {% endif %}
 </body>
 </html>
