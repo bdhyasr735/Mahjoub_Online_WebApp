@@ -58,17 +58,13 @@ def chat_dashboard():
         contacts = WhatsAppCustomerContact.query.order_by(
             WhatsAppCustomerContact.last_timestamp.desc()
         ).all()
-        
-        # ✅ حساب عدد المحادثات غير المقروءة للعداد في الشريط الجانبي
         unread_chats = sum(c.unread_count or 0 for c in contacts)
-
     except Exception:
         contacts = []
         unread_chats = 0
     
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
-    
     if selected_phone:
         selected_phone = ''.join(filter(str.isdigit, selected_phone))
     
@@ -90,7 +86,6 @@ def chat_dashboard():
             if active_contact.unread_count and active_contact.unread_count > 0:
                 active_contact.unread_count = 0
                 db.session.commit()
-            
             messages = WhatsAppMessageLog.query.filter(
                 (WhatsAppMessageLog.sender_number == selected_phone) |
                 (WhatsAppMessageLog.recipient_number == selected_phone)
@@ -120,7 +115,6 @@ def chat_dashboard():
 def send_message_htmx():
     recipient = request.form.get('phone') or request.form.get('recipient')
     message = request.form.get('message')
-
     if not recipient or not message:
         return jsonify({"success": False, "error": "المستلم أو نص الرسالة غير موجود."}), 400
 
@@ -128,11 +122,8 @@ def send_message_htmx():
     
     if success:
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            new_msg = WhatsAppMessageLog.query.filter_by(
-                recipient_number=recipient
-            ).order_by(WhatsAppMessageLog.id.desc()).first()
+            new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ المسار الصحيح الجديد (بدون partials)
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
                 return """
@@ -158,12 +149,11 @@ def send_message_htmx():
         return jsonify({"success": False, "error": str(result)}), 500
 
 
-# ✅ مسار إرسال الوسائط (صور/فيديو)
 @whatsapp_bp.route('/send-media', methods=['POST'])
 def send_media():
     recipient = request.form.get('phone')
-    media_type = request.form.get('media_type') # image, video, document
-    media_url = request.form.get('media_url') # رابط الملف (يجب رفعه أولاً أو رفعه للسيرفر)
+    media_type = request.form.get('media_type')
+    media_url = request.form.get('media_url')
     caption = request.form.get('caption', '')
 
     if not recipient or not media_type or not media_url:
@@ -175,14 +165,12 @@ def send_media():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ المسار الصحيح الجديد (بدون partials)
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
         return jsonify({"success": True, "result": result})
     else:
         return jsonify({"success": False, "error": str(result)}), 500
 
 
-# ✅ مسار إرسال رسالة جماعية
 @whatsapp_bp.route('/send-bulk', methods=['POST'])
 def send_bulk_message():
     try:
@@ -223,13 +211,7 @@ def start_new_chat():
     try:
         contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
         if not contact:
-            contact = WhatsAppCustomerContact(
-                phone=phone,
-                name=name,
-                last_message="",
-                last_timestamp=datetime.now(timezone.utc),
-                unread_count=0
-            )
+            contact = WhatsAppCustomerContact(phone=phone, name=name, last_message="", last_timestamp=datetime.now(timezone.utc), unread_count=0)
             db.session.add(contact)
             db.session.commit()
         else:
@@ -242,7 +224,6 @@ def start_new_chat():
     return redirect(url_for('whatsapp_service.chat_dashboard', phone=phone))
 
 
-# ✅ دالة لعرض الإعدادات وحفظها (GET و POST)
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
     if request.method == 'POST':
@@ -267,14 +248,9 @@ def settings_view():
         return redirect(url_for('whatsapp_service.settings_view'))
 
     settings_data = inject_settings()['settings']
-    return render_template(
-        'admin/whatsapp_dashboard.html',
-        active_tab='settings',
-        settings=settings_data
-    )
+    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings_data)
 
 
-# ✅ دالة بديلة لحفظ الإعدادات عبر JSON (لمنع خطأ BuildError)
 @whatsapp_bp.route('/save-settings', methods=['POST'])
 def save_settings():
     try:
@@ -302,43 +278,26 @@ def save_settings():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-# ✅ دالة السجل (محدثة لتمرير الإحصائيات)
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
     try:
         logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
-        
         total_logs = len(logs)
         inbound_logs = sum(1 for log in logs if log.direction == 'inbound')
         outbound_logs = sum(1 for log in logs if log.direction == 'outbound')
         unread_logs = sum(1 for log in logs if log.status == 'received' or log.status == 'sent')
-        
     except Exception:
         logs = []
         total_logs = inbound_logs = outbound_logs = unread_logs = 0
         
-    return render_template(
-        'admin/whatsapp_dashboard.html',
-        active_tab='logs',
-        logs=logs,
-        total_logs=total_logs,
-        inbound_logs=inbound_logs,
-        outbound_logs=outbound_logs,
-        unread_logs=unread_logs
-    )
+    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs, total_logs=total_logs, inbound_logs=inbound_logs, outbound_logs=outbound_logs, unread_logs=unread_logs)
 
 
 @whatsapp_bp.route('/webhook-dashboard')
 def webhook_dashboard():
-    return render_template(
-        'admin/whatsapp_dashboard.html',
-        active_tab='webhook'
-    )
+    return render_template('admin/whatsapp_dashboard.html', active_tab='webhook')
 
 
-# ============================================================
-# Webhook الرئيسي (محدث لاستقبال جميع أنواع الرسائل)
-# ============================================================
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 def webhook_handler():
     if request.method == 'GET':
@@ -346,7 +305,6 @@ def webhook_handler():
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
         verify_token = WhatsAppServiceConfig.get_verify_token()
-        
         if mode and token:
             if mode == 'subscribe' and token == verify_token:
                 return challenge, 200
@@ -356,7 +314,6 @@ def webhook_handler():
 
     elif request.method == 'POST':
         current_app.logger.info(f"Webhook Payload Received: {request.get_data(as_text=True)}")
-
         if not request.is_json:
             return jsonify({"status": "error", "message": "Expected JSON"}), 400
 
@@ -381,30 +338,15 @@ def webhook_handler():
                         msg_body = ""
                         if msg_type == 'text':
                             msg_body = msg.get('text', {}).get('body', '')
-                        elif msg_type == 'image':
-                            msg_body = "[صورة]"
-                        elif msg_type == 'video':
-                            msg_body = "[فيديو]"
-                        elif msg_type == 'audio':
-                            msg_body = "[صوت]"
-                        elif msg_type == 'document':
-                            msg_body = "[مستند]"
-                        elif msg_type == 'sticker':
-                            msg_body = "[ملصق]"
-                        elif msg_type == 'location':
-                            msg_body = "[موقع]"
-                        else:
-                            msg_body = f"[رسالة نوع {msg_type}]"
+                        elif msg_type == 'image': msg_body = "[صورة]"
+                        elif msg_type == 'video': msg_body = "[فيديو]"
+                        elif msg_type == 'audio': msg_body = "[صوت]"
+                        elif msg_type == 'document': msg_body = "[مستند]"
+                        elif msg_type == 'sticker': msg_body = "[ملصق]"
+                        elif msg_type == 'location': msg_body = "[موقع]"
+                        else: msg_body = f"[رسالة نوع {msg_type}]"
 
-                        log_entry = WhatsAppMessageLog(
-                            wamid=wamid,
-                            direction='inbound',
-                            sender_number=sender,
-                            recipient_number=WhatsAppServiceConfig.get_phone_number_id(),
-                            content=msg_body,
-                            message_type=msg_type,
-                            status='received'
-                        )
+                        log_entry = WhatsAppMessageLog(wamid=wamid, direction='inbound', sender_number=sender, recipient_number=WhatsAppServiceConfig.get_phone_number_id(), content=msg_body, message_type=msg_type, status='received')
                         db.session.add(log_entry)
 
                         contact = WhatsAppCustomerContact.query.filter_by(phone=sender).first()
@@ -413,13 +355,7 @@ def webhook_handler():
                             contact.last_timestamp = datetime.now(timezone.utc)
                             contact.unread_count = (contact.unread_count or 0) + 1
                         else:
-                            new_contact = WhatsAppCustomerContact(
-                                phone=sender,
-                                name=f"عميل ({sender})",
-                                last_message=msg_body,
-                                last_timestamp=datetime.now(timezone.utc),
-                                unread_count=1
-                            )
+                            new_contact = WhatsAppCustomerContact(phone=sender, name=f"عميل ({sender})", last_message=msg_body, last_timestamp=datetime.now(timezone.utc), unread_count=1)
                             db.session.add(new_contact)
                         db.session.commit()
 
