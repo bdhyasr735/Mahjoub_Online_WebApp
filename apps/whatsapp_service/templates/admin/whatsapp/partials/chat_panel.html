@@ -11,11 +11,14 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
-          <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+          <!-- ✅ التعديل السحري: إضافة hx-select وإصلاح الروابط -->
+          <a href="#" 
              hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+             hx-select="#chat-area" 
              hx-target="#chat-area" 
              hx-swap="innerHTML" 
              hx-indicator="none"
+             hx-disabled-elt="this"
              onclick="event.preventDefault();" 
              class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-all duration-200 {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
             <div class="relative">
@@ -62,10 +65,11 @@
         </div>
       </div>
 
-      <!-- ✅ الحل: استخدام HTMX Triggers بدلاً من setInterval -->
+      <!-- ✅ التعديل الثاني: إعادة تفعيل التحديث التلقائي -->
       <div id="chatMessagesContainer" 
            class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" 
            hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
+           hx-select="#chatMessagesContainer" 
            hx-target="#chatMessagesContainer" 
            hx-swap="innerHTML" 
            hx-trigger="every 2s" 
@@ -141,11 +145,9 @@
     if (event.detail.target.id === 'chatMessagesContainer') {
       const container = document.getElementById('chatMessagesContainer');
       if (container) {
-        // التمرير فقط إذا كنت قريباً من الأسفل
         const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
         if (isNearBottom) container.scrollTop = container.scrollHeight;
       }
-      // إعادة تهيئة HTMX داخل العنصر الجديد (مهم جداً!)
       if (window.htmx) htmx.process(container);
     }
     if (event.detail.target.id === 'chat-area') {
