@@ -225,6 +225,36 @@ def send_bulk_message():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@whatsapp_bp.route('/send-broadcast', methods=['POST'])
+def send_broadcast():
+    try:
+        message = request.form.get('message')
+        if not message:
+            return jsonify({"success": False, "error": "نص الرسالة الجماعية مطلوب."}), 400
+        
+        contacts = WhatsAppCustomerContact.query.all()
+        sent_count = 0
+        errors = []
+
+        for contact in contacts:
+            success, result = send_text_message(contact.phone, message)
+            if success:
+                sent_count += 1
+            else:
+                errors.append({"phone": contact.phone, "error": str(result)[:100]})
+
+        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return f"""
+            <div class="p-3 bg-emerald-50 text-emerald-700 rounded-lg text-xs">
+                ✅ تم إرسال الإذاعة بنجاح إلى {sent_count} عميل.
+            </div>
+            """
+        return jsonify({"success": True, "sent_count": sent_count, "errors": errors})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @whatsapp_bp.route('/start-new-chat', methods=['POST'])
 def start_new_chat():
     phone = request.form.get('phone')
