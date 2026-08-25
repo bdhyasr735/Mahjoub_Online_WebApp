@@ -27,8 +27,9 @@
     <!-- شريط العلو (Header) -->
     <header class="royal-purple-bg border-b royal-border px-6 py-3 flex items-center justify-between shrink-0 shadow-lg">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#570575] to-[#1a0b2e] border gold-border flex items-center justify-center shadow-md">
-                <i class="fa-solid fa-store gold-text text-lg"></i>
+            <!-- تم إزالة خلفية الحاوية والحدود لتصبح شفافة بالكامل، وإضافة فلتر الأبيض للوجو -->
+            <div class="w-10 h-10 flex items-center justify-center overflow-hidden p-0.5">
+                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="أيقونة محجوب أونلاين" class="w-full h-full object-contain brightness-0 invert">
             </div>
             <div>
                 <h1 class="font-bold text-base text-white tracking-wide">سوق محجوب أونلاين الذكي</h1>
@@ -208,10 +209,10 @@
                 </form>
             </div>
             {% else %}
-            <!-- حالة عدم اختيار عميل (تم تحديث أيقونة الواتساب لتكون بيضاء ناصعة ومتناسقة) -->
+            <!-- حالة عدم اختيار عميل (تم إزالة الخلفية والحدود عن أيقونة الشعار المركزية لتكون شفافة وبيضاء) -->
             <div class="flex-1 flex flex-col items-center justify-center text-center p-8 text-gray-400">
-                <div class="w-16 h-16 rounded-2xl bg-[#570575] border royal-border flex items-center justify-center mb-4 text-white text-2xl shadow-lg">
-                    <i class="fa-brands fa-whatsapp"></i>
+                <div class="w-16 h-16 flex items-center justify-center mb-4 p-1">
+                    <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="شعار محجوب أونلاين" class="w-full h-full object-contain brightness-0 invert">
                 </div>
                 <h3 class="text-sm font-bold text-white mb-1">مركز مراسلات الواتساب الذكي</h3>
                 <p class="text-xs text-gray-400 max-w-xs">اختر محادثة من القائمة الجانبية أو ابدأ محادثة جديدة لإدارة رسائل التجار والعملاء بلحظية تامة.</p>
