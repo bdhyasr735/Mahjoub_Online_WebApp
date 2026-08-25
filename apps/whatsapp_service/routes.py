@@ -130,7 +130,8 @@ def send_message_htmx():
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
+                # ✅ تم تعديل المسار ليتوافق مع مجلد partials
+                return render_template('admin/whatsapp/partials/_message_bubble.html', msg=new_msg)
             else:
                 return """
                 <div class="flex justify-start animate-fadeIn">
