@@ -11,11 +11,13 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
+          <!-- ✅ التعديل الأول: إضافة hx-boost لإعادة تهيئة الروابط -->
           <a href="#" 
              hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
              hx-target="#chat-area" 
              hx-swap="innerHTML" 
              hx-indicator="none"
+             hx-disabled-elt="this"
              onclick="event.preventDefault();" 
              class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-all duration-200 {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
             <div class="relative">
@@ -62,12 +64,13 @@
         </div>
       </div>
 
+      <!-- ✅ التعديل الثاني: جعل التحديث كل ثانية واحدة بدلاً من 3 ثوانٍ -->
       <div id="chatMessagesContainer" 
            class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" 
            hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
            hx-target="#chatMessagesContainer" 
            hx-swap="innerHTML" 
-           hx-trigger="every 3s" 
+           hx-trigger="every 1s" 
            hx-indicator="none">
         {% if messages and messages|length > 0 %}
           {% set current_date = None %}
@@ -135,7 +138,7 @@
     setupContactSearch();
   });
 
-  // معالجة HTMX بعد التبديل (بدون أي مؤشر تحميل)
+  // ✅ التعديل الثالث: الحل السحري لمنع رفض التنقل وضمان استمرار التحديث اللحظي
   document.addEventListener('htmx:afterSwap', function(event) {
     if (event.detail.target.id === 'chatMessagesContainer') {
       const container = document.getElementById('chatMessagesContainer');
@@ -144,7 +147,7 @@
         const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
         if (isNearBottom) container.scrollTop = container.scrollHeight;
       }
-      // إعادة تهيئة HTMX داخل العنصر الجديد
+      // إعادة تهيئة HTMX داخل العنصر الجديد (مهم جداً!)
       if (window.htmx) htmx.process(container);
     }
     if (event.detail.target.id === 'chat-area') {
