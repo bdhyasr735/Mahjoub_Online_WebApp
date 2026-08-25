@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/whatsapp_service/routes.py
+
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps.models.whatsapp_models import (
@@ -13,7 +16,7 @@ from apps.whatsapp_service.whatsapp_api import send_text_message
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
-    url_prefix='/admin/whatsapp',
+    url_prefix='/whatsapp',  # تم اعتماده بدون بادئة admin ليصبح الرابط /whatsapp/... مباشرة
     template_folder='templates'
 )
 
@@ -24,9 +27,9 @@ def whatsapp_dashboard():
     contact_id = request.args.get('contact_id', type=int)
     
     # جلب الإعدادات عبر نظام المفتاح والقيمة (Key-Value)
-    phone_number_id = WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID', '')
+    phone_number_id = WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID', '1336881386166971')
     access_token = WhatsAppSettings.get_setting('WHATSAPP_ACCESS_TOKEN', '')
-    verify_token = WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN', 'mahjoub_verify')
+    verify_token = WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN', 'mahjoob_webhook_secret_2026')
         
     contacts = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
     logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).limit(50).all()
@@ -103,7 +106,7 @@ def whatsapp_dashboard():
 @whatsapp_bp.route('/webhook', methods=['GET', 'POST'])
 def webhook_handler():
     """مستقبل الويب هوك للتعامل مع الرسائل الواردة وتحديثات حالة Meta API"""
-    verify_token = WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN', 'mahjoub_verify')
+    verify_token = WhatsAppSettings.get_setting('WHATSAPP_VERIFY_TOKEN', 'mahjoob_webhook_secret_2026')
 
     if request.method == 'GET':
         mode = request.args.get('hub.mode')
@@ -164,7 +167,7 @@ def webhook_handler():
                     wamid=wamid,
                     direction='inbound',
                     sender_number=phone,
-                    recipient_number=WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID', 'platform'),
+                    recipient_number=WhatsAppSettings.get_setting('WHATSAPP_PHONE_NUMBER_ID', '1336881386166971'),
                     customer_id=contact.id,
                     message_type='text',
                     content=msg_body,
