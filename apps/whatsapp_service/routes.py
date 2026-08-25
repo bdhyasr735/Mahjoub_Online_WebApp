@@ -132,12 +132,13 @@ def send_message_htmx():
             if new_msg:
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
-                return """
-                <div class="flex justify-start animate-fadeIn">
-                    <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-white text-slate-900 border border-slate-200">
-                        <p class="whitespace-pre-wrap leading-relaxed">✅ تم الإرسال بنجاح</p>
-                        <div class="flex items-center justify-end gap-1 mt-1">
-                            <span class="text-[9px] text-slate-400">الآن</span>
+                return f"""
+                <div class="flex justify-end animate-fadeIn">
+                    <div class="max-w-[75%] bg-[#570575] border royal-border rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
+                        <p class="whitespace-pre-wrap leading-relaxed pb-3">{message}</p>
+                        <div class="absolute bottom-1.5 left-3 flex items-center gap-1">
+                            <span class="text-[9px] text-purple-200">الآن</span>
+                            <span class="text-[10px] font-bold text-[#D4AF37]">✓</span>
                         </div>
                     </div>
                 </div>
@@ -147,7 +148,7 @@ def send_message_htmx():
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return f"""
             <div class="flex justify-start animate-fadeIn">
-                <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-red-50 text-red-700 border border-red-200">
+                <div class="max-w-[75%] bg-red-950/40 border border-red-500/30 rounded-2xl px-4 py-2.5 shadow-md text-xs text-red-300">
                     <p class="whitespace-pre-wrap leading-relaxed">❌ فشل الإرسال: {str(result)[:100]}</p>
                 </div>
             </div>
@@ -211,7 +212,6 @@ def settings_view():
 
         return redirect(url_for('whatsapp_service.settings_view'))
 
-    # تمرير الإعدادات مباشرة من دالة الحماية لضمان عدم فشل القالب
     settings_data = inject_settings()['settings']
     return render_template(
         'admin/whatsapp_dashboard.html',
@@ -220,7 +220,7 @@ def settings_view():
     )
 
 
-# ✅ دالة بديلة لحفظ الإعدادات عبر JSON (لمنع خطأ BuildError)
+# ✅ دالة بديلة لحفظ الإعدادات عبر JSON
 @whatsapp_bp.route('/save-settings', methods=['POST'])
 def save_settings():
     try:
@@ -254,12 +254,9 @@ def logs_dashboard():
     try:
         logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
         
-        # ✅ حساب الإحصائيات للعرض في البطاقات
         total_logs = len(logs)
         inbound_logs = sum(1 for log in logs if log.direction == 'inbound')
         outbound_logs = sum(1 for log in logs if log.direction == 'outbound')
-        
-        # ✅ حساب الرسائل غير المقروءة أو الجديدة (للعرض في الشريط الجانبي والبطاقة الصفراء)
         unread_logs = sum(1 for log in logs if log.status == 'received' or log.status == 'sent')
         
     except Exception:
@@ -273,7 +270,7 @@ def logs_dashboard():
         total_logs=total_logs,
         inbound_logs=inbound_logs,
         outbound_logs=outbound_logs,
-        unread_logs=unread_logs  # ✅ تمرير العداد
+        unread_logs=unread_logs
     )
 
 
@@ -296,7 +293,6 @@ def webhook_handler():
         challenge = request.args.get('hub.challenge')
         verify_token = WhatsAppServiceConfig.get_verify_token()
         
-        # تأكد أن verify_token في الكود يطابق المكتوب في لوحة ميتا!
         if mode and token:
             if mode == 'subscribe' and token == verify_token:
                 return challenge, 200
@@ -305,7 +301,6 @@ def webhook_handler():
         return 'Hello WhatsApp Webhook', 200
 
     elif request.method == 'POST':
-        # ✅ طباعة الحمولة في السجل (Logs) للتأكد من وصولها
         current_app.logger.info(f"Webhook Payload Received: {request.get_data(as_text=True)}")
 
         if not request.is_json:
@@ -330,7 +325,6 @@ def webhook_handler():
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
                         
-                        # ✅ التعامل مع أنواع مختلفة من الرسائل:
                         msg_body = ""
                         if msg_type == 'text':
                             msg_body = msg.get('text', {}).get('body', '')
@@ -388,10 +382,8 @@ def webhook_handler():
         except Exception as e:
             current_app.logger.error(f"Webhook error: {str(e)}")
             db.session.rollback()
-            # ✅ دائماً نرجع 200 حتى لو حصل خطأ داخلي حتى لا يقوم Meta بإيقاف الخدمة
             return jsonify({"status": "error", "message": str(e)}), 200
 
-        # ✅ دائماً نرجع 200 بنجاح لـ Meta
         return jsonify({"status": "success"}), 200
 
 
