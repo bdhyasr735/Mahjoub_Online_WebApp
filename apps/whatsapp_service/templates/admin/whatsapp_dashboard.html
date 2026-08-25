@@ -27,7 +27,6 @@
     <!-- شريط العلو (Header) -->
     <header class="royal-purple-bg border-b royal-border px-6 py-3 flex items-center justify-between shrink-0 shadow-lg">
         <div class="flex items-center gap-3">
-            <!-- تم إزالة خلفية الحاوية والحدود لتصبح شفافة بالكامل، وإضافة فلتر الأبيض للوجو -->
             <div class="w-10 h-10 flex items-center justify-center overflow-hidden p-0.5">
                 <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="أيقونة محجوب أونلاين" class="w-full h-full object-contain brightness-0 invert">
             </div>
@@ -64,8 +63,6 @@
     <main class="flex-1 flex overflow-hidden">
 
         {% if active_tab == 'chat' %}
-        <!-- نافذة المحادثات والدردشة (شبه واتساب أعمال) -->
-        
         <!-- القسم الأيمن: قائمة جهات الاتصال -->
         <aside class="w-80 royal-purple-bg border-l royal-border flex flex-col shrink-0">
             <!-- رأس القائمة والبحث -->
@@ -130,7 +127,6 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h2 class="text-xs font-bold text-white" id="activeContactNameHeader">{{ selected_contact.name if selected_contact else 'عميل' }}</h2>
-                            <!-- زر تعديل الاسم بدون مغادرة الصفحة -->
                             <button onclick="toggleEditName()" class="text-gray-400 hover:text-[#D4AF37] text-xs transition-colors" title="تعديل اسم العميل">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
@@ -142,7 +138,7 @@
                     </div>
                 </div>
 
-                <!-- نموذج تعديل الاسم السريع (مخفي افتراضياً) -->
+                <!-- نموذج تعديل الاسم السريع -->
                 <div id="editNameBox" class="hidden flex items-center gap-2 bg-[#0f071d] p-1.5 rounded-xl border royal-border">
                     <input type="text" id="newCustomerNameInput" value="{{ selected_contact.name if selected_contact else '' }}" 
                            class="bg-purple-950/60 border royal-border rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#D4AF37]">
@@ -185,7 +181,7 @@
                 {% endfor %}
             </div>
 
-            <!-- شريط كتابة وإرسال الرسالة (عبر HTMX بدون إعادة تحميل) -->
+            <!-- شريط كتابة وإرسال الرسالة عبر HTMX -->
             <div class="royal-purple-bg border-t royal-border p-4 shrink-0">
                 <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
                       hx-target="#messages-container" 
@@ -209,7 +205,7 @@
                 </form>
             </div>
             {% else %}
-            <!-- حالة عدم اختيار عميل (تم إزالة الخلفية والحدود عن أيقونة الشعار المركزية لتكون شفافة وبيضاء) -->
+            <!-- حالة عدم اختيار عميل -->
             <div class="flex-1 flex flex-col items-center justify-center text-center p-8 text-gray-400">
                 <div class="w-16 h-16 flex items-center justify-center mb-4 p-1">
                     <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="شعار محجوب أونلاين" class="w-full h-full object-contain brightness-0 invert">
@@ -355,9 +351,8 @@
         </div>
     </div>
 
-    <!-- JavaScript البرمجي للتحكم التام بدون إعادة تحميل ورابط نظيف كواتساب أعمال -->
+    <!-- JavaScript البرمجي للتحكم التام -->
     <script>
-        // التمرير التلقائي لأسفل صندوق الرسائل
         function scrollToBottom() {
             const container = document.getElementById('messages-container');
             if (container) {
@@ -366,17 +361,12 @@
         }
         window.onload = scrollToBottom;
 
-        // التبديل السلس بين المحادثات دون أي معرفات ظاهرة في الرابط (تغيير الـ State محلياً)
         function selectContact(phone, name, contactId) {
-            // تحديث الـ URL بسلاسة نظيفة تماماً بدون أي معلمات ظاهرية مزعجة
             const cleanUrl = "{{ url_for('whatsapp_service.chat_dashboard') }}";
             window.history.replaceState({}, '', cleanUrl);
-
-            // جلب المحادثة الخاصة بالرقم ونقله لحظياً (أو إعادة جلب جزء الدردشة عبر fetch إذا رغبت، أو تحديث الواجهة)
             window.location.href = cleanUrl + "?phone=" + phone;
         }
 
-        // البحث الفوري في قائمة العملاء
         function filterContacts() {
             const query = document.getElementById('contactSearch').value.toLowerCase();
             const items = document.querySelectorAll('.contact-item');
@@ -391,18 +381,15 @@
             });
         }
 
-        // إظهار/إخفاء نافذة تعديل الاسم
         function toggleEditName() {
             const box = document.getElementById('editNameBox');
             box.classList.toggle('hidden');
         }
 
-        // حفظ اسم العميل عبر AJAX دون تحديث الصفحة
         function saveCustomerName(phone) {
             const newName = document.getElementById('newCustomerNameInput').value;
             if (!newName) return;
 
-            // يمكنك ربطه بمسار مخصص لتحديث الاسم، أو إعادة تحميل هادئة للرقم المحدد فقط
             const formData = new FormData();
             formData.append('phone', phone);
             formData.append('name', newName);
@@ -414,7 +401,6 @@
                 if (response.ok) {
                     document.getElementById('activeContactNameHeader').innerText = newName;
                     toggleEditName();
-                    // تحديث الاسم في القائمة الجانبية فوراً
                     location.reload(); 
                 }
             });
