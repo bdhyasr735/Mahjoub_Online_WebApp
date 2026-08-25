@@ -38,9 +38,9 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
           <span class="sr-only">سجل الرسائل</span>
         </a>
-        <a href="{{ url_for('whatsapp_service.webhook_dashboard') }}" title="محاكي الويب هوك" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'webhook' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'webhook' else 'false' }}">
+        <a href="{{ url_for('whatsapp_service.webhook_dashboard') }}" title="لوحة الويب هوك المباشرة" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'webhook' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'webhook' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          <span class="sr-only">Webhook</span>
+          <span class="sr-only">لوحة الويب هوك</span>
         </a>
         <a href="{{ url_for('whatsapp_service.settings_view') }}" title="الإعدادات" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ease-in-out {{ 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' if active_tab == 'settings' else 'text-slate-400 hover:bg-white/5 hover:text-white' }}" aria-current="{{ 'page' if active_tab == 'settings' else 'false' }}">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -54,7 +54,7 @@
   <!-- الحاوية الرئيسية -->
   <div class="flex-1 flex flex-col h-full overflow-hidden">
 
-    <!-- الهيدر الاحترافي الجديد -->
+    <!-- الهيدر الاحترافي -->
     <header class="bg-white border-b border-slate-200 h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 shadow-sm bg-gradient-to-l from-white via-white to-slate-50">
       <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
@@ -85,7 +85,7 @@
     <main class="flex-1 flex overflow-hidden w-full relative" role="main">
 
       <!-- ============================================== -->
-      <!-- 1. قسم المحادثات (Chat) - الكود الكامل        -->
+      <!-- 1. قسم المحادثات (Chat) - الإنتاج المباشر     -->
       <!-- ============================================== -->
       {% if active_tab == 'chat' %}
       <div class="flex-1 flex overflow-hidden w-full bg-white">
@@ -94,17 +94,23 @@
             <h3 class="font-bold text-sm text-slate-800">المحادثات النشطة</h3>
             <button onclick="document.getElementById('newChatModal').classList.remove('hidden')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors">+ محادثة جديدة</button>
           </div>
+          
+          <!-- بحث في المحادثات النشطة -->
+          <div class="p-3 border-b border-slate-200">
+            <input type="text" id="contactSearchInput" placeholder="🔍 بحث بالاسم أو الرقم..." class="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
+          </div>
+
           <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
             {% if contacts %}
               {% for contact in contacts %}
-                <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" hx-select="#chat-area" hx-target="#chat-area" hx-swap="outerHTML" hx-push-url="true" class="flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
+                <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" hx-select="#chat-area" hx-target="#chat-area" hx-swap="outerHTML" hx-push-url="true" class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
                   <div class="relative">
                     <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">{{ contact.name[0] if contact.name else 'ع' }}</div>
                     {% if contact.is_online %}<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>{% endif %}
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-1">
-                      <span class="font-bold text-xs text-slate-900 truncate">{{ contact.name }}</span>
+                      <span class="font-bold text-xs text-slate-900 truncate contact-name">{{ contact.name }}</span>
                       <span class="text-[10px] text-slate-400">{{ contact.last_timestamp.strftime('%H:%M') if contact.last_timestamp else '' }}</span>
                     </div>
                     <p class="text-xs text-slate-500 truncate">{{ contact.last_message or 'لا توجد رسائل بعد' }}</p>
@@ -124,7 +130,7 @@
           {% if selected_contact %}
             <div class="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
               <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="relative">
+                <div class="relative cursor-pointer" onclick="document.getElementById('profilePanel').classList.remove('hidden')">
                   <div class="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0">{{ selected_contact.name[0] if selected_contact.name else 'ع' }}</div>
                   {% if selected_contact.is_online %}<span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>{% endif %}
                 </div>
@@ -196,6 +202,27 @@
         </div>
       </div>
 
+      <!-- نافذة البروفايل الجانبية -->
+      <div id="profilePanel" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-96 p-6 shadow-2xl border border-slate-200 animate-fadeIn">
+          <h3 class="font-bold text-sm text-slate-900 mb-4">تعديل بيانات العميل</h3>
+          <form action="{{ url_for('whatsapp_service.start_new_chat') }}" method="POST">
+            <div class="mb-3">
+              <label class="block text-xs font-bold text-slate-700 mb-1">اسم العميل</label>
+              <input type="text" name="name" value="{{ selected_contact.name if selected_contact else '' }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition-all">
+            </div>
+            <div class="mb-3">
+              <label class="block text-xs font-bold text-slate-700 mb-1">رقم الهاتف</label>
+              <input type="text" name="phone" value="{{ selected_contact.phone if selected_contact else '' }}" required dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition-all">
+            </div>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" onclick="document.getElementById('profilePanel').classList.add('hidden')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-1.5 rounded-xl text-xs font-medium transition-colors">إلغاء</button>
+              <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-xl text-xs font-bold transition-colors">حفظ التعديلات</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="newChatModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
         <div class="bg-white rounded-2xl w-96 p-6 shadow-2xl border border-slate-200 animate-fadeIn">
           <h3 class="font-bold text-sm text-slate-900 mb-4">بدء محادثة جديدة</h3>
@@ -217,10 +244,23 @@
       </div>
 
       <script>
+        // البحث في قائمة المحادثات النشطة
         document.addEventListener('DOMContentLoaded', function() {
-          const container = document.getElementById('chatMessagesContainer');
-          if (container) container.scrollTop = container.scrollHeight;
+          const searchInput = document.getElementById('contactSearchInput');
+          const contactItems = document.querySelectorAll('.contact-item');
+          if (!searchInput || !contactItems.length) return;
+          searchInput.addEventListener('input', function() {
+            const query = searchInput.value.trim().toLowerCase();
+            contactItems.forEach(item => {
+              const name = item.querySelector('.contact-name').textContent.toLowerCase();
+              const phone = item.querySelector('.contact-phone').textContent.toLowerCase();
+              if (name.includes(query) || phone.includes(query)) item.style.display = '';
+              else item.style.display = 'none';
+            });
+          });
         });
+
+        // البحث داخل الرسائل
         document.addEventListener('DOMContentLoaded', function() {
           const searchInput = document.getElementById('chatSearchInput');
           const messages = document.querySelectorAll('.message-item');
@@ -248,6 +288,14 @@
           searchInput.addEventListener('input', performSearch);
           window.clearSearch = function() { searchInput.value = ''; performSearch(); searchInput.focus(); };
         });
+
+        // التمرير التلقائي
+        document.addEventListener('DOMContentLoaded', function() {
+          const container = document.getElementById('chatMessagesContainer');
+          if (container) container.scrollTop = container.scrollHeight;
+        });
+
+        // إرسال الرسالة
         document.addEventListener('DOMContentLoaded', function() {
           const form = document.getElementById('chat-form');
           const input = document.getElementById('message-input');
@@ -277,6 +325,8 @@
             finally { sendBtn.disabled = false; sendBtn.textContent = 'إرسال'; }
           });
         });
+
+        // HTMX after swap
         document.addEventListener('htmx:afterSwap', function(event) {
           if (event.detail.target.id === 'chatMessagesContainer') {
             const container = document.getElementById('chatMessagesContainer');
@@ -289,13 +339,27 @@
       </script>
 
       <!-- ============================================== -->
-      <!-- 2. قسم السجل (Logs) - الكود الكامل            -->
+      <!-- 2. قسم السجل (Logs) مع فلاتر متقدمة           -->
       <!-- ============================================== -->
       {% elif active_tab == 'logs' %}
       <div class="flex-1 flex flex-col bg-white p-6 overflow-hidden">
           <div class="flex items-center justify-between mb-6">
               <h2 class="text-lg font-bold text-slate-800">سجل الرسائل</h2>
-              <input type="text" placeholder="🔍 بحث في السجل..." class="px-4 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-emerald-600 focus:outline-none transition-all w-64">
+              <div class="flex gap-2">
+                  <select id="logDirectionFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                      <option value="">الكل (وارد وصادر)</option>
+                      <option value="inbound">وارد</option>
+                      <option value="outbound">صادر</option>
+                  </select>
+                  <select id="logStatusFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                      <option value="">جميع الحالات</option>
+                      <option value="received">واردة</option>
+                      <option value="read">مقروءة</option>
+                      <option value="delivered">تم التسليم</option>
+                      <option value="failed">فشل</option>
+                  </select>
+                  <input type="text" id="logSearchInput" placeholder="🔍 بحث في الرسائل..." class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-600 w-64">
+              </div>
           </div>
           <div class="flex-1 overflow-auto border border-slate-200 rounded-xl">
               <table class="w-full text-xs text-right">
@@ -308,10 +372,10 @@
                           <th class="px-4 py-3 font-bold">الحالة</th>
                       </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-100">
+                  <tbody id="logsTableBody" class="divide-y divide-slate-100">
                       {% if logs %}
                           {% for log in logs %}
-                          <tr class="hover:bg-slate-50/80">
+                          <tr class="log-row hover:bg-slate-50/80" data-direction="{{ log.direction }}" data-status="{{ log.status }}" data-content="{{ log.content|lower }}">
                               <td class="px-4 py-3 text-slate-500" dir="ltr">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
                               <td class="px-4 py-3 font-medium" dir="ltr">{{ log.phone }}</td>
                               <td class="px-4 py-3">
@@ -338,61 +402,88 @@
           </div>
       </div>
 
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const direction = document.getElementById('logDirectionFilter');
+          const status = document.getElementById('logStatusFilter');
+          const search = document.getElementById('logSearchInput');
+          const rows = document.querySelectorAll('.log-row');
+
+          function filterLogs() {
+            const d = direction.value;
+            const s = status.value;
+            const q = search.value.trim().toLowerCase();
+
+            rows.forEach(row => {
+              const rd = row.getAttribute('data-direction');
+              const rs = row.getAttribute('data-status');
+              const rc = row.getAttribute('data-content') || '';
+
+              let show = true;
+              if (d && rd !== d) show = false;
+              if (s && rs !== s) show = false;
+              if (q && !rc.includes(q)) show = false;
+
+              row.style.display = show ? '' : 'none';
+            });
+          }
+
+          direction.addEventListener('change', filterLogs);
+          status.addEventListener('change', filterLogs);
+          search.addEventListener('input', filterLogs);
+        });
+      </script>
+
       <!-- ============================================== -->
-      <!-- 3. قسم الويب هوك (Webhook) - الكود الكامل     -->
+      <!-- 3. قسم الويب هوك (Webhook) - مراقبة مباشرة    -->
       <!-- ============================================== -->
       {% elif active_tab == 'webhook' %}
       <div class="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-auto bg-slate-50">
           <div class="flex-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <h2 class="text-sm font-bold text-slate-800 mb-4">إرسال حدث تجريبي</h2>
-              <form class="space-y-4">
-                  <div>
-                      <label class="block text-xs font-bold text-slate-700 mb-1">نوع الحدث</label>
-                      <select class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 bg-slate-50">
-                          <option>messages</option>
-                          <option>message_status</option>
-                      </select>
-                  </div>
-                  <div>
-                      <label class="block text-xs font-bold text-slate-700 mb-1">حمولة JSON</label>
-                      <textarea class="w-full h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-emerald-600 bg-slate-50" placeholder='{"object": "whatsapp_business_account", "entry": []}'></textarea>
-                  </div>
-                  <button type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition-colors">إرسال للوحة</button>
-              </form>
-          </div>
-          <div class="flex-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-              <h2 class="text-sm font-bold text-slate-800 mb-4">سجل استقبال الويب هوك</h2>
-              <div class="flex-1 bg-slate-900 text-emerald-400 text-xs p-4 rounded-xl font-mono overflow-auto" dir="ltr">
-                  {% if webhook_logs %}
-                      {% for log in webhook_logs %}
-                      <div class="mb-4 border-b border-slate-700 pb-2">
-                          <div class="text-slate-500">{{ log.timestamp.strftime('%H:%M:%S') }}</div>
-                          <pre class="whitespace-pre-wrap">{{ log.payload }}</pre>
+              <h2 class="text-sm font-bold text-slate-800 mb-4">مراقبة الأحداث المباشرة</h2>
+              <div class="space-y-4">
+                  <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <p class="text-[10px] text-slate-400 mb-1">حالة الاستقبال:</p>
+                      <div class="flex items-center gap-2">
+                          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span class="text-xs font-bold text-emerald-700">مباشر ومتصل</span>
                       </div>
-                      {% endfor %}
-                  {% else %}
-                      <p class="text-slate-500 text-center py-10">بانتظار الأحداث...</p>
-                  {% endif %}
+                  </div>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">آخر حمولة مستلمة</label>
+                      <div class="h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 bg-slate-50 overflow-auto" dir="ltr">
+                          {% if webhook_logs %}
+                              {% for log in webhook_logs %}
+                              <div class="mb-4 border-b border-slate-200 pb-2">
+                                  <div class="text-slate-400">{{ log.timestamp.strftime('%H:%M:%S') }}</div>
+                                  <pre class="whitespace-pre-wrap text-slate-600">{{ log.payload }}</pre>
+                              </div>
+                              {% endfor %}
+                          {% else %}
+                              <p class="text-slate-400 text-center py-10">لا توجد أحداث بعد</p>
+                          {% endif %}
+                      </div>
+                  </div>
               </div>
           </div>
       </div>
 
       <!-- ============================================== -->
-      <!-- 4. قسم الإعدادات (Settings) - الكود الكامل    -->
+      <!-- 4. قسم الإعدادات (Settings) مع إشعار الحفظ    -->
       <!-- ============================================== -->
       {% elif active_tab == 'settings' %}
       <div class="flex-1 p-6 bg-slate-50 overflow-auto">
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
               <h2 class="text-lg font-bold text-slate-800 mb-6">إعدادات الاتصال بـ Meta API</h2>
-              <form action="{{ url_for('whatsapp_service.save_settings') if url_for else '#' }}" method="POST" class="space-y-6">
+              <form id="settingsForm" action="{{ url_for('whatsapp_service.settings_view') }}" method="POST" class="space-y-6">
                   <div>
                       <label class="block text-xs font-bold text-slate-700 mb-2">رقم الهاتف المرتبط (Phone Number ID)</label>
-                      <input type="text" name="phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+                      <input type="text" name="whatsapp_phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
                       <p class="text-[11px] text-slate-400 mt-1">معرّف رقم الهاتف من حساب Meta Business</p>
                   </div>
                   <div>
                       <label class="block text-xs font-bold text-slate-700 mb-2">رمز الوصول (Access Token)</label>
-                      <input type="password" name="access_token" value="{{ settings.access_token if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+                      <input type="password" name="whatsapp_token" value="{{ settings.access_token if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
                       <p class="text-[11px] text-slate-400 mt-1">توكن الوصول الدائم للاتصال بواجهة واتساب</p>
                   </div>
                   <div class="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -406,6 +497,32 @@
               </form>
           </div>
       </div>
+
+      <!-- إشعار تم الحفظ -->
+      <div id="saveToast" class="hidden fixed top-5 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 text-sm font-bold">
+          ✅ تم حفظ الإعدادات بنجاح
+      </div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('settingsForm');
+            const toast = document.getElementById('saveToast');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(() => {
+                    toast.classList.remove('hidden');
+                    setTimeout(() => toast.classList.add('hidden'), 3000);
+                }).catch(() => {
+                    // في حال عدم توفر AJAX، نترك الإرسال الطبيعي
+                    form.submit();
+                });
+            });
+        });
+      </script>
       {% endif %}
 
     </main>
