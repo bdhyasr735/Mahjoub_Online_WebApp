@@ -107,7 +107,7 @@ def send_message_htmx():
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ تم تعديل المسار ليتوافق مع موقع الملف في admin/whatsapp/
+                # ✅ المسار الصحيح لملف فقاعة الرسالة
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
                 return """
