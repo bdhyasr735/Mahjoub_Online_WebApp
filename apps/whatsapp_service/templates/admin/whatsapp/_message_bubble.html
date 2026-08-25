@@ -1,4 +1,4 @@
-{# فقاعة الرسالة (صادرة أو واردة) - تُستخدم عبر HTMX/Fetch #}
+{# فقاعة الرسالة (صادرة أو واردة) #}
 {% set is_outbound = msg.direction == 'outbound' %}
 
 <div class="flex {{ 'justify-start' if is_outbound else 'justify-end' }} animate-fadeIn mb-2">
@@ -9,10 +9,7 @@
             bg-emerald-600 text-white
         {% endif %}
     ">
-        <!-- محتوى الرسالة -->
         <p class="whitespace-pre-wrap leading-relaxed break-words">{{ msg.content }}</p>
-
-        <!-- التوقيت والحالة -->
         <div class="flex items-center justify-end gap-1.5 mt-1">
             <span class="text-[9px] {{ 'text-slate-400' if is_outbound else 'text-emerald-100' }}">
                 {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}
