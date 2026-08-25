@@ -11,9 +11,10 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
-          <!-- ✅ إزالة href="#" واستبدالها بـ javascript:void(0) لمنع القفز -->
+          <!-- ✅ إصلاح التنقل: استخدام hx-select لسحب منطقة الدردشة فقط من الرد -->
           <a href="javascript:void(0)"
              hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+             hx-select="#chat-area" 
              hx-target="#chat-area" 
              hx-swap="innerHTML" 
              hx-indicator="none"
@@ -64,12 +65,14 @@
         </div>
       </div>
 
-      <!-- ✅ التعديل الجذري: إزالة hx-trigger واعتماد setInterval خفيف -->
+      <!-- ✅ إصلاح الاستقبال: استخدام hx-trigger مباشرة بدلاً من setInterval -->
       <div id="chatMessagesContainer" 
            class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" 
            hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
+           hx-select="#chatMessagesContainer" 
            hx-target="#chatMessagesContainer" 
-           hx-swap="innerHTML" 
+           hx-swap="outerHTML" 
+           hx-trigger="every 2s" 
            hx-indicator="none">
         {% if messages and messages|length > 0 %}
           {% set current_date = None %}
@@ -131,53 +134,23 @@
     searchInput.addEventListener('input', filterContacts);
   }
 
-  // تحميل أولي وتهيئة التمرير
+  // تحميل أولي
   document.addEventListener('DOMContentLoaded', function() {
     scrollToBottom();
     setupContactSearch();
-
-    // ✅ الحل الذكي: تحديث الرسائل كل ثانيتين في الخلفية دون كسر التمرير
-    const container = document.getElementById('chatMessagesContainer');
-    const phoneInput = document.querySelector('input[name="phone"]');
-    
-    if (container && phoneInput) {
-      setInterval(function() {
-        fetch("{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}", {
-          method: 'GET',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const newContainer = doc.getElementById('chatMessagesContainer');
-          if (newContainer) {
-            const oldCount = container.querySelectorAll('.message-item').length;
-            const newCount = newContainer.querySelectorAll('.message-item').length;
-            if (newCount > oldCount) {
-              // إضافة الرسائل الجديدة فقط
-              const oldMessages = Array.from(container.querySelectorAll('.message-item'));
-              const newMessages = Array.from(newContainer.querySelectorAll('.message-item'));
-              newMessages.forEach(msg => {
-                const content = msg.getAttribute('data-content');
-                const isExist = oldMessages.some(oldMsg => oldMsg.getAttribute('data-content') === content);
-                if (!isExist) {
-                  container.insertAdjacentHTML('beforeend', msg.outerHTML);
-                }
-              });
-              // التمرير فقط إذا كان المستخدم قريباً من الأسفل
-              const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
-              if (isNearBottom) container.scrollTop = container.scrollHeight;
-            }
-          }
-        })
-        .catch(() => {});
-      }, 2000);
-    }
   });
 
-  // معالجة HTMX بعد التبديل (لضمان فتح المحادثة التالية بسلاسة)
+  // معالجة HTMX بعد التبديل (أهم جزء لإصلاح التنقل)
   document.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.id === 'chatMessagesContainer') {
+      const container = document.getElementById('chatMessagesContainer');
+      if (container) {
+        const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+        if (isNearBottom) container.scrollTop = container.scrollHeight;
+      }
+      // ✅ إعادة تهيئة HTMX داخل العنصر الجديد
+      if (window.htmx) htmx.process(container);
+    }
     if (event.detail.target.id === 'chat-area') {
       setupContactSearch();
       scrollToBottom();
