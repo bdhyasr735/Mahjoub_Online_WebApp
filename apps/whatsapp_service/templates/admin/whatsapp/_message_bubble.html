@@ -1,17 +1,18 @@
-{# فقاعة الرسالة (صادرة أو واردة) متوافقة مع هوية محجوب أونلاين الملكية #}
+{# apps/whatsapp_service/templates/admin/whatsapp/_message_bubble.html #}
 {% set is_outbound = msg.direction == 'outbound' %}
 
-<div class="flex {{ 'justify-end' if is_outbound else 'justify-start' }} animate-fadeIn mb-3">
-    <div class="max-w-[75%] rounded-2xl px-4 py-3 shadow-md text-xs border royal-border relative
+<div class="flex {{ 'justify-end' if is_outbound else 'justify-start' }} w-full mb-3 animate-fadeIn">
+    <div class="max-w-[75%] rounded-2xl px-4 py-3 shadow-md text-xs border relative
         {% if is_outbound %}
-            bg-[#570575] text-white
+            bg-[#570575] text-white border-purple-400/40 ml-auto
         {% else %}
-            royal-purple-bg text-gray-200
+            bg-[#1a0b2e] text-gray-200 border-purple-900/60 mr-auto
+        400/30">
         {% endif %}
-    ">
+
         <!-- ✅ عرض الصور -->
         {% if msg.message_type == 'image' and msg.media_url %}
-            <div class="rounded-xl overflow-hidden mb-2 border royal-border bg-[#0f071d]">
+            <div class="rounded-xl overflow-hidden mb-2 border border-purple-500/30 bg-[#0f071d]">
                 <img src="{{ msg.media_url }}" class="max-w-full h-auto object-contain mx-auto" alt="صورة مرفقة">
             </div>
             {% if msg.content and msg.content != '[صورة]' %}
@@ -20,7 +21,7 @@
 
         <!-- ✅ عرض الفيديو -->
         {% elif msg.message_type == 'video' and msg.media_url %}
-            <div class="rounded-xl overflow-hidden mb-2 border royal-border bg-[#0f071d]">
+            <div class="rounded-xl overflow-hidden mb-2 border border-purple-500/30 bg-[#0f071d]">
                 <video controls class="max-w-full h-auto">
                     <source src="{{ msg.media_url }}" type="video/mp4">
                     متصفحك لا يدعم تشغيل الفيديو.
@@ -32,7 +33,7 @@
 
         <!-- ✅ عرض المستندات -->
         {% elif msg.message_type == 'document' and msg.media_url %}
-            <a href="{{ msg.media_url }}" target="_blank" class="flex items-center gap-2.5 bg-[#0f071d]/80 text-[#D4AF37] border royal-border px-3.5 py-2.5 rounded-xl mb-2 hover:bg-purple-950/60 transition-colors shadow-inner">
+            <a href="{{ msg.media_url }}" target="_blank" class="flex items-center gap-2.5 bg-[#0f071d]/80 text-[#D4AF37] border border-purple-500/30 px-3.5 py-2.5 rounded-xl mb-2 hover:bg-purple-950/60 transition-colors shadow-inner">
                 <i class="fa-solid fa-file-arrow-down text-base"></i>
                 <span class="font-bold truncate">{{ msg.media_filename or 'تحميل المستند المرفق' }}</span>
             </a>
@@ -45,27 +46,17 @@
             <p class="whitespace-pre-wrap leading-relaxed break-words pb-2">{{ msg.content }}</p>
         {% endif %}
 
-        <!-- الوقت وحالة التسليم (بألوان ذهبية وأرجوانية متناسقة) -->
+        <!-- الوقت وحالة التسليم -->
         <div class="flex items-center justify-end gap-1.5 pt-1 border-t border-purple-900/30">
             <span class="text-[9px] text-purple-200/80">
                 {{ msg.timestamp.strftime('%I:%M %p') if msg.timestamp else '' }}
             </span>
             {% if is_outbound %}
                 <span class="text-[10px] font-bold 
-                    {% if msg.status == 'read' %}
-                        text-[#D4AF37]
-                    {% elif msg.status == 'delivered' %}
-                        text-purple-300
-                    {% else %}
-                        text-gray-400
-                    {% endif %}">
-                    {% if msg.status == 'read' %}
-                        ✓✓
-                    {% elif msg.status == 'delivered' %}
-                        ✓✓
-                    {% else %}
-                        ✓
-                    {% endif %}
+                    {% if msg.status == 'read' %} text-[#D4AF37]
+                    {% elif msg.status == 'delivered' %} text-purple-300
+                    {% else %} text-gray-400 {% endif %}">
+                    {% if msg.status in ['read', 'delivered'] %}✓✓{% else %}✓{% endif %}
                 </span>
             {% endif %}
         </div>
