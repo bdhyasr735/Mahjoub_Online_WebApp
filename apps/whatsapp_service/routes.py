@@ -391,10 +391,10 @@ def settings_save():
         if data.get('api_version'):
             WhatsAppSettings.set_setting('WHATSAPP_API_VERSION', data.get('api_version'))
         if data.get('access_token'):
-            WhatsAppAttributes = data.get('access_token')
-            WhatsAppSettings.set_setting('WHATSAPP_TOKEN', WhatsAppAttributes)
+            whatsapp_attributes = data.get('access_token')
+            WhatsAppSettings.set_setting('WHATSAPP_TOKEN', whatsapp_attributes)
 
-        return jsonify({"success": True, "message": "تم حفظ الإعدادات"})
+        return jsonify({"success": "True", "message": "تم حفظ الإعدادات"})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
