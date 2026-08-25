@@ -126,27 +126,29 @@ def send_message_htmx():
             if new_msg:
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
-                return """
-                <div class="flex justify-start animate-fadeIn">
+                return f"""
+                <div class="message-item flex justify-start animate-fadeIn" data-content="{message.lower()}">
                     <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-white text-slate-900 border border-slate-200">
-                        <p class="whitespace-pre-wrap leading-relaxed">✅ تم الإرسال بنجاح</p>
+                        <p class="whitespace-pre-wrap leading-relaxed message-text">{message}</p>
                         <div class="flex items-center justify-end gap-1 mt-1">
                             <span class="text-[9px] text-slate-400">الآن</span>
+                            <span class="text-[10px] font-bold text-slate-400">✓</span>
                         </div>
                     </div>
                 </div>
                 """
         return jsonify({"success": True, "result": result})
     else:
+        error_msg = str(result)[:100]
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return f"""
-            <div class="flex justify-start animate-fadeIn">
+            <div class="message-item flex justify-start animate-fadeIn">
                 <div class="max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-red-50 text-red-700 border border-red-200">
-                    <p class="whitespace-pre-wrap leading-relaxed">❌ فشل الإرسال: {str(result)[:100]}</p>
+                    <p class="whitespace-pre-wrap leading-relaxed">❌ فشل الإرسال: {error_msg}</p>
                 </div>
             </div>
             """
-        return jsonify({"success": False, "error": str(result)}), 500
+        return jsonify({"success": False, "error": error_msg}), 500
 
 
 @whatsapp_bp.route('/send-media', methods=['POST'])
@@ -290,7 +292,15 @@ def logs_dashboard():
         logs = []
         total_logs = inbound_logs = outbound_logs = unread_logs = 0
         
-    return render_template('admin/whatsapp_dashboard.html', active_tab='logs', logs=logs, total_logs=total_logs, inbound_logs=inbound_logs, outbound_logs=outbound_logs, unread_logs=unread_logs)
+    return render_template(
+        'admin/whatsapp_dashboard.html', 
+        active_tab='logs', 
+        logs=logs, 
+        total_logs=total_logs, 
+        inbound_logs=inbound_logs, 
+        outbound_logs=outbound_logs, 
+        unread_logs=unread_logs
+    )
 
 
 @whatsapp_bp.route('/webhook-dashboard')
@@ -346,7 +356,15 @@ def webhook_handler():
                         elif msg_type == 'location': msg_body = "[موقع]"
                         else: msg_body = f"[رسالة نوع {msg_type}]"
 
-                        log_entry = WhatsAppMessageLog(wamid=wamid, direction='inbound', sender_number=sender, recipient_number=WhatsAppServiceConfig.get_phone_number_id(), content=msg_body, message_type=msg_type, status='received')
+                        log_entry = WhatsAppMessageLog(
+                            wamid=wamid, 
+                            direction='inbound', 
+                            sender_number=sender, 
+                            recipient_number=WhatsAppServiceConfig.get_phone_number_id(), 
+                            content=msg_body, 
+                            message_type=msg_type, 
+                            status='received'
+                        )
                         db.session.add(log_entry)
 
                         contact = WhatsAppCustomerContact.query.filter_by(phone=sender).first()
@@ -355,7 +373,13 @@ def webhook_handler():
                             contact.last_timestamp = datetime.now(timezone.utc)
                             contact.unread_count = (contact.unread_count or 0) + 1
                         else:
-                            new_contact = WhatsAppCustomerContact(phone=sender, name=f"عميل ({sender})", last_message=msg_body, last_timestamp=datetime.now(timezone.utc), unread_count=1)
+                            new_contact = WhatsAppCustomerContact(
+                                phone=sender, 
+                                name=f"عميل ({sender})", 
+                                last_message=msg_body, 
+                                last_timestamp=datetime.now(timezone.utc), 
+                                unread_count=1
+                            )
                             db.session.add(new_contact)
                         db.session.commit()
 
