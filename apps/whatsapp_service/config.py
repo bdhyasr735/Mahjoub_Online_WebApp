@@ -36,7 +36,8 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def get_verify_token(cls):
-        return cls._get_val('WHATSAPP_VERIFY_TOKEN', 'WHATSAPP VERIFY TOKEN', default='mahjoub_secure_webhook_token')
+        # ⚠️ تأكد من أن القيمة الافتراضية هنا هي نفسها المسجلة في لوحة Meta Developers
+        return cls._get_val('WHATSAPP_VERIFY_TOKEN', 'WHATSAPP VERIFY TOKEN', default='mahjoob_webhook_secret_2026')
 
     @classmethod
     def get_webhook_secret(cls):
