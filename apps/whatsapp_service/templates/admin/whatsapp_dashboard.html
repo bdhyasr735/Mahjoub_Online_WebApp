@@ -175,7 +175,7 @@
                                 </button>
                             </td>
                         </tr>
-                        {% empty %}
+                        {% else %}
                         <tr>
                             <td colspan="6" class="text-center py-4 text-muted">لا توجد سجلات رسائل حديثة متاحة.</td>
                         </tr>
@@ -222,7 +222,6 @@
 
 {% block extra_js %}
 <script>
-    // سكربت تفاعلي لتحديث الحالة أو ربط الأزرار عند الحاجة
     document.getElementById('restart-btn').addEventListener('click', function() {
         alert('جاري إرسال أمر إعادة تشغيل خدمة واتساب...');
     });
