@@ -72,7 +72,6 @@ def chat_dashboard():
     active_contact = None
 
     try:
-        # ✅ تم إزالة اختيار أول عميل تلقائياً، والاعتماد فقط على النقر أو تحديد المعرف/الرقم
         if contact_id:
             active_contact = WhatsAppCustomerContact.query.get(contact_id)
             if active_contact:
@@ -248,7 +247,22 @@ def settings_view():
         return redirect(url_for('whatsapp_service.settings_view'))
 
     settings_data = inject_settings()['settings']
-    return render_template('admin/whatsapp_dashboard.html', active_tab='settings', settings=settings_data)
+    
+    # ✅ إضافة الإحصائيات والسجلات الافتراضية لمنع انهيار القالب في صفحة الإعدادات
+    stats = {
+        'messages_sent_today': 0,
+        'pending_queue': 0,
+        'failed_messages': 0
+    }
+    recent_logs = []
+    
+    return render_template(
+        'admin/whatsapp_dashboard.html', 
+        active_tab='settings', 
+        settings=settings_data,
+        stats=stats,
+        recent_logs=recent_logs
+    )
 
 
 @whatsapp_bp.route('/save-settings', methods=['POST'])
