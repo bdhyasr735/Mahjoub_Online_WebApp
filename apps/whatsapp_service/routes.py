@@ -125,24 +125,41 @@ def send_message_htmx():
     success, result = send_text_message(recipient, message)
     
     if success:
+        # حفظ الرسالة محلياً في السجل كرسالة صادرة لضمان ظهورها الفوري
+        try:
+            outbound_log = WhatsAppMessageLog(
+                wamid=result.get('messages', [{}])[0].get('id', 'local_sent'),
+                direction='outbound',
+                sender_number=WhatsAppServiceConfig.get_phone_number_id(),
+                recipient_number=recipient,
+                content=message,
+                message_type='text',
+                status='sent'
+            )
+            db.session.add(outbound_log)
+            
+            # تحديث آخر رسالة وجهة اتصال
+            contact = WhatsAppCustomerContact.query.filter_by(phone=recipient).first()
+            if contact:
+                contact.last_message = message
+                contact.last_timestamp = datetime.now(timezone.utc)
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(f"Error saving outbound message: {e}")
+            db.session.rollback()
+
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            new_msg = WhatsAppMessageLog.query.filter_by(
-                recipient_number=recipient
-            ).order_by(WhatsAppMessageLog.id.desc()).first()
-            if new_msg:
-                return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
-            else:
-                return f"""
-                <div class="flex justify-end animate-fadeIn">
-                    <div class="max-w-[75%] bg-[#570575] border royal-border rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
-                        <p class="whitespace-pre-wrap leading-relaxed pb-3">{message}</p>
-                        <div class="absolute bottom-1.5 left-3 flex items-center gap-1">
-                            <span class="text-[9px] text-purple-200">الآن</span>
-                            <span class="text-[10px] font-bold text-[#D4AF37]">✓</span>
-                        </div>
+            return f"""
+            <div class="flex justify-end animate-fadeIn">
+                <div class="max-w-[75%] bg-[#570575] border royal-border rounded-2xl px-4 py-2.5 shadow-md text-xs text-white relative">
+                    <p class="whitespace-pre-wrap leading-relaxed pb-3">{message}</p>
+                    <div class="absolute bottom-1.5 left-3 flex items-center gap-1">
+                        <span class="text-[9px] text-purple-200">الآن</span>
+                        <span class="text-[10px] font-bold text-[#D4AF37]">✓</span>
                     </div>
                 </div>
-                """
+            </div>
+            """
         return jsonify({"success": True, "result": result})
     else:
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -160,6 +177,8 @@ def send_message_htmx():
 def start_new_chat():
     phone = request.form.get('phone')
     if not phone:
+        if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "error": "رقم الهاتف مطلوب"}), 400
         flash('رقم الهاتف مطلوب لبدء المحادثة', 'error')
         return redirect(url_for('whatsapp_service.chat_dashboard'))
     
@@ -184,6 +203,9 @@ def start_new_chat():
                 db.session.commit()
     except Exception:
         db.session.rollback()
+
+    if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"success": True, "phone": phone, "name": contact.name})
 
     return redirect(url_for('whatsapp_service.chat_dashboard', phone=phone))
 
