@@ -56,8 +56,13 @@ def chat_dashboard():
         contacts = WhatsAppCustomerContact.query.order_by(
             WhatsAppCustomerContact.last_timestamp.desc()
         ).all()
+        
+        # ✅ حساب عدد المحادثات غير المقروءة للعداد في الشريط الجانبي
+        unread_chats = sum(c.unread_count or 0 for c in contacts)
+
     except Exception:
         contacts = []
+        unread_chats = 0
     
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
@@ -104,7 +109,8 @@ def chat_dashboard():
         selected_phone=selected_phone,
         now=now,
         today=today,
-        yesterday=yesterday
+        yesterday=yesterday,
+        unread_chats=unread_chats  # ✅ تمرير العداد
     )
 
 
@@ -242,16 +248,32 @@ def save_settings():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# ✅ دالة السجل (محدثة لتمرير الإحصائيات)
 @whatsapp_bp.route('/logs')
 def logs_dashboard():
     try:
         logs = WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.timestamp.desc()).all()
+        
+        # ✅ حساب الإحصائيات للعرض في البطاقات
+        total_logs = len(logs)
+        inbound_logs = sum(1 for log in logs if log.direction == 'inbound')
+        outbound_logs = sum(1 for log in logs if log.direction == 'outbound')
+        
+        # ✅ حساب الرسائل غير المقروءة أو الجديدة (للعرض في الشريط الجانبي والبطاقة الصفراء)
+        unread_logs = sum(1 for log in logs if log.status == 'received' or log.status == 'sent')
+        
     except Exception:
         logs = []
+        total_logs = inbound_logs = outbound_logs = unread_logs = 0
+        
     return render_template(
         'admin/whatsapp_dashboard.html',
         active_tab='logs',
-        logs=logs
+        logs=logs,
+        total_logs=total_logs,
+        inbound_logs=inbound_logs,
+        outbound_logs=outbound_logs,
+        unread_logs=unread_logs  # ✅ تمرير العداد
     )
 
 
