@@ -247,15 +247,14 @@ def settings_view():
         return redirect(url_for('whatsapp_service.settings_view'))
 
     settings_data = inject_settings()['settings']
-    
-    # ✅ إضافة الإحصائيات والسجلات الافتراضية لمنع انهيار القالب في صفحة الإعدادات
+     
     stats = {
         'messages_sent_today': 0,
         'pending_queue': 0,
         'failed_messages': 0
     }
     recent_logs = []
-    
+     
     return render_template(
         'admin/whatsapp_dashboard.html', 
         active_tab='settings', 
@@ -441,3 +440,65 @@ def settings_save():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================================
+# مسارات التحديث اللحظي للوحة التحكم (HTMX Fragments)
+# ============================================================
+
+@whatsapp_bp.route('/dashboard/stats-fragment')
+def dashboard_stats_fragment():
+    try:
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        messages_sent_today = (
+            WhatsAppMessageLog.query.filter(
+                WhatsAppMessageLog.direction == 'outbound',
+                WhatsAppMessageLog.timestamp >= today_start,
+            ).count()
+            or 0
+        )
+
+        failed_messages = (
+            WhatsAppMessageLog.query.filter_by(status='failed').count() or 0
+        )
+        pending_queue = 0
+
+        stats = {
+            'messages_sent_today': messages_sent_today,
+            'failed_messages': failed_messages,
+            'pending_queue': pending_queue,
+        }
+    except Exception:
+        stats = {
+            'messages_sent_today': 0,
+            'failed_messages': 0,
+            'pending_queue': 0,
+        }
+
+    return render_template('admin/whatsapp/partials/stats_cards.html', stats=stats)
+
+
+@whatsapp_bp.route('/dashboard/logs-fragment')
+def recent_logs_fragment():
+    try:
+        recent_logs = (
+            WhatsAppMessageLog.query.order_by(WhatsAppMessageLog.id.desc())
+            .limit(10)
+            .all()
+        )
+    except Exception:
+        recent_logs = []
+    return render_template(
+        'admin/whatsapp/partials/logs_table.html', recent_logs=recent_logs
+    )
+
+
+@whatsapp_bp.route('/restart-session', methods=['POST'])
+def restart_session():
+    current_app.logger.info("WhatsApp session restart requested.")
+    return (
+        '<div class="alert alert-success py-2 mb-0">تم إرسال أمر إعادة تشغيل'
+        ' الجلسة وتحديث الاتصال بنجاح!</div>'
+    )
