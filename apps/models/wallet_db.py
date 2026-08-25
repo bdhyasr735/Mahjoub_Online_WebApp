@@ -13,7 +13,7 @@ from apps.extensions import db
 
 
 class SupplierWallet(db.Model):
-    """محفظة الموردين: الأرصدة والبيانات المشفرة بأعلى معايير الأمان."""
+    """محفظة الموردين: الأرصدة والبيانات المشفرة بأعلى معايير الأمان (ريال سعودي SAR فقط)."""
     __tablename__ = 'supplier_wallets'
 
     __table_args__ = (
@@ -28,9 +28,7 @@ class SupplierWallet(db.Model):
     
     status = db.Column(db.String(20), default='active', nullable=False)
 
-    balance_yer = db.Column(db.Numeric(18, 2), default=0.00)
-    balance_usd = db.Column(db.Numeric(18, 2), default=0.00)
-    balance_sar = db.Column(db.Numeric(18, 2), default=0.00)
+    balance_sar = db.Column(db.Numeric(18, 2), default=0.00, nullable=False)
     balance_pending = db.Column(db.Numeric(18, 2), default=0.00)
     total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)
 
@@ -78,8 +76,6 @@ class SupplierWallet(db.Model):
             'wallet_code': self.wallet_code,
             'status': self.status,
             'supplier_id': self.supplier_id,
-            'balance_yer': float(self.balance_yer or 0.0),
-            'balance_usd': float(self.balance_usd or 0.0),
             'balance_sar': float(self.balance_sar or 0.0),
             'bank_details': self.bank_details,
             'formatted_time': self.formatted_time,
@@ -88,7 +84,7 @@ class SupplierWallet(db.Model):
 
 
 class WalletTransaction(db.Model):
-    """سجل الحركات المالية الموحد مع التوثيق المالي المشفر والفهرسة الفائقة."""
+    """سجل الحركات المالية الموحد بالريال السعودي مع التوثيق المالي المشفر."""
     __tablename__ = 'wallet_transactions'
 
     __table_args__ = (
@@ -108,7 +104,7 @@ class WalletTransaction(db.Model):
     balance_before = db.Column(db.Numeric(18, 2), nullable=False)
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
     
-    # [بيانات التوثيق المالي الجديدة]
+    # [بيانات التوثيق المالي]
     transfer_number = db.Column(db.String(100), nullable=True)
     approval_ref = db.Column(db.String(100), nullable=True)
     payout_bank = db.Column(db.String(100), nullable=True)
@@ -152,6 +148,7 @@ class WalletTransaction(db.Model):
             'trans_type': self.trans_type,
             'status': self.status,
             'amount': float(self.amount or 0.0),
+            'currency': self.currency,
             'reference_number': self.reference_number,
             'voucher_number': self.voucher_number,
             'transfer_number': self.transfer_number,
@@ -212,8 +209,8 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         target.voucher_number = generate_unique_voucher_number(connection, length=6, prefix="VCH-")
 
     if wallet_row:
-        attr = f'balance_{(target.currency or "sar").lower()}'
-        current_bal = Decimal(str(wallet_row.get(attr, 0)))
+        # الاعتماد الثابت على balance_sar فقط
+        current_bal = Decimal(str(wallet_row.get('balance_sar', 0)))
         
         target.balance_before = current_bal
         is_credit = target.trans_type in ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
@@ -222,12 +219,12 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         connection.execute(
             update(wallet_table)
             .where(wallet_table.c.id == target.wallet_id)
-            .values({attr: target.balance_after, 'updated_at': datetime.utcnow()})
+            .values({'balance_sar': target.balance_after, 'updated_at': datetime.utcnow()})
         )
 
 
 class WithdrawalRequest(db.Model):
-    """جدول طلبات سحب الأرباح للموردين عبر البنوك والشركات المالية."""
+    """جدول طلبات سحب الأرباح للموردين بالريال السعودي."""
     __tablename__ = 'withdrawal_requests'
 
     __table_args__ = (
@@ -243,9 +240,7 @@ class WithdrawalRequest(db.Model):
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     currency = db.Column(db.String(5), nullable=False, default='SAR')
     
-    # الجهة المختارة (بنك أو شركة تحويل)
     payout_method = db.Column(db.String(150), nullable=False)
-    
     status = db.Column(db.String(30), default='pending', nullable=False)
     notes = db.Column(db.Text, nullable=True)
     
