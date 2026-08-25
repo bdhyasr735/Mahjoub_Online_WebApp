@@ -15,18 +15,15 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .search-highlight { background: #fef9c3; padding: 0 2px; border-radius: 2px; }
     @media (max-width: 640px) { aside.w-20 { width: 60px; } }
-    /* تأثير انتقالي للرسائل الجديدة */
     .message-item { transition: all 0.2s ease; }
-    /* تنسيق شريط التمرير */
     #chatMessagesContainer::-webkit-scrollbar { width: 4px; }
     #chatMessagesContainer::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 h-screen h-[100dvh] flex flex-row-reverse overflow-hidden" hx-ext="ws">
 
-  <!-- الشريط الجانبي (Sidebar) -->
+  <!-- الشريط الجانبي -->
   <aside class="w-20 flex flex-col items-center justify-between py-4 shrink-0 z-40 border-l border-white/5" style="background-color: #1f012e;" role="navigation" aria-label="القائمة الرئيسية">
     <div class="flex flex-col items-center gap-6">
       <div class="w-12 h-12 rounded-2xl bg-white/10 p-1 flex items-center justify-center border border-white/10 overflow-hidden shadow-inner group transition-transform hover:scale-105" title="محجوب أونلاين">
@@ -57,7 +54,7 @@
   <!-- الحاوية الرئيسية -->
   <div class="flex-1 flex flex-col h-full overflow-hidden">
 
-    <!-- الهيدر العلوي -->
+    <!-- الهيدر -->
     <header class="bg-white border-b border-slate-200 h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 shadow-sm">
       <div class="flex items-center gap-2 sm:gap-4 flex-wrap">
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
@@ -86,12 +83,11 @@
     <!-- المحتوى الرئيسي -->
     <main class="flex-1 flex overflow-hidden w-full relative" role="main">
 
-      <!-- ============================================================
-           قسم المحادثات (مع HTMX لجعلها تفاعلية)
-      ============================================================ -->
+      <!-- ============================================== -->
+      <!-- 1. قسم المحادثات (Chat) - الكود الكامل        -->
+      <!-- ============================================== -->
       {% if active_tab == 'chat' %}
       <div class="flex-1 flex overflow-hidden w-full bg-white">
-        <!-- قائمة جهات الاتصال (يمين) -->
         <div class="w-80 border-l border-slate-200 flex flex-col h-full bg-slate-50/50">
           <div class="p-4 border-b border-slate-200 flex items-center justify-between">
             <h3 class="font-bold text-sm text-slate-800">المحادثات النشطة</h3>
@@ -100,14 +96,7 @@
           <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
             {% if contacts %}
               {% for contact in contacts %}
-                <!-- ✅ استخدام HTMX لتحميل المحادثة بدون إعادة تحميل الصفحة -->
-                <a href="#" 
-                   hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
-                   hx-select="#chat-area" 
-                   hx-target="#chat-area" 
-                   hx-swap="outerHTML"
-                   hx-push-url="true"
-                   class="flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
+                <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" hx-select="#chat-area" hx-target="#chat-area" hx-swap="outerHTML" hx-push-url="true" class="flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
                   <div class="relative">
                     <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">{{ contact.name[0] if contact.name else 'ع' }}</div>
                     {% if contact.is_online %}<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>{% endif %}
@@ -130,12 +119,8 @@
           </div>
         </div>
 
-        <!-- ============================================================
-             منطقة المحادثة النشطة (مع HTMX للتحديث التلقائي)
-        ============================================================ -->
         <div id="chat-area" class="flex-1 flex flex-col h-full bg-slate-100">
           {% if selected_contact %}
-            <!-- رأس المحادثة -->
             <div class="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
               <div class="flex items-center gap-3 flex-1 min-w-0">
                 <div class="relative">
@@ -159,15 +144,7 @@
               </div>
             </div>
 
-            <!-- سجل الرسائل (مع تحديث تلقائي كل 5 ثوانٍ) -->
-            <div id="chatMessagesContainer" 
-                 class="flex-1 p-4 overflow-y-auto flex flex-col gap-1"
-                 hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
-                 hx-select="#chatMessagesContainer" 
-                 hx-target="#chatMessagesContainer" 
-                 hx-swap="outerHTML"
-                 hx-trigger="every 5s">
-              <!-- سيتم استبدال هذا المحتوى تلقائياً كل 5 ثوانٍ -->
+            <div id="chatMessagesContainer" class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" hx-select="#chatMessagesContainer" hx-target="#chatMessagesContainer" hx-swap="outerHTML" hx-trigger="every 5s">
               {% if messages and messages|length > 0 %}
                 {% set current_date = None %}
                 {% for msg in messages %}
@@ -203,7 +180,6 @@
               {% endif %}
             </div>
 
-            <!-- نموذج الإرسال (مع HTMX أو Fetch) -->
             <form id="chat-form" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shadow-inner">
               <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
               <input type="text" name="message" id="message-input" placeholder="اكتب رسالتك هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
@@ -219,7 +195,6 @@
         </div>
       </div>
 
-      <!-- نافذة محادثة جديدة -->
       <div id="newChatModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
         <div class="bg-white rounded-2xl w-96 p-6 shadow-2xl border border-slate-200 animate-fadeIn">
           <h3 class="font-bold text-sm text-slate-900 mb-4">بدء محادثة جديدة</h3>
@@ -240,15 +215,11 @@
         </div>
       </div>
 
-      <!-- JavaScript للبحث والإرسال والتحديث التلقائي -->
       <script>
-        // التمرير التلقائي لأسفل عند تحميل المحادثة
         document.addEventListener('DOMContentLoaded', function() {
           const container = document.getElementById('chatMessagesContainer');
           if (container) container.scrollTop = container.scrollHeight;
         });
-
-        // البحث في الرسائل
         document.addEventListener('DOMContentLoaded', function() {
           const searchInput = document.getElementById('chatSearchInput');
           const messages = document.querySelectorAll('.message-item');
@@ -276,8 +247,6 @@
           searchInput.addEventListener('input', performSearch);
           window.clearSearch = function() { searchInput.value = ''; performSearch(); searchInput.focus(); };
         });
-
-        // إرسال الرسالة باستخدام Fetch (بدون إعادة تحميل)
         document.addEventListener('DOMContentLoaded', function() {
           const form = document.getElementById('chat-form');
           const input = document.getElementById('message-input');
@@ -307,33 +276,135 @@
             finally { sendBtn.disabled = false; sendBtn.textContent = 'إرسال'; }
           });
         });
-
-        // تحديث تلقائي للرسائل عند استقبال رسالة جديدة (إعادة تحميل جزء المحادثة)
-        // يتم التعامل معه بواسطة HTMX (hx-trigger="every 5s")
-        // لكننا نحتاج إلى إعادة تعيين التمرير إلى الأسفل بعد التحديث
         document.addEventListener('htmx:afterSwap', function(event) {
           if (event.detail.target.id === 'chatMessagesContainer') {
             const container = document.getElementById('chatMessagesContainer');
             if (container) {
-              // التمرير إلى الأسفل فقط إذا كان المستخدم قريباً من الأسفل (لتجنب إزعاج المستخدم)
               const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
-              if (isNearBottom) {
-                container.scrollTop = container.scrollHeight;
-              }
+              if (isNearBottom) container.scrollTop = container.scrollHeight;
             }
           }
         });
       </script>
 
-      <!-- ============================================================
-           باقي الأقسام (سجل، Webhook، إعدادات) - تبقى كما هي
-      ============================================================ -->
+      <!-- ============================================== -->
+      <!-- 2. قسم السجل (Logs) - الكود الكامل            -->
+      <!-- ============================================== -->
       {% elif active_tab == 'logs' %}
-      <!-- ... قسم السجل ... (نفس الكود السابق) -->
+      <div class="flex-1 flex flex-col bg-white p-6 overflow-hidden">
+          <div class="flex items-center justify-between mb-6">
+              <h2 class="text-lg font-bold text-slate-800">سجل الرسائل</h2>
+              <input type="text" placeholder="🔍 بحث في السجل..." class="px-4 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-emerald-600 focus:outline-none transition-all w-64">
+          </div>
+          <div class="flex-1 overflow-auto border border-slate-200 rounded-xl">
+              <table class="w-full text-xs text-right">
+                  <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                      <tr>
+                          <th class="px-4 py-3 font-bold">الوقت</th>
+                          <th class="px-4 py-3 font-bold">الهاتف</th>
+                          <th class="px-4 py-3 font-bold">الاتجاه</th>
+                          <th class="px-4 py-3 font-bold">الرسالة</th>
+                          <th class="px-4 py-3 font-bold">الحالة</th>
+                      </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                      {% if logs %}
+                          {% for log in logs %}
+                          <tr class="hover:bg-slate-50/80">
+                              <td class="px-4 py-3 text-slate-500" dir="ltr">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '' }}</td>
+                              <td class="px-4 py-3 font-medium" dir="ltr">{{ log.phone }}</td>
+                              <td class="px-4 py-3">
+                                  {% if log.direction == 'inbound' %}
+                                      <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded">واردة</span>
+                                  {% else %}
+                                      <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded">صادرة</span>
+                                  {% endif %}
+                              </td>
+                              <td class="px-4 py-3 text-slate-700 max-w-xs truncate">{{ log.content }}</td>
+                              <td class="px-4 py-3">
+                                  {% if log.status == 'delivered' %}<span class="text-blue-600 font-bold">✓✓</span>
+                                  {% elif log.status == 'read' %}<span class="text-indigo-600 font-bold">✓✓</span>
+                                  {% elif log.status == 'sent' %}<span class="text-slate-400">✓</span>
+                                  {% else %}<span class="text-slate-400">-</span>{% endif %}
+                              </td>
+                          </tr>
+                          {% endfor %}
+                      {% else %}
+                          <tr><td colspan="5" class="p-8 text-center text-slate-400">لا توجد سجلات حالياً</td></tr>
+                      {% endif %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 3. قسم الويب هوك (Webhook) - الكود الكامل     -->
+      <!-- ============================================== -->
       {% elif active_tab == 'webhook' %}
-      <!-- ... قسم Webhook ... (نفس الكود السابق) -->
+      <div class="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-auto bg-slate-50">
+          <div class="flex-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h2 class="text-sm font-bold text-slate-800 mb-4">إرسال حدث تجريبي</h2>
+              <form class="space-y-4">
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">نوع الحدث</label>
+                      <select class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 bg-slate-50">
+                          <option>messages</option>
+                          <option>message_status</option>
+                      </select>
+                  </div>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">حمولة JSON</label>
+                      <textarea class="w-full h-64 font-mono text-xs border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-emerald-600 bg-slate-50" placeholder='{"object": "whatsapp_business_account", "entry": []}'></textarea>
+                  </div>
+                  <button type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition-colors">إرسال للوحة</button>
+              </form>
+          </div>
+          <div class="flex-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+              <h2 class="text-sm font-bold text-slate-800 mb-4">سجل استقبال الويب هوك</h2>
+              <div class="flex-1 bg-slate-900 text-emerald-400 text-xs p-4 rounded-xl font-mono overflow-auto" dir="ltr">
+                  {% if webhook_logs %}
+                      {% for log in webhook_logs %}
+                      <div class="mb-4 border-b border-slate-700 pb-2">
+                          <div class="text-slate-500">{{ log.timestamp.strftime('%H:%M:%S') }}</div>
+                          <pre class="whitespace-pre-wrap">{{ log.payload }}</pre>
+                      </div>
+                      {% endfor %}
+                  {% else %}
+                      <p class="text-slate-500 text-center py-10">بانتظار الأحداث...</p>
+                  {% endif %}
+              </div>
+          </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 4. قسم الإعدادات (Settings) - الكود الكامل    -->
+      <!-- ============================================== -->
       {% elif active_tab == 'settings' %}
-      <!-- ... قسم الإعدادات ... (نفس الكود السابق) -->
+      <div class="flex-1 p-6 bg-slate-50 overflow-auto">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+              <h2 class="text-lg font-bold text-slate-800 mb-6">إعدادات الاتصال بـ Meta API</h2>
+              <form action="{{ url_for('whatsapp_service.save_settings') if url_for else '#' }}" method="POST" class="space-y-6">
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-2">رقم الهاتف المرتبط (Phone Number ID)</label>
+                      <input type="text" name="phone_number_id" value="{{ settings.phone_number_id if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+                      <p class="text-[11px] text-slate-400 mt-1">معرّف رقم الهاتف من حساب Meta Business</p>
+                  </div>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-2">رمز الوصول (Access Token)</label>
+                      <input type="password" name="access_token" value="{{ settings.access_token if settings else '' }}" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-600 transition-all">
+                      <p class="text-[11px] text-slate-400 mt-1">توكن الوصول الدائم للاتصال بواجهة واتساب</p>
+                  </div>
+                  <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                      <div class="flex items-center gap-2 text-xs">
+                          <span class="w-2 h-2 rounded-full {% if settings and settings.access_token %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+                          <span class="text-slate-600">حالة الاتصال الحالية:</span>
+                          <strong>{% if settings and settings.access_token %}متصل ✓{% else %}غير متصل ✗{% endif %}</strong>
+                      </div>
+                      <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">حفظ الإعدادات</button>
+                  </div>
+              </form>
+          </div>
+      </div>
       {% endif %}
 
     </main>
