@@ -110,6 +110,11 @@ class WhatsAppMessageLog(db.Model):
     @property
     def is_failed(self):
         return self.status == 'failed'
+
+    # ✅ أضف هذه الخاصية لتوافق القالب الذي يستخدم log.phone
+    @property
+    def phone(self):
+        return self.recipient_number if self.direction == 'outbound' else self.sender_number
     
     def to_dict(self):
         return {
