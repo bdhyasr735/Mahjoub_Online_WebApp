@@ -11,12 +11,11 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
-          <a href="#" 
+          <a href="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
              hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
              hx-target="#chat-area" 
              hx-swap="innerHTML" 
              hx-indicator="none"
-             hx-disabled-elt="this"
              onclick="event.preventDefault();" 
              class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-all duration-200 {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
             <div class="relative">
@@ -63,11 +62,13 @@
         </div>
       </div>
 
+      <!-- ✅ الحل: استخدام HTMX Triggers بدلاً من setInterval -->
       <div id="chatMessagesContainer" 
            class="flex-1 p-4 overflow-y-auto flex flex-col gap-1" 
            hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
            hx-target="#chatMessagesContainer" 
            hx-swap="innerHTML" 
+           hx-trigger="every 2s" 
            hx-indicator="none">
         {% if messages and messages|length > 0 %}
           {% set current_date = None %}
@@ -135,49 +136,18 @@
     setupContactSearch();
   });
 
-  // ✅ التعديل الجديد: التحديث الصامت للرسائل الواردة كل ثانية
-  document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('chatMessagesContainer');
-    const phoneInput = document.querySelector('input[name="phone"]');
-    if (!container || !phoneInput) return;
-
-    setInterval(function() {
-      const currentPhone = phoneInput.value;
-      fetch("{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}", {
-        method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(response => response.text())
-      .then(html => {
-        // استخراج الرسائل الجديدة فقط من الرد
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const newMessagesContainer = doc.getElementById('chatMessagesContainer');
-        if (newMessagesContainer) {
-          const oldCount = container.querySelectorAll('.message-item').length;
-          const newCount = newMessagesContainer.querySelectorAll('.message-item').length;
-          if (newCount > oldCount) {
-            // إضافة الرسائل الجديدة فقط دون إعادة بناء الصفحة
-            const oldMessages = Array.from(container.querySelectorAll('.message-item'));
-            const newMessages = Array.from(newMessagesContainer.querySelectorAll('.message-item'));
-            // إضافة الرسائل التي ليست موجودة بعد
-            newMessages.forEach(msg => {
-              const content = msg.getAttribute('data-content');
-              const isExist = oldMessages.some(oldMsg => oldMsg.getAttribute('data-content') === content);
-              if (!isExist) {
-                container.insertAdjacentHTML('beforeend', msg.outerHTML);
-              }
-            });
-            container.scrollTop = container.scrollHeight;
-          }
-        }
-      })
-      .catch(() => {});
-    }, 1000);
-  });
-
-  // معالجة HTMX بعد التبديل (بدون أي مؤشر تحميل)
+  // معالجة HTMX بعد التبديل لضمان التنقل السلس
   document.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.id === 'chatMessagesContainer') {
+      const container = document.getElementById('chatMessagesContainer');
+      if (container) {
+        // التمرير فقط إذا كنت قريباً من الأسفل
+        const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+        if (isNearBottom) container.scrollTop = container.scrollHeight;
+      }
+      // إعادة تهيئة HTMX داخل العنصر الجديد (مهم جداً!)
+      if (window.htmx) htmx.process(container);
+    }
     if (event.detail.target.id === 'chat-area') {
       setupContactSearch();
       if (window.htmx) htmx.process(document.body);
