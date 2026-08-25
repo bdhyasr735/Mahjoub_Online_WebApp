@@ -64,7 +64,12 @@ def whatsapp_dashboard():
         phone = request.form.get('phone')
         message_text = request.form.get('message')
         
-        if message_text and phone and selected_contact:
+        # التأكد من جلب العميل في حال لم يكن محفزاً بالاعلى لضمان عدم حدوث خطأ 400
+        target_contact = selected_contact
+        if not target_contact and phone:
+            target_contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+
+        if message_text and phone and target_contact:
             # استخدام دالة الإرسال المركزية من whatsapp_api.py (تتولى الإرسال والتسجيل في قاعدة البيانات تلقائياً)
             success, res_data = send_text_message(phone, message_text)
             
