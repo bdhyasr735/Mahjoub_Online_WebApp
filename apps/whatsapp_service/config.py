@@ -60,4 +60,5 @@ class WhatsAppServiceConfig:
 
     @classmethod
     def get_api_version(cls):
-        return cls._get_val('WHATSAPP_API_VERSION', default='v21.0')
+        # ✅ تحديث الإصدار الافتراضي ليتطابق تماماً مع v26.0
+        return cls._get_val('WHATSAPP_API_VERSION', default='v26.0')
