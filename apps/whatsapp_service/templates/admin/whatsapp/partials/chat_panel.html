@@ -11,12 +11,13 @@
     <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
       {% if contacts %}
         {% for contact in contacts %}
-          <a href="#" hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
+          <a href="#" 
+             hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=contact.id) }}" 
              hx-target="#chat-area" 
              hx-swap="innerHTML" 
-             hx-push-url="true" 
+             hx-indicator="none"
              onclick="event.preventDefault();" 
-             class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-colors {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
+             class="contact-item flex items-center gap-3 p-3 hover:bg-slate-100/80 transition-all duration-200 {{ 'bg-emerald-50/60 border-r-4 border-emerald-600' if selected_contact and selected_contact.id == contact.id else '' }}">
             <div class="relative">
               <div class="w-10 h-10 rounded-full bg-emerald-600/10 text-emerald-700 font-bold flex items-center justify-center shrink-0">{{ contact.name[0] if contact.name else 'ع' }}</div>
               {% if contact.is_online %}<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>{% endif %}
@@ -37,8 +38,8 @@
     </div>
   </div>
 
-  <!-- منطقة الدردشة -->
-  <div id="chat-area" class="flex-1 flex flex-col h-full bg-slate-100">
+  <!-- منطقة الدردشة (تفاعلية) -->
+  <div id="chat-area" class="flex-1 flex flex-col h-full bg-slate-100 transition-all duration-300">
     {% if selected_contact %}
       <div class="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -66,7 +67,8 @@
            hx-get="{{ url_for('whatsapp_service.chat_dashboard', contact_id=selected_contact.id) }}" 
            hx-target="#chatMessagesContainer" 
            hx-swap="innerHTML" 
-           hx-trigger="every 5s">
+           hx-trigger="every 3s" 
+           hx-indicator="none">
         {% if messages and messages|length > 0 %}
           {% set current_date = None %}
           {% for msg in messages %}
@@ -89,8 +91,8 @@
 
       <form id="chat-form" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shadow-inner">
         <input type="hidden" name="phone" value="{{ selected_contact.phone }}">
-        <input type="text" name="message" id="message-input" placeholder="اكتب رسالتك هنا..." required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
-        <button type="submit" id="send-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm hover:shadow-md">إرسال</button>
+        <input type="text" name="message" id="message-input" placeholder="اكتب رسالتك هنا..." required autocomplete="off" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-600 focus:bg-white transition-all">
+        <button type="submit" id="send-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-transform active:scale-95 shadow-sm hover:shadow-md">إرسال</button>
       </form>
     {% else %}
       <div class="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
@@ -103,10 +105,13 @@
 </div>
 
 <script>
+  // دالة التمرير للأسفل الفورية
   function scrollToBottom() {
     const container = document.getElementById('chatMessagesContainer');
     if (container) container.scrollTop = container.scrollHeight;
   }
+
+  // إعادة تفعيل البحث في القائمة
   function setupContactSearch() {
     const searchInput = document.getElementById('contactSearchInput');
     const contactItems = document.querySelectorAll('.contact-item');
@@ -123,20 +128,23 @@
     };
     searchInput.addEventListener('input', filterContacts);
   }
+
+  // تحميل أولي
   document.addEventListener('DOMContentLoaded', function() {
     scrollToBottom();
     setupContactSearch();
   });
-  
-  // ✅ التعديل السحري: إعادة تهيئة HTMX بعد كل تبديل
+
+  // معالجة HTMX بعد التبديل (بدون أي مؤشر تحميل)
   document.addEventListener('htmx:afterSwap', function(event) {
     if (event.detail.target.id === 'chatMessagesContainer') {
       const container = document.getElementById('chatMessagesContainer');
       if (container) {
+        // التمرير فقط إذا كنت قريباً من الأسفل
         const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
         if (isNearBottom) container.scrollTop = container.scrollHeight;
       }
-      // إعادة تهيئة روابط الـ HTMX والبحث داخل المحتوى الجديد
+      // إعادة تهيئة HTMX داخل العنصر الجديد
       if (window.htmx) htmx.process(container);
     }
     if (event.detail.target.id === 'chat-area') {
@@ -144,7 +152,8 @@
       if (window.htmx) htmx.process(document.body);
     }
   });
-  
+
+  // البحث داخل الرسائل
   document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('chatSearchInput');
     const messages = document.querySelectorAll('.message-item');
@@ -172,19 +181,41 @@
     searchInput.addEventListener('input', performSearch);
     window.clearSearch = function() { searchInput.value = ''; performSearch(); searchInput.focus(); };
   });
+
+  // إرسال الرسالة (تفاعلي فوري)
   document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('chat-form');
     const input = document.getElementById('message-input');
     const container = document.getElementById('chatMessagesContainer');
     const sendBtn = document.getElementById('send-btn');
     if (!form) return;
+    
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
       const phone = form.querySelector('input[name="phone"]').value;
       const message = input.value.trim();
       if (!message) return;
+
+      // 1. إضافة الرسالة "فوراً" (Optimistic UI) حتى قبل تأكيد السيرفر
+      const tempHtml = `
+        <div class="flex justify-start animate-fadeIn mb-2">
+          <div class="max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm text-xs bg-white text-slate-900 border border-slate-200">
+            <p class="whitespace-pre-wrap leading-relaxed break-words">${message.replace(/</g, "&lt;")}</p>
+            <div class="flex items-center justify-end gap-1.5 mt-1">
+              <span class="text-[9px] text-slate-400">الآن</span>
+              <span class="text-[10px] text-slate-400">⏳</span>
+            </div>
+          </div>
+        </div>`;
+      container.insertAdjacentHTML('beforeend', tempHtml);
+      container.scrollTop = container.scrollHeight;
+      input.value = '';
+
+      // 2. تعطيل الزر أثناء الإرسال
       sendBtn.disabled = true;
-      sendBtn.textContent = 'جاري الإرسال...';
+      sendBtn.textContent = 'جاري...';
+
+      // 3. إرسال الطلب للخادم
       try {
         const response = await fetch("{{ url_for('whatsapp_service.send_message_htmx') }}", {
           method: 'POST',
@@ -193,11 +224,16 @@
         });
         const html = await response.text();
         if (response.ok) {
-          container.insertAdjacentHTML('beforeend', html);
+          // إذا نجح الخادم، استبدل الرسالة المؤقتة بالحقيقية من السيرفر
+          container.lastElementChild.outerHTML = html;
           container.scrollTop = container.scrollHeight;
-          input.value = '';
-        } else { alert('فشل الإرسال: ' + html); }
-      } catch (error) { console.error('فشل الإرسال:', error); alert('حدث خطأ أثناء الإرسال.'); }
+        } else {
+          // إذا فشل، قم بتحديث الرسالة لإظهار الخطأ
+          container.lastElementChild.innerHTML = `<p style="color:red">❌ فشل: ${html}</p>`;
+        }
+      } catch (error) {
+        container.lastElementChild.innerHTML = `<p style="color:red">❌ خطأ في الشبكة</p>`;
+      }
       finally { sendBtn.disabled = false; sendBtn.textContent = 'إرسال'; }
     });
   });
