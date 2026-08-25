@@ -62,12 +62,12 @@ def chat_dashboard():
     except Exception:
         contacts = []
         unread_chats = 0
-    
+     
     contact_id = request.args.get('contact_id', type=int)
     selected_phone = request.args.get('phone')
     if selected_phone:
         selected_phone = ''.join(filter(str.isdigit, selected_phone))
-    
+     
     messages = []
     active_contact = None
 
@@ -119,7 +119,7 @@ def send_message_htmx():
         return jsonify({"success": False, "error": "المستلم أو نص الرسالة غير موجود."}), 400
 
     success, result = send_text_message(recipient, message)
-    
+     
     if success:
         if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
@@ -179,7 +179,7 @@ def send_bulk_message():
         data = request.form
         phones_json = data.get('phones')
         message = data.get('message')
-        
+         
         if not phones_json or not message:
             return jsonify({"success": False, "error": "اختر عملاء وأدخل نص الرسالة"}), 400
 
@@ -206,7 +206,7 @@ def start_new_chat():
     if not phone:
         flash('رقم الهاتف مطلوب لبدء المحادثة', 'error')
         return redirect(url_for('whatsapp_service.chat_dashboard'))
-    
+     
     phone = ''.join(filter(str.isdigit, phone))
     name = request.form.get('name', f"عميل ({phone})")
 
@@ -291,7 +291,7 @@ def logs_dashboard():
     except Exception:
         logs = []
         total_logs = inbound_logs = outbound_logs = unread_logs = 0
-        
+         
     return render_template(
         'admin/whatsapp_dashboard.html', 
         active_tab='logs', 
@@ -339,12 +339,12 @@ def webhook_handler():
             for entry in entries:
                 for change in entry.get('changes', []):
                     value = change.get('value', {})
-                    
+                     
                     for msg in value.get('messages', []):
                         sender = ''.join(filter(str.isdigit, msg.get('from', '')))
                         wamid = msg.get('id')
                         msg_type = msg.get('type', 'text')
-                        
+                         
                         msg_body = ""
                         if msg_type == 'text':
                             msg_body = msg.get('text', {}).get('body', '')
