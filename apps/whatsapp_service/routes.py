@@ -1,4 +1,5 @@
 # coding: utf-8
+# 📂 apps/whatsapp_service/routes.py
 
 import os
 from datetime import datetime, timezone, timedelta
@@ -47,7 +48,7 @@ def inject_settings():
 
 
 # ============================================================
-# المسارات
+# المسارات (Routes)
 # ============================================================
 
 @whatsapp_bp.route('/chat')
@@ -124,24 +125,14 @@ def send_message_htmx():
     
     if success:
         try:
-            outbound_log = WhatsAppMessageLog(
-                wamid=result.get('messages', [{}])[0].get('id', 'local_sent'),
-                direction='outbound',
-                sender_number=WhatsAppServiceConfig.get_phone_number_id(),
-                recipient_number=recipient,
-                content=message,
-                message_type='text',
-                status='sent'
-            )
-            db.session.add(outbound_log)
-            
+            #ملاحظة: دالة send_text_message تقوم أصلاً بحفظ السجل، ولكن نتحقق هنا للتوافق مع الـ HTMX
             contact = WhatsAppCustomerContact.query.filter_by(phone=recipient).first()
             if contact:
                 contact.last_message = message
                 contact.last_timestamp = datetime.now(timezone.utc)
-            db.session.commit()
+                db.session.commit()
         except Exception as e:
-            current_app.logger.error(f"Error saving outbound message: {e}")
+            current_app.logger.error(f"Error updating contact after send: {e}")
             db.session.rollback()
 
         if request.headers.get('HX-Request'):
@@ -394,7 +385,7 @@ def settings_save():
             whatsapp_attributes = data.get('access_token')
             WhatsAppSettings.set_setting('WHATSAPP_TOKEN', whatsapp_attributes)
 
-        return jsonify({"success": "True", "message": "تم حفظ الإعدادات"})
+        return jsonify({"success": True, "message": "تم حفظ الإعدادات"})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
