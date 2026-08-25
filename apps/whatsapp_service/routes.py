@@ -132,7 +132,7 @@ def send_message_htmx():
                 recipient_number=recipient
             ).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ المسار الجديد بعد إزالة partials
+                # ✅ المسار الصحيح الجديد (بدون partials)
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
             else:
                 return """
@@ -175,7 +175,7 @@ def send_media():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             new_msg = WhatsAppMessageLog.query.filter_by(recipient_number=recipient).order_by(WhatsAppMessageLog.id.desc()).first()
             if new_msg:
-                # ✅ المسار الجديد بعد إزالة partials
+                # ✅ المسار الصحيح الجديد (بدون partials)
                 return render_template('admin/whatsapp/_message_bubble.html', msg=new_msg)
         return jsonify({"success": True, "result": result})
     else:
