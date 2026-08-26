@@ -11,83 +11,81 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Font Awesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Emoji Picker CSS Library -->
+    <link rel="stylesheet" href="https://unpkg.com/emoji-picker-element@1.21.1/styles/emoji-picker.css">
+    <script type="module" src="https://unpkg.com/emoji-picker-element@1.21.1/emoji-picker.js"></script>
+
     <style>
         body { 
             font-family: 'Cairo', sans-serif; 
-            background-color: #0F0518; /* بنفسجي غامق جداً يميل للأسود */
-            color: #E2E8F0; 
+            background-color: #f8fafc; /* خلفية بيضاء نظيفة */ 
+            color: #1e293b; 
         }
-        /* Custom scrollbar for dark theme */
+        /* Custom scrollbar for clean white look */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #1A0B2E; }
-        ::-webkit-scrollbar-thumb { background: #6A0DAD; border-radius: 9999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #9333EA; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* اللون الأساسي (بنفسجي ملكي غامق) */
+        .bg-primary-royal { background-color: #13011f; }
+        .text-primary-royal { color: #13011f; }
+        .border-primary-royal { border-color: #13011f; }
         
-        /* Glowing Effect for Active Elements */
-        .glow-purple {
-            box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
-        }
-        
-        /* Notification Bell Animation */
-        @keyframes bellRing {
-            0%, 100% { transform: rotate(0); }
-            10%, 30%, 50%, 70%, 90% { transform: rotate(-12deg); }
-            20%, 40%, 60%, 80% { transform: rotate(12deg); }
-        }
-        .bell-ringing {
-            animation: bellRing 1s ease-in-out infinite;
-        }
+        /* Glow Effect عند التمرير */
+        .hover-glow:hover { box-shadow: 0 0 15px rgba(19, 1, 31, 0.3); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#0F0518] text-slate-200 min-h-screen flex flex-col antialiased selection:bg-[#7e22ce] selection:text-white">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased selection:bg-[#13011f] selection:text-white">
     
-    <!-- Notification Toast Container (سيظهر هنا الإشعار عند وصول رسالة) -->
+    <!-- Notification Toast Container -->
     <div id="notification-container" class="fixed top-4 left-4 z-[9999] space-y-2 w-80"></div>
 
-    <!-- Top Navbar in Dark Royal Purple -->
-    <header class="h-16 px-4 md:px-6 bg-[#1A0B2E] border-b border-purple-900/50 flex items-center justify-between z-30 sticky top-0 shadow-lg shadow-purple-950/30">
+    <!-- Top Navbar in Clean White with Royal Purple Accent -->
+    <header class="h-16 px-4 md:px-6 bg-white border-b border-slate-200 flex items-center justify-between z-30 sticky top-0 shadow-sm">
         <!-- Logo and App Title -->
         <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center rounded-2xl bg-gradient-to-tr from-[#6A0DAD] to-[#9333ea] p-1.5 w-11 h-11 shadow-sm glow-purple">
+            <div class="flex items-center justify-center rounded-2xl bg-[#13011f] p-1.5 w-11 h-11 shadow-md">
                 <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
                      alt="لوجو سوق محجوب أونلاين" 
                      class="w-full h-full object-contain filter brightness-0 invert">
             </div>
             <div class="flex flex-col">
                 <div class="flex items-center gap-2">
-                    <span class="text-base font-extrabold text-white tracking-tight">{{ merchant_name|default("سوق محجوب أونلاين الذكي") }}</span>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950 text-[#c084fc] border border-purple-800">خدمة الواتساب</span>
+                    <span class="text-base font-extrabold text-slate-900 tracking-tight">{{ merchant_name|default("سوق محجوب أونلاين الذكي") }}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#13011f] text-white">مركز التجار </span>
                 </div>
-                <span class="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                <span class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full bg-[#25D366] inline-block"></span>
                     Meta Cloud API v26.0 (Live)
                 </span>
             </div>
         </div>
 
-        <!-- Navigation Links with Dark Theme Accent -->
+        <!-- Navigation Links with Royal Purple -->
         <nav class="flex items-center gap-1.5 md:gap-2">
             <a href="/admin/whatsapp/dashboard" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}bg-[#6A0DAD] text-white shadow-sm glow-purple{% else %}text-slate-300 hover:text-[#c084fc] hover:bg-purple-950/70 border border-purple-900/50 bg-[#1A0B2E]{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-regular fa-comment-dots ml-1.5"></i>
                 <span>المحادثات المباشرة</span>
             </a>
             
             <a href="/admin/whatsapp/templates" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}bg-[#6A0DAD] text-white shadow-sm glow-purple{% else %}text-slate-300 hover:text-[#c084fc] hover:bg-purple-950/70 border border-purple-900/50 bg-[#1A0B2E]{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-solid fa-layer-group ml-1.5"></i>
                 <span>قوالب ميتا</span>
             </a>
 
             <a href="/admin/whatsapp/webhook-logs" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}bg-[#6A0DAD] text-white shadow-sm glow-purple{% else %}text-slate-300 hover:text-[#c084fc] hover:bg-purple-950/70 border border-purple-900/50 bg-[#1A0B2E]{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-solid fa-rss ml-1.5"></i>
                 <span>سجل الويب هوك</span>
             </a>
 
             <a href="/admin/whatsapp/settings" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}bg-[#6A0DAD] text-white shadow-sm glow-purple{% else %}text-slate-300 hover:text-[#c084fc] hover:bg-purple-950/70 border border-purple-900/50 bg-[#1A0B2E]{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-solid fa-sliders ml-1.5"></i>
                 <span>الإعدادات</span>
             </a>
