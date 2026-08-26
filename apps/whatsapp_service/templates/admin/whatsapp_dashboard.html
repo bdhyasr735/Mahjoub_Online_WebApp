@@ -175,6 +175,7 @@ function filterContacts() {
     });
 }
 
+// ✅ دالة اختيار الملفات (تبدأ الإرسال تلقائياً)
 function handleAttachmentSelect() {
     const files = document.getElementById('attachmentInput').files;
     selectedFiles = Array.from(files);
@@ -195,8 +196,38 @@ function handleAttachmentSelect() {
             `;
             previewList.insertAdjacentHTML('beforeend', fileHTML);
         });
+        
+        // ✅ إرسال تلقائي فوراً في الخلفية (بدون الضغط على زر الإرسال)
+        autoSendFiles();
     } else {
         previewContainer.classList.add('hidden');
+    }
+}
+
+// ✅ دالة إرسال الملفات تلقائياً في الخلفية
+async function autoSendFiles() {
+    if (!currentPhone) {
+        alert('يرجى اختيار جهة اتصال أولاً');
+        return;
+    }
+    
+    if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        formData.append('recipient_phone', currentPhone);
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        await fetch('/admin/whatsapp/api/send-media', {
+            method: 'POST',
+            body: formData
+        });
+        
+        // ✅ تحديث المحادثة تلقائياً بعد الإرسال
+        refreshMessages();
+        
+        // ✅ تنظيف المعاينة بعد الإرسال
+        clearAttachments();
     }
 }
 
@@ -289,7 +320,7 @@ async function handleSendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
     
-    // إرسال الملفات المرفقة أولاً
+    // إرسال الملفات المرفقة (إذا وجدت)
     if (selectedFiles.length > 0) {
         const formData = new FormData();
         formData.append('recipient_phone', currentPhone);
