@@ -223,6 +223,7 @@ class WhatsAppService:
                             msg_type = msg.get("type")
                             msg_text = ""
                             media_id = ""
+                            media_url = ""
 
                             if msg_type == "text":
                                 msg_text = msg.get("text", {}).get("body", "")
@@ -233,19 +234,44 @@ class WhatsAppService:
                             elif msg_type == "image":
                                 msg_text = "صورة"
                                 media_id = msg.get("image", {}).get("id", "")
+                                # الحصول على رابط مؤقت من Meta
+                                media_url = self._get_media_url(media_id)
+                                # إذا حصلنا على رابط، نحاول رفعه إلى Cloudinary للحصول على رابط دائم
+                                if media_url:
+                                    try:
+                                        # تحميل الصورة
+                                        response = requests.get(media_url, timeout=30)
+                                        if response.status_code == 200:
+                                            # حفظ مؤقت
+                                            temp_file = f"temp_{media_id}.jpg"
+                                            with open(temp_file, "wb") as f:
+                                                f.write(response.content)
+                                            
+                                            # رفع إلى Cloudinary
+                                            permanent_url = self._upload_to_cloudinary(temp_file, media_id)
+                                            if permanent_url:
+                                                media_url = permanent_url
+                                            
+                                            # حذف الملف المؤقت
+                                            if os.path.exists(temp_file):
+                                                os.remove(temp_file)
+                                    except Exception as e:
+                                        print(f"⚠️ [خطأ تحميل صورة من Meta]: {e}")
                             elif msg_type == "video":
                                 msg_text = "فيديو"
                                 media_id = msg.get("video", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
                             elif msg_type == "document":
                                 msg_text = "ملف مرفق"
                                 media_id = msg.get("document", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
                             elif msg_type == "location":
                                 msg_text = "موقع جغرافي"
 
                             # تسجيل جهة الاتصال والرسالة
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
-                            self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id)
+                            self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id, media_url=media_url)
 
                             # توليد رد ذكي تلقائي إذا تم تفعيل الذكاء الاصطناعي
                             self._handle_smart_ai_reply(sender_phone, msg_text)
@@ -340,7 +366,7 @@ class WhatsAppService:
     # 3. إدارة قواعد البيانات وسجلات المحادثات (DB & Logs Helper)
     # =========================================================================
 
-    def _record_message(self, phone: str, content: str, direction: str, media_id: str = "") -> None:
+    def _record_message(self, phone: str, content: str, direction: str, media_id: str = "", media_url: str = "") -> None:
         clean_phone = phone.replace("+", "").strip()
         self._ensure_contact_exists(clean_phone, last_message=content)
         
@@ -353,7 +379,8 @@ class WhatsAppService:
                 content=content,
                 message_type='text',
                 status='received',
-                media_id=media_id  # ✅ حفظ معرف الوسائط
+                media_id=media_id,       # ✅ حفظ معرف الوسائط
+                media_url=media_url      # ✅ حفظ رابط الصورة
             )
             db.session.add(msg)
             db.session.commit()
@@ -368,7 +395,8 @@ class WhatsAppService:
             "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
             "direction": direction,
             "content": content,
-            "media_id": media_id,  # ✅ حفظ معرف الوسائط
+            "media_id": media_id,
+            "media_url": media_url,  # ✅ حفظ رابط الصورة
             "timestamp": datetime.utcnow().strftime("%H:%M")
         })
 
@@ -404,11 +432,7 @@ class WhatsAppService:
             result = []
             for m in messages:
                 item = m.to_dict()
-                # إذا كانت الرسالة تحتوي على وسائط، أضف روابطها
-                if m.media_id:
-                    item['media_url'] = self._get_media_url(m.media_id)
-                    item['media_type'] = m.message_type
-                    item['media_filename'] = m.media_filename
+                # ✅ لا حاجة لاستدعاء _get_media_url هنا لأن media_url محفوظ بالفعل
                 result.append(item)
             
             return result
