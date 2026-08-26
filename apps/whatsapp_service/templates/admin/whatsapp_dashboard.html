@@ -197,14 +197,14 @@ function handleAttachmentSelect() {
             previewList.insertAdjacentHTML('beforeend', fileHTML);
         });
         
-        // ✅ إرسال تلقائي فوراً في الخلفية (بدون الضغط على زر الإرسال)
+        // ✅ إرسال تلقائي فوراً في الخلفية
         autoSendFiles();
     } else {
         previewContainer.classList.add('hidden');
     }
 }
 
-// ✅ دالة إرسال الملفات تلقائياً في الخلفية
+// ✅ دالة إرسال الملفات تلقائياً
 async function autoSendFiles() {
     if (!currentPhone) {
         alert('يرجى اختيار جهة اتصال أولاً');
@@ -223,10 +223,7 @@ async function autoSendFiles() {
             body: formData
         });
         
-        // ✅ تحديث المحادثة تلقائياً بعد الإرسال
         refreshMessages();
-        
-        // ✅ تنظيف المعاينة بعد الإرسال
         clearAttachments();
     }
 }
@@ -311,6 +308,7 @@ function refreshMessages() {
     }
 }
 
+// ✅ دالة إرسال رسالة نصية مع تحديث فوري (Optimistic UI)
 async function handleSendMessage() {
     if (!currentPhone) {
         alert('يرجى اختيار جهة اتصال أولاً');
@@ -319,6 +317,30 @@ async function handleSendMessage() {
     
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
+    
+    // ✅ عرض الرسالة فوراً في الشاشة (تحديث وهمي)
+    if (text) {
+        const area = document.getElementById('messagesArea');
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        
+        area.insertAdjacentHTML('beforeend', `
+            <div class="flex justify-end">
+                <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm bg-white text-slate-800 border border-slate-200 rounded-br-none">
+                    <p class="leading-relaxed font-medium">${text}</p>
+                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${time}</span>
+                </div>
+            </div>
+        `);
+        area.scrollTop = area.scrollHeight;
+        
+        // إرسال فعلي للسيرفر
+        await fetch('/admin/whatsapp/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipient_phone: currentPhone, content: text })
+        });
+    }
     
     // إرسال الملفات المرفقة (إذا وجدت)
     if (selectedFiles.length > 0) {
@@ -334,15 +356,6 @@ async function handleSendMessage() {
         });
         
         clearAttachments();
-    }
-    
-    // إرسال الرسالة النصية
-    if (text) {
-        await fetch('/admin/whatsapp/api/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipient_phone: currentPhone, content: text })
-        });
     }
     
     input.value = '';
