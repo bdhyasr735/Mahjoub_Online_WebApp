@@ -117,6 +117,7 @@ class WhatsAppMessageLog(db.Model):
         return self.recipient_number if self.direction == 'outbound' else self.sender_number
     
     def to_dict(self):
+        # ✅ تم تعديل هذه الدالة لإرجاع جميع بيانات الوسائط
         return {
             'id': self.id,
             'wamid': self.wamid,
@@ -127,6 +128,9 @@ class WhatsAppMessageLog(db.Model):
             'message_type': self.message_type,
             'status': self.status,
             'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'media_url': self.media_url,          # ✅ أضفنا هذا
+            'media_id': self.media_id,            # ✅ أضفنا هذا
+            'media_filename': self.media_filename, # ✅ أضفنا هذا
         }
 
 
@@ -151,7 +155,6 @@ class WhatsAppCustomerContact(db.Model):
     is_online = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime, nullable=True)
     last_message = db.Column(db.Text, nullable=True)
-    # last_message_id محذوف (غير موجود في قاعدة البيانات)
     last_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     unread_count = db.Column(db.Integer, default=0)
     is_blocked = db.Column(db.Boolean, default=False)
