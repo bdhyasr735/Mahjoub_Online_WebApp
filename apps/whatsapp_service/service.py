@@ -33,11 +33,12 @@ class WhatsAppService:
         self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
-        # ✅ إعداد Cloudinary
+        # ✅ إعداد Cloudinary بشكل آمن (بدون كشف المفاتيح في الكود)
         cloudinary.config(
-            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "tpziz28b"),
-            api_key=os.getenv("CLOUDINARY_API_KEY", "397386914561283"),
-            api_secret=os.getenv("CLOUDINARY_API_SECRET", "j6XFUVjUt9xsHSYwJ2BgnSaVfX8")
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+            api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+            secure=True
         )
 
         # روابط Meta Graph API
@@ -234,25 +235,17 @@ class WhatsAppService:
                             elif msg_type == "image":
                                 msg_text = "صورة"
                                 media_id = msg.get("image", {}).get("id", "")
-                                # الحصول على رابط مؤقت من Meta
                                 media_url = self._get_media_url(media_id)
-                                # إذا حصلنا على رابط، نحاول رفعه إلى Cloudinary للحصول على رابط دائم
                                 if media_url:
                                     try:
-                                        # تحميل الصورة
                                         response = requests.get(media_url, timeout=30)
                                         if response.status_code == 200:
-                                            # حفظ مؤقت
                                             temp_file = f"temp_{media_id}.jpg"
                                             with open(temp_file, "wb") as f:
                                                 f.write(response.content)
-                                            
-                                            # رفع إلى Cloudinary
                                             permanent_url = self._upload_to_cloudinary(temp_file, media_id)
                                             if permanent_url:
                                                 media_url = permanent_url
-                                            
-                                            # حذف الملف المؤقت
                                             if os.path.exists(temp_file):
                                                 os.remove(temp_file)
                                     except Exception as e:
