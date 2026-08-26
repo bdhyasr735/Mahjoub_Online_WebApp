@@ -430,6 +430,23 @@ class WhatsAppService:
         except Exception:
             return ""
 
+    # =========================================================================
+    # 5. دالة رفع الوسائط إلى Cloudinary
+    # =========================================================================
+
+    def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
+        """رفع ملف إلى Cloudinary وإرجاع الرابط الدائم"""
+        try:
+            upload_result = cloudinary.uploader.upload(
+                file_path,
+                public_id=public_id,
+                folder=f"whatsapp/{public_id.split('_')[0]}"
+            )
+            return upload_result.get("secure_url", "")
+        except Exception as e:
+            print(f"⚠️ [خطأ رفع إلى Cloudinary]: {e}")
+            return ""
+
     def get_webhook_logs(self) -> List[Dict[str, Any]]:
         return self.webhook_logs
 
@@ -481,7 +498,7 @@ class WhatsAppService:
         return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح. النظام جاهز للإنتاج الفعلي."}
 
     # =========================================================================
-    # 4. دالة تعديل اسم العميل (أُضيفت حديثاً)
+    # 6. دالة تعديل اسم العميل (أُضيفت حديثاً)
     # =========================================================================
 
     def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
