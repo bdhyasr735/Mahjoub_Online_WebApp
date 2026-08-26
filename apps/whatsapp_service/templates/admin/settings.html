@@ -3,48 +3,73 @@
 {% block title %}إعدادات ربط بايثون وواتساب - سوق محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="flex-1 p-6 overflow-y-auto max-w-4xl mx-auto w-full space-y-6">
-    <div class="border-b border-[#230d3c] pb-4">
-        <h1 class="text-lg font-bold text-white">إعدادات ربط بايثون وMeta Cloud API v26.0</h1>
-        <p class="text-xs text-purple-300/70">تكوين المتغيرات والـ Webhooks والمفاتيح الخاصة بسيرفر بايثون</p>
+<div class="flex-1 p-6 md:p-8 overflow-y-auto max-w-4xl mx-auto w-full space-y-6">
+    <div class="border-b border-slate-200 pb-4 flex items-center justify-between">
+        <div>
+            <h1 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-[#7e22ce]"></i>
+                <span>إعدادات ربط Meta Cloud API v26.0</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">تكوين المتغيرات ومفاتيح الربط والـ Webhook لسوق محجوب أونلاين</p>
+        </div>
+        <span class="px-3 py-1 bg-purple-50 text-[#7e22ce] border border-purple-200 rounded-full text-xs font-bold font-mono">
+            v26.0 Production
+        </span>
     </div>
 
-    <form method="POST" action="/admin/whatsapp/settings" class="bg-[#120722] border border-[#2b1248] rounded-3xl p-6 space-y-4 text-xs">
+    <form method="POST" action="/admin/whatsapp/settings" class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-5 text-xs shadow-sm">
         <div>
-            <label class="font-bold text-purple-200 block mb-1">WhatsApp Cloud API Permanent Access Token:</label>
+            <label class="font-bold text-slate-800 block mb-1.5 flex items-center justify-between">
+                <span>WhatsApp Cloud API Permanent Access Token:</span>
+                <span class="text-[10px] text-slate-400 font-normal">توكن الوصول الدائم من Meta Developers</span>
+            </label>
             <input type="password" name="whatsapp_access_token" value="{{ config.whatsapp_access_token }}" 
-                   class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+                   placeholder="EAA..."
+                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono dir-ltr focus:outline-none focus:border-[#7e22ce] focus:bg-white transition-all">
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-                <label class="font-bold text-purple-200 block mb-1">Phone Number ID (معرف رقم الهاتف):</label>
+                <label class="font-bold text-slate-800 block mb-1.5">Phone Number ID (معرف رقم الهاتف):</label>
                 <input type="text" name="whatsapp_phone_number_id" value="{{ config.whatsapp_phone_number_id }}" 
-                       class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+                       placeholder="1336881386166971"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono dir-ltr focus:outline-none focus:border-[#7e22ce] focus:bg-white transition-all">
             </div>
             <div>
-                <label class="font-bold text-purple-200 block mb-1">Business Account ID (WABA ID):</label>
+                <label class="font-bold text-slate-800 block mb-1.5">Business Account ID (WABA ID):</label>
                 <input type="text" name="whatsapp_business_account_id" value="{{ config.whatsapp_business_account_id }}" 
-                       class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+                       placeholder="160492837156903"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono dir-ltr focus:outline-none focus:border-[#7e22ce] focus:bg-white transition-all">
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-                <label class="font-bold text-purple-200 block mb-1">Webhook Verify Token (رمز التحقق للويب هوك):</label>
+                <label class="font-bold text-slate-800 block mb-1.5">Webhook Verify Token (رمز التحقق):</label>
                 <input type="text" name="whatsapp_verify_token" value="{{ config.whatsapp_verify_token|default('mahjoob_webhook_secret_2026') }}" 
-                       class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 font-mono dir-ltr focus:outline-none focus:border-[#7e22ce] focus:bg-white transition-all">
             </div>
             <div>
-                <label class="font-bold text-purple-200 block mb-1">API Version:</label>
+                <label class="font-bold text-slate-800 block mb-1.5">Meta API Version:</label>
                 <input type="text" name="whatsapp_api_version" value="v26.0" readonly
-                       class="w-full bg-[#1b0d30] border border-[#341659] rounded-xl px-3 py-2 text-amber-300 font-mono dir-ltr focus:outline-none">
+                       class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-[#7e22ce] font-bold font-mono dir-ltr focus:outline-none">
             </div>
         </div>
 
-        <div class="pt-4 border-t border-[#230d3c] flex items-center justify-end">
-            <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-[#9333ea] to-[#7e22ce] text-white font-bold rounded-xl shadow hover:from-[#a855f7]">
-                حفظ الإعدادات في بايثون
+        <div class="p-4 bg-purple-50/70 border border-purple-100 rounded-2xl flex items-start gap-3">
+            <i class="fa-solid fa-circle-info text-[#7e22ce] mt-0.5"></i>
+            <div class="text-slate-700 text-xs leading-relaxed">
+                <span class="font-bold">رابط الويب هوك الخاص بك على Meta:</span>
+                <p class="font-mono text-[11px] text-purple-900 dir-ltr select-all mt-1 bg-white p-2 rounded-xl border border-purple-200">
+                    https://mahjoubonlinewebapp-production-7236.up.railway.app/api/whatsapp/webhook
+                </p>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end">
+            <button type="submit" class="px-6 py-3 bg-[#7e22ce] hover:bg-[#6b1cb8] text-white font-bold rounded-xl shadow-sm shadow-purple-200 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                <span>حفظ الإعدادات في بايثون</span>
             </button>
         </div>
     </form>
