@@ -1,38 +1,43 @@
 {% extends "admin/base.html" %}
 
-{% block title %}سجل الويب هوك المباشر - بايثون{% endblock %}
+{% block title %}سجل الويب هوك المباشر - سوق محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="flex-1 p-6 overflow-y-auto max-w-6xl mx-auto w-full space-y-6">
-    <div class="flex items-center justify-between border-b border-[#230d3c] pb-4">
+<div class="flex-1 p-6 md:p-8 overflow-y-auto max-w-6xl mx-auto w-full space-y-6">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
-            <h1 class="text-lg font-bold text-white">سجل الويب هوك وأحداث Meta Cloud API v26.0 في بايثون</h1>
-            <p class="text-xs text-purple-300/70">مراقبة الرسائل الواردة وحالات التسليم والقراءة اللحظية</p>
+            <h1 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-rss text-[#7e22ce]"></i>
+                <span>سجل تدفق أحداث Meta Webhook في بايثون</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">مراقبة الحزم الواردة وحالات التسليم والقراءة اللحظية من سيرفرات Meta</p>
         </div>
-        <span class="px-3 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-full text-xs font-bold flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-2 shadow-sm">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#25D366] animate-ping"></span>
             Webhook Live Stream
         </span>
     </div>
 
-    <div class="bg-[#120722] border border-[#2b1248] rounded-3xl overflow-hidden shadow-xl">
-        <div class="p-3 bg-[#0e051b] border-b border-[#230d3c] flex items-center justify-between text-xs font-bold text-purple-300">
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs font-black text-slate-700">
             <span>الوقت</span>
             <span>الحدث (Event)</span>
             <span>المرسل / المستقبل</span>
             <span>الحالة</span>
         </div>
-        <div class="divide-y divide-[#1d0a37] text-xs font-mono">
+        <div class="divide-y divide-slate-100 text-xs font-mono">
             {% for log in logs %}
-            <div class="p-3 hover:bg-[#160a2c] flex items-center justify-between">
-                <span class="text-purple-400">{{ log.timestamp }}</span>
-                <span class="text-amber-300 font-bold">{{ log.event_type }}</span>
-                <span class="text-purple-200">+{{ log.phone }}</span>
-                <span class="text-emerald-400">{{ log.status }}</span>
+            <div class="p-4 hover:bg-purple-50/40 flex items-center justify-between transition-colors">
+                <span class="text-slate-500">{{ log.timestamp }}</span>
+                <span class="text-[#7e22ce] font-bold">{{ log.event_type }}</span>
+                <span class="text-slate-800 font-bold">+{{ log.phone }}</span>
+                <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">{{ log.status }}</span>
             </div>
             {% else %}
-            <div class="p-8 text-center text-purple-400/50 text-xs font-sans">
-                لا توجد سجلات أحداث بعد. سيتم تسجيل أي رسالة واردة من واتساب فورياً هنا.
+            <div class="p-12 text-center text-slate-400 text-xs font-sans space-y-2">
+                <i class="fa-solid fa-satellite-dish text-3xl text-slate-300"></i>
+                <p class="font-bold text-slate-600">لا توجد سجلات أحداث بعد</p>
+                <p class="text-[11px] text-slate-400">سيتم تسجيل وتحديث أي رسالة أو حدث وارد من واتساب فورياً هنا في الزمن الحقيقي.</p>
             </div>
             {% endfor %}
         </div>
