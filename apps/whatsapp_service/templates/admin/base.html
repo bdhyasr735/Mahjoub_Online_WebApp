@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}سوق محجوب أونلاين الذكي - لوحة تحكم الواتساب{% endblock %}</title>
+    <title>{% block title %}سوق محجوب أونلاين الذكي - مركز التجار{% endblock %}</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,17 +28,17 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* اللون الأساسي (بنفسجي ملكي غامق) */
-        .bg-primary-royal { background-color: #13011f; }
-        .text-primary-royal { color: #13011f; }
-        .border-primary-royal { border-color: #13011f; }
+        /* اللون الأساسي (بنفسجي ملكي غامق) - للأزرار والهيكل فقط */
+        .bg-primary-royal { background-color: #1e0226; }
+        .text-primary-royal { color: #1e0226; }
+        .border-primary-royal { border-color: #1e0226; }
         
         /* Glow Effect عند التمرير */
-        .hover-glow:hover { box-shadow: 0 0 15px rgba(19, 1, 31, 0.3); }
+        .hover-glow:hover { box-shadow: 0 0 15px rgba(30, 2, 38, 0.3); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased selection:bg-[#13011f] selection:text-white">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased selection:bg-[#1e0226] selection:text-white">
     
     <!-- Notification Toast Container -->
     <div id="notification-container" class="fixed top-4 left-4 z-[9999] space-y-2 w-80"></div>
@@ -47,7 +47,7 @@
     <header class="h-16 px-4 md:px-6 bg-white border-b border-slate-200 flex items-center justify-between z-30 sticky top-0 shadow-sm">
         <!-- Logo and App Title -->
         <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center rounded-2xl bg-[#13011f] p-1.5 w-11 h-11 shadow-md">
+            <div class="flex items-center justify-center rounded-2xl bg-[#1e0226] p-1.5 w-11 h-11 shadow-md">
                 <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
                      alt="لوجو سوق محجوب أونلاين" 
                      class="w-full h-full object-contain filter brightness-0 invert">
@@ -55,7 +55,7 @@
             <div class="flex flex-col">
                 <div class="flex items-center gap-2">
                     <span class="text-base font-extrabold text-slate-900 tracking-tight">{{ merchant_name|default("سوق محجوب أونلاين الذكي") }}</span>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#13011f] text-white">مركز التجار </span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1e0226] text-white">مركز التجار</span>
                 </div>
                 <span class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full bg-[#25D366] inline-block"></span>
@@ -67,25 +67,25 @@
         <!-- Navigation Links with Royal Purple -->
         <nav class="flex items-center gap-1.5 md:gap-2">
             <a href="/admin/whatsapp/dashboard" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-regular fa-comment-dots ml-1.5"></i>
                 <span>المحادثات المباشرة</span>
             </a>
             
             <a href="/admin/whatsapp/templates" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-solid fa-layer-group ml-1.5"></i>
                 <span>قوالب ميتا</span>
             </a>
 
             <a href="/admin/whatsapp/webhook-logs" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-solid fa-rss ml-1.5"></i>
                 <span>سجل الويب هوك</span>
             </a>
 
             <a href="/admin/whatsapp/settings" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}bg-[#13011f] text-white shadow-md{% else %}text-slate-600 hover:text-[#13011f] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
                 <i class="fa-solid fa-sliders ml-1.5"></i>
                 <span>الإعدادات</span>
             </a>
