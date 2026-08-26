@@ -13,6 +13,10 @@ import requests
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
+# استيراد النماذج من قاعدة البيانات
+from apps.whatsapp_service.models import WhatsAppCustomerContact, WhatsAppMessageLog
+from apps.extensions import db
+
 class WhatsAppService:
     def __init__(self):
         # إعدادات الربط مع Meta Cloud API v26.0
@@ -27,11 +31,6 @@ class WhatsAppService:
         # روابط Meta Graph API
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
         self.media_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
-
-        # مخزن مؤقت للمحادثات وسجلات الويب هوك (جاهز للإنتاج الفعلي - صفر بيانات وهمية)
-        self.webhook_logs: List[Dict[str, Any]] = []
-        self.contacts_db: Dict[str, Dict[str, Any]] = {}
-        self.messages_db: Dict[str, List[Dict[str, Any]]] = {}
 
     # =========================================================================
     # 1. إرسال الرسائل والقوالب والوسائط (Outbound Meta API)
@@ -57,8 +56,8 @@ class WhatsAppService:
             }
         }
 
-        # حفظ الرسالة محلياً وتحديث جهة الاتصال
-        self._record_message(clean_phone, text, direction="outbound")
+        # حفظ الرسالة محلياً في قاعدة البيانات
+        self._record_outbound_message(clean_phone, text)
 
         if not self.access_token:
             return {"status": "simulated", "message_id": f"sim_{int(datetime.utcnow().timestamp())}", "to": clean_phone}
@@ -69,36 +68,31 @@ class WhatsAppService:
         except Exception as e:
             return {"error": str(e), "status": "failed"}
 
-    def send_template(
-        self,
-        recipient_phone: str,
-        template_name: str,
-        language_code: str = "ar",
-        components: Optional[List[Dict[str, Any]]] = None
-    ) -> Dict[str, Any]:
-        """إرسال قالب رسمي معتمد من Meta (فواتير، شحنات، إشعارات)"""
-        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": clean_phone,
-            "type": "template",
-            "template": {
-                "name": template_name,
-                "language": {"code": language_code},
-                "components": components or []
-            }
-        }
-
-        self._record_message(clean_phone, f"[قالب رسمي: {template_name}]", direction="outbound")
-
-        if not self.access_token:
-            return {"status": "simulated", "template": template_name, "to": clean_phone}
-
+    def _record_outbound_message(self, phone: str, content: str) -> None:
+        """تسجيل الرسالة الصادرة في قاعدة البيانات"""
         try:
-            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
-            return response.json()
+            msg = WhatsAppMessageLog(
+                direction='outbound',
+                sender_number='967784439991',  # رقمك
+                recipient_number=phone,
+                content=content,
+                message_type='text',
+                status='sent'
+            )
+            db.session.add(msg)
+            
+            # تحديث جهة الاتصال
+            contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+            if not contact:
+                contact = WhatsAppCustomerContact(phone=phone, name=f"عميل (+{phone})")
+                db.session.add(contact)
+            contact.last_message = content
+            contact.last_timestamp = datetime.utcnow()
+            
+            db.session.commit()
         except Exception as e:
-            return {"error": str(e), "status": "failed"}
+            db.session.rollback()
+            print(f"⚠️ [خطأ تسجيل رسالة صادرة]: {e}")
 
     # =========================================================================
     # 2. معالجة الـ Webhook الوارد والذكاء الاصطناعي (Inbound Webhook)
@@ -143,10 +137,8 @@ class WhatsAppService:
                             elif msg_type == "interactive":
                                 msg_text = msg.get("interactive", {}).get("button_reply", {}).get("title", "")
 
-                            # تسجيل جهة الاتصال والرسالة
-                            self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
-                            self._log_webhook_event("incoming_message", sender_phone, msg_text)
-                            self._record_message(sender_phone, msg_text, direction="inbound")
+                            # تسجيل الرسالة وجهة الاتصال في قاعدة البيانات
+                            self._record_inbound_message(sender_phone, contact_profile_name, msg_text, msg_type)
 
                             # توليد رد ذكي تلقائي إذا تم تفعيل الذكاء الاصطناعي
                             self._handle_smart_ai_reply(sender_phone, msg_text)
@@ -156,30 +148,61 @@ class WhatsAppService:
                         for status_update in value["statuses"]:
                             recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
                             status = status_update.get("status")  # sent, delivered, read
-                            self._log_webhook_event(f"status_{status}", recipient_id, f"رسالة بحالة: {status}")
+                            # تحديث حالة الرسالة في قاعدة البيانات
+                            self._update_message_status(recipient_id, status)
 
         except Exception as e:
-            self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
+            print(f"❌ [خطأ معالجة Webhook]: {e}")
 
-    def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
-        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها لتظهر بالقائمة"""
-        if not phone:
-            return
-        phone = phone.replace("+", "").strip()
-        if phone not in self.contacts_db:
-            self.contacts_db[phone] = {
-                "phone": phone,
-                "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
-                "last_message": last_message,
-                "last_message_time": datetime.utcnow().strftime("%H:%M"),
-                "unread_count": 1
-            }
-        else:
-            if name and name != "عميل واتساب":
-                self.contacts_db[phone]["name"] = name
-            if last_message:
-                self.contacts_db[phone]["last_message"] = last_message
-                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
+    def _record_inbound_message(self, phone: str, name: str, content: str, msg_type: str = "text") -> None:
+        """تسجيل الرسالة الواردة وجهة الاتصال في قاعدة البيانات"""
+        try:
+            # تحديث جهة الاتصال
+            contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+            if not contact:
+                contact = WhatsAppCustomerContact(
+                    phone=phone,
+                    name=name if name != "عميل محجوب" else f"عميل (+{phone})",
+                    whatsapp_profile_name=name,
+                    unread_count=1
+                )
+                db.session.add(contact)
+            else:
+                if name and name != "عميل محجوب":
+                    contact.name = name
+                    contact.whatsapp_profile_name = name
+                contact.unread_count += 1
+            
+            contact.last_message = content
+            contact.last_timestamp = datetime.utcnow()
+            
+            # إضافة سجل الرسالة
+            msg = WhatsAppMessageLog(
+                direction='inbound',
+                sender_number=phone,
+                recipient_number='967784439991',  # رقمك
+                content=content,
+                message_type=msg_type,
+                status='received'
+            )
+            db.session.add(msg)
+            
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [خطأ تسجيل رسالة واردة]: {e}")
+
+    def _update_message_status(self, phone: str, status: str) -> None:
+        """تحديث حالة الرسائل (تم الإرسال، التسليم، القراءة)"""
+        try:
+            # يمكن تحديث آخر رسالة لهذا الرقم
+            contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+            if contact:
+                contact.last_timestamp = datetime.utcnow()
+                db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [خطأ تحديث الحالة]: {e}")
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
@@ -211,40 +234,35 @@ class WhatsAppService:
             return "مرحباً بك في سوق محجوب أونلاين! نسعد بخدمتك دائماً، كيف يمكننا مساعدتك اليوم؟"
 
     # =========================================================================
-    # 3. إدارة قواعد البيانات وسجلات المحادثات (DB & Logs Helper)
+    # 3. إقراءة البيانات من قاعدة البيانات (لوحة التحكم)
     # =========================================================================
 
-    def _record_message(self, phone: str, content: str, direction: str) -> None:
-        clean_phone = phone.replace("+", "").strip()
-        self._ensure_contact_exists(clean_phone, last_message=content)
-        
-        if clean_phone not in self.messages_db:
-            self.messages_db[clean_phone] = []
-        self.messages_db[clean_phone].append({
-            "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
-            "direction": direction,
-            "content": content,
-            "timestamp": datetime.utcnow().strftime("%H:%M")
-        })
-
-    def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
-        self.webhook_logs.insert(0, {
-            "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
-            "event_type": event_type,
-            "phone": phone,
-            "status": status
-        })
-        if len(self.webhook_logs) > 100:
-            self.webhook_logs.pop()
-
     def get_all_contacts(self) -> List[Dict[str, Any]]:
-        return list(self.contacts_db.values())
+        """جلب قائمة جهات الاتصال من قاعدة البيانات"""
+        try:
+            contacts = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+            return [c.to_dict() for c in contacts]
+        except Exception as e:
+            print(f"⚠️ [خطأ جلب جهات الاتصال]: {e}")
+            return []
 
     def get_chat_history(self, phone: str) -> List[Dict[str, Any]]:
-        return self.messages_db.get(phone.replace("+", "").strip(), [])
+        """جلب سجل المحادثة من قاعدة البيانات"""
+        try:
+            clean_phone = phone.replace("+", "").strip()
+            messages = WhatsAppMessageLog.query.filter(
+                (WhatsAppMessageLog.sender_number == clean_phone) |
+                (WhatsAppMessageLog.recipient_number == clean_phone)
+            ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+            return [m.to_dict() for m in messages]
+        except Exception as e:
+            print(f"⚠️ [خطأ جلب المحادثة]: {e}")
+            return []
 
     def get_webhook_logs(self) -> List[Dict[str, Any]]:
-        return self.webhook_logs
+        """عرض سجل أحداث الويب هوك (من قاعدة البيانات إذا توفرت)"""
+        # ملاحظة: إذا لم يكن لديك جدول أحداث، يمكنك إرجاع سجل بسيط
+        return []
 
     def get_approved_templates(self) -> List[Dict[str, Any]]:
         return [
@@ -287,8 +305,12 @@ class WhatsAppService:
         self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
 
     def clear_demo_data(self) -> Dict[str, Any]:
-        """تفريغ كافة البيانات الوهمية والمحادثات لضمان بيئة إنتاج نظيفة 100%"""
-        self.contacts_db.clear()
-        self.messages_db.clear()
-        self.webhook_logs.clear()
-        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح. النظام جاهز للإنتاج الفعلي."}
+        """تفريغ كافة البيانات من قاعدة البيانات"""
+        try:
+            WhatsAppMessageLog.query.delete()
+            WhatsAppCustomerContact.query.delete()
+            db.session.commit()
+            return {"success": True, "message": "تم تفريغ كافة البيانات بنجاح. النظام جاهز للإنتاج الفعلي."}
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "message": f"خطأ في تفريغ البيانات: {e}"}
