@@ -1,118 +1,97 @@
 # -*- coding: utf-8 -*-
+# 📂 apps/whatsapp_service/registry.py
 """
-سوق محجوب أونلاين - وحدة تسجيل الخدمة والتصاريح
-Service Registry & Permissions Module for Mahgoob Online WhatsApp Service
-Meta Cloud API v26.0 Edition
+تسجيل موديول خدمة مراسلات الواتساب الذكية (Meta WhatsApp Cloud API v26.0)
+في نظام التسجيل المركزي والديناميكي للمشروع
+Mahjoub Online WebApp
 """
 
-import logging
-import sys
+# ========== بيانات الموديول الأساسية ==========
+MODULE_KEY = "whatsapp_service"
+MODULE_NAME = "خدمة الواتساب"
+DISPLAY_NAME = "مراسلات الواتساب"
+MODULE_ICON = "fab fa-whatsapp"
+ICON = "whatsapp"
+VERSION = "2.6.0"
+URL_PREFIX = "/admin/whatsapp"
+REQUIRED_PERMISSION = "manage_whatsapp_service"
 
-logger = logging.getLogger(__name__)
+# ✅ تفعيل الظهور التلقائي في القائمة الجانبية للوحة التحكم
+SHOW_IN_ADMIN = True
+SHOW_IN_SUPPLIER = False
 
-MODULE_NAME = "خدمة مراسلات واتساب"
-DISPLAY_NAME = "خدمة مراسلات واتساب سوق محجوب أونلاين"
-ICON = "fab fa-whatsapp"
-SHOW_IN_SUPPLIER = True
-
-# عناصر التنقل في القائمة الجانبية للوحة التحكم الرئيسية
-NAV_ITEMS = [
-    {
-        "title": "لوحة المحادثات المباشرة",
-        "endpoint": "/admin/whatsapp/dashboard",
-        "icon": "fas fa-comments",
-        "permission": "whatsapp.view_chat"
-    },
-    {
-        "title": "قوالب ميتا المعتمدة",
-        "endpoint": "/admin/whatsapp/templates",
-        "icon": "fas fa-layer-group",
-        "permission": "whatsapp.manage_templates"
-    },
-    {
-        "title": "سجل الويب هوك (Live)",
-        "endpoint": "/admin/whatsapp/webhook-logs",
-        "icon": "fas fa-stream",
-        "permission": "whatsapp.view_logs"
-    },
-    {
-        "title": "إعدادات Meta Cloud API v26.0",
-        "endpoint": "/admin/whatsapp/settings",
-        "icon": "fas fa-cogs",
-        "permission": "whatsapp.admin_settings"
-    }
-]
-
-LINKS_DICT = {
-    "/admin/whatsapp/dashboard": "لوحة المحادثات المباشرة",
-    "/admin/whatsapp/templates": "قوالب ميتا المعتمدة",
-    "/admin/whatsapp/webhook-logs": "سجل تدفق الويب هوك",
-    "/admin/whatsapp/settings": "إعدادات وتوكنات Meta API"
+# ========== روابط القائمة الجانبية الديناميكية ==========
+LINKS = {
+    "whatsapp_service.dashboard_view": "المحادثات المباشرة",
+    "whatsapp_service.templates_view": "قوالب ميتا المعتمدة",
+    "whatsapp_service.webhook_logs_view": "سجل تدفق الويب هوك",
+    "whatsapp_service.settings_view": "إعدادات Meta Cloud API",
 }
 
-# بيانات وصف الخدمة ونظام الصلاحيات والأمان
-SERVICE_METADATA = {
-    "name": "whatsapp_service",
-    "display_name": DISPLAY_NAME,
-    "version": "2.6.0",
-    "api_version": "v26.0",
-    "author": "Mahgoob Online Dev Team",
-    "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v26.0 لإدارة محادثات العملاء والتجار، قوالب الإشعارات، وربط الذكاء الاصطناعي التلقائي (Gemini AI).",
-    "icon": ICON,
-    "links": LINKS_DICT,
-    "admin_menu": NAV_ITEMS,
-    "permissions": [
-        "whatsapp.view_chat",
-        "whatsapp.send_message",
-        "whatsapp.manage_templates",
-        "whatsapp.view_logs",
-        "whatsapp.admin_settings"
-    ],
-    "webhook_endpoints": {
-        "verification": "/api/whatsapp/webhook (GET)",
-        "incoming_events": "/api/whatsapp/webhook (POST)"
+links = LINKS
+
+
+def get_nav_metadata():
+    """
+    إرجاع الميتا داتا الديناميكية لبناء عنصر القائمة الجانبية (Sidebar) تلقائياً
+    """
+    return {
+        "key": MODULE_KEY,
+        "name": DISPLAY_NAME,
+        "icon": ICON,
+        "module_icon": MODULE_ICON,
+        "url": URL_PREFIX + "/dashboard",
+        "items": [
+            {
+                "title": "المحادثات المباشرة",
+                "url": URL_PREFIX + "/dashboard",
+                "icon": "fas fa-comments"
+            },
+            {
+                "title": "قوالب ميتا المعتمدة",
+                "url": URL_PREFIX + "/templates",
+                "icon": "fas fa-layer-group"
+            },
+            {
+                "title": "سجل الويب هوك (Live)",
+                "url": URL_PREFIX + "/webhook-logs",
+                "icon": "fas fa-stream"
+            },
+            {
+                "title": "الإعدادات والربط السحابي",
+                "url": URL_PREFIX + "/settings",
+                "icon": "fas fa-sliders-h"
+            }
+        ],
+        "links": links,
+        "show_in_admin": SHOW_IN_ADMIN,
+        "version": VERSION
     }
-}
 
-def register_service(app):
-    """
-    تسجيل Blueprint خدمة الواتساب تلقائياً في تطبيق Flask / Django الرئيسي مع معالجة مرنة للمسارات
-    """
-    bp = None
-    try:
-        # المحاولة 1: استيراد من المسار النسبي للحزمة
-        from .routes import whatsapp_bp
-        bp = whatsapp_bp
-    except Exception:
-        try:
-            # المحاولة 2: استيراد من حزمة apps
-            from apps.whatsapp_service.routes import whatsapp_bp
-            bp = whatsapp_bp
-        except Exception:
-            try:
-                # المحاولة 3: استيراد مباشر إذا كان المجلد مضافاً لـ sys.path
-                from whatsapp_service.routes import whatsapp_bp
-                bp = whatsapp_bp
-            except Exception as e:
-                app.logger.error(f"❌ [WhatsApp Service] Import error: {e}")
-
-    if bp:
-        if bp.name not in app.blueprints:
-            app.register_blueprint(bp)
-            app.logger.info("✅ [WhatsApp Service] Blueprint registered successfully with Meta Cloud API v26.0 routes.")
-        else:
-            app.logger.info("ℹ️ [WhatsApp Service] Blueprint is already registered.")
-
-    # تسجيل الميتا داتا في التطبيق العام
-    if not hasattr(app, 'registered_services'):
-        app.registered_services = {}
-    app.registered_services['whatsapp_service'] = SERVICE_METADATA
-    
-    if not hasattr(app, 'registered_modules'):
-        app.registered_modules = {}
-    app.registered_modules['whatsapp_service'] = SERVICE_METADATA
-    
-    app.logger.info("✅ [WhatsApp Service] Metadata & permissions registered for Mahgoob Online.")
 
 def register_module(app):
-    register_service(app)
+    """
+    تسجيل موديول الواتساب في تطبيق Flask / Python المركزي
+    """
+    try:
+        from apps.whatsapp_service.routes import whatsapp_bp
+        if whatsapp_bp.name not in app.blueprints:
+            app.register_blueprint(whatsapp_bp)
+            print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
+            print(f"   📍 عدد المسارات المسجلة لخدمة الواتساب: {len(whatsapp_bp.deferred_functions)}")
+        else:
+            print(f"ℹ️ [Module]: موديول '{MODULE_NAME}' مُسجل مسبقاً.")
+    except ImportError as e:
+        try:
+            from .routes import whatsapp_bp
+            if whatsapp_bp.name not in app.blueprints:
+                app.register_blueprint(whatsapp_bp)
+                print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' (استيراد نسبي) تحت المسار {URL_PREFIX}.")
+        except Exception as inner_e:
+            print(f"❌ [Module Error]: فشل استيراد موديول الواتساب. تفاصيل: {inner_e}")
+    except Exception as e:
+        print(f"❌ [Module Error]: تعذر تسجيل موديول الواتساب. تفاصيل: {e}")
+
+
+def register_service(app):
+    register_module(app)
