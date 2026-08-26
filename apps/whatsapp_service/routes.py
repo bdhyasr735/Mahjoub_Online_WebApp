@@ -113,17 +113,19 @@ def chat_dashboard():
     )
 
 
-@whatsapp_bp.route('/send-message', methods=['POST'])
+@whatsapp_bp.route('/send-message', methods=['GET', 'POST'])
 def send_message_htmx():
-    recipient = request.form.get('phone') or request.form.get('recipient')
-    message = request.form.get('message')
+    # استقبال البيانات من form-data أو query parameters لمنع ظهور الروابط العشوائية
+    recipient = request.form.get('phone') or request.form.get('recipient') or request.args.get('phone') or request.args.get('recipient')
+    message = request.form.get('message') or request.args.get('message')
 
     if not recipient or not message:
+        if request.args.get('message') and recipient:
+            return redirect(url_for('whatsapp_service.chat_dashboard', phone=recipient))
         return jsonify({"success": False, "error": "المستلم أو نص الرسالة غير موجود."}), 400
 
     success, result = send_text_message(recipient, message)
     
-    # استخراج الـ wamid إن وجد من نتيجة الإرسال
     wamid = None
     if isinstance(result, dict):
         messages_meta = result.get('messages', [])
@@ -132,7 +134,6 @@ def send_message_htmx():
 
     if success:
         try:
-            # 1. حفظ السجل الصادر في جدول الرسائل لضمان ظهوره في الشات
             outbound_log = WhatsAppMessageLog(
                 wamid=wamid or f"local_out_{datetime.now(timezone.utc).timestamp()}",
                 direction='outbound',
@@ -144,7 +145,6 @@ def send_message_htmx():
             )
             db.session.add(outbound_log)
 
-            # 2. تحديث تفاصيل جهة الاتصال (آخر رسالة وتوقيتها)
             contact = WhatsAppCustomerContact.query.filter_by(phone=recipient).first()
             if contact:
                 contact.last_message = message
@@ -164,6 +164,9 @@ def send_message_htmx():
             current_app.logger.error(f"Error saving outbound message log: {e}")
             db.session.rollback()
 
+        if request.method == 'GET' and request.args.get('message'):
+            return redirect(url_for('whatsapp_service.chat_dashboard', phone=recipient))
+
         if request.headers.get('HX-Request'):
             return f"""
             <div class="flex justify-end animate-fadeIn mb-3">
@@ -178,6 +181,9 @@ def send_message_htmx():
             """
         return jsonify({"success": True, "result": result})
     else:
+        if request.method == 'GET' and request.args.get('message'):
+            return redirect(url_for('whatsapp_service.chat_dashboard', phone=recipient))
+            
         if request.headers.get('HX-Request'):
             return f"""
             <div class="flex justify-start animate-fadeIn mb-3">
