@@ -167,6 +167,21 @@ def update_contact_name_api():
     result = wa_service.update_contact_name(phone, name)
     return jsonify(result), 200
 
+@whatsapp_bp.route('/api/send-media', methods=['POST'])
+def send_media_api():
+    """إرسال صور، فيديو، أو ملفات عبر Meta WhatsApp Cloud API"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    recipient_phone = request.form.get('recipient_phone', '')
+    files = request.files.getlist('files')
+    
+    if not recipient_phone or not files:
+        return jsonify({"error": "recipient_phone and files are required"}), 400
+        
+    result = wa_service.send_media(recipient_phone, files)
+    return jsonify(result), 200
+
 @whatsapp_bp.route('/api/clear-demo-data', methods=['POST'])
 def clear_demo_data_api():
     """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
