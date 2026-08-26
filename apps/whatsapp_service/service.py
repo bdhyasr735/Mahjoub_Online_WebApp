@@ -166,7 +166,7 @@ class WhatsAppService:
                 send_data = send_res.json()
                 
                 # حفظ في قاعدة البيانات
-                self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound")
+                self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound", media_id=media_id)
                 
                 results.append(send_data)
             
@@ -210,6 +210,7 @@ class WhatsAppService:
                             sender_phone = str(msg.get("from", "")).replace("+", "").strip()
                             msg_type = msg.get("type")
                             msg_text = ""
+                            media_id = ""
 
                             if msg_type == "text":
                                 msg_text = msg.get("text", {}).get("body", "")
@@ -219,17 +220,20 @@ class WhatsAppService:
                                 msg_text = msg.get("interactive", {}).get("button_reply", {}).get("title", "")
                             elif msg_type == "image":
                                 msg_text = "صورة"
+                                media_id = msg.get("image", {}).get("id", "")
                             elif msg_type == "video":
                                 msg_text = "فيديو"
+                                media_id = msg.get("video", {}).get("id", "")
                             elif msg_type == "document":
                                 msg_text = "ملف مرفق"
+                                media_id = msg.get("document", {}).get("id", "")
                             elif msg_type == "location":
                                 msg_text = "موقع جغرافي"
 
                             # تسجيل جهة الاتصال والرسالة
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
-                            self._record_message(sender_phone, msg_text, direction="inbound")
+                            self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id)
 
                             # توليد رد ذكي تلقائي إذا تم تفعيل الذكاء الاصطناعي
                             self._handle_smart_ai_reply(sender_phone, msg_text)
@@ -324,7 +328,7 @@ class WhatsAppService:
     # 3. إدارة قواعد البيانات وسجلات المحادثات (DB & Logs Helper)
     # =========================================================================
 
-    def _record_message(self, phone: str, content: str, direction: str) -> None:
+    def _record_message(self, phone: str, content: str, direction: str, media_id: str = "") -> None:
         clean_phone = phone.replace("+", "").strip()
         self._ensure_contact_exists(clean_phone, last_message=content)
         
@@ -336,7 +340,8 @@ class WhatsAppService:
                 recipient_number='967784439991' if direction == 'inbound' else clean_phone,
                 content=content,
                 message_type='text',
-                status='received'
+                status='received',
+                media_id=media_id  # ✅ هنا
             )
             db.session.add(msg)
             db.session.commit()
@@ -351,6 +356,7 @@ class WhatsAppService:
             "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
             "direction": direction,
             "content": content,
+            "media_id": media_id,  # ✅ هنا
             "timestamp": datetime.utcnow().strftime("%H:%M")
         })
 
