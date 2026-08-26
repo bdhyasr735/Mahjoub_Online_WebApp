@@ -1,113 +1,113 @@
 {% extends "admin/base.html" %}
 
-{% block title %}المحادثات المباشرة - خدمة الواتساب{% endblock %}
+{% block title %}المحادثات المباشرة - سوق محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="p-4 md:p-6 space-y-4">
-    <!-- هيدر خدمة الواتساب الداخلي المتناسق مع لوحة القيادة المركزية -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#2b1248]">
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-2xl shadow-inner">
-                <i class="fab fa-whatsapp"></i>
+<div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-4.25rem)] bg-slate-100">
+    <!-- قائمة جهات الاتصال (Sidebar) -->
+    <aside class="w-80 lg:w-96 border-l border-slate-200 bg-white flex flex-col shadow-sm flex-shrink-0">
+        <!-- شريط البحث والعدد -->
+        <div class="p-3.5 border-b border-slate-100 bg-white space-y-2.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <i class="fab fa-whatsapp text-emerald-500 text-base"></i>
+                    <span>محادثات العملاء والتجار</span>
+                </span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100 font-mono">
+                    {{ contacts|length }} جهات
+                </span>
             </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-base md:text-lg font-black text-slate-900 dark:text-white">المراسلات المباشرة (Meta WhatsApp API)</h1>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">v26.0 Live</span>
-                </div>
-                <p class="text-xs text-slate-500">إدارة محادثات العملاء والتجار والرد الفوري في الزمن الحقيقي</p>
-            </div>
-        </div>
 
-        <!-- أزرار التبويبات العلوية -->
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="/admin/whatsapp/dashboard" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-purple-600 text-white shadow-sm shadow-purple-500/30 flex items-center gap-1.5">
-                <i class="fas fa-comments"></i>
-                <span>المحادثات</span>
-            </a>
-            <a href="/admin/whatsapp/templates" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 border border-slate-700/60 flex items-center gap-1.5 transition-all">
-                <i class="fas fa-layer-group"></i>
-                <span>قوالب ميتا</span>
-            </a>
-            <a href="/admin/whatsapp/webhook-logs" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 border border-slate-700/60 flex items-center gap-1.5 transition-all">
-                <i class="fas fa-stream"></i>
-                <span>سجل الويب هوك</span>
-            </a>
-            <a href="/admin/whatsapp/settings" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 border border-slate-700/60 flex items-center gap-1.5 transition-all">
-                <i class="fas fa-sliders-h"></i>
-                <span>الإعدادات</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- نافذة المحادثات المضمنة داخل لوحة التحكم -->
-    <div class="h-[calc(100vh-15rem)] bg-white dark:bg-[#120722] border border-slate-200 dark:border-[#2b1248] rounded-3xl overflow-hidden flex shadow-sm">
-        
-        <!-- القائمة الجانبية للمحادثات -->
-        <aside class="w-80 md:w-96 border-l border-slate-200 dark:border-[#2b1248] bg-slate-50 dark:bg-[#0e041a] flex flex-col">
-            <div class="p-3.5 border-b border-slate-200 dark:border-[#2b1248]">
+            <div class="relative">
                 <input type="text" id="contactSearch" oninput="filterContacts()" placeholder="بحث بالاسم أو رقم الهاتف..." 
-                       class="w-full bg-white dark:bg-[#1a0c30] border border-slate-200 dark:border-[#2b1248] rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500">
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:bg-white transition-all">
+                <i class="fas fa-search absolute right-3 top-2.5 text-slate-400 text-xs"></i>
             </div>
+        </div>
 
-            <div class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-[#2b1248]/50" id="contactsList">
-                {% for contact in contacts %}
-                <div class="p-3.5 hover:bg-purple-500/10 cursor-pointer flex items-center gap-3 transition-colors contact-card"
-                     onclick="loadChat('{{ contact.phone }}', '{{ contact.name }}')">
-                    <div class="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 font-bold flex items-center justify-center text-xs">
-                        {{ contact.name[:1] }}
+        <!-- قائمة المحادثات النشطة -->
+        <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contactsList">
+            {% for contact in contacts %}
+            <div class="p-3.5 hover:bg-purple-50/60 cursor-pointer flex items-center gap-3 transition-colors contact-card"
+                 onclick="loadChat('{{ contact.phone }}', '{{ contact.name }}')">
+                <div class="w-11 h-11 rounded-2xl bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-inner">
+                    {{ contact.name[:1] }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-0.5">
+                        <span class="font-bold text-xs text-slate-900 truncate">{{ contact.name }}</span>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold text-xs text-slate-900 dark:text-white truncate">{{ contact.name }}</span>
-                        </div>
-                        <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+{{ contact.phone }}</span>
-                    </div>
-                </div>
-                {% else %}
-                <div class="p-8 text-center text-slate-400 text-xs space-y-2">
-                    <i class="far fa-comments text-3xl text-slate-500"></i>
-                    <p class="font-bold text-slate-600 dark:text-slate-300">لا توجد محادثات سابقة</p>
-                    <p class="text-[11px] text-slate-400">ستظهر الرسائل الواردة من واتساب فورياً هنا في الزمن الحقيقي</p>
-                </div>
-                {% endfor %}
-            </div>
-        </aside>
-
-        <!-- نافذة عرض الرسائل وكتابة الرد -->
-        <main class="flex-1 flex flex-col bg-white dark:bg-[#120722]">
-            <div class="h-14 px-5 border-b border-slate-200 dark:border-[#2b1248] flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <span class="text-xs md:text-sm font-bold text-slate-900 dark:text-white" id="activeContactName">اختر محادثة من القائمة</span>
-                    <span class="text-[11px] text-slate-400 font-mono" id="activeContactPhone"></span>
+                    <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+{{ contact.phone }}</span>
                 </div>
             </div>
+            {% else %}
+            <div class="p-10 text-center text-slate-400 text-xs space-y-2">
+                <i class="far fa-comments text-3xl text-slate-300"></i>
+                <p class="font-bold text-slate-600">لا توجد محادثات سابقة</p>
+                <p class="text-[11px] text-slate-400">ستظهر الرسائل الواردة من واتساب فورياً هنا في الزمن الحقيقي</p>
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
 
-            <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-[#0d0417]" id="messagesArea">
-                <div class="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-slate-400">
-                    <i class="fab fa-whatsapp text-4xl text-emerald-400"></i>
-                    <h4 class="text-sm font-bold text-slate-700 dark:text-slate-200">لوحة محادثات سوق محجوب أونلاين</h4>
-                    <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة للرد المباشر أو إرسال القوالب الرسمية المعتمدة.</p>
+    <!-- نافذة الشات والمراسلة الفورية بكامل الشاشة -->
+    <section class="flex-1 flex flex-col bg-[#f0f2f5] relative">
+        <!-- هيدر المحادثة الحالية -->
+        <div class="h-16 px-5 border-b border-slate-200 bg-white flex items-center justify-between shadow-sm z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 font-extrabold text-sm shadow-inner" id="activeContactAvatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs md:text-sm font-extrabold text-slate-900" id="activeContactName">اختر محادثة من القائمة للرد الفوري</h3>
+                    <span class="text-[11px] text-slate-400 font-mono" id="activeContactPhone">+966...</span>
                 </div>
             </div>
 
-            <div class="p-3 border-t border-slate-200 dark:border-[#2b1248] bg-white dark:bg-[#120722]">
-                <form id="sendMessageForm" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
-                    <input type="text" id="messageInput" placeholder="اكتب ردك للعميل عبر واتساب..." 
-                           class="flex-1 bg-slate-50 dark:bg-[#1a0c30] border border-slate-200 dark:border-[#2b1248] rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500">
-                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all">
-                        <span>إرسال</span>
-                        <i class="fas fa-paper-plane text-xs"></i>
-                    </button>
-                </form>
+            <div class="flex items-center gap-2">
+                <a href="/admin/whatsapp/templates" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                    <i class="fas fa-layer-group"></i>
+                    <span>إرسال قالب رسمي</span>
+                </a>
             </div>
-        </main>
-    </div>
+        </div>
+
+        <!-- مساحة عرض الرسائل (نمط واتساب المريح والاحترافي) -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3" id="messagesArea">
+            <div class="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-slate-400">
+                <div class="w-16 h-16 rounded-3xl bg-white border border-slate-200 flex items-center justify-center text-3xl shadow-sm">
+                    <i class="fab fa-whatsapp text-emerald-500"></i>
+                </div>
+                <h4 class="text-sm font-bold text-slate-700">لوحة مراسلات سوق محجوب أونلاين</h4>
+                <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة في القائمة لقراءة الرسائل والرد الفوري عبر Meta Cloud API v26.0</p>
+            </div>
+        </div>
+
+        <!-- حقل إدخال الرسالة والإرسال -->
+        <div class="p-3.5 border-t border-slate-200 bg-white">
+            <form id="sendMessageForm" onsubmit="handleSendMessage(event)" class="flex items-center gap-2 max-w-5xl mx-auto">
+                <input type="text" id="messageInput" placeholder="اكتب ردك للعميل عبر واتساب..." 
+                       class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:bg-white transition-all">
+                <button type="submit" class="px-5 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs md:text-sm flex items-center gap-2 shadow-sm transition-all">
+                    <span>إرسال</span>
+                    <i class="fas fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+    </section>
 </div>
 
+<!-- دوال إدارة الدردشة في الزمن الحقيقي -->
 <script>
 let currentPhone = null;
+
+function filterContacts() {
+    const q = document.getElementById('contactSearch').value.toLowerCase();
+    document.querySelectorAll('.contact-card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(q) ? 'flex' : 'none';
+    });
+}
 
 function loadChat(phone, name) {
     currentPhone = phone;
@@ -128,12 +128,12 @@ function loadChat(phone, name) {
                 const bubble = document.createElement('div');
                 bubble.className = `flex ${isOutbound ? 'justify-start' : 'justify-end'}`;
                 bubble.innerHTML = `
-                    <div class="max-w-[75%] rounded-2xl px-4 py-2 text-xs shadow-sm ${
+                    <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
                         isOutbound 
                         ? 'bg-purple-600 text-white rounded-br-none' 
-                        : 'bg-white dark:bg-[#1f0e38] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-[#2b1248] rounded-bl-none'
+                        : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
                     }">
-                        <p class="leading-relaxed">${msg.content}</p>
+                        <p class="leading-relaxed font-medium">${msg.content}</p>
                         <span class="text-[9px] block mt-1 ${isOutbound ? 'text-purple-200' : 'text-slate-400'} font-mono">${msg.timestamp || ''}</span>
                     </div>
                 `;
