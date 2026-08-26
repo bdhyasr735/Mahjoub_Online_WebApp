@@ -1,0 +1,137 @@
+{% extends "admin/base.html" %}
+
+{% block title %}لوحة التحكم والمراسلات - سوق محجوب أونلاين{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-4rem)]">
+    <!-- Sidebar: Contacts List -->
+    <aside class="w-80 border-l border-[#230d3c] bg-[#0c0419] flex flex-col">
+        <div class="p-3 border-b border-[#230d3c]">
+            <div class="relative">
+                <input type="text" id="contactSearch" placeholder="بحث بالاسم أو الرقم..." 
+                       class="w-full bg-[#120722] border border-[#341659] rounded-xl px-3 py-1.5 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-purple-400">
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto divide-y divide-[#1b0a30]" id="contactsList">
+            {% for contact in contacts %}
+            <div class="p-3 hover:bg-[#15092a] cursor-pointer flex items-center gap-3 transition-colors"
+                 onclick="loadChat('{{ contact.phone }}', '{{ contact.name }}')">
+                <div class="relative">
+                    <img src="{{ contact.avatar_url|default('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100') }}" 
+                         class="w-10 h-10 rounded-xl object-cover ring-1 ring-purple-500/30">
+                    {% if contact.is_online %}
+                    <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#25D366] rounded-full border border-black"></span>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs text-white truncate">{{ contact.name }}</span>
+                        <span class="text-[10px] text-purple-400 font-mono">{{ contact.last_message_time }}</span>
+                    </div>
+                    <p class="text-[11px] text-purple-300/60 truncate mt-0.5">{{ contact.last_message }}</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-6 text-center text-purple-400/50 text-xs">
+                لا توجد جهات اتصال مسجلة حالياً
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- Main Chat Window -->
+    <section class="flex-1 flex flex-col bg-[#08020e] relative">
+        <!-- Active Chat Header -->
+        <div class="h-14 px-4 border-b border-[#230d3c] bg-[#0e051b] flex items-center justify-between">
+            <div class="flex items-center gap-3" id="activeChatHeader">
+                <div class="w-9 h-9 rounded-xl bg-purple-900/40 flex items-center justify-center text-purple-300 font-bold">
+                    م
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-white" id="activeContactName">اختر محادثة لبدء المراسلة</h3>
+                    <span class="text-[10px] text-purple-300/60 font-mono" id="activeContactPhone">+966...</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="openTemplateModal()" class="px-3 py-1 rounded-xl bg-[#1c0c35] text-purple-200 hover:text-white border border-[#3b1767] text-xs">
+                    إرسال قالب رسمي
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages Bubble Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="messagesArea">
+            <div class="p-12 text-center text-purple-400/40 text-xs">
+                انقر على أي محادثة من القائمة لعرض الرسائل المتبادلة
+            </div>
+        </div>
+
+        <!-- Message Input Bar -->
+        <div class="p-3 border-t border-[#230d3c] bg-[#0e051b]">
+            <form id="sendMessageForm" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
+                <input type="text" id="messageInput" placeholder="اكتب ردك للعميل عبر واتساب..." 
+                       class="flex-1 bg-[#130724] border border-[#341659] rounded-2xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+                <button type="submit" class="px-4 py-2 rounded-2xl bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold text-xs flex items-center gap-1.5 transition-all">
+                    <span>إرسال</span>
+                </button>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPhone = null;
+
+    function loadChat(phone, name) {
+        currentPhone = phone;
+        document.getElementById('activeContactName').innerText = name;
+        document.getElementById('activeContactPhone').innerText = '+' + phone;
+        
+        fetch(`/api/whatsapp/messages?phone=${phone}`)
+            .then(res => res.json())
+            .then(data => {
+                const area = document.getElementById('messagesArea');
+                area.innerHTML = '';
+                if(data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        const isOut = msg.direction === 'outbound';
+                        const bubble = document.createElement('div');
+                        bubble.className = `flex ${isOut ? 'justify-start' : 'justify-end'}`;
+                        bubble.innerHTML = `
+                            <div class="max-w-[70%] p-3 rounded-2xl ${isOut ? 'bg-[#2a134a] text-white' : 'bg-[#0f291e] border border-emerald-500/30 text-emerald-100'} text-xs">
+                                <p>${msg.content}</p>
+                                <span class="text-[9px] opacity-60 block text-left mt-1 font-mono">${msg.timestamp || ''}</span>
+                            </div>
+                        `;
+                        area.appendChild(bubble);
+                    });
+                    area.scrollTop = area.scrollHeight;
+                }
+            });
+    }
+
+    function handleSendMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if(!text || !currentPhone) return;
+
+        fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                recipient_phone: currentPhone,
+                message_type: 'text',
+                content: text
+            })
+        }).then(res => res.json()).then(data => {
+            input.value = '';
+            loadChat(currentPhone, document.getElementById('activeContactName').innerText);
+        });
+    }
+</script>
+{% endblock %}
