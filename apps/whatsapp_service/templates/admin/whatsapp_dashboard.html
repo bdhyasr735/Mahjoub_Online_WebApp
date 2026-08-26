@@ -146,7 +146,6 @@
                     <button onclick="toggleEditName()" class="text-gray-400 hover:text-white px-2 text-xs">إلغاء</button>
                 </div>
 
-                <!-- تم إزالة معرف العميل بناءً على رغبتك وجعل الهيدر أكثر احترافية كواتساب رسمي -->
                 <div class="flex items-center gap-3 text-gray-400">
                     <button class="hover:text-white transition-colors" title="معلومات الاتصال"><i class="fa-solid fa-circle-info text-sm"></i></button>
                 </div>
@@ -182,12 +181,12 @@
                 {% endfor %}
             </div>
 
-            <!-- شريط كتابة وإرسال الرسالة عبر HTMX وتجربة واتساب الرسمية -->
+            <!-- شريط كتابة وإرسال الرسالة -->
             <div class="royal-purple-bg border-t royal-border p-4 shrink-0">
                 <form hx-post="{{ url_for('whatsapp_service.send_message_htmx') }}" 
                       hx-target="#messages-container" 
                       hx-swap="beforeend"
-                      onsubmit="this.reset(); setTimeout(scrollToBottom, 100);"
+                      hx-on::after-request="if(event.detail.successful) { this.reset(); scrollToBottom(); }"
                       class="flex items-center gap-3">
                     
                     <input type="hidden" name="phone" value="{{ selected_phone }}">
@@ -325,7 +324,7 @@
 
     </main>
 
-    <!-- نافذة منبثقة لبدء محادثة جديدة (معدلة لتجنب إعادة التوجيه 302 وحل مشاكل اللوقز) -->
+    <!-- نافذة منبثقة لبدء محادثة جديدة -->
     <div id="newChatModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="royal-purple-bg border royal-border rounded-2xl w-96 p-6 shadow-2xl animate-fadeIn">
             <div class="flex items-center justify-between mb-4">
