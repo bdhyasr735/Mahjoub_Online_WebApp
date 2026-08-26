@@ -1,4 +1,5 @@
-# apps/whatsapp_service/service.py
+# -*- coding: utf-8 -*-
+# 📂 apps/whatsapp_service/service.py
 """
 سوق محجوب أونلاين - خدمة الواتساب ومحرك الذكاء الاصطناعي
 WhatsApp Service for Meta Cloud API v26.0 & Gemini AI
@@ -56,11 +57,10 @@ class WhatsAppService:
             }
         }
 
-        # حفظ الرسالة محلياً في سجل المحادثات
+        # حفظ الرسالة محلياً وتحديث جهة الاتصال
         self._record_message(clean_phone, text, direction="outbound")
 
         if not self.access_token:
-            # محاكاة في حالة عدم إدخال التوكن بعد
             return {"status": "simulated", "message_id": f"sim_{int(datetime.utcnow().timestamp())}", "to": clean_phone}
 
         try:
@@ -124,10 +124,15 @@ class WhatsAppService:
                 for change in changes:
                     value = change.get("value", {})
                     
+                    # استخراج اسم العميل إن وُجد في بيانات جهات اتصال Meta
+                    contact_profile_name = "عميل محجوب"
+                    if "contacts" in value and len(value["contacts"]) > 0:
+                        contact_profile_name = value["contacts"][0].get("profile", {}).get("name", "عميل محجوب")
+
                     # 1. حالة وصول رسالة جديدة من عميل
                     if "messages" in value:
                         for msg in value["messages"]:
-                            sender_phone = msg.get("from")
+                            sender_phone = str(msg.get("from", "")).replace("+", "").strip()
                             msg_type = msg.get("type")
                             msg_text = ""
 
@@ -138,7 +143,8 @@ class WhatsAppService:
                             elif msg_type == "interactive":
                                 msg_text = msg.get("interactive", {}).get("button_reply", {}).get("title", "")
 
-                            # تسجيل الحدث والرسالة
+                            # تسجيل جهة الاتصال والرسالة
+                            self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
                             self._record_message(sender_phone, msg_text, direction="inbound")
 
@@ -148,16 +154,35 @@ class WhatsAppService:
                     # 2. حالة تحديث حالة التسليم والقراءة
                     if "statuses" in value:
                         for status_update in value["statuses"]:
-                            recipient_id = status_update.get("recipient_id")
+                            recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
                             status = status_update.get("status")  # sent, delivered, read
                             self._log_webhook_event(f"status_{status}", recipient_id, f"رسالة بحالة: {status}")
 
         except Exception as e:
             self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
 
+    def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
+        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها لتظهر بالقائمة"""
+        if not phone:
+            return
+        phone = phone.replace("+", "").strip()
+        if phone not in self.contacts_db:
+            self.contacts_db[phone] = {
+                "phone": phone,
+                "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
+                "last_message": last_message,
+                "last_message_time": datetime.utcnow().strftime("%H:%M"),
+                "unread_count": 1
+            }
+        else:
+            if name and name != "عميل واتساب":
+                self.contacts_db[phone]["name"] = name
+            if last_message:
+                self.contacts_db[phone]["last_message"] = last_message
+                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
+
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
-        # نموذج الرد الذكي المخصص لمتجر سوق محجوب أونلاين
         prompt = (
             "أنت المساعد الذكي الرسمي لخدمة عملاء 'سوق محجوب أونلاين'. "
             "أجب بأسلوب تجاري راقٍ وموجز وودود، واستفسر عما إذا كان العميل بحاجة للمساعدة "
@@ -190,9 +215,12 @@ class WhatsAppService:
     # =========================================================================
 
     def _record_message(self, phone: str, content: str, direction: str) -> None:
-        if phone not in self.messages_db:
-            self.messages_db[phone] = []
-        self.messages_db[phone].append({
+        clean_phone = phone.replace("+", "").strip()
+        self._ensure_contact_exists(clean_phone, last_message=content)
+        
+        if clean_phone not in self.messages_db:
+            self.messages_db[clean_phone] = []
+        self.messages_db[clean_phone].append({
             "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
             "direction": direction,
             "content": content,
