@@ -151,6 +151,22 @@ def get_messages():
     messages = wa_service.get_chat_history(phone)
     return jsonify({"messages": messages}), 200
 
+@whatsapp_bp.route('/api/contacts/update-name', methods=['POST'])
+def update_contact_name_api():
+    """تعديل اسم جهة اتصال معينة"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    phone = data.get('phone', '')
+    name = data.get('name', '')
+    
+    if not phone or not name:
+        return jsonify({"error": "phone and name are required"}), 400
+        
+    result = wa_service.update_contact_name(phone, name)
+    return jsonify(result), 200
+
 @whatsapp_bp.route('/api/clear-demo-data', methods=['POST'])
 def clear_demo_data_api():
     """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
