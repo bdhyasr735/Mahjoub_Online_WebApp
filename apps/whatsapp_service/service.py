@@ -356,3 +356,29 @@ class WhatsAppService:
         self.messages_db.clear()
         self.webhook_logs.clear()
         return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح. النظام جاهز للإنتاج الفعلي."}
+
+    # =========================================================================
+    # 4. دالة تعديل اسم العميل (أُضيفت حديثاً)
+    # =========================================================================
+
+    def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
+        """تعديل اسم جهة اتصال في قاعدة البيانات"""
+        try:
+            clean_phone = phone.replace("+", "").strip()
+            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+            
+            if not contact:
+                return {"error": "Contact not found", "status": "failed"}
+            
+            contact.name = name
+            contact.whatsapp_profile_name = name
+            db.session.commit()
+            
+            # تحديث القاموس في الذاكرة أيضاً
+            if clean_phone in self.contacts_db:
+                self.contacts_db[clean_phone]["name"] = name
+            
+            return {"success": True, "message": "تم تعديل الاسم بنجاح", "name": name}
+        except Exception as e:
+            db.session.rollback()
+            return {"error": str(e), "status": "failed"}
