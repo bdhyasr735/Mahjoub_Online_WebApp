@@ -22,7 +22,12 @@ def send_text_message(recipient, message):
     
     phone_id = WhatsAppServiceConfig.get_phone_number_id()
     token = WhatsAppServiceConfig.get_whatsapp_token()
-    version = WhatsAppServiceConfig.get_api_version()
+    version = WhatsAppServiceConfig.get_api_version() or "v21.0"
+
+    # 🛑 فحص أمان هام جداً: التحقق من توفر بيانات الاعتماد
+    if not phone_id or not token:
+        print(f"❌ CRITICAL WHATSAPP ERROR: Missing Phone ID ({phone_id}) or Access Token ({token})!")
+        return False, "Missing WhatsApp API credentials (Token or Phone ID)."
 
     url = f"{BASE_URL}/{version}/{phone_id}/messages"
     payload = {
@@ -37,7 +42,7 @@ def send_text_message(recipient, message):
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
         res_data = response.json() if response.content else {}
         
         db = get_db()
@@ -51,10 +56,16 @@ def send_text_message(recipient, message):
             
         status = 'sent' if 200 <= response.status_code < 300 else 'failed'
         
+        # طباعة حالة الإرسال في اللوقز للتشخيص الفوري
+        if status == 'failed':
+            print(f"❌ WHATSAPP API FAILED: Status {response.status_code} - Response: {response.text}")
+        else:
+            print(f"✅ WHATSAPP API SUCCESS: Message sent to {recipient} (Wamid: {wamid})")
+
         log_entry = WhatsAppMessageLog(
             wamid=wamid,
             direction='outbound',
-            sender_number=phone_id,
+            sender_number=str(phone_id),
             recipient_number=recipient,
             content=message,
             status=status
@@ -80,13 +91,13 @@ def send_text_message(recipient, message):
         if 200 <= response.status_code < 300:
             return True, res_data
         else:
-            # 🔍 طباعة خطأ ميتا بوضوح في الـ Logs لتشخيصه فوراً
-            print(f"❌ WHATSAPP API ERROR (Text): Status {response.status_code} - Response: {response.text}")
             return False, response.text
 
     except requests.exceptions.Timeout:
+        print("❌ WHATSAPP API ERROR: Request timed out.")
         return False, "Request to WhatsApp API timed out."
     except Exception as e:
+        print(f"❌ WHATSAPP API EXCEPTION: {str(e)}")
         try:
             db = get_db()
             db.session.rollback()
@@ -99,16 +110,18 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
     """
     ✅ دالة إرسال الوسائط (صور، فيديو، صوت، مستندات)
     """
-    # ✅ توحيد الرقم
     recipient = ''.join(filter(str.isdigit, recipient))
     
     phone_id = WhatsAppServiceConfig.get_phone_number_id()
     token = WhatsAppServiceConfig.get_whatsapp_token()
-    version = WhatsAppServiceConfig.get_api_version()
+    version = WhatsAppServiceConfig.get_api_version() or "v21.0"
+
+    if not phone_id or not token:
+        print(f"❌ CRITICAL WHATSAPP ERROR (Media): Missing Phone ID or Token!")
+        return False, "Missing WhatsApp API credentials."
 
     url = f"{BASE_URL}/{version}/{phone_id}/messages"
 
-    # تجهيز نوع الوسائط
     media_payload = {"link": media_url}
     if filename and media_type == 'document':
         media_payload["filename"] = filename
@@ -120,7 +133,6 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
         media_type: media_payload
     }
     
-    # إضافة النص التوضيحي للصور والفيديو
     if caption and media_type in ['image', 'video']:
         payload[media_type]["caption"] = caption
 
@@ -130,7 +142,7 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
         res_data = response.json() if response.content else {}
         
         db = get_db()
@@ -143,14 +155,12 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
             pass
             
         status = 'sent' if 200 <= response.status_code < 300 else 'failed'
-        
-        # نص مختصر يظهر في السجل
         display_content = caption if caption else (f"[{media_type}]")
 
         log_entry = WhatsAppMessageLog(
             wamid=wamid,
             direction='outbound',
-            sender_number=phone_id,
+            sender_number=str(phone_id),
             recipient_number=recipient,
             content=display_content,
             message_type=media_type,
@@ -178,7 +188,6 @@ def send_media_message(recipient, media_type, media_url, caption=None, filename=
         if 200 <= response.status_code < 300:
             return True, res_data
         else:
-            # 🔍 طباعة خطأ ميتا بوضوح في الـ Logs لتشخيصه فوراً
             print(f"❌ WHATSAPP API ERROR (Media): Status {response.status_code} - Response: {response.text}")
             return False, response.text
 
