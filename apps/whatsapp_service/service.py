@@ -165,7 +165,7 @@ class WhatsAppService:
                 
                 send_data = send_res.json()
                 
-                # حفظ في قاعدة البيانات
+                # حفظ في قاعدة البيانات (مع media_id)
                 self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound", media_id=media_id)
                 
                 results.append(send_data)
@@ -230,7 +230,7 @@ class WhatsAppService:
                             elif msg_type == "location":
                                 msg_text = "موقع جغرافي"
 
-                            # تسجيل جهة الاتصال والرسالة
+                            # تسجيل جهة الاتصال والرسالة (مع media_id)
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
                             self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id)
