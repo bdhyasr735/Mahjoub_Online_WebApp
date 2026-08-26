@@ -13,6 +13,11 @@ import requests
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
+# ✅ استيراد Cloudinary
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
 # ✅ استيراد النماذج من المكان الصحيح (حيث توجد الجداول فعلاً)
 from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
 from apps.extensions import db
@@ -27,6 +32,13 @@ class WhatsAppService:
         self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoob_webhook_secret_2026")
         self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+
+        # ✅ إعداد Cloudinary
+        cloudinary.config(
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "tpziz28b"),
+            api_key=os.getenv("CLOUDINARY_API_KEY", "397386914561283"),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET", "j6XFUVjUt9xsHSYwJ2BgnSaVfX8")
+        )
 
         # روابط Meta Graph API
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
