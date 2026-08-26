@@ -341,7 +341,7 @@ class WhatsAppService:
                 content=content,
                 message_type='text',
                 status='received',
-                media_id=media_id  # ✅ هنا
+                media_id=media_id  # ✅ حفظ معرف الوسائط
             )
             db.session.add(msg)
             db.session.commit()
@@ -356,7 +356,7 @@ class WhatsAppService:
             "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
             "direction": direction,
             "content": content,
-            "media_id": media_id,  # ✅ هنا
+            "media_id": media_id,  # ✅ حفظ معرف الوسائط
             "timestamp": datetime.utcnow().strftime("%H:%M")
         })
 
