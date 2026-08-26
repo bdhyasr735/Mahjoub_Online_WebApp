@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
+# apps/whatsapp_service/__init__.py
 """
-📂 apps/whatsapp_service/__init__.py
-وحدة خدمة واتساب - تهيئة الـ Blueprint وتسجيل المسارات
+سوق محجوب أونلاين - حزمة خدمة الواتساب ومحرك الذكاء الاصطناعي
+WhatsApp Service Package for Meta Cloud API v26.0
 """
 
-from flask import Blueprint
+from .service import WhatsAppService
+from .routes import whatsapp_bp
+from .registry import register_service, register_module
 
-whatsapp_bp = Blueprint(
-    'whatsapp_service',
-    __name__,
-    template_folder='templates',
-    static_folder='static'
-)
-
-from . import routes
+__all__ = [
+    "WhatsAppService",
+    "whatsapp_bp",
+    "register_service",
+    "register_module"
+]
