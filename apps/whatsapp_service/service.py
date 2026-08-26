@@ -1,73 +1,120 @@
-# app.py (أو main.py)
 # -*- coding: utf-8 -*-
-from flask import Flask, request, jsonify
-from apps.whatsapp_service.service import WhatsAppService
+# 📂 apps/whatsapp_service/registry.py
+"""
+تسجيل موديول خدمة مراسلات الواتساب الذكية (Meta WhatsApp Cloud API v26.0)
+في نظام التسجيل المركزي والديناميكي للمشروع
+Mahjoub Online WebApp
+"""
 
-app = Flask(__name__)
+# ========== بيانات الموديول الأساسية ==========
+MODULE_KEY = "whatsapp_service"
+MODULE_NAME = "خدمة الواتساب"
+DISPLAY_NAME = "مراسلات الواتساب"
+MODULE_ICON = "fab fa-whatsapp"
+ICON = "whatsapp"
+VERSION = "2.6.0"
+URL_PREFIX = "/admin/whatsapp"
+REQUIRED_PERMISSION = "manage_whatsapp_service"
 
-# إنشاء نسخة من الخدمة التي كتبتها
-wa_service = WhatsAppService()
+# ✅ تفعيل الظهور التلقائي في القائمة الجانبية للوحة التحكم
+SHOW_IN_ADMIN = True
+SHOW_IN_SUPPLIER = False
 
-# ==========================================================
-# 1. مسار التحقق (Handshake GET Request) - يطلبه Meta عند التسجيل
-# ==========================================================
-@app.route('/whatsapp/webhook', methods=['GET'])
-def verify_webhook():
-    mode = request.args.get('hub.mode')
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
+# ========== روابط القائمة الجانبية الديناميكية ==========
+LINKS = {
+    "whatsapp_service.dashboard_view": "المحادثات المباشرة",
+    "whatsapp_service.templates_view": "قوالب ميتا المعتمدة",
+    "whatsapp_service.webhook_logs_view": "سجل تدفق الويب هوك",
+    "whatsapp_service.settings_view": "إعدادات Meta Cloud API",
+}
 
-    if mode == 'subscribe' and token == wa_service.verify_token:
-        print("✅ Webhook verified successfully!")
-        return challenge, 200
-    else:
-        return jsonify({"error": "Verification failed"}), 403
+links = LINKS
 
-# ==========================================================
-# 2. مسار استقبال الرسائل (POST Request) - المرسل من Meta
-# ==========================================================
-@app.route('/whatsapp/webhook', methods=['POST'])
-def receive_webhook():
-    # قراءة البيانات الواردة
-    data = request.get_json()
-    
-    # (اختياري) التحقق من التوقيع الأمني إذا كان لديك App Secret
-    raw_payload = request.get_data()
-    signature = request.headers.get('X-Hub-Signature-256', '')
-    if not wa_service.verify_webhook_signature(raw_payload, signature):
-        return jsonify({"error": "Invalid signature"}), 403
-    
+
+def get_nav_metadata():
+    """
+    إرجاع الميتا داتا الديناميكية لبناء عنصر القائمة الجانبية (Sidebar) تلقائياً
+    """
+    return {
+        "key": MODULE_KEY,
+        "name": DISPLAY_NAME,
+        "icon": ICON,
+        "module_icon": MODULE_ICON,
+        "url": URL_PREFIX + "/dashboard",
+        "items": [
+            {
+                "title": "المحادثات المباشرة",
+                "url": URL_PREFIX + "/dashboard",
+                "icon": "fas fa-comments"
+            },
+            {
+                "title": "قوالب ميتا المعتمدة",
+                "url": URL_PREFIX + "/templates",
+                "icon": "fas fa-layer-group"
+            },
+            {
+                "title": "سجل الويب هوك (Live)",
+                "url": URL_PREFIX + "/webhook-logs",
+                "icon": "fas fa-stream"
+            },
+            {
+                "title": "الإعدادات والربط السحابي",
+                "url": URL_PREFIX + "/settings",
+                "icon": "fas fa-sliders-h"
+            }
+        ],
+        "links": links,
+        "show_in_admin": SHOW_IN_ADMIN,
+        "version": VERSION
+    }
+
+
+def register_module(app):
+    """
+    تسجيل موديول الواتساب في تطبيق Flask / Python المركزي.
+    """
     try:
-        # استدعاء دالة المعالجة من الكود الذي أرسلته
-        wa_service.process_incoming_payload(data)
-        # يجب إرجاع 200 دائماً حتى لا تعيد Meta إرسال الرسالة
-        return jsonify({"status": "EVENT_RECEIVED"}), 200
+        # استيراد المسارات من ملف routes.py
+        from apps.whatsapp_service.routes import whatsapp_bp, webhook_public_bp
+        
+        # استيراد CSRF من ملف الإضافات
+        from apps.extensions import csrf
+
+        # تسجيل مسار لوحة التحكم الإدارية
+        if whatsapp_bp.name not in app.blueprints:
+            app.register_blueprint(whatsapp_bp)
+            print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
+
+        # تسجيل المسار العام /whatsapp/webhook (لحل مشكلة الـ 404)
+        if webhook_public_bp.name not in app.blueprints:
+            app.register_blueprint(webhook_public_bp)
+            print(f"✅ [Module]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
+
+        # 🔥 الأهم: استثناء المسارات من حماية CSRF (حتى تصل رسائل Meta)
+        csrf.exempt(whatsapp_bp)
+        csrf.exempt(webhook_public_bp)
+
+    except ImportError:
+        # في حالة الاستيراد النسبي
+        try:
+            from .routes import whatsapp_bp, webhook_public_bp
+            from apps.extensions import csrf
+            
+            if whatsapp_bp.name not in app.blueprints:
+                app.register_blueprint(whatsapp_bp)
+            
+            if webhook_public_bp.name not in app.blueprints:
+                app.register_blueprint(webhook_public_bp)
+                
+            csrf.exempt(whatsapp_bp)
+            csrf.exempt(webhook_public_bp)
+            
+            print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' (استيراد نسبي) وتفعيله بنجاح.")
+        except Exception as inner_e:
+            print(f"❌ [Module Error]: فشل استيراد موديول الواتساب. تفاصيل: {inner_e}")
     except Exception as e:
-        print(f"❌ Error processing webhook: {e}")
-        return jsonify({"status": "ERROR", "message": str(e)}), 500
+        print(f"❌ [Module Error]: تعذر تسجيل موديول الواتساب. تفاصيل: {e}")
 
-# ==========================================================
-# 3. مسارات إضافية للوحة التحكم (كما في الصور)
-# ==========================================================
-@app.route('/admin/whatsapp/dashboard', methods=['GET'])
-def admin_dashboard():
-    return jsonify({
-        "contacts": wa_service.get_all_contacts(),
-        "messages": wa_service.messages_db, 
-        "config": wa_service.get_current_config()
-    })
 
-@app.route('/admin/whatsapp/webhook-logs', methods=['GET'])
-def admin_webhook_logs():
-    return jsonify(wa_service.get_webhook_logs())
-
-@app.route('/admin/whatsapp/config', methods=['POST'])
-def update_config():
-    new_config = request.get_json()
-    wa_service.update_config(new_config)
-    return jsonify({"success": True, "config": wa_service.get_current_config()})
-
-if __name__ == '__main__':
-    # تشغيل الخادم (استخدم ngrok أو رابط HTTPS حقيقي لتجربة Meta)
-    # تأكد من أن متغيرات البيئة (Access Token, App Secret...) موجودة
-    app.run(host='0.0.0.0', port=5000, debug=True)
+def register_service(app):
+    register_module(app)
