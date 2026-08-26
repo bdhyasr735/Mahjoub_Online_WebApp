@@ -484,6 +484,24 @@ def create_app():
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
+    # 📱 تسجيل مسار الواتساب العام (لحل مشكلة 404 بدون لمس القائمة)
+    # ============================================================
+    try:
+        from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
+
+        # تسجيل مسار الويب هوك العام (المسار الذي تستخدمه Meta)
+        if webhook_public_bp.name not in app.blueprints:
+            app.register_blueprint(webhook_public_bp)
+            print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
+
+        # استثناء كلا المسارين من حماية CSRF (الأهم)
+        csrf.exempt(whatsapp_bp)
+        csrf.exempt(webhook_public_bp)
+
+    except Exception as e:
+        print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
+
+    # ============================================================
     # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
     # ============================================================
     apps_dir = app.root_path
@@ -505,8 +523,7 @@ def create_app():
                         
                         if item == 'whatsapp_service' or 'whatsapp' in item:
                             try:
-                                if hasattr(module, 'whatsapp_bp'):
-                                    csrf.exempt(module.whatsapp_bp)
+                                # تم استثناء المسارات مسبقاً في التسجيل اليدوي أعلاه
                                 print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
                             except Exception as ex_csrf:
                                 print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
