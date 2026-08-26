@@ -12,10 +12,6 @@
     <!-- Font Awesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- ✅ مكتبة الإيموجي الاحترافية (emoji-picker-element) -->
-    <link rel="stylesheet" href="https://unpkg.com/emoji-picker-element@1.21.1/styles/emoji-picker.css">
-    <script type="module" src="https://unpkg.com/emoji-picker-element@1.21.1/emoji-picker.js"></script>
-
     <style>
         body { 
             font-family: 'Cairo', sans-serif; 
@@ -31,14 +27,11 @@
         .text-primary-royal { color: #1e0226; }
         .border-primary-royal { border-color: #1e0226; }
         
-        /* ✅ إعدادات مكتبة الإيموجي لتتوافق مع ألوان المشروع */
-        emoji-picker {
-            --background: #ffffff;
-            --border-color: #e2e8f0;
-            --button-active-background: #1e0226;
-            --indicator-color: #1e0226;
-            width: 100%;
-            height: 100%;
+        /* ✅ لضمان عرض الصور والفيديو بشكل صحيح */
+        img, video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
         }
     </style>
     {% block extra_head %}{% endblock %}
