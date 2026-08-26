@@ -8,14 +8,15 @@ from flask import Blueprint, request, jsonify, render_template
 from .service import WhatsAppService
 
 # تعريف الـ Blueprint الخاص بخدمة الواتساب
-whatsapp_bp = Blueprint('whatsapp', __name__, template_folder='templates')
+# ✅ أضفنا url_prefix='/admin/whatsapp' حتى لا يتعارض مع لوحة التحكم المركزية
+whatsapp_bp = Blueprint('whatsapp', __name__, template_folder='templates', url_prefix='/admin/whatsapp')
 whatsapp_service = WhatsAppService()
 
 # =========================================================================
 # 1. مسارات الـ Webhook مع Meta Cloud API v26.0
 # =========================================================================
 
-@whatsapp_bp.route('/api/whatsapp/webhook', methods=['GET'])
+@whatsapp_bp.route('/webhook', methods=['GET'])
 def verify_webhook():
     """
     التحقق الأولي من الـ Webhook مع خوادم Meta Graph API (Verification Challenge)
@@ -28,7 +29,7 @@ def verify_webhook():
         return challenge, 200
     return "Verification failed", 403
 
-@whatsapp_bp.route('/api/whatsapp/webhook', methods=['POST'])
+@whatsapp_bp.route('/webhook', methods=['POST'])
 def handle_webhook_event():
     """
     استقبال الرسائل وأحداث التسليم والقراءة اللحظية من Meta
@@ -49,7 +50,7 @@ def handle_webhook_event():
 # 2. مسارات الـ REST API لإدارة المراسلات من لوحة التحكم
 # =========================================================================
 
-@whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
+@whatsapp_bp.route('/api/send', methods=['POST'])
 def send_message_api():
     """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
     data = request.get_json() or {}
@@ -62,7 +63,7 @@ def send_message_api():
     result = whatsapp_service.send_message(recipient_phone, text)
     return jsonify(result), 200
 
-@whatsapp_bp.route('/api/whatsapp/templates/send', methods=['POST'])
+@whatsapp_bp.route('/api/templates/send', methods=['POST'])
 def send_template_api():
     """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
     data = request.get_json() or {}
@@ -82,13 +83,13 @@ def send_template_api():
     )
     return jsonify(result), 200
 
-@whatsapp_bp.route('/api/whatsapp/contacts', methods=['GET'])
+@whatsapp_bp.route('/api/contacts', methods=['GET'])
 def get_contacts():
     """جلب قائمة جهات الاتصال المسجلة في النظام"""
     contacts = whatsapp_service.get_all_contacts()
     return jsonify({"contacts": contacts}), 200
 
-@whatsapp_bp.route('/api/whatsapp/messages', methods=['GET'])
+@whatsapp_bp.route('/api/messages', methods=['GET'])
 def get_messages():
     """جلب الرسائل السابقة لمحادثة معينة عبر رقم الهاتف"""
     phone = request.args.get('phone', '')
@@ -102,19 +103,19 @@ def get_messages():
 # 3. مسارات عرض قوالب صفحات الإدارة (HTML Views)
 # =========================================================================
 
-@whatsapp_bp.route('/admin/whatsapp/dashboard', methods=['GET'])
+@whatsapp_bp.route('/dashboard', methods=['GET'])
 def admin_dashboard():
     """عرض لوحة المحادثات الرئيسية المجهزة بالبنفسجي الملكي"""
     contacts = whatsapp_service.get_all_contacts()
     return render_template('admin/dashboard.html', contacts=contacts)
 
-@whatsapp_bp.route('/admin/whatsapp/templates', methods=['GET'])
+@whatsapp_bp.route('/templates', methods=['GET'])
 def admin_templates():
     """عرض قائمة قوالب Meta المعتمدة"""
     templates = whatsapp_service.get_approved_templates()
     return render_template('admin/templates_list.html', templates=templates)
 
-@whatsapp_bp.route('/admin/whatsapp/settings', methods=['GET', 'POST'])
+@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def admin_settings():
     """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
     if request.method == 'POST':
@@ -122,7 +123,7 @@ def admin_settings():
     config = whatsapp_service.get_current_config()
     return render_template('admin/settings.html', config=config)
 
-@whatsapp_bp.route('/admin/whatsapp/webhook-logs', methods=['GET'])
+@whatsapp_bp.route('/webhook-logs', methods=['GET'])
 def admin_webhook_logs():
     """عرض سجل تدفق أحداث الـ Webhook المباشر"""
     logs = whatsapp_service.get_webhook_logs()
