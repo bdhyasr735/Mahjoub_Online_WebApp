@@ -13,8 +13,8 @@ import requests
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-# استيراد النماذج من قاعدة البيانات
-from apps.whatsapp_service.models import WhatsAppCustomerContact, WhatsAppMessageLog
+# ✅ استيراد النماذج من المسار الصحيح (حيث توجد الجداول فعلاً)
+from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
 from apps.extensions import db
 
 class WhatsAppService:
