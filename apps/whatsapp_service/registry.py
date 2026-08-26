@@ -5,8 +5,8 @@ Service Registry & Permissions Module for Mahgoob Online WhatsApp Service
 Meta Cloud API v26.0 Edition
 """
 
-import importlib
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -76,24 +76,32 @@ SERVICE_METADATA = {
 
 def register_service(app):
     """
-    تسجيل Blueprint خدمة الواتساب تلقائياً في تطبيق Flask / Django الرئيسي
+    تسجيل Blueprint خدمة الواتساب تلقائياً في تطبيق Flask / Django الرئيسي مع معالجة مرنة للمسارات
     """
+    bp = None
     try:
-        whatsapp_routes = importlib.import_module("apps.whatsapp_service.routes")
-        
-        # البحث عن Blueprint المعرف باسم whatsapp_bp أو whatsapp_service
-        bp = getattr(whatsapp_routes, 'whatsapp_bp', None) or getattr(whatsapp_routes, 'whatsapp_service', None)
-        
-        if bp:
-            if bp.name not in app.blueprints:
-                app.register_blueprint(bp)
-                app.logger.info("✅ [WhatsApp Service] Blueprint registered successfully with Meta Cloud API v26.0 routes.")
-            else:
-                app.logger.info("ℹ️ [WhatsApp Service] Blueprint is already registered in app.")
+        # المحاولة 1: استيراد من المسار النسبي للحزمة
+        from .routes import whatsapp_bp
+        bp = whatsapp_bp
+    except Exception:
+        try:
+            # المحاولة 2: استيراد من حزمة apps
+            from apps.whatsapp_service.routes import whatsapp_bp
+            bp = whatsapp_bp
+        except Exception:
+            try:
+                # المحاولة 3: استيراد مباشر إذا كان المجلد مضافاً لـ sys.path
+                from whatsapp_service.routes import whatsapp_bp
+                bp = whatsapp_bp
+            except Exception as e:
+                app.logger.error(f"❌ [WhatsApp Service] Import error: {e}")
+
+    if bp:
+        if bp.name not in app.blueprints:
+            app.register_blueprint(bp)
+            app.logger.info("✅ [WhatsApp Service] Blueprint registered successfully with Meta Cloud API v26.0 routes.")
         else:
-            app.logger.error("❌ [WhatsApp Service] No blueprint found in apps.whatsapp_service.routes.")
-    except Exception as e:
-        app.logger.error(f"❌ [WhatsApp Service] Failed to register blueprint: {e}")
+            app.logger.info("ℹ️ [WhatsApp Service] Blueprint is already registered.")
 
     # تسجيل الميتا داتا في التطبيق العام
     if not hasattr(app, 'registered_services'):
