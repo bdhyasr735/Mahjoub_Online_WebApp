@@ -126,7 +126,6 @@ def send_message_htmx():
     # استخراج الـ wamid إن وجد من نتيجة الإرسال
     wamid = None
     if isinstance(result, dict):
-        # محاولة استخراج معرف الرسالة من رد الواتساب إن توفر
         messages_meta = result.get('messages', [])
         if messages_meta:
             wamid = messages_meta[0].get('id')
