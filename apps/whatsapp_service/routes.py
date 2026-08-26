@@ -5,7 +5,7 @@
 Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 """
 
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 
 # دعم الاستيراد النسبي والمطلق بمرونة تامة
 try:
@@ -54,7 +54,7 @@ def handle_webhook_event():
     if not whatsapp_service.verify_webhook_signature(raw_payload, signature):
         return jsonify({"error": "Invalid signature"}), 401
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     whatsapp_service.process_incoming_payload(data)
     return jsonify({"status": "received"}), 200
 
@@ -66,7 +66,7 @@ def handle_webhook_event():
 @whatsapp_bp.route('/api/send', methods=['POST'])
 def send_message_api():
     """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
     recipient_phone = data.get('recipient_phone')
     text = data.get('content')
     
@@ -79,7 +79,7 @@ def send_message_api():
 @whatsapp_bp.route('/api/templates/send', methods=['POST'])
 def send_template_api():
     """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
     recipient_phone = data.get('recipient_phone')
     template_name = data.get('template_name')
     language_code = data.get('language_code', 'ar')
@@ -119,7 +119,7 @@ def clear_demo_data_api():
 
 
 # =========================================================================
-# 3. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة (تمنع أي تداخل مع dashboard.html الرئيسي)
+# 3. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة
 # =========================================================================
 
 @whatsapp_bp.route('/dashboard', methods=['GET'])
@@ -137,9 +137,19 @@ def templates_view():
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
-    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
+    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API مع دعم حفظ آمن وسلس"""
     if request.method == 'POST':
-        whatsapp_service.update_config(request.form.to_dict())
+        # قراءة البيانات سواء جاءت عبر FormData أو JSON
+        data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
+        whatsapp_service.update_config(data)
+        
+        # إذا كان الطلب AJAX / Fetch نعيد استجابة JSON، وإلا نعيد تحميل الصفحة
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({"status": "success", "message": "تم حفظ الإعدادات بنجاح"}), 200
+        
+        config = whatsapp_service.get_current_config()
+        return render_template('admin/settings.html', config=config, success=True)
+
     config = whatsapp_service.get_current_config()
     return render_template('admin/settings.html', config=config)
 
