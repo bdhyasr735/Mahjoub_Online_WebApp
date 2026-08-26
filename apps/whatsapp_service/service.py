@@ -24,16 +24,16 @@ from apps.extensions import db
 
 class WhatsAppService:
     def __init__(self):
-        # إعدادات الربط مع Meta Cloud API v26.0
+        # إعدادات الربط مع Meta Cloud API v26.0 (آمن - تقرأ من Railway فقط)
         self.api_version = os.getenv("WHATSAPP_API_VERSION", "v26.0")
-        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1336881386166971")
-        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "160492837156903")
-        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
-        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoob_webhook_secret_2026")
-        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")  # ✅ فارغ
+        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")      # ✅ فارغ
+        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")        # ✅ فارغ
+        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")        # ✅ فارغ
+        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")            # ✅ فارغ
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")             # ✅ فارغ
 
-        # ✅ إعداد Cloudinary
+        # ✅ إعداد Cloudinary (آمن - تقرأ من Railway فقط)
         cloudinary.config(
             cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
             api_key=os.getenv("CLOUDINARY_API_KEY", ""),
