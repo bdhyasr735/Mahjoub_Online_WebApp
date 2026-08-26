@@ -34,6 +34,12 @@ class Config:
     WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'mahjoub_secure_webhook_token')
     WHATSAPP_API_VERSION = os.environ.get('WHATSAPP_API_VERSION', 'v20.0')
 
+    # 🖼️ إعدادات Cloudinary (لتخزين الصور والملفات)
+    CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '')
+    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME', 'tpziz28b')
+    CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY', '397386914561283')
+    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET', 'j6XFUVjUt9xsHSYwJ2BgnSaVfX8')
+
     @staticmethod
     def validate_config():
         """التحقق من صحة المتغيرات الأساسية عند التشغيل لضمان عدم وجود نقص حرج"""
@@ -44,6 +50,8 @@ class Config:
             missing.append('WHATSAPP_ACCESS_TOKEN')
         if not Config.WHATSAPP_PHONE_NUMBER_ID:
             missing.append('WHATSAPP_PHONE_NUMBER_ID')
+        if not Config.CLOUDINARY_URL and not Config.CLOUDINARY_CLOUD_NAME:
+            missing.append('CLOUDINARY_URL')
         
         if missing:
             print(f"⚠️ [Config Warning]: متغيرات البيئة التالية مفقودة أو غير آمنة: {', '.join(missing)}")
