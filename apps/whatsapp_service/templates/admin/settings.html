@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+
+{% block title %}إعدادات ربط بايثون وواتساب - سوق محجوب أونلاين{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6 overflow-y-auto max-w-4xl mx-auto w-full space-y-6">
+    <div class="border-b border-[#230d3c] pb-4">
+        <h1 class="text-lg font-bold text-white">إعدادات ربط بايثون وMeta Cloud API v26.0</h1>
+        <p class="text-xs text-purple-300/70">تكوين المتغيرات والـ Webhooks والمفاتيح الخاصة بسيرفر بايثون</p>
+    </div>
+
+    <form method="POST" action="/admin/whatsapp/settings" class="bg-[#120722] border border-[#2b1248] rounded-3xl p-6 space-y-4 text-xs">
+        <div>
+            <label class="font-bold text-purple-200 block mb-1">WhatsApp Cloud API Permanent Access Token:</label>
+            <input type="password" name="whatsapp_access_token" value="{{ config.whatsapp_access_token }}" 
+                   class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="font-bold text-purple-200 block mb-1">Phone Number ID (معرف رقم الهاتف):</label>
+                <input type="text" name="whatsapp_phone_number_id" value="{{ config.whatsapp_phone_number_id }}" 
+                       class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+                <label class="font-bold text-purple-200 block mb-1">Business Account ID (WABA ID):</label>
+                <input type="text" name="whatsapp_business_account_id" value="{{ config.whatsapp_business_account_id }}" 
+                       class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="font-bold text-purple-200 block mb-1">Webhook Verify Token (رمز التحقق للويب هوك):</label>
+                <input type="text" name="whatsapp_verify_token" value="{{ config.whatsapp_verify_token|default('mahjoob_webhook_secret_2026') }}" 
+                       class="w-full bg-[#090312] border border-[#341659] rounded-xl px-3 py-2 text-white font-mono dir-ltr focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+                <label class="font-bold text-purple-200 block mb-1">API Version:</label>
+                <input type="text" name="whatsapp_api_version" value="v26.0" readonly
+                       class="w-full bg-[#1b0d30] border border-[#341659] rounded-xl px-3 py-2 text-amber-300 font-mono dir-ltr focus:outline-none">
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-[#230d3c] flex items-center justify-end">
+            <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-[#9333ea] to-[#7e22ce] text-white font-bold rounded-xl shadow hover:from-[#a855f7]">
+                حفظ الإعدادات في بايثون
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
