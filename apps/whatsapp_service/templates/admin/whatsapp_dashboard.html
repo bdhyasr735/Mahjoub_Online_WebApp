@@ -216,11 +216,11 @@ function refreshMessages() {
                     <div class="flex ${isOutbound ? 'justify-start' : 'justify-end'}">
                         <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
                             isOutbound 
-                            ? 'bg-[#1e0226] text-white rounded-br-none' 
-                            : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                            ? 'bg-white text-slate-800 border border-slate-200 rounded-br-none' 
+                            : 'bg-[#1e0226] text-white rounded-bl-none'
                         }">
                             <p class="leading-relaxed font-medium">${msg.content}</p>
-                            <span class="text-[9px] block mt-1 ${isOutbound ? 'text-purple-300' : 'text-slate-400'} font-mono">${msg.timestamp || ''}</span>
+                            <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">${msg.timestamp || ''}</span>
                         </div>
                     </div>
                     `;
