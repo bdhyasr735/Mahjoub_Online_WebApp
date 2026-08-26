@@ -87,14 +87,33 @@
         <div class="p-3.5 border-t border-slate-200 bg-white">
             <div class="flex items-center gap-2 max-w-5xl mx-auto">
                 
-                <!-- زر الإيموجي -->
+                <!-- زر الإيموجي (يعمل بدون مكتبة خارجية) -->
                 <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all shrink-0" title="إضافة إيموجي">
                     <i class="far fa-smile text-lg"></i>
                 </button>
                 
-                <!-- حاوية الإيموجي (ستظهر من المكتبة) -->
-                <div id="emoji-picker-container" class="hidden absolute bottom-20 left-4 bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 w-80 h-80 overflow-hidden">
-                    <emoji-picker id="emoji-picker"></emoji-picker>
+                <!-- حاوية الإيموجي (قائمة جاهزة) -->
+                <div id="emoji-picker-container" class="hidden absolute bottom-20 left-4 bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 w-64 p-3">
+                    <div class="grid grid-cols-6 gap-2">
+                        <span onclick="addEmoji('😀')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😀</span>
+                        <span onclick="addEmoji('😂')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😂</span>
+                        <span onclick="addEmoji('😍')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😍</span>
+                        <span onclick="addEmoji('😎')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😎</span>
+                        <span onclick="addEmoji('👍')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">👍</span>
+                        <span onclick="addEmoji('❤️')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">❤️</span>
+                        <span onclick="addEmoji('🎉')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🎉</span>
+                        <span onclick="addEmoji('🔥')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🔥</span>
+                        <span onclick="addEmoji('🤝')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🤝</span>
+                        <span onclick="addEmoji('🛒')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🛒</span>
+                        <span onclick="addEmoji('🚚')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🚚</span>
+                        <span onclick="addEmoji('💎')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">💎</span>
+                        <span onclick="addEmoji('📦')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">📦</span>
+                        <span onclick="addEmoji('🤑')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🤑</span>
+                        <span onclick="addEmoji('😢')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😢</span>
+                        <span onclick="addEmoji('🤔')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🤔</span>
+                        <span onclick="addEmoji('👌')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">👌</span>
+                        <span onclick="addEmoji('🙏')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🙏</span>
+                    </div>
                 </div>
 
                 <!-- زر إرفاق ملفات (صور/فيديو/مستندات) -->
@@ -131,20 +150,26 @@
 let currentPhone = null;
 let selectedFiles = []; // لتخزين الملفات المرفقة
 
-// استدعاء مكتبة الإيموجي
-const emojiPicker = document.getElementById('emoji-picker');
-if (emojiPicker) {
-    emojiPicker.addEventListener('emoji-click', event => {
-        const input = document.getElementById('messageInput');
-        input.value += event.detail.unicode;
-        input.focus();
-    });
+// دالة إضافة إيموجي لصندوق النص
+function addEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += emoji;
+    input.focus();
 }
 
 function toggleEmojiPicker() {
     const container = document.getElementById('emoji-picker-container');
     container.classList.toggle('hidden');
 }
+
+// إغلاق الإيموجي عند الضغط خارجها
+document.addEventListener('click', function(e) {
+    const container = document.getElementById('emoji-picker-container');
+    const button = document.querySelector('button[onclick="toggleEmojiPicker()"]');
+    if (!container.classList.contains('hidden') && !container.contains(e.target) && !button.contains(e.target)) {
+        container.classList.add('hidden');
+    }
+});
 
 function filterContacts() {
     const q = document.getElementById('contactSearch').value.toLowerCase();
@@ -212,8 +237,22 @@ function refreshMessages() {
                 let newHTML = '';
                 data.messages.forEach(msg => {
                     const isOutbound = msg.direction === 'outbound';
-                    // رسالة الإدارة (الصادرة): يمين + أبيض
-                    // رسالة العميل (الواردة): يسار + بنفسجي غامق
+                    
+                    // بناء محتوى الرسالة
+                    let contentHTML = `<p class="leading-relaxed font-medium">${msg.content}</p>`;
+                    
+                    // إذا كانت الرسالة تحتوي على وسائط (صورة/فيديو/ملف)
+                    if (msg.media_url) {
+                        if (msg.media_type === 'image') {
+                            contentHTML = `<img src="${msg.media_url}" class="rounded-xl max-w-full h-auto mb-2" alt="صورة">`;
+                        } else if (msg.media_type === 'video') {
+                            contentHTML = `<video src="${msg.media_url}" controls class="rounded-xl max-w-full h-auto mb-2"></video>`;
+                        } else if (msg.media_type === 'document') {
+                            contentHTML = `<a href="${msg.media_url}" target="_blank" class="flex items-center gap-2 text-blue-500 underline"><i class="fas fa-file"></i> ${msg.media_filename || 'ملف مرفق'}</a>`;
+                        }
+                    }
+                    
+                    // ترتيب الرسالة (العميل يسار، الإدارة يمين)
                     newHTML += `
                     <div class="flex ${isOutbound ? 'justify-end' : 'justify-start'}">
                         <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
@@ -221,7 +260,7 @@ function refreshMessages() {
                             ? 'bg-white text-slate-800 border border-slate-200 rounded-br-none' 
                             : 'bg-[#1e0226] text-white rounded-bl-none'
                         }">
-                            <p class="leading-relaxed font-medium">${msg.content}</p>
+                            ${contentHTML}
                             <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">${msg.timestamp || ''}</span>
                         </div>
                     </div>
