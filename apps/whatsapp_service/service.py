@@ -105,6 +105,77 @@ class WhatsAppService:
             return {"error": str(e), "status": "failed"}
 
     # =========================================================================
+    # 4. دعم إرسال واستقبال الوسائط (Media)
+    # =========================================================================
+
+    def send_media(self, recipient_phone: str, files: list) -> Dict[str, Any]:
+        """إرسال ملفات (صور، فيديو، مستندات) عبر Meta WhatsApp Cloud API"""
+        try:
+            clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
+            results = []
+            
+            for file in files:
+                if not file:
+                    continue
+                    
+                # تحديد نوع الملف
+                file_type = file.content_type
+                if file_type.startswith('image/'):
+                    media_type = 'image'
+                elif file_type.startswith('video/'):
+                    media_type = 'video'
+                else:
+                    media_type = 'document'
+                
+                # رفع الملف إلى Meta أولاً (Upload)
+                upload_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
+                upload_res = requests.post(
+                    upload_url,
+                    headers={"Authorization": f"Bearer {self.access_token}"},
+                    files={
+                        "file": (file.filename, file.stream, file.content_type),
+                        "type": (None, media_type),
+                        "messaging_product": (None, "whatsapp")
+                    },
+                    timeout=30
+                )
+                upload_data = upload_res.json()
+                
+                if "id" not in upload_data:
+                    return {"status": "failed", "error": upload_data.get("error", {}).get("message", "فشل رفع الملف")}
+                
+                media_id = upload_data["id"]
+                
+                # إرسال الوسائط للعميل
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "to": clean_phone,
+                    "type": media_type,
+                    media_type: {
+                        "id": media_id
+                    }
+                }
+                
+                send_res = requests.post(
+                    self.base_url,
+                    headers=self._get_headers(),
+                    json=payload,
+                    timeout=10
+                )
+                
+                send_data = send_res.json()
+                
+                # حفظ في قاعدة البيانات
+                self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound")
+                
+                results.append(send_data)
+            
+            return {"status": "success", "results": results}
+            
+        except Exception as e:
+            return {"error": str(e), "status": "failed"}
+
+    # =========================================================================
     # 2. معالجة الـ Webhook الوارد والذكاء الاصطناعي (Inbound Webhook)
     # =========================================================================
 
@@ -146,6 +217,14 @@ class WhatsAppService:
                                 msg_text = msg.get("button", {}).get("text", "")
                             elif msg_type == "interactive":
                                 msg_text = msg.get("interactive", {}).get("button_reply", {}).get("title", "")
+                            elif msg_type == "image":
+                                msg_text = "صورة"
+                            elif msg_type == "video":
+                                msg_text = "فيديو"
+                            elif msg_type == "document":
+                                msg_text = "ملف مرفق"
+                            elif msg_type == "location":
+                                msg_text = "موقع جغرافي"
 
                             # تسجيل جهة الاتصال والرسالة
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
@@ -302,10 +381,36 @@ class WhatsAppService:
                 (WhatsAppMessageLog.sender_number == clean_phone) |
                 (WhatsAppMessageLog.recipient_number == clean_phone)
             ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
-            return [m.to_dict() for m in messages]
+            
+            # تحويل الرسائل إلى قوائم مع دعم الوسائط
+            result = []
+            for m in messages:
+                item = m.to_dict()
+                # إذا كانت الرسالة تحتوي على وسائط، أضف روابطها
+                if m.media_id:
+                    item['media_url'] = self._get_media_url(m.media_id)
+                    item['media_type'] = m.message_type
+                    item['media_filename'] = m.media_filename
+                result.append(item)
+            
+            return result
         except Exception as e:
             print(f"⚠️ [خطأ جلب المحادثة من الجداول]: {e}")
             return self.messages_db.get(phone.replace("+", "").strip(), [])
+
+    def _get_media_url(self, media_id: str) -> str:
+        """الحصول على رابط مؤقت للوسائط من Meta"""
+        try:
+            url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
+            res = requests.get(
+                url,
+                headers={"Authorization": f"Bearer {self.access_token}"},
+                timeout=10
+            )
+            data = res.json()
+            return data.get("url", "")
+        except Exception:
+            return ""
 
     def get_webhook_logs(self) -> List[Dict[str, Any]]:
         return self.webhook_logs
