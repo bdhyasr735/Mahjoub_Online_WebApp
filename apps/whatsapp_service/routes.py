@@ -105,6 +105,12 @@ def get_messages():
     messages = whatsapp_service.get_chat_history(phone)
     return jsonify({"messages": messages}), 200
 
+@whatsapp_bp.route('/api/whatsapp/clear-demo-data', methods=['POST'])
+def clear_demo_data_api():
+    """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
+    result = whatsapp_service.clear_demo_data()
+    return jsonify(result), 200
+
 
 # =========================================================================
 # 3. مسارات عرض قوالب صفحات الإدارة (HTML Views)
