@@ -1,495 +1,244 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/whatsapp_service/service.py
+# 📂 apps/whatsapp_service/routes.py
 """
-سوق محجوب أونلاين - خدمة الواتساب ومحرك الذكاء الاصطناعي
-WhatsApp Service for Meta Cloud API v26.0 & Gemini AI
+سوق محجوب أونلاين - مسارات الباك إند والـ Webhooks
+Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 """
 
-import os
-import json
-import hmac
-import hashlib
-import requests
-from datetime import datetime
-from typing import Dict, List, Any, Optional
+from flask import Blueprint, request, jsonify, render_template
 
-# ✅ استيراد النماذج من المكان الصحيح (حيث توجد الجداول فعلاً)
-from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
-from apps.extensions import db
+# تعريف الـ Blueprint الإداري
+whatsapp_bp = Blueprint(
+    'whatsapp_service', 
+    __name__, 
+    template_folder='templates',
+    url_prefix='/admin/whatsapp'
+)
 
-class WhatsAppService:
-    def __init__(self):
-        # إعدادات الربط مع Meta Cloud API v26.0
-        self.api_version = os.getenv("WHATSAPP_API_VERSION", "v26.0")
-        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1336881386166971")
-        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "160492837156903")
-        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
-        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "mahjoob_webhook_secret_2026")
-        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+# تعريف Blueprint عام لمسارات الويب هوك المباشرة بدون بادئة admin
+webhook_public_bp = Blueprint(
+    'whatsapp_webhook_public',
+    __name__
+)
 
-        # روابط Meta Graph API
-        self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
-        self.media_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
 
-        # مخزن مؤقت للمحادثات وسجلات الويب هوك (جاهز للإنتاج الفعلي - صفر بيانات وهمية)
-        self.webhook_logs: List[Dict[str, Any]] = []
-        self.contacts_db: Dict[str, Dict[str, Any]] = {}
-        self.messages_db: Dict[str, List[Dict[str, Any]]] = {}
+# =========================================================================
+# 1. مسارات الـ Webhook مع Meta Cloud API v26.0 (تدعم كلا المسارين)
+# =========================================================================
 
-    # =========================================================================
-    # 1. إرسال الرسائل والقوالب والوسائط (Outbound Meta API)
-    # =========================================================================
+def _handle_verify():
+    """التحقق الأولي من الـ Webhook من خوادم Meta (Challenge Verification)"""
+    # استيراد الخدمة هنا لتفادي Circular Import
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    mode = request.args.get('hub.mode')
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    
+    # إذا تم إرسال الـ Challenge الصحيح من ميتا
+    if mode == 'subscribe' and token == wa_service.verify_token:
+        return str(challenge), 200
 
-    def _get_headers(self) -> Dict[str, str]:
-        return {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json"
-        }
+    # إذا قام المطور بفتح الرابط يدوياً للتأكد من عمل السيرفر
+    if not mode and not token:
+        return jsonify({
+            "status": "online",
+            "service": "Mahjoob WhatsApp Webhook Endpoint (v26.0)",
+            "message": "Webhook is running and ready to receive Meta Cloud API events."
+        }), 200
 
-    def send_message(self, recipient_phone: str, text: str) -> Dict[str, Any]:
-        """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API"""
-        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
-        payload = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": clean_phone,
-            "type": "text",
-            "text": {
-                "preview_url": False,
-                "body": text
-            }
-        }
+    return "Verification failed: Token mismatch", 403
 
-        # حفظ الرسالة محلياً وتحديث جهة الاتصال
-        self._record_message(clean_phone, text, direction="outbound")
+def _handle_incoming_event():
+    """استقبال أحداث ورسائل Meta Webhook ومعالجتها فورياً"""
+    # استيراد الخدمة هنا لتفادي Circular Import
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    raw_payload = request.get_data()
+    signature = request.headers.get('X-Hub-Signature-256', '')
+    
+    if not wa_service.verify_webhook_signature(raw_payload, signature):
+        return jsonify({"error": "Invalid signature"}), 401
 
-        if not self.access_token:
-            return {"status": "simulated", "message_id": f"sim_{int(datetime.utcnow().timestamp())}", "to": clean_phone}
+    data = request.get_json(silent=True) or {}
+    wa_service.process_incoming_payload(data)
+    return jsonify({"status": "received"}), 200
 
-        try:
-            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
-            return response.json()
-        except Exception as e:
-            return {"error": str(e), "status": "failed"}
 
-    def send_template(
-        self,
-        recipient_phone: str,
-        template_name: str,
-        language_code: str = "ar",
-        components: Optional[List[Dict[str, Any]]] = None
-    ) -> Dict[str, Any]:
-        """إرسال قالب رسمي معتمد من Meta (فواتير، شحنات، إشعارات)"""
-        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": clean_phone,
-            "type": "template",
-            "template": {
-                "name": template_name,
-                "language": {"code": language_code},
-                "components": components or []
-            }
-        }
+# مسارات الويب هوك تحت /admin/whatsapp/webhook
+@whatsapp_bp.route('/webhook', methods=['GET'])
+def verify_webhook_admin():
+    return _handle_verify()
 
-        self._record_message(clean_phone, f"[قالب رسمي: {template_name}]", direction="outbound")
+@whatsapp_bp.route('/webhook', methods=['POST'])
+def handle_webhook_event_admin():
+    return _handle_incoming_event()
 
-        if not self.access_token:
-            return {"status": "simulated", "template": template_name, "to": clean_phone}
 
-        try:
-            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
-            return response.json()
-        except Exception as e:
-            return {"error": str(e), "status": "failed"}
+# مسارات الويب هوك المباشرة تحت /whatsapp/webhook (لحل الـ 404)
+@webhook_public_bp.route('/whatsapp/webhook', methods=['GET'])
+def verify_webhook_public():
+    return _handle_verify()
 
-    # =========================================================================
-    # 4. دعم إرسال واستقبال الوسائط (Media)
-    # =========================================================================
+@webhook_public_bp.route('/whatsapp/webhook', methods=['POST'])
+def handle_webhook_event_public():
+    return _handle_incoming_event()
 
-    def send_media(self, recipient_phone: str, files: list) -> Dict[str, Any]:
-        """إرسال ملفات (صور، فيديو، مستندات) عبر Meta WhatsApp Cloud API"""
-        try:
-            clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
-            results = []
-            
-            for file in files:
-                if not file:
-                    continue
-                    
-                # تحديد نوع الملف
-                file_type = file.content_type
-                if file_type.startswith('image/'):
-                    media_type = 'image'
-                elif file_type.startswith('video/'):
-                    media_type = 'video'
-                else:
-                    media_type = 'document'
-                
-                # رفع الملف إلى Meta أولاً (Upload)
-                upload_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
-                upload_res = requests.post(
-                    upload_url,
-                    headers={"Authorization": f"Bearer {self.access_token}"},
-                    files={
-                        "file": (file.filename, file.stream, file.content_type),
-                        "type": (None, media_type),
-                        "messaging_product": (None, "whatsapp")
-                    },
-                    timeout=30
-                )
-                upload_data = upload_res.json()
-                
-                if "id" not in upload_data:
-                    return {"status": "failed", "error": upload_data.get("error", {}).get("message", "فشل رفع الملف")}
-                
-                media_id = upload_data["id"]
-                
-                # إرسال الوسائط للعميل
-                payload = {
-                    "messaging_product": "whatsapp",
-                    "to": clean_phone,
-                    "type": media_type,
-                    media_type: {
-                        "id": media_id
-                    }
-                }
-                
-                send_res = requests.post(
-                    self.base_url,
-                    headers=self._get_headers(),
-                    json=payload,
-                    timeout=10
-                )
-                
-                send_data = send_res.json()
-                
-                # حفظ في قاعدة البيانات
-                self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound", media_id=media_id)
-                
-                results.append(send_data)
-            
-            return {"status": "success", "results": results}
-            
-        except Exception as e:
-            return {"error": str(e), "status": "failed"}
 
-    # =========================================================================
-    # 2. معالجة الـ Webhook الوارد والذكاء الاصطناعي (Inbound Webhook)
-    # =========================================================================
+# =========================================================================
+# 2. مسارات الـ REST API لإدارة المراسلات من لوحة التحكم
+# =========================================================================
 
-    def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
-        """التحقق الأمني من أن الطلب صادر من خوادم Meta باستخدام App Secret"""
-        if not self.app_secret or not signature_header:
-            return True
-        expected_hash = hmac.new(
-            self.app_secret.encode('utf-8'),
-            raw_payload,
-            hashlib.sha256
-        ).hexdigest()
-        return hmac.compare_digest(f"sha256={expected_hash}", signature_header)
-
-    def process_incoming_payload(self, data: Dict[str, Any]) -> None:
-        """تحليل ومعالجة الرسائل والأحداث الواردة من Meta Webhook"""
-        try:
-            entries = data.get("entry", [])
-            for entry in entries:
-                changes = entry.get("changes", [])
-                for change in changes:
-                    value = change.get("value", {})
-                    
-                    # استخراج اسم العميل إن وُجد في بيانات جهات اتصال Meta
-                    contact_profile_name = "عميل محجوب"
-                    if "contacts" in value and len(value["contacts"]) > 0:
-                        contact_profile_name = value["contacts"][0].get("profile", {}).get("name", "عميل محجوب")
-
-                    # 1. حالة وصول رسالة جديدة من عميل
-                    if "messages" in value:
-                        for msg in value["messages"]:
-                            sender_phone = str(msg.get("from", "")).replace("+", "").strip()
-                            msg_type = msg.get("type")
-                            msg_text = ""
-                            media_id = ""
-
-                            if msg_type == "text":
-                                msg_text = msg.get("text", {}).get("body", "")
-                            elif msg_type == "button":
-                                msg_text = msg.get("button", {}).get("text", "")
-                            elif msg_type == "interactive":
-                                msg_text = msg.get("interactive", {}).get("button_reply", {}).get("title", "")
-                            elif msg_type == "image":
-                                msg_text = "صورة"
-                                media_id = msg.get("image", {}).get("id", "")
-                            elif msg_type == "video":
-                                msg_text = "فيديو"
-                                media_id = msg.get("video", {}).get("id", "")
-                            elif msg_type == "document":
-                                msg_text = "ملف مرفق"
-                                media_id = msg.get("document", {}).get("id", "")
-                            elif msg_type == "location":
-                                msg_text = "موقع جغرافي"
-
-                            # تسجيل جهة الاتصال والرسالة
-                            self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
-                            self._log_webhook_event("incoming_message", sender_phone, msg_text)
-                            self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id)
-
-                            # توليد رد ذكي تلقائي إذا تم تفعيل الذكاء الاصطناعي
-                            self._handle_smart_ai_reply(sender_phone, msg_text)
-
-                    # 2. حالة تحديث حالة التسليم والقراءة
-                    if "statuses" in value:
-                        for status_update in value["statuses"]:
-                            recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
-                            status = status_update.get("status")  # sent, delivered, read
-                            self._log_webhook_event(f"status_{status}", recipient_id, f"رسالة بحالة: {status}")
-
-        except Exception as e:
-            self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
-
-    def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
-        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها لتظهر بالقائمة"""
-        if not phone:
-            return
-        phone = phone.replace("+", "").strip()
+@whatsapp_bp.route('/api/send', methods=['POST'])
+def send_message_api():
+    """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    recipient_phone = data.get('recipient_phone')
+    text = data.get('content')
+    
+    if not recipient_phone or not text:
+        return jsonify({"error": "recipient_phone and content are required"}), 400
         
-        # ✅ الحفظ في قاعدة البيانات (الجداول)
-        try:
-            contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
-            if not contact:
-                contact = WhatsAppCustomerContact(
-                    phone=phone,
-                    name=name if name != "عميل واتساب" else f"عميل (+{phone})",
-                    whatsapp_profile_name=name,
-                    last_message=last_message,
-                    last_timestamp=datetime.utcnow(),
-                    unread_count=1
-                )
-                db.session.add(contact)
-            else:
-                if name and name != "عميل واتساب":
-                    contact.name = name
-                    contact.whatsapp_profile_name = name
-                if last_message:
-                    contact.last_message = last_message
-                    contact.last_timestamp = datetime.utcnow()
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [خطأ حفظ جهة الاتصال في الجدول]: {e}")
+    result = wa_service.send_message(recipient_phone, text)
+    return jsonify(result), 200
+
+@whatsapp_bp.route('/api/templates/send', methods=['POST'])
+def send_template_api():
+    """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    recipient_phone = data.get('recipient_phone')
+    template_name = data.get('template_name')
+    language_code = data.get('language_code', 'ar')
+    components = data.get('components', [])
+    
+    if not recipient_phone or not template_name:
+        return jsonify({"error": "recipient_phone and template_name are required"}), 400
         
-        # ✅ الحفظ في الذاكرة (القاموس) كما كان يعمل سابقاً
-        if phone not in self.contacts_db:
-            self.contacts_db[phone] = {
-                "phone": phone,
-                "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
-                "last_message": last_message,
-                "last_message_time": datetime.utcnow().strftime("%H:%M"),
-                "unread_count": 1
-            }
-        else:
-            if name and name != "عميل واتساب":
-                self.contacts_db[phone]["name"] = name
-            if last_message:
-                self.contacts_db[phone]["last_message"] = last_message
-                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
+    result = wa_service.send_template(
+        recipient_phone=recipient_phone,
+        template_name=template_name,
+        language_code=language_code,
+        components=components
+    )
+    return jsonify(result), 200
 
-    def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
-        """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
-        prompt = (
-            "أنت المساعد الذكي الرسمي لخدمة عملاء 'سوق محجوب أونلاين'. "
-            "أجب بأسلوب تجاري راقٍ وموجز وودود، واستفسر عما إذا كان العميل بحاجة للمساعدة "
-            "في إتمام طلبه أو الاستعلام عن الشحنات والأسعار.\n"
-            f"رسالة العميل: {customer_message}"
-        )
+@whatsapp_bp.route('/api/contacts', methods=['GET'])
+def get_contacts():
+    """جلب قائمة جهات الاتصال المسجلة في النظام"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    contacts = wa_service.get_all_contacts()
+    return jsonify({"contacts": contacts}), 200
+
+@whatsapp_bp.route('/api/messages', methods=['GET'])
+def get_messages():
+    """جلب الرسائل السابقة لمحادثة معينة عبر رقم الهاتف"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    phone = request.args.get('phone', '')
+    if not phone:
+        return jsonify({"error": "phone parameter is required"}), 400
+    messages = wa_service.get_chat_history(phone)
+    return jsonify({"messages": messages}), 200
+
+@whatsapp_bp.route('/api/contacts/update-name', methods=['POST'])
+def update_contact_name_api():
+    """تعديل اسم جهة اتصال معينة"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    phone = data.get('phone', '')
+    name = data.get('name', '')
+    
+    if not phone or not name:
+        return jsonify({"error": "phone and name are required"}), 400
         
-        reply_text = self._generate_gemini_reply(prompt)
-        if reply_text:
-            self.send_message(sender_phone, reply_text)
+    result = wa_service.update_contact_name(phone, name)
+    return jsonify(result), 200
 
-    def _generate_gemini_reply(self, prompt: str) -> str:
-        """استدعاء نموذج Gemini AI لتوليد الردود الفورية"""
-        if not self.gemini_api_key:
-            return "أهلاً بك في سوق محجوب أونلاين! تم استلام رسالتك وسيتواصل معك أحد ممثلي الخدمة في أقرب وقت."
-
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
-            res = requests.post(url, json=payload, timeout=8)
-            res_json = res.json()
-            return res_json['candidates'][0]['content']['parts'][0]['text']
-        except Exception:
-            return "مرحباً بك في سوق محجوب أونلاين! نسعد بخدمتك دائماً، كيف يمكننا مساعدتك اليوم؟"
-
-    # =========================================================================
-    # 3. إدارة قواعد البيانات وسجلات المحادثات (DB & Logs Helper)
-    # =========================================================================
-
-    def _record_message(self, phone: str, content: str, direction: str, media_id: str = "") -> None:
-        clean_phone = phone.replace("+", "").strip()
-        self._ensure_contact_exists(clean_phone, last_message=content)
+@whatsapp_bp.route('/api/send-media', methods=['POST'])
+def send_media_api():
+    """إرسال صور، فيديو، أو ملفات عبر Meta WhatsApp Cloud API"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    recipient_phone = request.form.get('recipient_phone', '')
+    files = request.files.getlist('files')
+    
+    if not recipient_phone or not files:
+        return jsonify({"error": "recipient_phone and files are required"}), 400
         
-        # ✅ الحفظ في قاعدة البيانات (الجداول)
-        try:
-            msg = WhatsAppMessageLog(
-                direction=direction,
-                sender_number=clean_phone if direction == 'inbound' else '967784439991',
-                recipient_number='967784439991' if direction == 'inbound' else clean_phone,
-                content=content,
-                message_type='text',
-                status='received',
-                media_id=media_id  # ✅ حفظ معرف الوسائط
-            )
-            db.session.add(msg)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [خطأ حفظ الرسالة في الجدول]: {e}")
+    result = wa_service.send_media(recipient_phone, files)
+    return jsonify(result), 200
+
+@whatsapp_bp.route('/api/clear-demo-data', methods=['POST'])
+def clear_demo_data_api():
+    """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    result = wa_service.clear_demo_data()
+    return jsonify(result), 200
+
+
+# =========================================================================
+# 3. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة
+# =========================================================================
+
+@whatsapp_bp.route('/dashboard', methods=['GET'])
+@whatsapp_bp.route('/', methods=['GET'])
+def dashboard_view():
+    """عرض لوحة المحادثات المباشرة باستخدام القالب المخصص whatsapp_dashboard.html"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    contacts = wa_service.get_all_contacts()
+    return render_template('admin/whatsapp_dashboard.html', contacts=contacts)
+
+@whatsapp_bp.route('/templates', methods=['GET'])
+def templates_view():
+    """عرض قائمة قوالب Meta المعتمدة"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    templates = wa_service.get_approved_templates()
+    return render_template('admin/templates_list.html', templates=templates)
+
+@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
+def settings_view():
+    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    if request.method == 'POST':
+        data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
+        wa_service.update_config(data)
         
-        # ✅ الحفظ في الذاكرة (القاموس) كما كان يعمل سابقاً
-        if clean_phone not in self.messages_db:
-            self.messages_db[clean_phone] = []
-        self.messages_db[clean_phone].append({
-            "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
-            "direction": direction,
-            "content": content,
-            "media_id": media_id,  # ✅ حفظ معرف الوسائط
-            "timestamp": datetime.utcnow().strftime("%H:%M")
-        })
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({"status": "success", "message": "تم حفظ الإعدادات بنجاح"}), 200
+        
+        config = wa_service.get_current_config()
+        return render_template('admin/settings.html', config=config, success=True)
 
-    def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
-        self.webhook_logs.insert(0, {
-            "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
-            "event_type": event_type,
-            "phone": phone,
-            "status": status
-        })
-        if len(self.webhook_logs) > 100:
-            self.webhook_logs.pop()
+    config = wa_service.get_current_config()
+    return render_template('admin/settings.html', config=config)
 
-    def get_all_contacts(self) -> List[Dict[str, Any]]:
-        """جلب قائمة جهات الاتصال (من قاعدة البيانات أولاً)"""
-        try:
-            contacts = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
-            return [c.to_dict() for c in contacts]
-        except Exception as e:
-            print(f"⚠️ [خطأ جلب جهات الاتصال من الجداول]: {e}")
-            return list(self.contacts_db.values())
-
-    def get_chat_history(self, phone: str) -> List[Dict[str, Any]]:
-        """جلب سجل المحادثة (من قاعدة البيانات أولاً)"""
-        try:
-            clean_phone = phone.replace("+", "").strip()
-            messages = WhatsAppMessageLog.query.filter(
-                (WhatsAppMessageLog.sender_number == clean_phone) |
-                (WhatsAppMessageLog.recipient_number == clean_phone)
-            ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
-            
-            # تحويل الرسائل إلى قوائم مع دعم الوسائط
-            result = []
-            for m in messages:
-                item = m.to_dict()
-                # إذا كانت الرسالة تحتوي على وسائط، أضف روابطها
-                if m.media_id:
-                    item['media_url'] = self._get_media_url(m.media_id)
-                    item['media_type'] = m.message_type
-                    item['media_filename'] = m.media_filename
-                result.append(item)
-            
-            return result
-        except Exception as e:
-            print(f"⚠️ [خطأ جلب المحادثة من الجداول]: {e}")
-            return self.messages_db.get(phone.replace("+", "").strip(), [])
-
-    def _get_media_url(self, media_id: str) -> str:
-        """الحصول على رابط مؤقت للوسائط من Meta"""
-        try:
-            url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
-            res = requests.get(
-                url,
-                headers={"Authorization": f"Bearer {self.access_token}"},
-                timeout=10
-            )
-            data = res.json()
-            return data.get("url", "")
-        except Exception:
-            return ""
-
-    def get_webhook_logs(self) -> List[Dict[str, Any]]:
-        return self.webhook_logs
-
-    def get_approved_templates(self) -> List[Dict[str, Any]]:
-        return [
-            {
-                "name": "mahjoob_order_confirmation",
-                "category": "خدمات وطلبات (Utility)",
-                "language": "ar",
-                "status": "APPROVED",
-                "body_text": "مرحباً {{1}}، تم تأكيد طلبك رقم #{{2}} بقيمة {{3}} ر.س من سوق محجوب أونلاين بنجاح. سنوافيك برابط التتبع فور انطلاق الشحنة."
-            },
-            {
-                "name": "mahjoob_shipping_update",
-                "category": "الشحن والتوصيل (Utility)",
-                "language": "ar",
-                "status": "APPROVED",
-                "body_text": "أهلاً {{1}}، شحنتك رقم #{{2}} خرجت للتوصيل الآن مع شركة الشحن. رقم البوليصة: {{3}}."
-            },
-            {
-                "name": "mahjoob_merchant_alert",
-                "category": "تنبيهات التجار (Alert)",
-                "language": "ar",
-                "status": "APPROVED",
-                "body_text": "عزيزي التاجر {{1}}، ورد طلب جملة جديد رقم #{{2}} على منتجاتك. يرجى تجهيز الشحنة."
-            }
-        ]
-
-    def get_current_config(self) -> Dict[str, Any]:
-        return {
-            "whatsapp_phone_number_id": self.phone_number_id,
-            "whatsapp_business_account_id": self.waba_id,
-            "whatsapp_access_token": self.access_token,
-            "whatsapp_verify_token": self.verify_token,
-            "whatsapp_api_version": self.api_version
-        }
-
-    def update_config(self, new_config: Dict[str, Any]) -> None:
-        self.phone_number_id = new_config.get("whatsapp_phone_number_id", self.phone_number_id)
-        self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id)
-        self.access_token = new_config.get("whatsapp_access_token", self.access_token)
-        self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
-
-    def clear_demo_data(self) -> Dict[str, Any]:
-        """تفريغ كافة البيانات الوهمية والمحادثات لضمان بيئة إنتاج نظيفة 100%"""
-        self.contacts_db.clear()
-        self.messages_db.clear()
-        self.webhook_logs.clear()
-        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح. النظام جاهز للإنتاج الفعلي."}
-
-    # =========================================================================
-    # 4. دالة تعديل اسم العميل (أُضيفت حديثاً)
-    # =========================================================================
-
-    def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
-        """تعديل اسم جهة اتصال في قاعدة البيانات"""
-        try:
-            clean_phone = phone.replace("+", "").strip()
-            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
-            
-            if not contact:
-                return {"error": "Contact not found", "status": "failed"}
-            
-            contact.name = name
-            contact.whatsapp_profile_name = name
-            db.session.commit()
-            
-            # تحديث القاموس في الذاكرة أيضاً
-            if clean_phone in self.contacts_db:
-                self.contacts_db[clean_phone]["name"] = name
-            
-            return {"success": True, "message": "تم تعديل الاسم بنجاح", "name": name}
-        except Exception as e:
-            db.session.rollback()
-            return {"error": str(e), "status": "failed"}
+@whatsapp_bp.route('/webhook-logs', methods=['GET'])
+def webhook_logs_view():
+    """عرض سجل تدفق أحداث الـ Webhook المباشر"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    logs = wa_service.get_webhook_logs()
+    return render_template('admin/webhook_logs.html', logs=logs)
