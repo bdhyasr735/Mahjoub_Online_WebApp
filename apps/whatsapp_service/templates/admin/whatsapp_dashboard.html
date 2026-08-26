@@ -87,33 +87,14 @@
         <div class="p-3.5 border-t border-slate-200 bg-white">
             <div class="flex items-center gap-2 max-w-5xl mx-auto">
                 
-                <!-- زر الإيموجي (يعمل بدون مكتبة خارجية) -->
+                <!-- زر الإيموجي (مكتبة احترافية) -->
                 <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all shrink-0" title="إضافة إيموجي">
                     <i class="far fa-smile text-lg"></i>
                 </button>
                 
-                <!-- حاوية الإيموجي (قائمة جاهزة) -->
-                <div id="emoji-picker-container" class="hidden absolute bottom-20 left-4 bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 w-64 p-3">
-                    <div class="grid grid-cols-6 gap-2">
-                        <span onclick="addEmoji('😀')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😀</span>
-                        <span onclick="addEmoji('😂')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😂</span>
-                        <span onclick="addEmoji('😍')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😍</span>
-                        <span onclick="addEmoji('😎')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😎</span>
-                        <span onclick="addEmoji('👍')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">👍</span>
-                        <span onclick="addEmoji('❤️')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">❤️</span>
-                        <span onclick="addEmoji('🎉')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🎉</span>
-                        <span onclick="addEmoji('🔥')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🔥</span>
-                        <span onclick="addEmoji('🤝')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🤝</span>
-                        <span onclick="addEmoji('🛒')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🛒</span>
-                        <span onclick="addEmoji('🚚')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🚚</span>
-                        <span onclick="addEmoji('💎')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">💎</span>
-                        <span onclick="addEmoji('📦')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">📦</span>
-                        <span onclick="addEmoji('🤑')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🤑</span>
-                        <span onclick="addEmoji('😢')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😢</span>
-                        <span onclick="addEmoji('🤔')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🤔</span>
-                        <span onclick="addEmoji('👌')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">👌</span>
-                        <span onclick="addEmoji('🙏')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">🙏</span>
-                    </div>
+                <!-- حاوية الإيموجي الاحترافية -->
+                <div id="emoji-picker-container" class="hidden absolute bottom-20 left-4 bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 w-96 h-96 overflow-hidden">
+                    <emoji-picker id="emoji-picker"></emoji-picker>
                 </div>
 
                 <!-- زر إرفاق ملفات (صور/فيديو/مستندات) -->
@@ -150,11 +131,14 @@
 let currentPhone = null;
 let selectedFiles = []; // لتخزين الملفات المرفقة
 
-// دالة إضافة إيموجي لصندوق النص
-function addEmoji(emoji) {
-    const input = document.getElementById('messageInput');
-    input.value += emoji;
-    input.focus();
+// ✅ استدعاء مكتبة الإيموجي الاحترافية
+const emojiPicker = document.getElementById('emoji-picker');
+if (emojiPicker) {
+    emojiPicker.addEventListener('emoji-click', event => {
+        const input = document.getElementById('messageInput');
+        input.value += event.detail.unicode;
+        input.focus();
+    });
 }
 
 function toggleEmojiPicker() {
@@ -190,9 +174,12 @@ function handleAttachmentSelect() {
         previewContainer.classList.remove('hidden');
         selectedFiles.forEach((file, index) => {
             const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
             const fileHTML = `
                 <div class="relative p-2 bg-white border border-slate-200 rounded-lg flex items-center gap-2 text-xs text-slate-600">
-                    ${isImage ? `<img src="${URL.createObjectURL(file)}" class="w-10 h-10 rounded object-cover">` : `<i class="fas fa-file text-lg text-slate-400"></i>`}
+                    ${isImage ? `<img src="${URL.createObjectURL(file)}" class="w-10 h-10 rounded object-cover">` : 
+                      isVideo ? `<video src="${URL.createObjectURL(file)}" class="w-10 h-10 rounded object-cover"></video>` : 
+                      `<i class="fas fa-file text-lg text-slate-400"></i>`}
                     <span class="max-w-[100px] truncate">${file.name}</span>
                     <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 absolute -top-1 -right-1 bg-white rounded-full px-1 shadow"><i class="fas fa-times text-[10px]"></i></button>
                 </div>
