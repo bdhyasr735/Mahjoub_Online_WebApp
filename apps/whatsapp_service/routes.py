@@ -6,7 +6,7 @@ Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 
 from flask import Blueprint, request, jsonify, render_template
 
-# دعم الاستيراد النسبي والمطلق لتفادي أي أخطاء مسارات في بيئات بايثون المختلفة
+# دعم الاستيراد النسبي والمطلق
 try:
     from .service import WhatsAppService
 except ImportError:
@@ -15,14 +15,15 @@ except ImportError:
     except ImportError:
         from whatsapp_service.service import WhatsAppService
 
-# تعريف الـ Blueprint الخاص بخدمة الواتساب
-whatsapp_bp = Blueprint('whatsapp', __name__, template_folder='templates')
+# تعريف الـ Blueprint
+whatsapp_bp = Blueprint('whatsapp_service', __name__, template_folder='templates')
 whatsapp_service = WhatsAppService()
 
 # =========================================================================
 # 1. مسارات الـ Webhook مع Meta Cloud API v26.0
 # =========================================================================
 
+@whatsapp_bp.route('/webhook', methods=['GET'])
 @whatsapp_bp.route('/api/whatsapp/webhook', methods=['GET'])
 def verify_webhook():
     """
@@ -36,6 +37,7 @@ def verify_webhook():
         return challenge, 200
     return "Verification failed", 403
 
+@whatsapp_bp.route('/webhook', methods=['POST'])
 @whatsapp_bp.route('/api/whatsapp/webhook', methods=['POST'])
 def handle_webhook_event():
     """
@@ -57,6 +59,7 @@ def handle_webhook_event():
 # 2. مسارات الـ REST API لإدارة المراسلات من لوحة التحكم
 # =========================================================================
 
+@whatsapp_bp.route('/api/send', methods=['POST'])
 @whatsapp_bp.route('/api/whatsapp/send', methods=['POST'])
 def send_message_api():
     """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
@@ -70,6 +73,7 @@ def send_message_api():
     result = whatsapp_service.send_message(recipient_phone, text)
     return jsonify(result), 200
 
+@whatsapp_bp.route('/api/templates/send', methods=['POST'])
 @whatsapp_bp.route('/api/whatsapp/templates/send', methods=['POST'])
 def send_template_api():
     """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
@@ -90,12 +94,14 @@ def send_template_api():
     )
     return jsonify(result), 200
 
+@whatsapp_bp.route('/api/contacts', methods=['GET'])
 @whatsapp_bp.route('/api/whatsapp/contacts', methods=['GET'])
 def get_contacts():
     """جلب قائمة جهات الاتصال المسجلة في النظام"""
     contacts = whatsapp_service.get_all_contacts()
     return jsonify({"contacts": contacts}), 200
 
+@whatsapp_bp.route('/api/messages', methods=['GET'])
 @whatsapp_bp.route('/api/whatsapp/messages', methods=['GET'])
 def get_messages():
     """جلب الرسائل السابقة لمحادثة معينة عبر رقم الهاتف"""
@@ -105,6 +111,7 @@ def get_messages():
     messages = whatsapp_service.get_chat_history(phone)
     return jsonify({"messages": messages}), 200
 
+@whatsapp_bp.route('/api/clear-demo-data', methods=['POST'])
 @whatsapp_bp.route('/api/whatsapp/clear-demo-data', methods=['POST'])
 def clear_demo_data_api():
     """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
@@ -113,31 +120,37 @@ def clear_demo_data_api():
 
 
 # =========================================================================
-# 3. مسارات عرض قوالب صفحات الإدارة (HTML Views)
+# 3. مسارات صفحات الإدارة (HTML Views)
+# تدعم كلا من المسار المباشر والمسار الفرعي تحت url_prefix
 # =========================================================================
 
+@whatsapp_bp.route('/', methods=['GET'])
+@whatsapp_bp.route('/dashboard', methods=['GET'])
 @whatsapp_bp.route('/admin/whatsapp/dashboard', methods=['GET'])
-def admin_dashboard():
+def dashboard_view():
     """عرض لوحة المحادثات الرئيسية المجهزة بالبنفسجي الملكي"""
     contacts = whatsapp_service.get_all_contacts()
     return render_template('admin/dashboard.html', contacts=contacts)
 
+@whatsapp_bp.route('/templates', methods=['GET'])
 @whatsapp_bp.route('/admin/whatsapp/templates', methods=['GET'])
-def admin_templates():
+def templates_view():
     """عرض قائمة قوالب Meta المعتمدة"""
     templates = whatsapp_service.get_approved_templates()
     return render_template('admin/templates_list.html', templates=templates)
 
+@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 @whatsapp_bp.route('/admin/whatsapp/settings', methods=['GET', 'POST'])
-def admin_settings():
+def settings_view():
     """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
     if request.method == 'POST':
         whatsapp_service.update_config(request.form.to_dict())
     config = whatsapp_service.get_current_config()
     return render_template('admin/settings.html', config=config)
 
+@whatsapp_bp.route('/webhook-logs', methods=['GET'])
 @whatsapp_bp.route('/admin/whatsapp/webhook-logs', methods=['GET'])
-def admin_webhook_logs():
+def webhook_logs_view():
     """عرض سجل تدفق أحداث الـ Webhook المباشر"""
     logs = whatsapp_service.get_webhook_logs()
     return render_template('admin/webhook_logs.html', logs=logs)
