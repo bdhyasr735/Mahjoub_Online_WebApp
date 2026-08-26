@@ -5,7 +5,7 @@
 Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 """
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for
+from flask import Blueprint, request, jsonify, render_template
 
 # دعم الاستيراد النسبي والمطلق بمرونة تامة
 try:
@@ -16,47 +16,77 @@ except ImportError:
     except ImportError:
         from whatsapp_service.service import WhatsAppService
 
-# تعريف الـ Blueprint مع تحديد البادئة ومجلد القوالب
+# تعريف الـ Blueprint الإداري
 whatsapp_bp = Blueprint(
     'whatsapp_service', 
     __name__, 
     template_folder='templates',
     url_prefix='/admin/whatsapp'
 )
+
+# تعريف Blueprint عام لمسارات الويب هوك المباشرة بدون بادئة admin
+webhook_public_bp = Blueprint(
+    'whatsapp_webhook_public',
+    __name__
+)
+
 whatsapp_service = WhatsAppService()
 
 # =========================================================================
-# 1. مسارات الـ Webhook مع Meta Cloud API v26.0
+# 1. مسارات الـ Webhook مع Meta Cloud API v26.0 (تدعم كلا المسارين)
 # =========================================================================
 
-@whatsapp_bp.route('/webhook', methods=['GET'])
-def verify_webhook():
-    """
-    التحقق الأولي من الـ Webhook مع خوادم Meta Graph API (Verification Challenge)
-    """
+def _handle_verify():
+    """التحقق الأولي من الـ Webhook من خوادم Meta (Challenge Verification)"""
     mode = request.args.get('hub.mode')
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
     
+    # إذا تم إرسال الـ Challenge الصحيح من ميتا
     if mode == 'subscribe' and token == whatsapp_service.verify_token:
-        return challenge, 200
-    return "Verification failed", 403
+        return str(challenge), 200
 
-@whatsapp_bp.route('/webhook', methods=['POST'])
-def handle_webhook_event():
-    """
-    استقبال الرسائل وأحداث التسليم والقراءة اللحظية من سيرفرات Meta
-    """
+    # إذا قام المطور بفتح الرابط يدوياً للتأكد من عمل السيرفر
+    if not mode and not token:
+        return jsonify({
+            "status": "online",
+            "service": "Mahjoob WhatsApp Webhook Endpoint (v26.0)",
+            "message": "Webhook is running and ready to receive Meta Cloud API events."
+        }), 200
+
+    return "Verification failed: Token mismatch", 403
+
+def _handle_incoming_event():
+    """استقبال أحداث ورسائل Meta Webhook ومعالجتها فورياً"""
     raw_payload = request.get_data()
     signature = request.headers.get('X-Hub-Signature-256', '')
 
-    # التحقق الأمني من توقيع Meta (HMAC-SHA256)
     if not whatsapp_service.verify_webhook_signature(raw_payload, signature):
         return jsonify({"error": "Invalid signature"}), 401
 
     data = request.get_json(silent=True) or {}
     whatsapp_service.process_incoming_payload(data)
     return jsonify({"status": "received"}), 200
+
+
+# مسارات الويب هوك تحت /admin/whatsapp/webhook
+@whatsapp_bp.route('/webhook', methods=['GET'])
+def verify_webhook_admin():
+    return _handle_verify()
+
+@whatsapp_bp.route('/webhook', methods=['POST'])
+def handle_webhook_event_admin():
+    return _handle_incoming_event()
+
+
+# مسارات الويب هوك المباشرة تحت /whatsapp/webhook (لحل الـ 404)
+@webhook_public_bp.route('/whatsapp/webhook', methods=['GET'])
+def verify_webhook_public():
+    return _handle_verify()
+
+@webhook_public_bp.route('/whatsapp/webhook', methods=['POST'])
+def handle_webhook_event_public():
+    return _handle_incoming_event()
 
 
 # =========================================================================
@@ -137,13 +167,11 @@ def templates_view():
 
 @whatsapp_bp.route('/settings', methods=['GET', 'POST'])
 def settings_view():
-    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API مع دعم حفظ آمن وسلس"""
+    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
     if request.method == 'POST':
-        # قراءة البيانات سواء جاءت عبر FormData أو JSON
         data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
         whatsapp_service.update_config(data)
         
-        # إذا كان الطلب AJAX / Fetch نعيد استجابة JSON، وإلا نعيد تحميل الصفحة
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
             return jsonify({"status": "success", "message": "تم حفظ الإعدادات بنجاح"}), 200
         
