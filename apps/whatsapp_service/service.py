@@ -33,7 +33,7 @@ class WhatsAppService:
         self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
-        # ✅ إعداد Cloudinary (تقرأ من متغيرات البيئة فقط)
+        # ✅ إعداد Cloudinary
         cloudinary.config(
             cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
             api_key=os.getenv("CLOUDINARY_API_KEY", ""),
