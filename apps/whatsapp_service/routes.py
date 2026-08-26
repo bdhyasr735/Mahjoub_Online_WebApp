@@ -1,130 +1,118 @@
-# apps/whatsapp_service/routes.py
+# -*- coding: utf-8 -*-
 """
-سوق محجوب أونلاين - مسارات الباك إند والـ Webhooks
-Flask / Python Routes for Meta WhatsApp Cloud API v26.0
+سوق محجوب أونلاين - وحدة تسجيل الخدمة والتصاريح
+Service Registry & Permissions Module for Mahgoob Online WhatsApp Service
+Meta Cloud API v26.0 Edition
 """
 
-from flask import Blueprint, request, jsonify, render_template
-from .service import WhatsAppService
+import logging
+import sys
 
-# تعريف الـ Blueprint الخاص بخدمة الواتساب
-# ✅ أضفنا url_prefix='/admin/whatsapp' حتى لا يتعارض مع لوحة التحكم المركزية
-whatsapp_bp = Blueprint('whatsapp', __name__, template_folder='templates', url_prefix='/admin/whatsapp')
-whatsapp_service = WhatsAppService()
+logger = logging.getLogger(__name__)
 
-# =========================================================================
-# 1. مسارات الـ Webhook مع Meta Cloud API v26.0
-# =========================================================================
+MODULE_NAME = "خدمة مراسلات واتساب"
+DISPLAY_NAME = "خدمة مراسلات واتساب سوق محجوب أونلاين"
+ICON = "fab fa-whatsapp"
+SHOW_IN_SUPPLIER = True
 
-@whatsapp_bp.route('/webhook', methods=['GET'])
-def verify_webhook():
+# عناصر التنقل في القائمة الجانبية للوحة التحكم الرئيسية
+NAV_ITEMS = [
+    {
+        "title": "لوحة المحادثات المباشرة",
+        "endpoint": "whatsapp.admin_dashboard",
+        "icon": "fas fa-comments",
+        "permission": "whatsapp.view_chat"
+    },
+    {
+        "title": "قوالب ميتا المعتمدة",
+        "endpoint": "whatsapp.admin_templates",
+        "icon": "fas fa-layer-group",
+        "permission": "whatsapp.manage_templates"
+    },
+    {
+        "title": "سجل الويب هوك (Live)",
+        "endpoint": "whatsapp.admin_webhook_logs",
+        "icon": "fas fa-stream",
+        "permission": "whatsapp.view_logs"
+    },
+    {
+        "title": "إعدادات Meta Cloud API v26.0",
+        "endpoint": "whatsapp.admin_settings",
+        "icon": "fas fa-cogs",
+        "permission": "whatsapp.admin_settings"
+    }
+]
+
+LINKS_DICT = {
+    "whatsapp.admin_dashboard": "لوحة المحادثات المباشرة",
+    "whatsapp.admin_templates": "قوالب ميتا المعتمدة",
+    "whatsapp.admin_webhook_logs": "سجل تدفق الويب هوك",
+    "whatsapp.admin_settings": "إعدادات وتوكنات Meta API"
+}
+
+# بيانات وصف الخدمة ونظام الصلاحيات والأمان
+SERVICE_METADATA = {
+    "name": "whatsapp_service",
+    "display_name": DISPLAY_NAME,
+    "version": "2.6.0",
+    "api_version": "v26.0",
+    "author": "Mahgoob Online Dev Team",
+    "description": "تكامل سحابي مباشر مع Meta WhatsApp Cloud API v26.0 لإدارة محادثات العملاء والتجار، قوالب الإشعارات، وربط الذكاء الاصطناعي التلقائي (Gemini AI).",
+    "icon": ICON,
+    "links": LINKS_DICT,
+    "admin_menu": NAV_ITEMS,
+    "permissions": [
+        "whatsapp.view_chat",
+        "whatsapp.send_message",
+        "whatsapp.manage_templates",
+        "whatsapp.view_logs",
+        "whatsapp.admin_settings"
+    ],
+    "webhook_endpoints": {
+        "verification": "/api/whatsapp/webhook (GET)",
+        "incoming_events": "/api/whatsapp/webhook (POST)"
+    }
+}
+
+def register_service(app):
     """
-    التحقق الأولي من الـ Webhook مع خوادم Meta Graph API (Verification Challenge)
+    تسجيل Blueprint خدمة الواتساب تلقائياً في تطبيق Flask / Django الرئيسي مع معالجة مرنة للمسارات
     """
-    mode = request.args.get('hub.mode')
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
+    bp = None
+    try:
+        # المحاولة 1: استيراد من المسار النسبي للحزمة
+        from .routes import whatsapp_bp
+        bp = whatsapp_bp
+    except Exception:
+        try:
+            # المحاولة 2: استيراد من حزمة apps
+            from apps.whatsapp_service.routes import whatsapp_bp
+            bp = whatsapp_bp
+        except Exception:
+            try:
+                # المحاولة 3: استيراد مباشر إذا كان المجلد مضافاً لـ sys.path
+                from whatsapp_service.routes import whatsapp_bp
+                bp = whatsapp_bp
+            except Exception as e:
+                app.logger.error(f"❌ [WhatsApp Service] Import error: {e}")
+
+    if bp:
+        if bp.name not in app.blueprints:
+            app.register_blueprint(bp)
+            app.logger.info("✅ [WhatsApp Service] Blueprint registered successfully with Meta Cloud API v26.0 routes.")
+        else:
+            app.logger.info("ℹ️ [WhatsApp Service] Blueprint is already registered.")
+
+    # تسجيل الميتا داتا في التطبيق العام
+    if not hasattr(app, 'registered_services'):
+        app.registered_services = {}
+    app.registered_services['whatsapp_service'] = SERVICE_METADATA
     
-    if mode == 'subscribe' and token == whatsapp_service.verify_token:
-        return challenge, 200
-    return "Verification failed", 403
-
-@whatsapp_bp.route('/webhook', methods=['POST'])
-def handle_webhook_event():
-    """
-    استقبال الرسائل وأحداث التسليم والقراءة اللحظية من Meta
-    """
-    raw_payload = request.get_data()
-    signature = request.headers.get('X-Hub-Signature-256', '')
-
-    # التحقق الأمني من توقيع Meta (HMAC-SHA256)
-    if not whatsapp_service.verify_webhook_signature(raw_payload, signature):
-        return jsonify({"error": "Invalid signature"}), 401
-
-    data = request.get_json() or {}
-    whatsapp_service.process_incoming_payload(data)
-    return jsonify({"status": "received"}), 200
-
-
-# =========================================================================
-# 2. مسارات الـ REST API لإدارة المراسلات من لوحة التحكم
-# =========================================================================
-
-@whatsapp_bp.route('/api/send', methods=['POST'])
-def send_message_api():
-    """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
-    data = request.get_json() or {}
-    recipient_phone = data.get('recipient_phone')
-    text = data.get('content')
+    if not hasattr(app, 'registered_modules'):
+        app.registered_modules = {}
+    app.registered_modules['whatsapp_service'] = SERVICE_METADATA
     
-    if not recipient_phone or not text:
-        return jsonify({"error": "recipient_phone and content are required"}), 400
-        
-    result = whatsapp_service.send_message(recipient_phone, text)
-    return jsonify(result), 200
+    app.logger.info("✅ [WhatsApp Service] Metadata & permissions registered for Mahgoob Online.")
 
-@whatsapp_bp.route('/api/templates/send', methods=['POST'])
-def send_template_api():
-    """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
-    data = request.get_json() or {}
-    recipient_phone = data.get('recipient_phone')
-    template_name = data.get('template_name')
-    language_code = data.get('language_code', 'ar')
-    components = data.get('components', [])
-    
-    if not recipient_phone or not template_name:
-        return jsonify({"error": "recipient_phone and template_name are required"}), 400
-        
-    result = whatsapp_service.send_template(
-        recipient_phone=recipient_phone,
-        template_name=template_name,
-        language_code=language_code,
-        components=components
-    )
-    return jsonify(result), 200
-
-@whatsapp_bp.route('/api/contacts', methods=['GET'])
-def get_contacts():
-    """جلب قائمة جهات الاتصال المسجلة في النظام"""
-    contacts = whatsapp_service.get_all_contacts()
-    return jsonify({"contacts": contacts}), 200
-
-@whatsapp_bp.route('/api/messages', methods=['GET'])
-def get_messages():
-    """جلب الرسائل السابقة لمحادثة معينة عبر رقم الهاتف"""
-    phone = request.args.get('phone', '')
-    if not phone:
-        return jsonify({"error": "phone parameter is required"}), 400
-    messages = whatsapp_service.get_chat_history(phone)
-    return jsonify({"messages": messages}), 200
-
-
-# =========================================================================
-# 3. مسارات عرض قوالب صفحات الإدارة (HTML Views)
-# =========================================================================
-
-@whatsapp_bp.route('/dashboard', methods=['GET'])
-def admin_dashboard():
-    """عرض لوحة المحادثات الرئيسية المجهزة بالبنفسجي الملكي"""
-    contacts = whatsapp_service.get_all_contacts()
-    return render_template('admin/dashboard.html', contacts=contacts)
-
-@whatsapp_bp.route('/templates', methods=['GET'])
-def admin_templates():
-    """عرض قائمة قوالب Meta المعتمدة"""
-    templates = whatsapp_service.get_approved_templates()
-    return render_template('admin/templates_list.html', templates=templates)
-
-@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
-def admin_settings():
-    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
-    if request.method == 'POST':
-        whatsapp_service.update_config(request.form.to_dict())
-    config = whatsapp_service.get_current_config()
-    return render_template('admin/settings.html', config=config)
-
-@whatsapp_bp.route('/webhook-logs', methods=['GET'])
-def admin_webhook_logs():
-    """عرض سجل تدفق أحداث الـ Webhook المباشر"""
-    logs = whatsapp_service.get_webhook_logs()
-    return render_template('admin/webhook_logs.html', logs=logs)
+def register_module(app):
+    register_service(app)
