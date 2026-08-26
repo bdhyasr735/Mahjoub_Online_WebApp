@@ -1,84 +1,165 @@
 {% extends "admin/base.html" %}
 
-{% block title %}لوحة التحكم والمراسلات - سوق محجوب أونلاين{% endblock %}
+{% block title %}لوحة المحادثات المباشرة - سوق محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-4rem)]">
-    <!-- Sidebar: Contacts List -->
-    <aside class="w-80 border-l border-[#230d3c] bg-[#0c0419] flex flex-col">
-        <div class="p-3 border-b border-[#230d3c]">
+<div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-4rem)] bg-[#f8fafc]">
+    <!-- Sidebar: Contacts List (Clean White) -->
+    <aside class="w-80 md:w-96 border-l border-slate-200 bg-white flex flex-col shadow-sm">
+        <!-- Search & Filter Header -->
+        <div class="p-3.5 border-b border-slate-100 bg-white space-y-2.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-inbox text-[#7e22ce]"></i>
+                    <span>محادثات العملاء والتجار</span>
+                </span>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-[#7e22ce] border border-purple-100">
+                    {{ contacts|length }} جهة اتصال
+                </span>
+            </div>
+
+            <!-- Search Input -->
             <div class="relative">
-                <input type="text" id="contactSearch" placeholder="بحث بالاسم أو الرقم..." 
-                       class="w-full bg-[#120722] border border-[#341659] rounded-xl px-3 py-1.5 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-purple-400">
+                <input type="text" id="contactSearch" oninput="filterContacts()" placeholder="بحث بالاسم أو رقم الواتساب..." 
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#7e22ce] focus:bg-white transition-all">
+                <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-slate-400 text-xs"></i>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto divide-y divide-[#1b0a30]" id="contactsList">
+        <!-- Contacts Scroll List -->
+        <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contactsList">
             {% for contact in contacts %}
-            <div class="p-3 hover:bg-[#15092a] cursor-pointer flex items-center gap-3 transition-colors"
+            <div class="p-3.5 hover:bg-purple-50/50 cursor-pointer flex items-center gap-3 transition-colors contact-card"
+                 data-phone="{{ contact.phone }}"
+                 data-name="{{ contact.name }}"
                  onclick="loadChat('{{ contact.phone }}', '{{ contact.name }}')">
-                <div class="relative">
+                <div class="relative flex-shrink-0">
                     <img src="{{ contact.avatar_url|default('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100') }}" 
-                         class="w-10 h-10 rounded-xl object-cover ring-1 ring-purple-500/30">
+                         alt="{{ contact.name }}"
+                         class="w-11 h-11 rounded-2xl object-cover ring-2 ring-slate-100">
                     {% if contact.is_online %}
-                    <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#25D366] rounded-full border border-black"></span>
+                    <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white"></span>
                     {% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-xs text-white truncate">{{ contact.name }}</span>
-                        <span class="text-[10px] text-purple-400 font-mono">{{ contact.last_message_time }}</span>
+                    <div class="flex items-center justify-between mb-0.5">
+                        <span class="font-bold text-xs text-slate-800 truncate flex items-center gap-1">
+                            {{ contact.name }}
+                            {% if contact.role == 'merchant' %}
+                            <span class="text-[9px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.2 rounded font-bold">تاجر</span>
+                            {% elif contact.role == 'supplier' %}
+                            <span class="text-[9px] bg-sky-50 text-sky-700 border border-sky-200 px-1.5 py-0.2 rounded font-bold">مورد</span>
+                            {% endif %}
+                        </span>
+                        <span class="text-[10px] text-slate-400 font-mono">{{ contact.last_message_time|default('') }}</span>
                     </div>
-                    <p class="text-[11px] text-purple-300/60 truncate mt-0.5">{{ contact.last_message }}</p>
+                    <p class="text-[11px] text-slate-500 truncate leading-relaxed">{{ contact.last_message|default('لا توجد رسائل سابقة') }}</p>
+                    <div class="flex items-center justify-between mt-1 text-[10px] text-slate-400 font-mono">
+                        <span class="dir-ltr">+{{ contact.phone }}</span>
+                        {% if contact.unread_count and contact.unread_count > 0 %}
+                        <span class="bg-[#25D366] text-white font-black text-[10px] px-2 py-0.2 rounded-full">
+                            {{ contact.unread_count }}
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             {% else %}
-            <div class="p-6 text-center text-purple-400/50 text-xs">
-                لا توجد جهات اتصال مسجلة حالياً
+            <div class="p-10 text-center text-slate-400 text-xs space-y-2">
+                <i class="fa-regular fa-comments text-3xl text-slate-300"></i>
+                <p class="font-bold text-slate-600">لا توجد محادثات نشطة</p>
+                <p class="text-[11px] text-slate-400">أي رسالة واردة من واتساب ستظهر هنا فورياً</p>
             </div>
             {% endfor %}
         </div>
     </aside>
 
-    <!-- Main Chat Window -->
-    <section class="flex-1 flex flex-col bg-[#08020e] relative">
+    <!-- Main Chat Window (Calm Pure White / Soft Neutral) -->
+    <section class="flex-1 flex flex-col bg-[#f1f5f9] relative">
         <!-- Active Chat Header -->
-        <div class="h-14 px-4 border-b border-[#230d3c] bg-[#0e051b] flex items-center justify-between">
+        <div class="h-16 px-5 border-b border-slate-200 bg-white flex items-center justify-between shadow-sm z-10">
             <div class="flex items-center gap-3" id="activeChatHeader">
-                <div class="w-9 h-9 rounded-xl bg-purple-900/40 flex items-center justify-center text-purple-300 font-bold">
-                    م
+                <div class="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#7e22ce] font-extrabold text-sm shadow-inner" id="activeContactAvatar">
+                    <i class="fa-solid fa-user"></i>
                 </div>
                 <div>
-                    <h3 class="text-xs font-bold text-white" id="activeContactName">اختر محادثة لبدء المراسلة</h3>
-                    <span class="text-[10px] text-purple-300/60 font-mono" id="activeContactPhone">+966...</span>
+                    <h3 class="text-xs md:text-sm font-extrabold text-slate-900" id="activeContactName">اختر محادثة من القائمة لبدء الرد</h3>
+                    <span class="text-[11px] text-slate-400 font-mono flex items-center gap-1.5" id="activeContactPhone">
+                        <span>+966...</span>
+                    </span>
                 </div>
             </div>
 
+            <!-- Header Action Buttons -->
             <div class="flex items-center gap-2">
-                <button onclick="openTemplateModal()" class="px-3 py-1 rounded-xl bg-[#1c0c35] text-purple-200 hover:text-white border border-[#3b1767] text-xs">
-                    إرسال قالب رسمي
+                <button onclick="openTemplateModal()" 
+                        class="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7e22ce] border border-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>إرسال قالب رسمي</span>
                 </button>
             </div>
         </div>
 
-        <!-- Messages Bubble Area -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="messagesArea">
-            <div class="p-12 text-center text-purple-400/40 text-xs">
-                انقر على أي محادثة من القائمة لعرض الرسائل المتبادلة
+        <!-- Messages Bubble Canvas with Clean Eye-Friendly Colors -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 bg-[#f8fafc]" id="messagesArea">
+            <div class="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-slate-400">
+                <div class="w-14 h-14 rounded-3xl bg-white border border-slate-200 flex items-center justify-center text-[#7e22ce] text-xl shadow-sm">
+                    <i class="fa-brands fa-whatsapp text-2xl text-[#25D366]"></i>
+                </div>
+                <h4 class="text-sm font-bold text-slate-700">سوق محجوب أونلاين - منصة المراسلات الذكية</h4>
+                <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة في القائمة الجانبية لقراءة الرسائل والرد المباشر على العملاء والتجار.</p>
             </div>
         </div>
 
-        <!-- Message Input Bar -->
-        <div class="p-3 border-t border-[#230d3c] bg-[#0e051b]">
+        <!-- Message Input Bar (Clean White Box with Brand Action Button) -->
+        <div class="p-3.5 border-t border-slate-200 bg-white">
             <form id="sendMessageForm" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
-                <input type="text" id="messageInput" placeholder="اكتب ردك للعميل عبر واتساب..." 
-                       class="flex-1 bg-[#130724] border border-[#341659] rounded-2xl px-4 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
-                <button type="submit" class="px-4 py-2 rounded-2xl bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold text-xs flex items-center gap-1.5 transition-all">
+                <div class="relative flex-1">
+                    <input type="text" id="messageInput" placeholder="اكتب ردك للعميل عبر واتساب..." 
+                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#7e22ce] focus:bg-white transition-all">
+                </div>
+                <button type="submit" 
+                        class="px-5 py-2.5 rounded-2xl bg-[#7e22ce] hover:bg-[#6b1cb8] text-white font-bold text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm shadow-purple-200">
                     <span>إرسال</span>
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
                 </button>
             </form>
         </div>
     </section>
+</div>
+
+<!-- Template Modal (Clean White Popup) -->
+<div id="templateModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-[#7e22ce]"></i>
+                <span>إرسال قالب رسمي معتمد (Meta Template)</span>
+            </h3>
+            <button onclick="closeTemplateModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+            <div>
+                <label class="font-bold text-slate-700 block mb-1">اختر القالب:</label>
+                <select id="modalTemplateSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-bold focus:outline-none focus:border-[#7e22ce]">
+                    <option value="mahjoob_order_confirmation">mahjoob_order_confirmation (تأكيد الطلب)</option>
+                    <option value="mahjoob_shipping_update">mahjoob_shipping_update (تحديث حالة الشحنة)</option>
+                    <option value="mahjoob_merchant_alert">mahjoob_merchant_alert (تنبيه وارد للتاجر)</option>
+                </select>
+            </div>
+
+            <div class="p-3 bg-purple-50 border border-purple-100 rounded-2xl text-[11px] text-purple-900">
+                <p class="font-bold mb-1">ملاحظة:</p>
+                <p>يتم إرسال القوالب المعتمدة رسمياً دون قيود نافذة الـ 24 ساعة للعملاء.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button onclick="closeTemplateModal()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold">إلغاء</button>
+            <button onclick="confirmSendTemplate()" class="px-5 py-2 rounded-xl bg-[#7e22ce] text-white text-xs font-bold shadow hover:bg-[#6b1cb8]">إرسال القالب للعميل</button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -86,11 +167,30 @@
 <script>
     let currentPhone = null;
 
+    function filterContacts() {
+        const query = document.getElementById('contactSearch').value.toLowerCase();
+        const cards = document.querySelectorAll('.contact-card');
+        cards.forEach(card => {
+            const name = card.getAttribute('data-name').toLowerCase();
+            const phone = card.getAttribute('data-phone');
+            if(name.includes(query) || phone.includes(query)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
     function loadChat(phone, name) {
         currentPhone = phone;
         document.getElementById('activeContactName').innerText = name;
-        document.getElementById('activeContactPhone').innerText = '+' + phone;
+        document.getElementById('activeContactPhone').innerHTML = `<span class="dir-ltr">+${phone}</span>`;
         
+        // Highlight active card
+        document.querySelectorAll('.contact-card').forEach(c => c.classList.remove('bg-purple-50', 'border-r-4', 'border-[#7e22ce]'));
+        const activeEl = document.querySelector(`.contact-card[data-phone="${phone}"]`);
+        if(activeEl) activeEl.classList.add('bg-purple-50', 'border-r-4', 'border-[#7e22ce]');
+
         fetch(`/api/whatsapp/messages?phone=${phone}`)
             .then(res => res.json())
             .then(data => {
@@ -102,15 +202,24 @@
                         const bubble = document.createElement('div');
                         bubble.className = `flex ${isOut ? 'justify-start' : 'justify-end'}`;
                         bubble.innerHTML = `
-                            <div class="max-w-[70%] p-3 rounded-2xl ${isOut ? 'bg-[#2a134a] text-white' : 'bg-[#0f291e] border border-emerald-500/30 text-emerald-100'} text-xs">
+                            <div class="max-w-[75%] p-3.5 rounded-2xl ${isOut ? 'bg-[#7e22ce] text-white shadow-sm shadow-purple-200' : 'bg-white border border-slate-200 text-slate-800 shadow-sm'} text-xs md:text-sm leading-relaxed">
                                 <p>${msg.content}</p>
-                                <span class="text-[9px] opacity-60 block text-left mt-1 font-mono">${msg.timestamp || ''}</span>
+                                <span class="text-[10px] ${isOut ? 'text-purple-200' : 'text-slate-400'} block text-left mt-1 font-mono">${msg.timestamp || ''}</span>
                             </div>
                         `;
                         area.appendChild(bubble);
                     });
                     area.scrollTop = area.scrollHeight;
+                } else {
+                    area.innerHTML = `
+                        <div class="h-full flex items-center justify-center text-slate-400 text-xs">
+                            لا توجد رسائل سابقة في هذه المحادثة. يمكنك بدء المحادثة الآن.
+                        </div>
+                    `;
                 }
+            })
+            .catch(() => {
+                console.log('Fetching local messages fallback');
             });
     }
 
@@ -118,18 +227,59 @@
         e.preventDefault();
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
-        if(!text || !currentPhone) return;
+        if(!text) return;
+        if(!currentPhone) {
+            alert('يرجى اختيار محادثة من القائمة أولاً');
+            return;
+        }
+
+        // Add bubble instantly to UI
+        const area = document.getElementById('messagesArea');
+        const bubble = document.createElement('div');
+        bubble.className = 'flex justify-start';
+        bubble.innerHTML = `
+            <div class="max-w-[75%] p-3.5 rounded-2xl bg-[#7e22ce] text-white shadow-sm text-xs md:text-sm leading-relaxed">
+                <p>${text}</p>
+                <span class="text-[10px] text-purple-200 block text-left mt-1 font-mono">الآن</span>
+            </div>
+        `;
+        area.appendChild(bubble);
+        area.scrollTop = area.scrollHeight;
+        input.value = '';
 
         fetch('/api/whatsapp/send', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 recipient_phone: currentPhone,
-                message_type: 'text',
                 content: text
             })
-        }).then(res => res.json()).then(data => {
-            input.value = '';
+        });
+    }
+
+    function openTemplateModal() {
+        if(!currentPhone) {
+            alert('يرجى اختيار محادثة أولاً');
+            return;
+        }
+        document.getElementById('templateModal').classList.remove('hidden');
+    }
+
+    function closeTemplateModal() {
+        document.getElementById('templateModal').classList.add('hidden');
+    }
+
+    function confirmSendTemplate() {
+        const tmpl = document.getElementById('modalTemplateSelect').value;
+        fetch('/api/whatsapp/templates/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                recipient_phone: currentPhone,
+                template_name: tmpl
+            })
+        }).then(() => {
+            closeTemplateModal();
             loadChat(currentPhone, document.getElementById('activeContactName').innerText);
         });
     }
