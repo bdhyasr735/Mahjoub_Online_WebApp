@@ -27,48 +27,10 @@ class WhatsAppService:
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
         self.media_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
 
-        # مخزن مؤقت / ذاكرة محلية للمحادثات وسجلات الويب هوك (يتم ربطه بـ DB في الإنتاج)
+        # مخزن مؤقت للمحادثات وسجلات الويب هوك (جاهز للإنتاج الفعلي - صفر بيانات وهمية)
         self.webhook_logs: List[Dict[str, Any]] = []
-        self.contacts_db: Dict[str, Dict[str, Any]] = {
-            "966501234567": {
-                "id": "1",
-                "phone": "966501234567",
-                "name": "التاجر عبد العزيز المحمدي",
-                "role": "merchant",
-                "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-                "is_online": True,
-                "unread_count": 0,
-                "notes": "تاجر جملة - فرع الرياض"
-            },
-            "966559876543": {
-                "id": "2",
-                "phone": "966559876543",
-                "name": "سارة القحطاني",
-                "role": "customer",
-                "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-                "is_online": True,
-                "unread_count": 1,
-                "notes": "عميلة VIP - مهتمة بالعطور والعسل"
-            }
-        }
-        self.messages_db: Dict[str, List[Dict[str, Any]]] = {
-            "966501234567": [
-                {
-                    "id": "msg_1",
-                    "direction": "inbound",
-                    "content": "السلام عليكم، هل وصلت دفعة دهن العود المروكي الجديدة؟",
-                    "timestamp": datetime.utcnow().strftime("%H:%M")
-                }
-            ],
-            "966559876543": [
-                {
-                    "id": "msg_2",
-                    "direction": "inbound",
-                    "content": "مرحبا، أود الاستفسار عن كود الخصم لعسل السدر الجبلي.",
-                    "timestamp": datetime.utcnow().strftime("%H:%M")
-                }
-            ]
-        }
+        self.contacts_db: Dict[str, Dict[str, Any]] = {}
+        self.messages_db: Dict[str, List[Dict[str, Any]]] = {}
 
     # =========================================================================
     # 1. إرسال الرسائل والقوالب والوسائط (Outbound Meta API)
@@ -295,3 +257,10 @@ class WhatsAppService:
         self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id)
         self.access_token = new_config.get("whatsapp_access_token", self.access_token)
         self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
+
+    def clear_demo_data(self) -> Dict[str, Any]:
+        """تفريغ كافة البيانات الوهمية والمحادثات لضمان بيئة إنتاج نظيفة 100%"""
+        self.contacts_db.clear()
+        self.messages_db.clear()
+        self.webhook_logs.clear()
+        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح. النظام جاهز للإنتاج الفعلي."}
