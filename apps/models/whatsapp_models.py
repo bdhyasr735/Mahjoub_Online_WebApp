@@ -14,13 +14,13 @@ import json
 class WhatsAppWebhookEvent(db.Model):
     """تخزين أحداث Webhook الخام للتصحيح والتتبع"""
     __tablename__ = 'whatsapp_webhook_events'
-    
+
     __table_args__ = (
         db.Index('idx_webhook_created', 'created_at'),
         db.Index('idx_webhook_processed', 'processed'),
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     event_type = db.Column(db.String(50), nullable=False)
     payload = db.Column(db.JSON, nullable=False)
@@ -31,7 +31,7 @@ class WhatsAppWebhookEvent(db.Model):
 class WhatsAppMessageLog(db.Model):
     """سجل شامل للرسائل الصادرة والواردة"""
     __tablename__ = 'whatsapp_message_logs'
-    
+
     __table_args__ = (
         db.Index('idx_msg_sender', 'sender_number'),
         db.Index('idx_msg_recipient', 'recipient_number'),
@@ -43,7 +43,7 @@ class WhatsAppMessageLog(db.Model):
         db.Index('idx_msg_conversation', 'conversation_id'),
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     wamid = db.Column(db.String(100), unique=True, nullable=True)
     message_id = db.Column(db.String(100), unique=True, nullable=True)
@@ -94,19 +94,19 @@ class WhatsAppMessageLog(db.Model):
     # توقيت
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     @property
     def is_outbound(self):
         return self.direction == 'outbound'
-    
+
     @property
     def is_inbound(self):
         return self.direction == 'inbound'
-    
+
     @property
     def is_successful(self):
         return self.status in ('sent', 'delivered', 'read')
-    
+
     @property
     def is_failed(self):
         return self.status == 'failed'
@@ -115,7 +115,7 @@ class WhatsAppMessageLog(db.Model):
     @property
     def phone(self):
         return self.recipient_number if self.direction == 'outbound' else self.sender_number
-    
+
     def to_dict(self):
         # ✅ تم تعديل هذه الدالة لإرجاع جميع بيانات الوسائط
         return {
@@ -137,7 +137,7 @@ class WhatsAppMessageLog(db.Model):
 class WhatsAppCustomerContact(db.Model):
     """جهات اتصال العملاء مع معلومات الحالة وآخر رسالة"""
     __tablename__ = 'whatsapp_customer_contacts'
-    
+
     __table_args__ = (
         db.Index('idx_contact_phone', 'phone'),
         db.Index('idx_contact_last_timestamp', 'last_timestamp'),
@@ -146,7 +146,7 @@ class WhatsAppCustomerContact(db.Model):
         db.Index('idx_contact_supplier', 'supplier_id'),
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     phone = db.Column(db.String(30), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=True)
@@ -166,11 +166,11 @@ class WhatsAppCustomerContact(db.Model):
     supplier_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     @property
     def phone_number(self):
         return self.phone
-    
+
     @property
     def total_messages_count(self):
         try:
@@ -180,22 +180,22 @@ class WhatsAppCustomerContact(db.Model):
             ).count()
         except Exception:
             return 0
-    
+
     @property
     def orders(self):
         """يمكن ربط الطلبات هنا مستقبلاً"""
         return []
-    
+
     @property
     def status_label(self):
         if self.is_blocked:
             return "محظور"
         return "نشط"
-    
+
     @property
     def display_name(self):
         return self.name or self.whatsapp_profile_name or f"عميل ({self.phone})"
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -212,16 +212,16 @@ class WhatsAppCustomerContact(db.Model):
 class WhatsAppSettings(db.Model):
     """إعدادات خدمة واتساب (مفتاح/قيمة)"""
     __tablename__ = 'whatsapp_settings'
-    
+
     __table_args__ = (
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text, nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     @classmethod
     def get_setting(cls, key, default=""):
         try:
@@ -231,7 +231,7 @@ class WhatsAppSettings(db.Model):
         except Exception:
             pass
         return os.getenv(key, default)
-    
+
     @classmethod
     def set_setting(cls, key, value):
         try:
@@ -252,13 +252,13 @@ class WhatsAppSettings(db.Model):
 class WhatsAppTemplate(db.Model):
     """قوالب واتساب المعتمدة مسبقاً"""
     __tablename__ = 'whatsapp_templates'
-    
+
     __table_args__ = (
         db.Index('idx_template_name_lang', 'name', 'language'),
         db.Index('idx_template_status', 'status'),
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     language = db.Column(db.String(10), nullable=False)
@@ -273,14 +273,14 @@ class WhatsAppTemplate(db.Model):
 class WhatsAppConversation(db.Model):
     """جلسات المحادثة (لتجميع الرسائل في محادثات متعددة)"""
     __tablename__ = 'whatsapp_conversations'
-    
+
     __table_args__ = (
         db.Index('idx_conv_customer', 'customer_id'),
         db.Index('idx_conv_last_at', 'last_message_at'),
         db.Index('idx_conv_active', 'is_active'),
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     conversation_id = db.Column(db.String(100), unique=True, nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('whatsapp_customer_contacts.id'), nullable=True)
@@ -299,13 +299,13 @@ class WhatsAppConversation(db.Model):
 class WhatsAppMediaCache(db.Model):
     """تخزين مؤقت للوسائط (لتجنب إعادة تحميل الملفات من ميتا)"""
     __tablename__ = 'whatsapp_media_cache'
-    
+
     __table_args__ = (
         db.Index('idx_media_id', 'media_id'),
         db.Index('idx_media_expires', 'expires_at'),
         {'extend_existing': True}
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     media_id = db.Column(db.String(100), unique=True, nullable=False)
     url = db.Column(db.String(500), nullable=False)
