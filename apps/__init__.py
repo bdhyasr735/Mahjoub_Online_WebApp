@@ -245,14 +245,10 @@ def create_app():
     with app.app_context():
         import_all_models()
         try:
-            # ✅ إنشاء الجداول المفقودة فقط (بدون استخدام db.drop_all لضمان سلامة البيانات)
             db.create_all()
             print("✅ [التهيئة الآمنة]: تم التحقق من إنشاء الجداول بنجاح دون المساس بالبيانات الموجودة.")
-
-            # ✅ زراعة البيانات المبدئية إذا لم تكن موجودة
             seed_database()
             print("✅ [التهيئة الآمنة]: تمت مراجعة وزراعة البيانات المبدئية بنجاح.")
-
         except Exception as e:
             db.session.rollback()
             print(f"❌ [خطأ في التهيئة الآمنة]: {e}")
@@ -484,22 +480,30 @@ def create_app():
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
-    # 📱 تسجيل مسار الواتساب العام (لحل مشكلة 404 بدون لمس القائمة)
+    # 📱 تسجيل مسارات الواتساب (المحادثات + جهات الاتصال)
     # ============================================================
     try:
+        # استيراد جميع Blueprints الخاصة بالواتساب
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
+        from apps.whatsapp_service.contacts_bulk import contacts_bulk_bp  # ✅ جديد
 
         # تسجيل مسار الويب هوك العام (المسار الذي تستخدمه Meta)
         if webhook_public_bp.name not in app.blueprints:
             app.register_blueprint(webhook_public_bp)
             print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
 
-        # استثناء كلا المسارين من حماية CSRF (الأهم)
+        # ✅ تسجيل مسارات جهات الاتصال والإرسال الجماعي
+        if contacts_bulk_bp.name not in app.blueprints:
+            app.register_blueprint(contacts_bulk_bp)
+            print("✅ [واتساب]: تم تسجيل مسارات جهات الاتصال '/contacts-bulk' بنجاح.")
+
+        # استثناء كافة مسارات الواتساب من حماية CSRF
         csrf.exempt(whatsapp_bp)
         csrf.exempt(webhook_public_bp)
+        csrf.exempt(contacts_bulk_bp)  # ✅ استثناء مسارات جهات الاتصال
 
     except Exception as e:
-        print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
+        print(f"❌ [خطأ واتساب]: فشل تسجيل المسارات: {e}")
 
     # ============================================================
     # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
