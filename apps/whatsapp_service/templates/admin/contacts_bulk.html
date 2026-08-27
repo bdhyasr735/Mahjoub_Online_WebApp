@@ -15,6 +15,10 @@
                 <p class="text-muted small mb-0">إدارة تصنيفات العملاء والتجار والموردين والمسوقين مع أدوات الاستهداف الذكي وتوليد النصوص</p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
+                <!-- زر إضافة جهة اتصال (جديد) -->
+                <button class="btn btn-primary btn-sm rounded-3 px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#addContactModal">
+                    <i class="bi bi-person-plus-fill me-1"></i> إضافة جهة اتصال
+                </button>
                 <button class="btn btn-outline-secondary btn-sm rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#importCsvModal">
                     <i class="bi bi-file-earmark-spreadsheet me-1"></i> استيراد ملف CSV / Excel
                 </button>
@@ -185,7 +189,7 @@
                 <h5 class="modal-title fw-bold">استيراد جهات اتصال (CSV / Excel)</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ url_for('whatsapp_service.import_contacts') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ url_for('whatsapp_service.import_contacts_view') }}" method="POST" enctype="multipart/form-data">
                 <div class="modal-body py-3">
                     <p class="text-muted small">قم برفع ملف جهات الاتصال بصيغة CSV أو Excel يحتوي على أعمدة: (Name, Phone, Category, City, DiscountCode).</p>
                     <div class="mb-3">
@@ -222,7 +226,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ url_for('whatsapp_service.add_contact') }}" method="POST">
+            <form action="{{ url_for('whatsapp_service.add_contact_view') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body py-3">
                     <div class="row g-3">
@@ -325,7 +329,8 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="bulkCampaignForm" onsubmit="submitCampaign(event)">
+            <form action="{{ url_for('whatsapp_service.send_broadcast_view') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body py-3">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -369,7 +374,7 @@ function openAddContactModal() {
 }
 
 function filterCategory(cat) {
-    window.location.href = "{{ url_for('whatsapp_service.contacts_bulk') }}?category=" + cat;
+    window.location.href = "{{ url_for('whatsapp_service.contacts_bulk_view') }}?category=" + cat;
 }
 
 function copyPhone(phone) {
