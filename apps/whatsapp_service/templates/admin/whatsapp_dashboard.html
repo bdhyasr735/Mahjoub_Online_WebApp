@@ -3,14 +3,43 @@
 {% block title %}المحادثات المباشرة - سوق محجوب أونلاين الذكي{% endblock %}
 
 {% block content %}
-<!-- ✅ حاوية الإشعارات اللحظية داخل الصفحة (فوق القائمة الجانبية) -->
+<!-- ✅ حاوية الإشعارات اللحظية داخل الصفحة -->
 <div id="notification-container" class="fixed top-4 left-4 z-50 space-y-2"></div>
 
 <!-- ✅ حاوية إشعارات الرسائل الواردة (أسفل اليسار) -->
 <div id="message-notifications" class="fixed bottom-24 left-4 z-50 space-y-2 max-w-sm w-full"></div>
 
 <style>
-    /* تنسيق إشعار الرسالة الواردة */
+    /* ✅ النقطة الخضراء للرسائل غير المقروءة */
+    .unread-dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: pulse-dot 1.5s infinite;
+        box-shadow: 0 0 16px rgba(34, 197, 94, 0.5);
+        flex-shrink: 0;
+        border: 2px solid white;
+    }
+    
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    
+    /* ✅ تنسيق الكارد عندما يكون فيه رسائل غير مقروءة */
+    .contact-card.unread {
+        background: linear-gradient(135deg, #faf5ff, #f0e6ff) !important;
+        border-right: 4px solid #22c55e;
+        border-radius: 4px;
+    }
+    .contact-card.unread .contact-name {
+        color: #1e0226;
+        font-weight: 800;
+    }
+    
+    /* ✅ تنسيق إشعار الرسالة الواردة */
     .message-notification {
         background: rgba(30, 2, 38, 0.92);
         backdrop-filter: blur(12px);
@@ -111,7 +140,7 @@
         color: #ef4444;
     }
     
-    /* مؤشر النقطة الخضراء - الإشعار */
+    /* مؤشر النقطة الخضراء للإشعار */
     .online-indicator {
         display: inline-block;
         width: 8px;
@@ -120,33 +149,6 @@
         border-radius: 50%;
         animation: pulse-dot 1.8s infinite;
         margin-left: 4px;
-    }
-    @keyframes pulse-dot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.4; transform: scale(0.8); }
-    }
-    
-    /* ✅ النقطة الخضراء للرسائل غير المقروءة في القائمة الجانبية */
-    .unread-dot {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        background: #22c55e;
-        border-radius: 50%;
-        animation: pulse-dot 1.5s infinite;
-        margin-right: 4px;
-        box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
-        flex-shrink: 0;
-    }
-    
-    /* ✅ تنسيق الرسائل غير المقروءة في القائمة */
-    .contact-card.unread {
-        background: linear-gradient(135deg, #faf5ff, #f3e8ff) !important;
-        border-right: 4px solid #22c55e;
-    }
-    .contact-card.unread .contact-name {
-        color: #1e0226;
-        font-weight: 800;
     }
     
     /* صوت الإشعار - مخفي */
@@ -174,7 +176,7 @@
                 </span>
             </div>
 
-            <!-- ✅ فلاتر المحادثات: الكل / مقروءة / غير مقروءة -->
+            <!-- ✅ فلاتر المحادثات -->
             <div class="flex items-center justify-between bg-slate-50 rounded-xl p-1.5">
                 <button onclick="filterContacts('all')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 bg-white shadow-sm" id="filter-all">الكل</button>
                 <button onclick="filterContacts('read')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600" id="filter-read">مقروءة</button>
@@ -197,12 +199,12 @@
                  data-phone="{{ contact.phone }}"
                  data-unread="{{ contact.unread_count|default(0) }}">
                 
-                <!-- صورة البروفايل (حرف أول) -->
+                <!-- صورة البروفايل مع النقطة الخضراء -->
                 <div class="w-11 h-11 rounded-full bg-[#1e0226] text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md relative">
                     {{ contact.name[:1] }}
                     <!-- ✅ النقطة الخضراء للرسائل غير المقروءة -->
                     {% if contact.unread_count > 0 %}
-                    <span class="unread-dot absolute -top-1 -right-1"></span>
+                    <span class="unread-dot absolute -top-0.5 -right-0.5" style="width:14px;height:14px;"></span>
                     {% endif %}
                 </div>
                 
@@ -242,7 +244,7 @@
                 <div class="w-10 h-10 rounded-full bg-[#1e0226] flex items-center justify-center text-white font-extrabold text-sm shadow-md relative" id="activeContactAvatar">
                     <i class="fas fa-user"></i>
                     <!-- ✅ نقطة خضراء للمحادثة المفتوحة عند وصول رسائل جديدة -->
-                    <span id="activeChatUnreadDot" class="hidden unread-dot absolute -top-1 -right-1"></span>
+                    <span id="activeChatUnreadDot" class="hidden unread-dot absolute -top-0.5 -right-0.5" style="width:12px;height:12px;"></span>
                 </div>
                 <div>
                     <h3 class="text-xs md:text-sm font-extrabold text-slate-900" id="activeContactName">اختر محادثة من القائمة للرد الفوري</h3>
@@ -271,15 +273,14 @@
                     <i class="fab fa-whatsapp text-emerald-500"></i>
                 </div>
                 <h4 class="text-sm font-bold text-slate-700">لوحة مراسلات سوق محجوب أونلاين الذكي</h4>
-                <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة في القائمة لقراءة الرسائل والرد الفوري عبر Meta Cloud API v26.0</p>
+                <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة في القائمة لقراءة الرسائل والرد الفوري</p>
             </div>
         </div>
 
         <!-- Input Area -->
         <div class="p-3.5 border-t border-slate-200 bg-white">
             <div class="flex items-center gap-2 max-w-5xl mx-auto">
-                
-                <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all shrink-0" title="إضافة إيموجي">
+                <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all shrink-0">
                     <i class="far fa-smile text-lg"></i>
                 </button>
                 
@@ -307,7 +308,7 @@
                 </div>
 
                 <input type="file" id="attachmentInput" class="hidden" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="handleAttachmentSelect()">
-                <button type="button" onclick="document.getElementById('attachmentInput').click()" class="w-10 h-10 rounded-xl bg-[#1e0226] hover:bg-[#2a083d] text-white flex items-center justify-center transition-all shrink-0" title="إرفاق ملف">
+                <button type="button" onclick="document.getElementById('attachmentInput').click()" class="w-10 h-10 rounded-xl bg-[#1e0226] hover:bg-[#2a083d] text-white flex items-center justify-center transition-all shrink-0">
                     <i class="fas fa-paperclip text-lg"></i>
                 </button>
 
@@ -331,7 +332,7 @@
     </section>
 </div>
 
-<!-- ✅ نافذة تعديل الاسم (Modal) -->
+<!-- ✅ نافذة تعديل الاسم -->
 <div id="edit-name-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
     <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl">
         <div class="flex items-center justify-between mb-4">
@@ -351,10 +352,20 @@
 let currentPhone = null;
 let selectedFiles = [];
 let currentFilter = 'all';
-let unreadMessages = {}; // تخزين عدد الرسائل غير المقروءة لكل جهة
+let unreadMessages = {};
 
-// ===================== إشعارات الرسائل الواردة =====================
+// ===================== تشغيل الصوت =====================
+function playNotificationSound() {
+    try {
+        const audio = document.getElementById('notification-audio');
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+    } catch(e) {}
+}
 
+// ===================== عرض إشعار رسالة واردة =====================
 function showIncomingMessageNotification(from, name, message, time, avatar) {
     playNotificationSound();
     
@@ -399,18 +410,7 @@ function showIncomingMessageNotification(from, name, message, time, avatar) {
         dismissNotification(id);
     }, 15000);
     
-    // ✅ تحديث عداد الرسائل غير المقروءة
     updateUnreadCount(from, true);
-}
-
-function playNotificationSound() {
-    try {
-        const audio = document.getElementById('notification-audio');
-        if (audio) {
-            audio.currentTime = 0;
-            audio.play().catch(() => {});
-        }
-    } catch(e) {}
 }
 
 function dismissNotification(id) {
@@ -424,25 +424,18 @@ function dismissNotification(id) {
 }
 
 // ===================== تحديث عداد الرسائل غير المقروءة =====================
-
 function updateUnreadCount(phone, increment = true) {
-    // تحديث في الذاكرة
     if (!unreadMessages[phone]) unreadMessages[phone] = 0;
-    if (increment) {
-        unreadMessages[phone] += 1;
-    }
+    if (increment) unreadMessages[phone] += 1;
     
-    // تحديث في القائمة الجانبية
     const cards = document.querySelectorAll('.contact-card');
     let totalUnread = 0;
     
     cards.forEach(card => {
         const cardPhone = card.getAttribute('data-phone');
         if (cardPhone === phone) {
-            // ✅ تحديث الكارد
             card.classList.add('unread');
             
-            // تحديث الشارة
             let badge = card.querySelector('.unread-badge');
             const count = unreadMessages[phone] || 0;
             
@@ -458,14 +451,15 @@ function updateUnreadCount(phone, increment = true) {
                 }
             }
             
-            // ✅ تحديث النقطة الخضراء على الصورة
+            // ✅ النقطة الخضراء
             const avatarDiv = card.querySelector('.w-11.h-11.rounded-full');
             if (avatarDiv) {
                 let dot = avatarDiv.querySelector('.unread-dot');
                 if (count > 0) {
                     if (!dot) {
                         dot = document.createElement('span');
-                        dot.className = 'unread-dot absolute -top-1 -right-1';
+                        dot.className = 'unread-dot absolute -top-0.5 -right-0.5';
+                        dot.style.cssText = 'width:14px;height:14px;';
                         avatarDiv.style.position = 'relative';
                         avatarDiv.appendChild(dot);
                     }
@@ -473,15 +467,16 @@ function updateUnreadCount(phone, increment = true) {
                     if (dot) dot.remove();
                 }
             }
+            
+            // تحديث data-unread
+            card.setAttribute('data-unread', count.toString());
         }
         
-        // حساب الإجمالي
         const cardUnread = parseInt(card.getAttribute('data-unread')) || 0;
-        const phoneUnread = unreadMessages[cardPhone] || 0;
-        totalUnread += Math.max(cardUnread, phoneUnread);
+        totalUnread += cardUnread;
     });
     
-    // ✅ تحديث عداد غير مقروءة في الفلتر
+    // ✅ تحديث عداد الفلتر
     const badge = document.getElementById('unreadCountBadge');
     if (badge) {
         if (totalUnread > 0) {
@@ -492,7 +487,7 @@ function updateUnreadCount(phone, increment = true) {
         }
     }
     
-    // ✅ تحديث النقطة الخضراء في رأس المحادثة المفتوحة
+    // ✅ النقطة في رأس المحادثة
     const activeDot = document.getElementById('activeChatUnreadDot');
     if (activeDot) {
         if (currentPhone === phone && unreadMessages[phone] > 0) {
@@ -503,14 +498,12 @@ function updateUnreadCount(phone, increment = true) {
     }
 }
 
-// ===================== دالة resetUnread عند فتح المحادثة =====================
-
+// ===================== تصفير العداد عند فتح المحادثة =====================
 function resetUnreadForChat(phone) {
     if (unreadMessages[phone]) {
         unreadMessages[phone] = 0;
     }
     
-    // تحديث الكارد
     const cards = document.querySelectorAll('.contact-card');
     cards.forEach(card => {
         const cardPhone = card.getAttribute('data-phone');
@@ -528,29 +521,30 @@ function resetUnreadForChat(phone) {
         }
     });
     
-    // إخفاء النقطة في الرأس
+    // ✅ إرسال طلب لتصفير العداد في قاعدة البيانات
+    fetch(`/admin/whatsapp/api/contacts/${phone}/read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).catch(err => console.error('خطأ في تصفير العداد:', err));
+    
     const activeDot = document.getElementById('activeChatUnreadDot');
     if (activeDot) activeDot.classList.add('hidden');
     
-    // تحديث العداد الكلي
     updateUnreadCount(phone, false);
 }
 
 // ===================== تحميل المحادثة =====================
-
 function loadChat(phone, name) {
     currentPhone = phone;
     document.getElementById('activeContactName').textContent = name;
     document.getElementById('activeContactPhone').textContent = '+' + phone;
     document.getElementById('activeContactAvatar').innerHTML = name.charAt(0).toUpperCase();
     
-    // ✅ تصفير الرسائل غير المقروءة لهذه المحادثة
     resetUnreadForChat(phone);
     
     document.getElementById('activeContactStatus').innerHTML = '<span class="online-indicator"></span> متصل الآن';
     
-    // تحميل الرسائل
-    fetch(`/api/whatsapp/messages/${phone}`)
+    fetch(`/admin/whatsapp/api/messages?phone=${phone}`)
         .then(res => res.json())
         .then(data => {
             const area = document.getElementById('messagesArea');
@@ -559,7 +553,7 @@ function loadChat(phone, name) {
                 data.messages.forEach(msg => {
                     addMessageToChat(
                         msg.direction === 'outbound' ? 'sent' : 'received',
-                        msg.text,
+                        msg.content || msg.text,
                         msg.timestamp
                     );
                 });
@@ -580,20 +574,16 @@ function loadChat(phone, name) {
         });
 }
 
-// ===================== استقبال رسائل جديدة من WebSocket =====================
-
+// ===================== استقبال رسائل جديدة =====================
 function onNewMessage(data) {
     const { phone, name, message, timestamp } = data;
     const timeStr = timestamp || new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
     const avatar = name ? name.charAt(0).toUpperCase() : 'م';
     
-    // ✅ عرض الإشعار
     showIncomingMessageNotification(phone, name || 'عميل', message, timeStr, avatar);
     
-    // ✅ إضافة الرسالة إلى منطقة المحادثة إذا كانت مفتوحة
     if (currentPhone === phone) {
         addMessageToChat('received', message, timeStr);
-        // ✅ إذا كانت المحادثة مفتوحة، نزيل العداد
         resetUnreadForChat(phone);
     }
 }
@@ -617,8 +607,7 @@ function addMessageToChat(type, text, time) {
     area.scrollTop = area.scrollHeight;
 }
 
-// ===================== دوال التحكم =====================
-
+// ===================== الفلاتر =====================
 function filterContacts(filter) {
     if (filter) currentFilter = filter;
     const search = document.getElementById('contactSearch').value.toLowerCase();
@@ -643,46 +632,4 @@ function filterContacts(filter) {
         }
         
         card.style.display = show ? 'flex' : 'none';
-    });
-    
-    document.querySelectorAll('.bg-slate-50 .flex-1').forEach(btn => {
-        btn.classList.remove('bg-white', 'shadow-sm');
-        btn.classList.add('text-slate-600');
-        if (btn.id === `filter-${currentFilter}`) {
-            btn.classList.add('bg-white', 'shadow-sm');
-            btn.classList.remove('text-slate-600');
-        }
-    });
-}
-
-// ===================== دوال الإرسال =====================
-
-function handleSendMessage() {
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    if (!text && selectedFiles.length === 0) return;
-    if (!currentPhone) {
-        showToast('الرجاء اختيار محادثة أولاً', 'error');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('phone', currentPhone);
-    formData.append('text', text);
-    for (const file of selectedFiles) {
-        formData.append('attachments', file);
-    }
-    
-    fetch('/api/whatsapp/send', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-            addMessageToChat('sent', text || '📎 مرفق', time);
-            input.value = '';
-            clearAttachments();
-        } else {
-            showToast('فشل إرسال الرسالة: ' +
+   
