@@ -159,8 +159,9 @@
             </div>
         </div>
 
+        <!-- ✅ Lazy Loading: نعرض أول 50 جهة اتصال فقط، وتظهر البقية عند البحث -->
         <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="contactsList">
-            {% for contact in contacts %}
+            {% for contact in contacts[:50] %}
             <div class="p-3.5 hover:bg-purple-50 cursor-pointer flex items-center gap-3 transition-colors contact-card {% if contact.unread_count > 0 %}unread{% endif %}"
                  onclick="loadChat('{{ contact.phone }}', '{{ contact.name|escape }}')"
                  data-phone="{{ contact.phone }}"
@@ -709,9 +710,9 @@ async function handleSendMessage() {
     refreshMessages();
 }
 
-// تشغيل التحديثات التلقائية
+// ✅ Lazy Loading: تشغيل التحديثات التلقائية فقط عند فتح المحادثة
 refreshContacts();
-setInterval(refreshContacts, 3000);
+setInterval(refreshContacts, 5000);
 </script>
 
 {% endblock %}
