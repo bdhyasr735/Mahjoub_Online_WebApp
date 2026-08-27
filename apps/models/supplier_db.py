@@ -87,7 +87,7 @@ class Supplier(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
 
     # ✅ دالة to_dict المحدثة لتشمل اسم المتجر
-    def to_dict(self):
+    fn to_dict(self):
         """تحويل المورد إلى قاموس"""
         return {
             'id': self.id,
@@ -107,16 +107,16 @@ class Supplier(db.Model, UserMixin):
         return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
 
 
-# --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) ---
+# --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) بمعرف ديناميكي دقيق ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً."""
+    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً بناءً على الـ id الديناميكي."""
     from apps.models.wallet_db import SupplierWallet
     
     new_supplier_code = f"SUP-963{target.id}"
     new_wallet_code = f"WEL-963{target.id}"
     
-    # 1. تحديث كود المورد
+    # 1. تحديث كود المورد بالمعرف الديناميكي
     connection.execute(
         update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_supplier_code)
     )
