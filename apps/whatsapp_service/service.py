@@ -26,14 +26,14 @@ class WhatsAppService:
     def __init__(self):
         # إعدادات الربط مع Meta Cloud API v26.0 (آمن - تقرأ من Railway فقط)
         self.api_version = os.getenv("WHATSAPP_API_VERSION", "v26.0")
-        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")  # ✅ فارغ
-        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")      # ✅ فارغ
-        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")        # ✅ فارغ
-        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")        # ✅ فارغ
-        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")            # ✅ فارغ
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")             # ✅ فارغ
+        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
-        # ✅ إعداد Cloudinary (آمن - تقرأ من Railway فقط)
+        # ✅ إعداد Cloudinary
         cloudinary.config(
             cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
             api_key=os.getenv("CLOUDINARY_API_KEY", ""),
@@ -45,7 +45,7 @@ class WhatsAppService:
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
         self.media_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
 
-        # مخزن مؤقت للمحادثات وسجلات الويب هوك (جاهز للإنتاج الفعلي - صفر بيانات وهمية)
+        # مخزن مؤقت للمحادثات وسجلات الويب هوك
         self.webhook_logs: List[Dict[str, Any]] = []
         self.contacts_db: Dict[str, Dict[str, Any]] = {}
         self.messages_db: Dict[str, List[Dict[str, Any]]] = {}
@@ -74,7 +74,7 @@ class WhatsAppService:
             }
         }
 
-        # حفظ الرسالة محلياً وتحديث جهة الاتصال
+        # حفظ الرسالة محلياً (outbound لا يزيد unread_count)
         self._record_message(clean_phone, text, direction="outbound", status="sent")
 
         if not self.access_token:
@@ -93,7 +93,7 @@ class WhatsAppService:
         language_code: str = "ar",
         components: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        """إرسال قالب رسمي معتمد من Meta (فواتير، شحنات، إشعارات)"""
+        """إرسال قالب رسمي معتمد من Meta"""
         clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
         payload = {
             "messaging_product": "whatsapp",
@@ -117,10 +117,6 @@ class WhatsAppService:
         except Exception as e:
             return {"error": str(e), "status": "failed"}
 
-    # =========================================================================
-    # 4. دعم إرسال واستقبال الوسائط (Media)
-    # =========================================================================
-
     def send_media(self, recipient_phone: str, files: list) -> Dict[str, Any]:
         """إرسال ملفات (صور، فيديو، مستندات) عبر Meta WhatsApp Cloud API"""
         try:
@@ -131,7 +127,6 @@ class WhatsAppService:
                 if not file:
                     continue
                     
-                # تحديد نوع الملف
                 file_type = file.content_type
                 if file_type.startswith('image/'):
                     media_type = 'image'
@@ -140,7 +135,6 @@ class WhatsAppService:
                 else:
                     media_type = 'document'
                 
-                # رفع الملف إلى Meta أولاً (Upload)
                 upload_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
                 upload_res = requests.post(
                     upload_url,
@@ -159,7 +153,6 @@ class WhatsAppService:
                 
                 media_id = upload_data["id"]
                 
-                # إرسال الوسائط للعميل
                 payload = {
                     "messaging_product": "whatsapp",
                     "to": clean_phone,
@@ -177,10 +170,7 @@ class WhatsAppService:
                 )
                 
                 send_data = send_res.json()
-                
-                # حفظ في قاعدة البيانات
                 self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound", media_id=media_id, status="sent")
-                
                 results.append(send_data)
             
             return {"status": "success", "results": results}
@@ -189,11 +179,11 @@ class WhatsAppService:
             return {"error": str(e), "status": "failed"}
 
     # =========================================================================
-    # 2. معالجة الـ Webhook الوارد والذكاء الاصطناعي (Inbound Webhook)
+    # 2. معالجة الـ Webhook الوارد (Inbound Webhook)
     # =========================================================================
 
     def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
-        """التحقق الأمني من أن الطلب صادر من خوادم Meta باستخدام App Secret"""
+        """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
         if not self.app_secret or not signature_header:
             return True
         expected_hash = hmac.new(
@@ -212,7 +202,6 @@ class WhatsAppService:
                 for change in changes:
                     value = change.get("value", {})
                     
-                    # استخراج اسم العميل إن وُجد في بيانات جهات اتصال Meta
                     contact_profile_name = "عميل محجوب"
                     if "contacts" in value and len(value["contacts"]) > 0:
                         contact_profile_name = value["contacts"][0].get("profile", {}).get("name", "عميل محجوب")
@@ -261,19 +250,21 @@ class WhatsAppService:
                             elif msg_type == "location":
                                 msg_text = "موقع جغرافي"
 
-                            # تسجيل جهة الاتصال والرسالة
+                            # ✅ تسجيل جهة الاتصال (هنا يتم زيادة unread_count)
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
+                            
+                            # ✅ تسجيل الرسالة كـ inbound (هنا أيضاً يتم زيادة unread_count)
                             self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id, media_url=media_url)
 
-                            # توليد رد ذكي تلقائي إذا تم تفعيل الذكاء الاصطناعي
-                            self._handle_smart_ai_reply(sender_phone, msg_text)
+                            # ❌ تم تعطيل الرد الآلي
+                            # self._handle_smart_ai_reply(sender_phone, msg_text)
 
                     # 2. حالة تحديث حالة التسليم والقراءة
                     if "statuses" in value:
                         for status_update in value["statuses"]:
                             recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
-                            status = status_update.get("status")  # sent, delivered, read
+                            status = status_update.get("status")
                             self._update_message_status(recipient_id, status)
 
         except Exception as e:
@@ -282,7 +273,6 @@ class WhatsAppService:
     def _update_message_status(self, phone: str, status: str) -> None:
         """تحديث حالة الرسائل المرسلة (sent, delivered, read)"""
         try:
-            # تحديث أحدث رسالة مرسلة لهذا الرقم
             message = WhatsAppMessageLog.query.filter_by(
                 recipient_number=phone,
                 direction='outbound'
@@ -295,13 +285,17 @@ class WhatsAppService:
             db.session.rollback()
             print(f"⚠️ [خطأ تحديث حالة الرسالة]: {e}")
 
+    # =========================================================================
+    # 3. ✅ دالة إضافة/تحديث جهة الاتصال (مع زيادة unread_count)
+    # =========================================================================
+
     def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
-        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها لتظهر بالقائمة"""
+        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها مع زيادة العداد"""
         if not phone:
             return
         phone = phone.replace("+", "").strip()
         
-        # ✅ الحفظ في قاعدة البيانات (الجداول)
+        # ✅ الحفظ في قاعدة البيانات
         try:
             contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
             if not contact:
@@ -311,22 +305,25 @@ class WhatsAppService:
                     whatsapp_profile_name=name,
                     last_message=last_message,
                     last_timestamp=datetime.utcnow(),
-                    unread_count=1
+                    unread_count=1  # ✅ أول رسالة = 1
                 )
                 db.session.add(contact)
             else:
+                # ✅ تحديث بيانات جهة الاتصال الموجودة
                 if name and name != "عميل واتساب":
                     contact.name = name
                     contact.whatsapp_profile_name = name
                 if last_message:
                     contact.last_message = last_message
                     contact.last_timestamp = datetime.utcnow()
+                    # ✅ ✅ ✅ زيادة عداد الرسائل غير المقروءة (المهم!)
+                    contact.unread_count = (contact.unread_count or 0) + 1
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [خطأ حفظ جهة الاتصال في الجدول]: {e}")
         
-        # ✅ الحفظ في الذاكرة (القاموس) كما كان يعمل سابقاً
+        # ✅ الحفظ في الذاكرة (القاموس)
         if phone not in self.contacts_db:
             self.contacts_db[phone] = {
                 "phone": phone,
@@ -341,10 +338,19 @@ class WhatsAppService:
             if last_message:
                 self.contacts_db[phone]["last_message"] = last_message
                 self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
+                # ✅ ✅ ✅ زيادة العداد في الذاكرة أيضاً
+                self.contacts_db[phone]["unread_count"] = (self.contacts_db[phone].get("unread_count", 0) or 0) + 1
+
+    # =========================================================================
+    # 4. ❌ تم تعطيل الرد الآلي
+    # =========================================================================
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
-        """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
-        # ✅ إرسال رسالة ترحيب واحدة فقط (بدون رد تلقائي مستمر)
+        """❌ تم تعطيل الرد الآلي بناءً على طلب العميل"""
+        # تم إيقاف الرد الآلي - لا يتم إرسال أي ردود تلقائية
+        return
+        
+        # الكود التالي لن يتم تنفيذه أبداً
         if not self.gemini_api_key:
             return
         
@@ -376,14 +382,16 @@ class WhatsAppService:
             return "مرحباً بك في سوق محجوب أونلاين! نسعد بخدمتك دائماً، كيف يمكننا مساعدتك اليوم؟"
 
     # =========================================================================
-    # 3. إدارة قواعد البيانات وسجلات المحادثات (DB & Logs Helper)
+    # 5. إدارة قواعد البيانات وسجلات المحادثات
     # =========================================================================
 
     def _record_message(self, phone: str, content: str, direction: str, media_id: str = "", media_url: str = "", status: str = "received") -> None:
         clean_phone = phone.replace("+", "").strip()
+        
+        # ✅ نمرر last_message فقط، وزيادة unread_count ستتم داخل _ensure_contact_exists
         self._ensure_contact_exists(clean_phone, last_message=content)
         
-        # ✅ الحفظ في قاعدة البيانات (الجداول)
+        # ✅ الحفظ في قاعدة البيانات
         try:
             msg = WhatsAppMessageLog(
                 direction=direction,
@@ -401,7 +409,7 @@ class WhatsAppService:
             db.session.rollback()
             print(f"⚠️ [خطأ حفظ الرسالة في الجدول]: {e}")
         
-        # ✅ الحفظ في الذاكرة (القاموس) كما كان يعمل سابقاً
+        # ✅ الحفظ في الذاكرة (القاموس)
         if clean_phone not in self.messages_db:
             self.messages_db[clean_phone] = []
         self.messages_db[clean_phone].append({
@@ -424,6 +432,10 @@ class WhatsAppService:
         if len(self.webhook_logs) > 100:
             self.webhook_logs.pop()
 
+    # =========================================================================
+    # 6. دوال جلب البيانات
+    # =========================================================================
+
     def get_all_contacts(self) -> List[Dict[str, Any]]:
         """جلب قائمة جهات الاتصال (من قاعدة البيانات أولاً)"""
         try:
@@ -436,18 +448,15 @@ class WhatsAppService:
                     'name': c.name or c.whatsapp_profile_name or f"عميل ({c.phone})",
                     'last_message': c.last_message,
                     'last_timestamp': c.last_timestamp.isoformat() if c.last_timestamp else None,
-                    'unread_count': c.unread_count,
+                    'unread_count': c.unread_count or 0,
                     'is_online': False,
                     'last_seen': 'آخر ظهور اليوم'
                 }
-                # ✅ حساب حالة الاتصال و آخر ظهور (بدون تعارض)
                 if c.last_timestamp:
                     if isinstance(c.last_timestamp, datetime):
-                        # ✅ التعامل مع تواريخ naive فقط
                         c.last_timestamp = c.last_timestamp.replace(tzinfo=None)
-                        
                         time_diff = datetime.utcnow() - c.last_timestamp
-                        if time_diff.total_seconds() < 300:  # أقل من 5 دقائق
+                        if time_diff.total_seconds() < 300:
                             data['is_online'] = True
                             data['last_seen'] = 'متصل الآن'
                         else:
@@ -474,7 +483,6 @@ class WhatsAppService:
                 (WhatsAppMessageLog.recipient_number == clean_phone)
             ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
             
-            # تحويل الرسائل إلى قوائم مع دعم الوسائط
             result = []
             for m in messages:
                 item = {
@@ -508,10 +516,6 @@ class WhatsAppService:
         except Exception:
             return ""
 
-    # =========================================================================
-    # 5. دالة رفع الوسائط إلى Cloudinary (الحل الجذري)
-    # =========================================================================
-
     def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
         """رفع ملف إلى Cloudinary وإرجاع الرابط الدائم"""
         try:
@@ -524,6 +528,10 @@ class WhatsAppService:
         except Exception as e:
             print(f"⚠️ [خطأ رفع إلى Cloudinary]: {e}")
             return ""
+
+    # =========================================================================
+    # 7. دوال إضافية
+    # =========================================================================
 
     def get_webhook_logs(self) -> List[Dict[str, Any]]:
         return self.webhook_logs
@@ -569,14 +577,14 @@ class WhatsAppService:
         self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
 
     def clear_demo_data(self) -> Dict[str, Any]:
-        """تفريغ كافة البيانات الوهمية والمحادثات لضمان بيئة إنتاج نظيفة 100%"""
+        """تفريغ كافة البيانات الوهمية والمحادثات"""
         self.contacts_db.clear()
         self.messages_db.clear()
         self.webhook_logs.clear()
-        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح. النظام جاهز للإنتاج الفعلي."}
+        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح."}
 
     # =========================================================================
-    # 6. دالة تعديل اسم العميل (أُضيفت حديثاً)
+    # 8. دالة تعديل اسم العميل
     # =========================================================================
 
     def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
@@ -592,7 +600,6 @@ class WhatsAppService:
             contact.whatsapp_profile_name = name
             db.session.commit()
             
-            # تحديث القاموس في الذاكرة أيضاً
             if clean_phone in self.contacts_db:
                 self.contacts_db[clean_phone]["name"] = name
             
@@ -602,7 +609,7 @@ class WhatsAppService:
             return {"error": str(e), "status": "failed"}
 
     # =========================================================================
-    # 7. دالة تصفير عداد الرسائل غير المقروءة
+    # 9. دالة تصفير عداد الرسائل غير المقروءة
     # =========================================================================
 
     def mark_contact_as_read(self, phone: str) -> Dict[str, Any]:
@@ -614,6 +621,9 @@ class WhatsAppService:
             if contact:
                 contact.unread_count = 0
                 db.session.commit()
+                # تحديث في الذاكرة أيضاً
+                if clean_phone in self.contacts_db:
+                    self.contacts_db[clean_phone]["unread_count"] = 0
                 return {"success": True, "message": "تم تصفير العداد"}
             return {"success": False, "message": "العميل غير موجود"}
         except Exception as e:
