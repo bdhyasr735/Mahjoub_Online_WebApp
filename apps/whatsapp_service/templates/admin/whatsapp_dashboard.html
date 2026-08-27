@@ -385,68 +385,48 @@ let selectedFiles = [];
 let currentFilter = 'all';
 let lastMessageCount = 0;
 let notificationSound = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-let unreadMessages = {}; // تخزين عدد الرسائل غير المقروءة لكل جهة
+let unreadMessages = {};
 
-// ✅ دالة تحويل الوقت إلى نظام 12 ساعة (صباحاً / مساءً)
+// ✅ دالة تحويل الوقت إلى نظام 12 ساعة
 function formatTime12(timeStr) {
     if (!timeStr) return '';
     let [hours, minutes] = timeStr.split(':').map(Number);
-    
-    // إضافة 3 ساعات لتوقيت اليمن (UTC+3)
     hours = (hours + 3) % 24;
-    
     let period = hours >= 12 ? 'مساءً' : 'صباحاً';
     hours = hours % 12;
     if (hours === 0) hours = 12;
     return `${hours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
-// ✅ دالة عرض إشعار لحظي داخل الصفحة (Toast)
+// ✅ دالة عرض إشعار لحظي داخل الصفحة
 function showToast(contactName, message, isNew = false) {
     const container = document.getElementById('notification-container');
     const dot = isNew ? '<span class="unread-dot" style="width:8px;height:8px;position:static;display:inline-block;margin-left:6px;"></span>' : '';
-    const toast = `
-        <div class="bg-[#1e0226] text-white p-3 rounded-xl shadow-lg flex items-center gap-3" style="border-right: 4px solid #25D366;">
-            <div class="w-10 h-10 rounded-full bg-[#6A0DAD] flex items-center justify-center font-bold">
-                ${contactName.charAt(0)}
-            </div>
-            <div>
-                <p class="font-bold text-sm">${contactName} ${dot}</p>
-                <p class="text-xs text-slate-300">${message}</p>
-            </div>
-        </div>
+    const toast = document.createElement('div');
+    toast.className = 'bg-[#1e0226] text-white p-3 rounded-xl shadow-lg flex items-center gap-3';
+    toast.style.borderRight = '4px solid #25D366';
+    toast.innerHTML = `
+        <div class="w-10 h-10 rounded-full bg-[#6A0DAD] flex items-center justify-center font-bold">${contactName.charAt(0)}</div>
+        <div><p class="font-bold text-sm">${contactName} ${dot}</p><p class="text-xs text-slate-300">${message}</p></div>
     `;
-    container.insertAdjacentHTML('beforeend', toast);
-    setTimeout(() => {
-        const el = container.lastElementChild;
-        if (el) el.remove();
-    }, 5000);
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
 }
 
 // 📣 طلب الإذن من المتصفح
 function requestNotificationPermission() {
     if ("Notification" in window) {
-        Notification.requestPermission().then(function(permission) {
-            if (permission === "granted") {
-                console.log("✅ تم منح إذن الإشعارات");
-            }
-        });
+        Notification.requestPermission();
     }
 }
-
 requestNotificationPermission();
 
 // 🔔 دالة عرض إشعار شامل
 function showNotification(title, message) {
     showToast(title, message, true);
-    
     if (Notification.permission === "granted") {
-        new Notification(title, {
-            body: message,
-            icon: 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp'
-        });
+        new Notification(title, { body: message, icon: 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp' });
     }
-    
     notificationSound.play().catch(() => {});
 }
 
@@ -462,13 +442,10 @@ function updateUnreadCount(phone, increment = true) {
         const cardPhone = card.getAttribute('data-phone');
         if (cardPhone === phone) {
             card.classList.add('unread');
-            
             let badge = card.querySelector('.unread-badge');
             const count = unreadMessages[phone] || 0;
-            
-            if (badge) {
-                badge.textContent = count;
-            } else if (count > 0) {
+            if (badge) { badge.textContent = count; } 
+            else if (count > 0) {
                 const nameDiv = card.querySelector('.flex.items-center.justify-between.mb-0.5');
                 if (nameDiv) {
                     badge = document.createElement('span');
@@ -477,43 +454,24 @@ function updateUnreadCount(phone, increment = true) {
                     nameDiv.appendChild(badge);
                 }
             }
-            
-            // ✅ النقطة الخضراء
             const avatarDiv = card.querySelector('.w-11.h-11.rounded-full');
             if (avatarDiv) {
                 let dot = avatarDiv.querySelector('.unread-dot');
                 if (count > 0) {
-                    if (!dot) {
-                        dot = document.createElement('span');
-                        dot.className = 'unread-dot';
-                        avatarDiv.style.position = 'relative';
-                        avatarDiv.appendChild(dot);
-                    }
-                } else {
-                    if (dot) dot.remove();
-                }
+                    if (!dot) { dot = document.createElement('span'); dot.className = 'unread-dot'; avatarDiv.style.position = 'relative'; avatarDiv.appendChild(dot); }
+                } else { if (dot) dot.remove(); }
             }
-            
-            // تحديث data-unread
             card.setAttribute('data-unread', count.toString());
         }
-        
-        const cardUnread = parseInt(card.getAttribute('data-unread')) || 0;
-        totalUnread += cardUnread;
+        totalUnread += parseInt(card.getAttribute('data-unread')) || 0;
     });
     
-    // ✅ تحديث عداد الفلتر
     const badge = document.getElementById('unreadCountBadge');
     if (badge) {
-        if (totalUnread > 0) {
-            badge.textContent = totalUnread;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
+        if (totalUnread > 0) { badge.textContent = totalUnread; badge.classList.remove('hidden'); } 
+        else { badge.classList.add('hidden'); }
     }
     
-    // ✅ النقطة في رأس المحادثة
     updateHeaderUnreadIndicator(phone);
 }
 
@@ -526,10 +484,7 @@ function updateHeaderUnreadIndicator(phone) {
     
     if (currentPhone === phone && count > 0) {
         if (dot) dot.classList.remove('hidden');
-        if (indicator) {
-            indicator.classList.remove('hidden');
-            if (countSpan) countSpan.textContent = count;
-        }
+        if (indicator) { indicator.classList.remove('hidden'); if (countSpan) countSpan.textContent = count; }
     } else {
         if (dot) dot.classList.add('hidden');
         if (indicator) indicator.classList.add('hidden');
@@ -538,9 +493,7 @@ function updateHeaderUnreadIndicator(phone) {
 
 // ✅ تصفير العداد عند فتح المحادثة
 function resetUnreadForChat(phone) {
-    if (unreadMessages[phone]) {
-        unreadMessages[phone] = 0;
-    }
+    if (unreadMessages[phone]) unreadMessages[phone] = 0;
     
     const cards = document.querySelectorAll('.contact-card');
     cards.forEach(card => {
@@ -549,42 +502,29 @@ function resetUnreadForChat(phone) {
             card.classList.remove('unread');
             const badge = card.querySelector('.unread-badge');
             if (badge) badge.remove();
-            
             const avatarDiv = card.querySelector('.w-11.h-11.rounded-full');
-            if (avatarDiv) {
-                const dot = avatarDiv.querySelector('.unread-dot');
-                if (dot) dot.remove();
-            }
+            if (avatarDiv) { const dot = avatarDiv.querySelector('.unread-dot'); if (dot) dot.remove(); }
             card.setAttribute('data-unread', '0');
         }
     });
     
-    // ✅ إرسال طلب لتصفير العداد في قاعدة البيانات
     fetch('/admin/whatsapp/api/contacts/read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone })
     }).catch(err => console.error('خطأ في تصفير العداد:', err));
     
-    // ✅ إخفاء النقاط في الرأس
     const dot = document.getElementById('activeChatUnreadDot');
     if (dot) dot.classList.add('hidden');
     const indicator = document.getElementById('headerUnreadIndicator');
     if (indicator) indicator.classList.add('hidden');
     
-    // ✅ تحديث العداد الكلي
     const badge = document.getElementById('unreadCountBadge');
     let totalUnread = 0;
-    cards.forEach(card => {
-        totalUnread += parseInt(card.getAttribute('data-unread')) || 0;
-    });
+    cards.forEach(card => { totalUnread += parseInt(card.getAttribute('data-unread')) || 0; });
     if (badge) {
-        if (totalUnread > 0) {
-            badge.textContent = totalUnread;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
+        if (totalUnread > 0) { badge.textContent = totalUnread; badge.classList.remove('hidden'); } 
+        else { badge.classList.add('hidden'); }
     }
 }
 
@@ -595,26 +535,17 @@ function filterContacts(type = '') {
         document.getElementById('filter-all').classList.remove('bg-white', 'shadow-sm');
         document.getElementById('filter-read').classList.remove('bg-white', 'shadow-sm');
         document.getElementById('filter-unread').classList.remove('bg-white', 'shadow-sm');
-        if (type === 'all') {
-            document.getElementById('filter-all').classList.add('bg-white', 'shadow-sm');
-        } else if (type === 'read') {
-            document.getElementById('filter-read').classList.add('bg-white', 'shadow-sm');
-        } else {
-            document.getElementById('filter-unread').classList.add('bg-white', 'shadow-sm');
-        }
+        if (type === 'all') document.getElementById('filter-all').classList.add('bg-white', 'shadow-sm');
+        else if (type === 'read') document.getElementById('filter-read').classList.add('bg-white', 'shadow-sm');
+        else document.getElementById('filter-unread').classList.add('bg-white', 'shadow-sm');
     }
-    
     const q = document.getElementById('contactSearch').value.toLowerCase();
     document.querySelectorAll('.contact-card').forEach(card => {
         const text = card.innerText.toLowerCase();
         const unread = card.querySelector('.bg-red-500');
         let shouldShow = text.includes(q);
-        if (currentFilter === 'unread' && !unread) {
-            shouldShow = false;
-        }
-        if (currentFilter === 'read' && unread) {
-            shouldShow = false;
-        }
+        if (currentFilter === 'unread' && !unread) shouldShow = false;
+        if (currentFilter === 'read' && unread) shouldShow = false;
         card.style.display = shouldShow ? 'flex' : 'none';
     });
 }
@@ -624,18 +555,16 @@ function loadChat(phone, name) {
     currentPhone = phone;
     document.getElementById('activeContactNameText').innerText = name;
     document.getElementById('activeContactPhone').innerText = '(+' + phone + ')';
+    document.getElementById('activeContactAvatar').innerHTML = name.charAt(0);
     
-    // ✅ تصفير العداد
     resetUnreadForChat(phone);
-    
-    // تحديث حالة الاتصال داخل الشات
     refreshActiveContactStatus();
     refreshMessages();
     clearInterval(window.messagesInterval);
     window.messagesInterval = setInterval(refreshMessages, 3000);
 }
 
-// ✅ دالة تحديث حالة الظهور داخل الشات
+// ✅ دالة تحديث حالة الظهور
 function refreshActiveContactStatus() {
     if (!currentPhone) return;
     fetch('/admin/whatsapp/api/contacts')
@@ -656,10 +585,7 @@ function refreshActiveContactStatus() {
 
 // ✅ دالة فتح نافذة تعديل الاسم
 function openEditNameModal() {
-    if (!currentPhone) {
-        alert('يرجى اختيار جهة اتصال أولاً');
-        return;
-    }
+    if (!currentPhone) { alert('يرجى اختيار جهة اتصال أولاً'); return; }
     document.getElementById('edit-name-input').value = document.getElementById('activeContactNameText').innerText;
     document.getElementById('edit-name-modal').classList.remove('hidden');
 }
@@ -668,20 +594,14 @@ function closeEditNameModal() {
     document.getElementById('edit-name-modal').classList.add('hidden');
 }
 
-// ✅ دالة حفظ الاسم الجديد
 async function saveNewName() {
     const newName = document.getElementById('edit-name-input').value.trim();
-    if (!newName) {
-        alert('يرجى إدخال اسم صحيح');
-        return;
-    }
-    
+    if (!newName) { alert('يرجى إدخال اسم صحيح'); return; }
     await fetch('/admin/whatsapp/api/contacts/update-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: currentPhone, name: newName })
     });
-    
     document.getElementById('activeContactNameText').innerText = newName;
     closeEditNameModal();
     refreshContacts();
@@ -694,4 +614,183 @@ function addEmoji(emoji) {
 }
 
 function toggleEmojiPicker() {
-    const container =
+    document.getElementById('emoji-picker-container').classList.toggle('hidden');
+}
+
+// ✅ دوال المرفقات
+function handleAttachmentSelect() {
+    const files = document.getElementById('attachmentInput').files;
+    selectedFiles = Array.from(files);
+    const previewList = document.getElementById('attachmentPreviewList');
+    const previewContainer = document.getElementById('attachmentPreview');
+    previewList.innerHTML = '';
+    if (selectedFiles.length > 0) {
+        previewContainer.classList.remove('hidden');
+        selectedFiles.forEach((file, index) => {
+            const isImage = file.type.startsWith('image/');
+            previewList.insertAdjacentHTML('beforeend', `
+                <div class="relative p-2 bg-white border border-slate-200 rounded-lg flex items-center gap-2 text-xs text-slate-600">
+                    ${isImage ? `<img src="${URL.createObjectURL(file)}" class="w-10 h-10 rounded object-cover">` : `<i class="fas fa-file text-lg text-slate-400"></i>`}
+                    <span class="max-w-[100px] truncate">${file.name}</span>
+                    <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 absolute -top-1 -right-1 bg-white rounded-full px-1 shadow"><i class="fas fa-times text-[10px]"></i></button>
+                </div>
+            `);
+        });
+    } else {
+        previewContainer.classList.add('hidden');
+    }
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    handleAttachmentSelect();
+}
+
+function clearAttachments() {
+    selectedFiles = [];
+    document.getElementById('attachmentInput').value = '';
+    document.getElementById('attachmentPreview').classList.add('hidden');
+    document.getElementById('attachmentPreviewList').innerHTML = '';
+}
+
+// ✅ دالة تحديث جهات الاتصال
+async function refreshContacts() {
+    try {
+        const res = await fetch('/admin/whatsapp/api/contacts');
+        const data = await res.json();
+        if (data.contacts) {
+            const list = document.getElementById('contactsList');
+            let newHTML = '';
+            let totalUnread = 0;
+            data.contacts.forEach(contact => {
+                const isActive = currentPhone && currentPhone === contact.phone;
+                const unreadCount = contact.unread_count || 0;
+                totalUnread += unreadCount;
+                // تحديث unreadMessages في الذاكرة
+                if (!unreadMessages[contact.phone]) unreadMessages[contact.phone] = 0;
+                if (unreadCount > unreadMessages[contact.phone]) {
+                    unreadMessages[contact.phone] = unreadCount;
+                }
+                newHTML += `
+                <div class="p-3.5 hover:bg-purple-50 cursor-pointer flex items-center gap-3 transition-colors contact-card ${unreadCount > 0 ? 'unread' : ''} ${isActive ? 'bg-purple-50' : ''}"
+                     onclick="loadChat('${contact.phone}', '${contact.name.replace(/'/g, "\\'")}')"
+                     data-phone="${contact.phone}"
+                     data-unread="${unreadCount}">
+                    <div class="w-11 h-11 rounded-full bg-[#1e0226] text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md relative">
+                        ${contact.name.charAt(0)}
+                        ${unreadCount > 0 ? '<span class="unread-dot"></span>' : ''}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-0.5">
+                            <span class="font-bold text-xs text-slate-900 truncate contact-name">${contact.name}</span>
+                            ${unreadCount > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full unread-badge">${unreadCount}</span>` : ''}
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] truncate">${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : `<span class="text-red-500">${contact.last_seen}</span>`}</span>
+                            <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+${contact.phone}</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = newHTML || '<div class="p-10 text-center text-slate-400 text-xs space-y-2"><i class="far fa-comments text-3xl text-slate-300"></i><p class="font-bold text-slate-600">لا توجد محادثات سابقة</p></div>';
+            
+            // تحديث العداد الكلي
+            const badge = document.getElementById('unreadCountBadge');
+            if (badge) {
+                if (totalUnread > 0) { badge.textContent = totalUnread; badge.classList.remove('hidden'); } 
+                else { badge.classList.add('hidden'); }
+            }
+            refreshActiveContactStatus();
+            filterContacts();
+        }
+    } catch (e) { console.error('خطأ في تحديث جهات الاتصال:', e); }
+}
+
+// ✅ دالة تحديث الرسائل
+function refreshMessages() {
+    if (!currentPhone) return;
+    try {
+        fetch('/admin/whatsapp/api/messages?phone=' + currentPhone)
+            .then(res => res.json())
+            .then(data => {
+                const area = document.getElementById('messagesArea');
+                let newHTML = '';
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        const isOutbound = msg.direction === 'outbound';
+                        let contentHTML = `<p class="leading-relaxed font-medium">${msg.content}</p>`;
+                        if (msg.media_url) {
+                            if (msg.media_type === 'image') {
+                                contentHTML = `<img src="${msg.media_url}" class="rounded-xl max-w-full h-auto mb-2" alt="صورة">`;
+                            } else if (msg.media_type === 'video') {
+                                contentHTML = `<video src="${msg.media_url}" controls class="rounded-xl max-w-full h-auto mb-2"></video>`;
+                            } else if (msg.media_type === 'document') {
+                                contentHTML = `<a href="${msg.media_url}" target="_blank" class="flex items-center gap-2 text-blue-500 underline"><i class="fas fa-file text-lg"></i> ${msg.media_filename || 'ملف مرفق'}</a>`;
+                            }
+                        }
+                        let statusTicks = '';
+                        if (isOutbound) {
+                            if (msg.status === 'read') statusTicks = '<span class="text-sky-400 text-xs">✓✓</span>';
+                            else if (msg.status === 'delivered') statusTicks = '<span class="text-slate-400 text-xs">✓✓</span>';
+                            else if (msg.status === 'sent') statusTicks = '<span class="text-slate-400 text-xs">✓</span>';
+                        }
+                        let formattedTime = formatTime12(msg.timestamp || '');
+                        newHTML += `
+                        <div class="flex ${isOutbound ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${isOutbound ? 'bg-white text-slate-800 border border-slate-200 rounded-br-none' : 'bg-[#1e0226] text-white rounded-bl-none'}">
+                                ${contentHTML}
+                                <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">${formattedTime} ${statusTicks}</span>
+                            </div>
+                        </div>`;
+                    });
+                    area.innerHTML = newHTML;
+                } else {
+                    area.innerHTML = '<div class="text-center text-slate-400 text-xs py-10">لا توجد رسائل سابقة في هذه المحادثة</div>';
+                }
+                area.scrollTop = area.scrollHeight;
+            });
+    } catch (e) { console.error('خطأ في تحديث الرسائل:', e); }
+}
+
+// ✅ دالة إرسال الرسالة
+async function handleSendMessage() {
+    if (!currentPhone) { alert('يرجى اختيار جهة اتصال أولاً'); return; }
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (text) {
+        const area = document.getElementById('messagesArea');
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        let formattedTime = formatTime12(time);
+        area.insertAdjacentHTML('beforeend', `
+            <div class="flex justify-end">
+                <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm bg-white text-slate-800 border border-slate-200 rounded-br-none">
+                    <p class="leading-relaxed font-medium">${text}</p>
+                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${formattedTime} <span class="text-slate-400">✓</span></span>
+                </div>
+            </div>
+        `);
+        area.scrollTop = area.scrollHeight;
+        await fetch('/admin/whatsapp/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipient_phone: currentPhone, content: text })
+        });
+    }
+    if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        formData.append('recipient_phone', currentPhone);
+        selectedFiles.forEach(file => { formData.append('files', file); });
+        await fetch('/admin/whatsapp/api/send-media', { method: 'POST', body: formData });
+        clearAttachments();
+    }
+    input.value = '';
+    refreshMessages();
+}
+
+// ✅ تشغيل التحديثات التلقائية
+refreshContacts();
+setInterval(refreshContacts, 3000);
+</script>
+
+{% endblock %}
