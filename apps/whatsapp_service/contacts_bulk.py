@@ -5,9 +5,8 @@
 يعتمد هذا الملف على WhatsAppService الموجود في service.py
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required, current_user
-from datetime import datetime
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required
 from apps.extensions import db
 
 # استيراد النماذج
@@ -18,14 +17,10 @@ from apps.models.marketer_db import Marketer
 # استيراد الخدمة (المحرك)
 from apps.whatsapp_service.service import WhatsAppService
 
-# إنشاء Blueprint خاص بهذه الصفحة (أو استخدم الموجود في routes.py)
-contacts_bulk_bp = Blueprint('contacts_bulk', __name__, template_folder='../templates')
-
 
 # =========================================================================
-# 1. عرض صفحة جهات الاتصال
+# 1. عرض صفحة جهات الاتصال (يتم استدعاؤها من routes.py)
 # =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/contacts-bulk', methods=['GET'])
 @login_required
 def contacts_bulk_view():
     wa_service = WhatsAppService()
@@ -59,11 +54,10 @@ def contacts_bulk_view():
 
 
 # =========================================================================
-# 2. إضافة جهة اتصال جديدة (يستخدم دالة add_contact في WhatsAppService)
+# 2. إضافة جهة اتصال جديدة (يتم استدعاؤها من routes.py)
 # =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/add-contact', methods=['POST'])
 @login_required
-def add_contact():
+def add_contact_view():
     wa_service = WhatsAppService()
     
     # استقبال البيانات من النموذج
@@ -91,98 +85,51 @@ def add_contact():
     else:
         flash(result.get('error', 'حدث خطأ أثناء الإضافة'), 'danger')
         
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
 
 
 # =========================================================================
-# 3. تحديث جهة اتصال (يستخدم دالة update_contact)
+# 3. استيراد ملف CSV (يتم استدعاؤها من routes.py)
 # =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/update-contact', methods=['POST'])
 @login_required
-def update_contact():
+def import_contacts_view():
     wa_service = WhatsAppService()
     
-    contact_id = request.form.get('contact_id')
-    data = request.form.to_dict()
+    file = request.files.get('file')
+    default_category = request.form.get('default_category', 'customers')
     
-    result = wa_service.update_contact(int(contact_id), data)
+    if not file:
+        flash('يرجى رفع ملف أولاً', 'danger')
+        return redirect(url_for('whatsapp_service.contacts_bulk_view'))
     
-    if result.get('success'):
-        flash('تم تحديث جهة الاتصال بنجاح!', 'success')
-    else:
-        flash(result.get('error', 'حدث خطأ أثناء التحديث'), 'danger')
+    try:
+        import csv
+        import io
+        stream = io.StringIO(file.read().decode("UTF-8"))
+        reader = csv.DictReader(stream)
         
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
-
-
-# =========================================================================
-# 4. حذف جهة اتصال (يستخدم دالة delete_contact)
-# =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/delete-contact', methods=['POST'])
-@login_required
-def delete_contact():
-    wa_service = WhatsAppService()
-    
-    contact_id = request.form.get('contact_id')
-    result = wa_service.delete_contact(int(contact_id))
-    
-    if result.get('success'):
-        flash('تم حذف جهة الاتصال بنجاح!', 'success')
-    else:
-        flash(result.get('error', 'حدث خطأ أثناء الحذف'), 'danger')
+        imported_count = 0
+        for row in reader:
+            name = row.get('Name') or row.get('name')
+            phone = row.get('Phone') or row.get('phone')
+            category = row.get('Category', default_category)
+            
+            if name and phone:
+                wa_service.add_contact(name=name, phone=phone, category=category)
+                imported_count += 1
         
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
-
-
-# =========================================================================
-# 5. حذف مجموعة جهات اتصال (يستخدم دالة delete_contacts_bulk)
-# =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/delete-selected', methods=['POST'])
-@login_required
-def delete_selected():
-    wa_service = WhatsAppService()
-    
-    ids = request.form.getlist('selected_contacts')
-    ids = [int(i) for i in ids if i.isdigit()]
-    
-    result = wa_service.delete_contacts_bulk(ids)
-    
-    if result.get('success'):
-        flash(result.get('message', 'تم الحذف بنجاح!'), 'success')
-    else:
-        flash(result.get('error', 'حدث خطأ'), 'danger')
+        flash(f'تم استيراد {imported_count} جهة اتصال بنجاح!', 'success')
+    except Exception as e:
+        flash(f'خطأ في الاستيراد: {str(e)}', 'danger')
         
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
 
 
 # =========================================================================
-# 6. إرسال رسالة فردية (يستخدم دالة send_message)
+# 4. إرسال حملة جماعية (يتم استدعاؤها من routes.py)
 # =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/send-message', methods=['POST'])
 @login_required
-def send_message():
-    wa_service = WhatsAppService()
-    
-    phone = request.form.get('phone', '')
-    message = request.form.get('message', '')
-    
-    if phone and message:
-        # استخدام دالة الإرسال في الخدمة
-        result = wa_service.send_message(recipient_phone=phone, text=message)
-        # إرجاع النتيجة (في نسخة تجريبية يعيد status: simulated)
-        flash('تم إرسال الرسالة بنجاح!', 'success')
-    else:
-        flash('يرجى تعبئة الرقم والرسالة', 'danger')
-        
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
-
-
-# =========================================================================
-# 7. إرسال حملة جماعية (يستخدم خدمة الرسائل لإرسال رسائل متعددة)
-# =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/send-broadcast', methods=['POST'])
-@login_required
-def send_broadcast():
+def send_broadcast_view():
     wa_service = WhatsAppService()
     
     campaign_name = request.form.get('campaign_name', '')
@@ -215,42 +162,4 @@ def send_broadcast():
             sent_count += 1
     
     flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال!', 'success')
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
-
-
-# =========================================================================
-# 8. استيراد ملف CSV (يخدم صفحة الاستيراد)
-# =========================================================================
-@contacts_bulk_bp.route('/admin/whatsapp/import-csv', methods=['POST'])
-@login_required
-def import_csv():
-    wa_service = WhatsAppService()
-    
-    file = request.files.get('file')
-    default_category = request.form.get('default_category', 'customers')
-    
-    if not file:
-        flash('يرجى رفع ملف أولاً', 'danger')
-        return redirect(url_for('contacts_bulk.contacts_bulk_view'))
-    
-    try:
-        import csv
-        import io
-        stream = io.StringIO(file.read().decode("UTF-8"))
-        reader = csv.DictReader(stream)
-        
-        imported_count = 0
-        for row in reader:
-            name = row.get('Name') or row.get('name')
-            phone = row.get('Phone') or row.get('phone')
-            category = row.get('Category', default_category)
-            
-            if name and phone:
-                wa_service.add_contact(name=name, phone=phone, category=category)
-                imported_count += 1
-        
-        flash(f'تم استيراد {imported_count} جهة اتصال بنجاح!', 'success')
-    except Exception as e:
-        flash(f'خطأ في الاستيراد: {str(e)}', 'danger')
-        
-    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
