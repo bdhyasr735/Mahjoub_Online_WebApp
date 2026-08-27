@@ -60,7 +60,6 @@
 
     <!-- Category Stats Counters (4 Cards) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Customers -->
         <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
@@ -79,7 +78,6 @@
             </div>
         </div>
 
-        <!-- Merchants -->
         <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
@@ -98,7 +96,6 @@
             </div>
         </div>
 
-        <!-- Suppliers -->
         <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
@@ -117,7 +114,6 @@
             </div>
         </div>
 
-        <!-- Marketers -->
         <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
@@ -166,7 +162,6 @@
     <div id="contactsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for contact in contacts %}
         <div class="contact-card bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:shadow-md hover:border-purple-300 transition-all flex flex-col justify-between" data-category="{{ contact.category }}" data-search="{{ contact.name }} {{ contact.phone }} {{ contact.city }} {{ contact.discount_code }}">
-            <!-- Card Top Header -->
             <div>
                 <div class="flex items-start justify-between gap-2 mb-3">
                     <div class="flex items-center gap-3">
@@ -179,7 +174,6 @@
                         </div>
                     </div>
 
-                    <!-- Category Badge -->
                     {% if contact.category == 'customers' %}
                         <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-900 border border-purple-200">عميل</span>
                     {% elif contact.category == 'merchants' %}
@@ -193,18 +187,15 @@
                     {% endif %}
                 </div>
 
-                <!-- Info Details -->
                 <div class="space-y-2 py-3 border-y border-purple-50 text-xs">
                     <div class="flex items-center justify-between">
                         <span class="text-slate-400">رقم الواتساب:</span>
                         <span class="font-mono font-bold text-slate-800" dir="ltr">+{{ contact.phone }}</span>
                     </div>
-
                     <div class="flex items-center justify-between">
                         <span class="text-slate-400">المدينة / المنطقة:</span>
                         <span class="font-medium text-slate-700">{{ contact.city or 'غير محدد' }}</span>
                     </div>
-
                     <div class="flex items-center justify-between">
                         <span class="text-slate-400">كود الخصم المخصص:</span>
                         {% if contact.discount_code %}
@@ -216,7 +207,6 @@
                 </div>
             </div>
 
-            <!-- Card Bottom Actions -->
             <div class="mt-4 pt-2 flex items-center justify-between gap-2">
                 <a href="https://wa.me/{{ contact.phone }}" target="_blank" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/40 shadow-xs transition-all active:scale-95">
                     <svg class="w-3.5 h-3.5 text-[#D4AF37]" fill="currentColor" viewBox="0 0 24 24">
@@ -247,10 +237,9 @@
         </div>
         {% endfor %}
     </div>
-
 </div>
 
-<!-- Modal 1: Add Contact (Pure Tailwind) -->
+<!-- Modal 1: Add Contact -->
 <div id="addContactModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
     <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-purple-200 overflow-hidden">
         <div class="bg-[#1a0b2e] px-6 py-4 border-b border-purple-900/50 flex items-center justify-between text-white">
@@ -262,15 +251,12 @@
             </div>
             <button type="button" onclick="closeModal('addContactModal')" class="text-purple-300 hover:text-white">✕</button>
         </div>
-
         <form action="{{ url_for('whatsapp_service.add_contact_view') }}" method="POST" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل / اسم النشاط:</label>
                 <input type="text" name="name" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="مثال: متجر النور للأواني">
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">رقم الواتساب (مع الرمز الدولي):</label>
@@ -286,7 +272,6 @@
                     </select>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">المدينة / المنطقة:</label>
@@ -297,7 +282,6 @@
                     <input type="text" name="discount_code" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:border-[#1a0b2e]" placeholder="MAHGOOB10">
                 </div>
             </div>
-
             <div class="pt-3 border-t border-purple-100 flex items-center justify-end gap-2">
                 <button type="button" onclick="closeModal('addContactModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-purple-50 hover:bg-purple-100 border border-purple-200">إلغاء</button>
                 <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-md">حفظ جهة الاتصال</button>
@@ -306,7 +290,7 @@
     </div>
 </div>
 
-<!-- Modal 2: Import Contacts CSV / Excel (Pure Tailwind) -->
+<!-- Modal 2: Import Contacts CSV / Excel -->
 <div id="importModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
     <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-purple-200 overflow-hidden">
         <div class="bg-[#1a0b2e] px-6 py-4 border-b border-purple-900/50 flex items-center justify-between text-white">
@@ -318,14 +302,151 @@
             </div>
             <button type="button" onclick="closeModal('importModal')" class="text-purple-300 hover:text-white">✕</button>
         </div>
-
         <form action="{{ url_for('whatsapp_service.import_contacts_view') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <p class="text-xs text-slate-500 leading-relaxed">
-                يرجى رفع ملف يحتوي على الأعمدة التالية: <code class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded font-mono">name, phone, category, city, discount_code</code>.
-            </p>
-
+            <p class="text-xs text-slate-500 leading-relaxed">يرجى رفع ملف يحتوي على الأعمدة التالية: <code class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded font-mono">name, phone, category, city, discount_code</code>.</p>
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">الفئة الافتراضية إذا لم تحدد بالملف:</label>
-                <select name="default_category" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1
+                <select name="default_category" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]">
+                    <option value="customers">العملاء (Customers)</option>
+                    <option value="merchants">التجار (Merchants)</option>
+                    <option value="suppliers">الموردين (Suppliers)</option>
+                    <option value="marketers">المسوقين (Marketers)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">اختر الملف (.csv, .xlsx):</label>
+                <input type="file" name="file" accept=".csv, .xlsx, .xls" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl p-2 text-xs text-slate-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#1a0b2e] file:text-white">
+            </div>
+            <div class="pt-3 border-t border-purple-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeModal('importModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-purple-50 hover:bg-purple-100 border border-purple-200">إلغاء</button>
+                <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-md">بدء الاستيراد</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 3: Broadcast Bulk Campaign -->
+<div id="broadcastModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
+    <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-purple-200 overflow-hidden">
+        <div class="bg-[#1a0b2e] px-6 py-4 border-b border-purple-900/50 flex items-center justify-between text-white">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-900/80 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </div>
+                <h3 class="font-bold text-sm text-white">إطلاق حملة رسائل جماعية ذكية</h3>
+            </div>
+            <button type="button" onclick="closeModal('broadcastModal')" class="text-purple-300 hover:text-white">✕</button>
+        </div>
+        <form action="{{ url_for('whatsapp_service.send_broadcast_view') }}" method="POST" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم الحملة التسويقية:</label>
+                    <input type="text" name="campaign_name" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="عروض نهاية الأسبوع">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الفئة المستهدفة:</label>
+                    <select name="target_category" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]">
+                        <option value="all">جميع الفئات المسجلة</option>
+                        <option value="customers">العملاء فقط</option>
+                        <option value="merchants">التجار والمحلات فقط</option>
+                        <option value="suppliers">الموردين فقط</option>
+                        <option value="marketers">المسوقين فقط</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="text-xs font-bold text-slate-700">نص الرسالة التسويقية:</label>
+                    <span class="text-[11px] text-[#D4AF37] font-bold">يدعم المتغيرات الذكية</span>
+                </div>
+                <textarea name="message_text" rows="4" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="مرحباً {name}، يسعدنا في سوق محجوب أونلاين تقديم أفضل العروض الحصرية لك... كود الخصم: {discount_code}"></textarea>
+                <div class="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-mono">
+                    <span>المتغيرات:</span>
+                    <span class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded border border-purple-200">{name}</span>
+                    <span class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded border border-purple-200">{company}</span>
+                    <span class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded border border-purple-200">{discount_code}</span>
+                    <span class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded border border-purple-200">{city}</span>
+                </div>
+            </div>
+            <div class="pt-3 border-t border-purple-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeModal('broadcastModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-purple-50 hover:bg-purple-100 border border-purple-200">إلغاء</button>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-extrabold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-xl shadow-black/30">إرسال الحملة الآن</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 4: Direct Custom Message -->
+<div id="directMsgModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-purple-200 overflow-hidden">
+        <div class="bg-[#1a0b2e] px-6 py-4 border-b border-purple-900/50 flex items-center justify-between text-white">
+            <h3 class="font-bold text-sm text-white flex items-center gap-1.5">
+                <span>مراسلة مخصصة:</span>
+                <span id="directMsgContactName" class="text-[#D4AF37]"></span>
+            </h3>
+            <button type="button" onclick="closeModal('directMsgModal')" class="text-purple-300 hover:text-white">✕</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">الرسالة:</label>
+                <textarea id="directMsgContent" rows="4" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="اكتب نص الرسالة هنا..."></textarea>
+            </div>
+            <div class="pt-3 border-t border-purple-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeModal('directMsgModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-purple-50 hover:bg-purple-100 border border-purple-200">إلغاء</button>
+                <button type="button" onclick="sendDirectWhatsapp()" class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-md">فتح وإرسال بالواتساب</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDirectPhone = '';
+
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+function openDirectMessage(name, phone, discountCode) {
+    currentDirectPhone = phone;
+    document.getElementById('directMsgContactName').innerText = name;
+    document.getElementById('directMsgContent').value = 'مرحباً ' + name + '، يسعدنا التواصل معك من سوق محجوب أونلاين' + (discountCode ? ('، كود الخصم المخصص لك: ' + discountCode) : '');
+    openModal('directMsgModal');
+}
+
+function sendDirectWhatsapp() {
+    const text = encodeURIComponent(document.getElementById('directMsgContent').value);
+    window.open('https://wa.me/' + currentDirectPhone + '?text=' + text, '_blank');
+    closeModal('directMsgModal');
+}
+
+function filterCards() {
+    const q = document.getElementById('contactSearchInput').value.toLowerCase();
+    const cat = document.getElementById('categoryFilter').value;
+    const cards = document.querySelectorAll('.contact-card');
+    let count = 0;
+
+    cards.forEach(card => {
+        const matchesSearch = card.getAttribute('data-search').toLowerCase().includes(q);
+        const matchesCat = (cat === 'all' || card.getAttribute('data-category') === cat);
+        if (matchesSearch && matchesCat) {
+            card.style.display = 'flex';
+            count++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    document.getElementById('renderedCount').innerText = count;
+}
+
+function filterCategory(cat) {
+    filterCards();
+}
+</script>
+{% endblock %}
