@@ -489,10 +489,15 @@ def create_app():
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
 
-        # تسجيل مسار الويب هوك العام (المسار الذي تستخدمه Meta)
+        # ✅ تسجيل مسار الويب هوك العام (المسار الذي تستخدمه Meta)
         if webhook_public_bp.name not in app.blueprints:
             app.register_blueprint(webhook_public_bp)
             print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
+
+        # ✅ تسجيل مسارات لوحة التحكم (مهم جداً لحل مشكلة 404)!
+        if whatsapp_bp.name not in app.blueprints:
+            app.register_blueprint(whatsapp_bp)
+            print("✅ [واتساب]: تم تسجيل مسارات لوحة التحكم '/admin/whatsapp' بنجاح.")
 
         # استثناء كلا المسارين من حماية CSRF (الأهم)
         csrf.exempt(whatsapp_bp)
