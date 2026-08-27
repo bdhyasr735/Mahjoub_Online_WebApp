@@ -35,6 +35,20 @@
         }
         
         /* ✅ تنسيق النشط للروابط */
+        .nav-link {
+            padding: 0.5rem 0.875rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            text-decoration: none;
+        }
+        .nav-link i {
+            font-size: 0.875rem;
+        }
         .nav-link-active {
             background-color: #1e0226 !important;
             color: #ffffff !important;
@@ -48,6 +62,26 @@
         .nav-link-inactive:hover {
             color: #1e0226 !important;
             background-color: #f1f5f9 !important;
+            border-color: #1e0226 !important;
+        }
+        
+        /* ✅ مؤشر الإشعارات في الشريط */
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: #ef4444;
+            color: white;
+            font-size: 8px;
+            font-weight: 700;
+            border-radius: 9999px;
+            padding: 1px 5px;
+            min-width: 16px;
+            text-align: center;
+            line-height: 14px;
+        }
+        .nav-link {
+            position: relative;
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -78,38 +112,38 @@
         </div>
 
         <nav class="flex items-center gap-1.5 md:gap-2">
-            <!-- ✅ لوحة المحادثات -->
+            <!-- ✅ المحادثات -->
             <a href="/admin/whatsapp/dashboard" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
-                <i class="fa-regular fa-comment-dots ml-1.5"></i>
+               class="nav-link {% if request.path == '/admin/whatsapp/dashboard' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-regular fa-comment-dots"></i>
                 <span>المحادثات</span>
             </a>
             
             <!-- ✅ جهات الاتصال والإرسال الجماعي (جديد) -->
             <a href="/admin/whatsapp/contacts-bulk" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/contacts-bulk' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
-                <i class="fa-solid fa-address-book ml-1.5"></i>
+               class="nav-link {% if request.path == '/admin/whatsapp/contacts-bulk' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-address-book"></i>
                 <span>جهات الاتصال</span>
             </a>
 
             <!-- ✅ قوالب ميتا -->
             <a href="/admin/whatsapp/templates" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
-                <i class="fa-solid fa-layer-group ml-1.5"></i>
+               class="nav-link {% if request.path == '/admin/whatsapp/templates' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-layer-group"></i>
                 <span>القوالب</span>
             </a>
 
             <!-- ✅ سجل الويب هوك -->
             <a href="/admin/whatsapp/webhook-logs" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
-                <i class="fa-solid fa-rss ml-1.5"></i>
+               class="nav-link {% if request.path == '/admin/whatsapp/webhook-logs' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-rss"></i>
                 <span>سجل الويب هوك</span>
             </a>
 
             <!-- ✅ الإعدادات -->
             <a href="/admin/whatsapp/settings" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
-                <i class="fa-solid fa-sliders ml-1.5"></i>
+               class="nav-link {% if request.path == '/admin/whatsapp/settings' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-sliders"></i>
                 <span>الإعدادات</span>
             </a>
         </nav>
