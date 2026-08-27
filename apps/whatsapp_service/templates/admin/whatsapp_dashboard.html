@@ -604,4 +604,114 @@ async function refreshContacts() {
                         ${unreadCount > 0 ? '<span class="unread-dot"></span>' : ''}
                     </div>
                     <div class="flex-1 min-w-0">
-                       
+                        <div class="flex items-center justify-between mb-0.5">
+                            <span class="font-bold text-xs text-slate-900 truncate contact-name">${contact.name}</span>
+                            ${unreadCount > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full unread-badge">${unreadCount}</span>` : ''}
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] truncate">${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : `<span class="text-red-500">${contact.last_seen}</span>`}</span>
+                            <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+${contact.phone}</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = newHTML || '<div class="p-10 text-center text-slate-400 text-xs space-y-2"><i class="far fa-comments text-3xl text-slate-300"></i><p class="font-bold text-slate-600">لا توجد محادثات سابقة</p></div>';
+            
+            // تحديث العداد الكلي
+            const badge = document.getElementById('unreadCountBadge');
+            if (badge) {
+                if (totalUnread > 0) { badge.textContent = totalUnread; badge.classList.remove('hidden'); } 
+                else { badge.classList.add('hidden'); }
+            }
+            refreshActiveContactStatus();
+            filterContacts();
+        }
+    } catch (e) { console.error('خطأ في تحديث جهات الاتصال:', e); }
+}
+
+function refreshMessages() {
+    if (!currentPhone) return;
+    try {
+        fetch('/admin/whatsapp/api/messages?phone=' + currentPhone)
+            .then(res => res.json())
+            .then(data => {
+                const area = document.getElementById('messagesArea');
+                let newHTML = '';
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        const isOutbound = msg.direction === 'outbound';
+                        let contentHTML = `<p class="leading-relaxed font-medium">${msg.content}</p>`;
+                        if (msg.media_url) {
+                            if (msg.media_type === 'image') {
+                                contentHTML = `<img src="${msg.media_url}" class="rounded-xl max-w-full h-auto mb-2" alt="صورة">`;
+                            } else if (msg.media_type === 'video') {
+                                contentHTML = `<video src="${msg.media_url}" controls class="rounded-xl max-w-full h-auto mb-2"></video>`;
+                            } else if (msg.media_type === 'document') {
+                                contentHTML = `<a href="${msg.media_url}" target="_blank" class="flex items-center gap-2 text-blue-500 underline"><i class="fas fa-file text-lg"></i> ${msg.media_filename || 'ملف مرفق'}</a>`;
+                            }
+                        }
+                        let statusTicks = '';
+                        if (isOutbound) {
+                            if (msg.status === 'read') statusTicks = '<span class="text-sky-400 text-xs">✓✓</span>';
+                            else if (msg.status === 'delivered') statusTicks = '<span class="text-slate-400 text-xs">✓✓</span>';
+                            else if (msg.status === 'sent') statusTicks = '<span class="text-slate-400 text-xs">✓</span>';
+                        }
+                        let formattedTime = formatTime12(msg.timestamp || '');
+                        newHTML += `
+                        <div class="flex ${isOutbound ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${isOutbound ? 'bg-white text-slate-800 border border-slate-200 rounded-br-none' : 'bg-[#1a0b2e] text-white rounded-bl-none'}">
+                                ${contentHTML}
+                                <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">${formattedTime} ${statusTicks}</span>
+                            </div>
+                        </div>`;
+                    });
+                    area.innerHTML = newHTML;
+                } else {
+                    area.innerHTML = '<div class="text-center text-slate-400 text-xs py-10">لا توجد رسائل سابقة في هذه المحادثة</div>';
+                }
+                area.scrollTop = area.scrollHeight;
+            });
+    } catch (e) { console.error('خطأ في تحديث الرسائل:', e); }
+}
+
+async function handleSendMessage() {
+    if (!currentPhone) { alert('يرجى اختيار جهة اتصال أولاً'); return; }
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (text) {
+        const area = document.getElementById('messagesArea');
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        let formattedTime = formatTime12(time);
+        area.insertAdjacentHTML('beforeend', `
+            <div class="flex justify-end">
+                <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm bg-white text-slate-800 border border-slate-200 rounded-br-none">
+                    <p class="leading-relaxed font-medium">${text}</p>
+                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${formattedTime} <span class="text-slate-400">✓</span></span>
+                </div>
+            </div>
+        `);
+        area.scrollTop = area.scrollHeight;
+        await fetch('/admin/whatsapp/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipient_phone: currentPhone, content: text })
+        });
+    }
+    if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        formData.append('recipient_phone', currentPhone);
+        selectedFiles.forEach(file => { formData.append('files', file); });
+        await fetch('/admin/whatsapp/api/send-media', { method: 'POST', body: formData });
+        clearAttachments();
+    }
+    input.value = '';
+    refreshMessages();
+}
+
+// تشغيل التحديثات التلقائية
+refreshContacts();
+setInterval(refreshContacts, 3000);
+</script>
+
+{% endblock %}
