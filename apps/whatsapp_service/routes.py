@@ -167,6 +167,21 @@ def update_contact_name_api():
     result = wa_service.update_contact_name(phone, name)
     return jsonify(result), 200
 
+@whatsapp_bp.route('/api/contacts/read', methods=['POST'])
+def mark_contact_as_read_api():
+    """تصفير عداد الرسائل غير المقروءة عند فتح المحادثة"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    phone = data.get('phone', '')
+    
+    if not phone:
+        return jsonify({"error": "phone is required"}), 400
+        
+    result = wa_service.mark_contact_as_read(phone)
+    return jsonify(result), 200
+
 @whatsapp_bp.route('/api/send-media', methods=['POST'])
 def send_media_api():
     """إرسال صور، فيديو، أو ملفات عبر Meta WhatsApp Cloud API"""
