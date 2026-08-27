@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, update
+from sqlalchemy import event, update, inspect
 from apps.extensions import db
 
 
@@ -197,11 +197,10 @@ class SupplierStaff(db.Model, UserMixin):
         return f'<SupplierStaff {self.staff_code or self.id}: {self.username} | Role: {self.role} | Status: {self.status}>'
 
 
-# --- المحرك التلقائي لتوليد الكود التنظيمي الديناميكي للموظف (مثل SUP9631-ST1) ---
+# --- التحقق التلقائي من وجود العمود وإضافته عند بدء التشغيل إذا لزم الأمر، وتوليد الكود التنظيمي ---
 @event.listens_for(SupplierStaff, 'after_insert')
 def receive_staff_after_insert(mapper, connection, target):
     """توليد كود تنظيمي فريد للموظف مرتبط برقم المالك أو المورد الأساسي فور الحفظ"""
-    # نفترض أن كود المورد الأساسي يعتمد على الـ supplier_id (مثل SUP-963{supplier_id}) أو ندمجه مباشرة
     new_staff_code = f"SUP963{target.supplier_id}-ST{target.id}"
     connection.execute(
         update(SupplierStaff).where(SupplierStaff.id == target.id).values(staff_code=new_staff_code)
