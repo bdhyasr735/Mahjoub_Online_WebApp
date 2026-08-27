@@ -6,13 +6,9 @@ try:
 except ImportError:
     from app import db
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import os
 import json
-
-# ✅ دالة مساعدة لإرجاع الوقت الحالي بتوقيت اليمن (UTC+3)
-def local_time():
-    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3)))
 
 
 class WhatsAppWebhookEvent(db.Model):
@@ -29,7 +25,7 @@ class WhatsAppWebhookEvent(db.Model):
     event_type = db.Column(db.String(50), nullable=False)
     payload = db.Column(db.JSON, nullable=False)
     processed = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=local_time)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class WhatsAppMessageLog(db.Model):
@@ -96,8 +92,8 @@ class WhatsAppMessageLog(db.Model):
     mentioned_ids = db.Column(db.JSON, nullable=True)
     reactions = db.Column(db.JSON, nullable=True)
     # توقيت
-    timestamp = db.Column(db.DateTime, default=local_time)
-    updated_at = db.Column(db.DateTime, default=local_time, onupdate=local_time)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @property
     def is_outbound(self):
@@ -159,7 +155,7 @@ class WhatsAppCustomerContact(db.Model):
     is_online = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime, nullable=True)
     last_message = db.Column(db.Text, nullable=True)
-    last_timestamp = db.Column(db.DateTime, default=local_time)
+    last_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     unread_count = db.Column(db.Integer, default=0)
     is_blocked = db.Column(db.Boolean, default=False)
     is_archived = db.Column(db.Boolean, default=False)
@@ -168,8 +164,8 @@ class WhatsAppCustomerContact(db.Model):
     extra_data = db.Column(db.JSON, nullable=True)
     customer_id = db.Column(db.Integer, nullable=True)
     supplier_id = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, default=local_time)
-    updated_at = db.Column(db.DateTime, default=local_time, onupdate=local_time)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @property
     def phone_number(self):
@@ -224,7 +220,7 @@ class WhatsAppSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text, nullable=True)
-    updated_at = db.Column(db.DateTime, default=local_time, onupdate=local_time)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @classmethod
     def get_setting(cls, key, default=""):
@@ -242,7 +238,7 @@ class WhatsAppSettings(db.Model):
             setting = cls.query.filter_by(key=key).first()
             if setting:
                 setting.value = value
-                setting.updated_at = local_time()
+                setting.updated_at = datetime.utcnow()
             else:
                 setting = cls(key=key, value=value)
                 db.session.add(setting)
@@ -270,8 +266,8 @@ class WhatsAppTemplate(db.Model):
     status = db.Column(db.String(30), default='pending')
     components = db.Column(db.JSON, nullable=False)
     namespace = db.Column(db.String(100), nullable=True)
-    created_at = db.Column(db.DateTime, default=local_time)
-    updated_at = db.Column(db.DateTime, default=local_time, onupdate=local_time)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class WhatsAppConversation(db.Model):
@@ -292,12 +288,12 @@ class WhatsAppConversation(db.Model):
     title = db.Column(db.String(200), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     is_archived = db.Column(db.Boolean, default=False)
-    last_message_at = db.Column(db.DateTime, default=local_time)
+    last_message_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_message_preview = db.Column(db.Text, nullable=True)
     total_messages = db.Column(db.Integer, default=0)
     unread_count = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=local_time)
-    updated_at = db.Column(db.DateTime, default=local_time, onupdate=local_time)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class WhatsAppMediaCache(db.Model):
@@ -317,4 +313,4 @@ class WhatsAppMediaCache(db.Model):
     file_size = db.Column(db.Integer, nullable=True)
     file_name = db.Column(db.String(200), nullable=True)
     expires_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=local_time)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
