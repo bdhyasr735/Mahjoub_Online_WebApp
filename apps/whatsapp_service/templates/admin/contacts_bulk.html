@@ -3,13 +3,16 @@
 {% block title %}جهات الاتصال والإرسال الجماعي{% endblock %}
 
 {% block content %}
-<div class="p-6 w-full">
+<div class="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
 
     <!-- رأس الصفحة -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <div class="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
-            <h1 class="text-2xl font-extrabold text-slate-800">جهات الاتصال والإرسال الجماعي</h1>
-            <p class="text-slate-500 text-sm mt-1">إدارة العملاء والتجار والموردين مع أدوات الاستهداف الذكي</p>
+            <h1 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-address-book text-[#1e0226]"></i>
+                <span>جهات الاتصال والإرسال الجماعي</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">إدارة العملاء والتجار والموردين مع أدوات الاستهداف الذكي</p>
         </div>
         <div class="flex gap-2">
             <button onclick="openModal('modal-import')" class="bg-[#1e0226] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">
@@ -22,7 +25,7 @@
     </div>
 
     <!-- بطاقات الإحصائيات -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
         <!-- العملاء -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
             <div>
@@ -209,14 +212,12 @@
 <script>
     // دالة فتح النافذة: تخفي كل النوافذ أولاً، ثم تظهر النافذة المطلوبة فقط
     function openModal(modalId) {
-        // إخفاء جميع النوافذ المنبثقة
         const modals = document.querySelectorAll('.fixed.inset-0.z-50');
         modals.forEach(modal => {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         });
 
-        // إظهار النافذة المطلوبة
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.remove('hidden');
@@ -224,7 +225,6 @@
         }
     }
 
-    // دالة إغلاق النافذة
     function closeModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
@@ -233,7 +233,6 @@
         }
     }
 
-    // إغلاق النافذة عند الضغط على الخلفية (Background)
     window.onclick = function(event) {
         const modals = document.querySelectorAll('.fixed.inset-0.z-50');
         modals.forEach(modal => {
