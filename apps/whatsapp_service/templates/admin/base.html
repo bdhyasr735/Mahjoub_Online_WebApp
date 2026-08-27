@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}سوق محجوب أونلاين الذكي - مركز التجار{% endblock %}</title>
     
-    <!-- ✅ Bootstrap 5 CSS (لعمل النوافذ المنبثقة) -->
+    <!-- ✅ Bootstrap 5 CSS (أضفناه ليعمل القالب الجديد) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <!-- Tailwind CSS CDN -->
@@ -27,183 +27,144 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* ✅ ألوان النظام الأساسية */
         .bg-primary-royal { background-color: #1e0226; }
         .text-primary-royal { color: #1e0226; }
         .border-primary-royal { border-color: #1e0226; }
         
-        /* ✅ عناصر القائمة الجانبية */
-        .sidebar {
-            width: 280px;
-            height: 100vh;
-            position: fixed;
-            right: 0;
-            top: 0;
-            background: linear-gradient(180deg, #1a0b2e, #08020d);
-            z-index: 1050;
-            overflow-y: auto;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
-            border-left: 1px solid rgba(212, 175, 55, 0.25);
-        }
-        .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 10px; }
-        
-        .logo-container { 
-            padding: 25px 15px; 
-            text-align: center; 
-            border-bottom: 1px solid rgba(212, 175, 55, 0.2); 
-            background: rgba(0,0,0,0.2); 
-        }
-        .sidebar-logo { width: 65px; height: 65px; object-fit: contain; filter: brightness(0) invert(1); }
-        .brand-text { color: #D4AF37; font-size: 0.85rem; margin-top: 8px; display: block; font-weight: bold; }
-        
-        .nav-link-custom { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            padding: 12px 15px; 
-            color: #cbd5e1; 
-            text-decoration: none; 
-            border-radius: 12px; 
-            transition: all 0.3s ease; 
-            cursor: pointer; 
-            margin-bottom: 6px; 
-            font-weight: 500;
-            text-align: right;
-        }
-        .nav-link-custom:hover, .nav-link-custom.active { 
-            background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9)); 
-            color: #D4AF37; 
-            border: 1px solid rgba(212, 175, 55, 0.4); 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-        }
-        .nav-link-custom i { width: 20px; text-align: center; }
-        
-        .main-wrapper { 
-            margin-right: 280px; 
-            margin-left: 0;
-            min-height: 100vh; 
-            background: #f9f8f6 !important;
-            transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            overflow-y: auto;
+        /* ✅ لضمان عرض الصور والفيديو بشكل صحيح */
+        img, video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
         }
         
-        .top-navbar { 
-            background: #FFFFFF !important; 
-            border-bottom: 1px solid #e5e2dc !important; 
-            padding: 15px 25px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            position: sticky; 
-            top: 0; 
-            z-index: 1040; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        }
-        .admin-badge { 
-            background: linear-gradient(135deg, #1a0b2e, #08020d); 
-            color: #D4AF37; 
-            padding: 7px 18px; 
-            border-radius: 50px; 
-            font-size: 0.8rem; 
-            font-weight: 800; 
-            border: 1px solid rgba(212, 175, 55, 0.5); 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        /* ✅ تنسيق النشط للروابط */
+        .nav-link {
+            padding: 0.5rem 0.875rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
+            gap: 0.375rem;
+            text-decoration: none;
         }
-
+        .nav-link i {
+            font-size: 0.875rem;
+        }
+        .nav-link-active {
+            background-color: #1e0226 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(30, 2, 38, 0.3);
+        }
+        .nav-link-inactive {
+            color: #475569 !important;
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .nav-link-inactive:hover {
+            color: #1e0226 !important;
+            background-color: #f1f5f9 !important;
+            border-color: #1e0226 !important;
+        }
+        
+        /* ✅ مؤشر الإشعارات في الشريط */
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: #ef4444;
+            color: white;
+            font-size: 8px;
+            font-weight: 700;
+            border-radius: 9999px;
+            padding: 1px 5px;
+            min-width: 16px;
+            text-align: center;
+            line-height: 14px;
+        }
+        .nav-link {
+            position: relative;
+        }
+        
         /* ✅ حماية الهيدر من Bootstrap */
         .header-custom-class {
             margin: 0 !important;
             padding: 0 !important;
         }
-        
-        @media (max-width: 992px) {
-            .sidebar { right: -280px; }
-            .sidebar.active { right: 0; }
-            .main-wrapper { margin-right: 0; }
-            .top-navbar { padding: 12px 15px; }
-        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen antialiased selection:bg-[#1e0226] selection:text-white">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex flex-col antialiased selection:bg-[#1e0226] selection:text-white">
     
     <!-- إشعارات -->
     <div id="notification-container" class="fixed top-4 left-4 z-[9999] space-y-2 w-80"></div>
 
-    <!-- ✅ القائمة الجانبية (Sidebar) -->
-    <aside class="sidebar" id="sidebar">
-        <div class="logo-container">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
-            <h6 class="text-white mt-2 fw-bold">القيادة المركزية</h6>
-            <span class="brand-text">محجوب أونلاين | سوقك الذكي</span>
+    <!-- الهيدر -->
+    <header class="h-16 px-4 md:px-6 bg-white border-b border-slate-200 flex items-center justify-between z-30 sticky top-0 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center rounded-2xl bg-[#1e0226] p-1.5 w-11 h-11 shadow-md">
+                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
+                     alt="لوجو سوق محجوب أونلاين" 
+                     class="w-full h-full object-contain filter brightness-0 invert">
+            </div>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                    <span class="text-base font-extrabold text-slate-900 tracking-tight">{{ merchant_name|default("سوق محجوب أونلاين الذكي") }}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1e0226] text-white">مركز التجار</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-[#25D366] inline-block"></span>
+                    Meta Cloud API v26.0 (Live)
+                </span>
+            </div>
         </div>
-        
-        <nav class="p-3">
-            <a href="/admin" class="nav-link-custom">
-                <i class="fas fa-chart-line"></i> <span>الإحصائيات</span>
+
+        <nav class="flex items-center gap-1.5 md:gap-2">
+            <!-- ✅ المحادثات -->
+            <a href="/admin/whatsapp/dashboard" 
+               class="nav-link {% if request.path == '/admin/whatsapp/dashboard' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-regular fa-comment-dots"></i>
+                <span>المحادثات</span>
             </a>
-            <a href="/admin/whatsapp/dashboard" class="nav-link-custom active">
-                <i class="fab fa-whatsapp"></i> <span>المحادثات</span>
+            
+            <!-- ✅ جهات الاتصال والإرسال الجماعي (جديد) -->
+            <a href="/admin/whatsapp/contacts-bulk" 
+               class="nav-link {% if request.path == '/admin/whatsapp/contacts-bulk' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-address-book"></i>
+                <span>جهات الاتصال</span>
             </a>
-            <a href="/admin/whatsapp/contacts-bulk" class="nav-link-custom">
-                <i class="fas fa-address-book"></i> <span>جهات الاتصال</span>
+
+            <!-- ✅ قوالب ميتا -->
+            <a href="/admin/whatsapp/templates" 
+               class="nav-link {% if request.path == '/admin/whatsapp/templates' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>القوالب</span>
             </a>
-            <a href="/admin/whatsapp/templates" class="nav-link-custom">
-                <i class="fas fa-layer-group"></i> <span>قوالب ميتا</span>
+
+            <!-- ✅ سجل الويب هوك -->
+            <a href="/admin/whatsapp/webhook-logs" 
+               class="nav-link {% if request.path == '/admin/whatsapp/webhook-logs' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-rss"></i>
+                <span>سجل الويب هوك</span>
             </a>
-            <a href="/admin/whatsapp/settings" class="nav-link-custom">
-                <i class="fas fa-sliders-h"></i> <span>الإعدادات</span>
-            </a>
-            <a href="/admin/whatsapp/webhook-logs" class="nav-link-custom">
-                <i class="fas fa-stream"></i> <span>سجل الويب هوك</span>
-            </a>
-            <hr class="text-white my-3 opacity-25">
-            <a href="/logout" class="nav-link-custom text-red-400 hover:bg-red-500/10 hover:text-red-300">
-                <i class="fas fa-sign-out-alt"></i> <span>خروج آمن</span>
+
+            <!-- ✅ الإعدادات -->
+            <a href="/admin/whatsapp/settings" 
+               class="nav-link {% if request.path == '/admin/whatsapp/settings' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-sliders"></i>
+                <span>الإعدادات</span>
             </a>
         </nav>
-    </aside>
+    </header>
 
-    <!-- ✅ المحتوى الرئيسي -->
-    <main class="main-wrapper" id="main">
-        <header class="top-navbar">
-            <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="admin-badge">
-                    <i class="fas fa-crown ms-1 text-amber-400"></i>
-                    <span>بيئة التحكم السيادية</span>
-                </div>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <div class="dropdown">
-                    <button class="notification-bell-btn dropdown-toggle" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </button>
-                </div>
-            </div>
-        </header>
-        
-        <section class="p-4 p-md-5 animate__animated animate__fadeIn">
-            {% block content %}{% endblock %}
-        </section>
+    <main class="flex-1 flex overflow-hidden">
+        {% block content %}{% endblock %}
     </main>
 
     <!-- ✅ Bootstrap 5 JS (ضروري لفتح وإغلاق النوافذ) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('active');
-        }
-    </script>
 
     {% block scripts %}{% endblock %}
 </body>
