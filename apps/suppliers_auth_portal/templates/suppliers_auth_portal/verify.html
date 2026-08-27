@@ -1,102 +1,33 @@
+<!-- -*- coding: utf-8 -*- -->
+<!-- 📂 apps/suppliers_auth_portal/templates/suppliers_auth_portal/verify.html -->
 {% extends "suppliers_auth_portal/base.html" %}
 
-{% block title %}التحقق من الهوية | محجوب أونلاين{% endblock %}
-
-{% block extra_head %}
-<style>
-    /* تنسيقات إضافية خاصة بصفحة التحقق لضمان التجربة المتكاملة على الهواتف والأجهزة اللوحية */
-    .verify-wrapper {
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto;
-    }
-    
-    .otp-display-group {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        margin-top: 20px;
-    }
-
-    @media (max-width: 768px) {
-        .verify-wrapper {
-            max-width: 100%;
-            padding: 0 10px;
-        }
-        h1 {
-            font-size: 1.6rem !important;
-        }
-    }
-</style>
-{% endblock %}
+{% title %}التحقق من الحساب - محجوب أونلاين{% endtitle %}
 
 {% block content %}
-<div class="verify-wrapper">
-    <div style="text-align: center; margin-bottom: 20px;">
-        <span style="display: inline-block; padding: 10px; background: rgba(206, 158, 73, 0.1); border-radius: 50%; color: var(--gold); font-size: 1.5rem; margin-bottom: 10px;">🛡️</span>
-        <h1 style="color: var(--gold); margin: 0 0 10px 0;">التحقق الثنائي الآمن</h1>
-        <p style="color: #aaa; font-size: 0.95rem; line-height: 1.6; margin: 0;">
-            تم إرسال رمز التحقق المؤلف من 6 أرقام إلى وسيلة الاتصال المسجلة في حسابك. يرجى إدخاله أدناه لإتمام الجلسة.
-        </p>
-    </div>
-
-    <div id="verify-form" class="otp-display-group">
-        <input type="text" id="otp_code" class="cyber-input" placeholder="------" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
-        <button class="btn-gold" onclick="verifyOTP()">تأكيد الرمز والدخول</button>
-    </div>
-
-    <div style="text-align: center; margin-top: 20px;">
-        <a href="{{ url_for('suppliers_auth.login') }}" style="color: #888; text-decoration: none; font-size: 0.85rem; transition: color 0.2s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='#888'">
-            ← العودة إلى صفحة تسجيل الدخول
-        </a>
-    </div>
+<div class="text-center mb-6">
+    <h2 class="text-2xl font-bold text-white mb-2">التحقق من رقم الهاتف</h2>
+    <p class="text-sm text-gray-300">أدخل رمز التحقق المرسل إلى رقم هاتفك لإتمام عملية المصادقة بأمان.</p>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-    async function verifyOTP() {
-        const otpCode = document.getElementById('otp_code').value.trim();
-        if(!otpCode || otpCode.length < 4) {
-            showMessage('يرجى إدخال رمز التحقق كاملاً بشكل صحيح', 'error');
-            return;
-        }
+<!-- نموذج التحقق -->
+<form method="POST" class="space-y-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-200 mb-1">رمز التحقق (OTP)</label>
+        <input type="text" name="otp_code" required autofocus autocomplete="one-time-code"
+            class="w-full px-4 py-2 text-center tracking-widest text-lg bg-[#1a0b2e] border border-[#632C8F] rounded-lg text-white focus:outline-none focus:border-[#D4AF37]"
+            placeholder="123456">
+    </div>
 
-        const data = {
-            step: 'verify_otp',
-            otp_code: otpCode
-        };
+    <button type="submit" 
+        class="w-full py-2.5 bg-gradient-to-r from-[#632C8F] to-[#570575] hover:from-[#7b35b0] text-white font-bold rounded-lg shadow-lg border border-[#D4AF37]/40 transition duration-200">
+        تأكيد الرمز
+    </button>
+</form>
 
-        try {
-            const response = await fetch("{{ url_for('suppliers_auth.login') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.getElementById('csrf_token').value
-                },
-                body: JSON.stringify(data)
-            });
-
-            const res = await response.json();
-
-            if (response.ok) {
-                if (res.redirect) {
-                    window.location.href = res.redirect;
-                }
-            } else {
-                showMessage(res.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته', 'error');
-            }
-        } catch(e) {
-            console.error(e);
-            showMessage('حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً', 'error');
-        }
-    }
-
-    // دعم الضغط على زر Enter مباشرة لتسريع عملية التحقق
-    document.getElementById('otp_code').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            verifyOTP();
-        }
-    });
-</script>
+<div class="mt-6 text-center border-t border-gray-700 pt-4">
+    <a href="{{ url_for('suppliers_auth.login') }}" class="text-sm text-[#D4AF37] hover:underline">
+        العودة إلى تسجيل الدخول
+    </a>
+</div>
 {% endblock %}
