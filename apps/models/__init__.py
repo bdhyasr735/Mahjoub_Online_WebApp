@@ -26,10 +26,14 @@ from apps.models.sync_log import SyncLog
 from apps.models.whatsapp_models import (
     WhatsAppMessageLog,
     WhatsAppWebhookEvent,
-    WhatsAppCustomerContact
+    WhatsAppCustomerContact,
+    WhatsAppSettings,
+    WhatsAppTemplate,
+    WhatsAppConversation,
+    WhatsAppMediaCache
 )
 
-__all__ = [
+__all__ + [
     'db',
     'AdminStaff',
     'AdminUser',
@@ -48,5 +52,9 @@ __all__ = [
     'WalletTransaction',
     'WhatsAppMessageLog',
     'WhatsAppWebhookEvent',
-    'WhatsAppCustomerContact'
+    'WhatsAppCustomerContact',
+    'WhatsAppSettings',
+    'WhatsAppTemplate',
+    'WhatsAppConversation',
+    'WhatsAppMediaCache'
 ]
