@@ -208,12 +208,21 @@ function formatTime12(timeStr) {
     return `${hours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
-if ("Notification" in window) {
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
+// 📣 طلب الإذن من المتصفح
+function requestNotificationPermission() {
+    if ("Notification" in window) {
+        Notification.requestPermission().then(function(permission) {
+            if (permission === "granted") {
+                console.log("✅ تم منح إذن الإشعارات");
+            }
+        });
     }
 }
 
+// استدعاء فوري عند تحميل الصفحة
+requestNotificationPermission();
+
+// 🔔 دالة عرض إشعار منبثق
 function showNotification(title, message) {
     if (Notification.permission === "granted") {
         new Notification(title, {
@@ -221,6 +230,7 @@ function showNotification(title, message) {
             icon: 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp'
         });
     }
+    // تشغيل الصوت دائماً
     notificationSound.play();
 }
 
