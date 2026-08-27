@@ -36,10 +36,10 @@ def contacts_bulk_view():
         from apps.whatsapp_service.service import WhatsAppService
         wa_service = WhatsAppService()
         
-        # جلب جميع جهات الاتصال
+        # جلب جميع جهات الاتصال من قاعدة البيانات
         contacts = wa_service.get_all_contacts()
         
-        # إحصائيات الفئات
+        # ✅ إحصائيات حقيقية من قاعدة البيانات
         stats = {
             'customers_count': len([c for c in contacts if c.get('category') == 'customers']),
             'merchants_count': len([c for c in contacts if c.get('category') == 'merchants']),
@@ -59,7 +59,12 @@ def contacts_bulk_view():
         return render_template(
             'admin/contacts_bulk.html',
             contacts=[],
-            stats={},
+            stats={
+                'customers_count': 0,
+                'merchants_count': 0,
+                'suppliers_count': 0,
+                'marketers_count': 0
+            },
             error=str(e)
         ), 200
 
@@ -293,8 +298,8 @@ def import_contacts_api():
         db.session.commit()
         
         return jsonify({
-            "success": True, 
-            "imported": imported, 
+            "success": True,
+            "imported": imported,
             "errors": errors,
             "message": f"تم استيراد {imported} جهة اتصال" + (f" مع {len(errors)} خطأ" if errors else "")
         }), 200
@@ -490,7 +495,7 @@ def send_campaign_api():
 
 
 # =========================================================================
-# 6. توليد رسالة بالذكاء الاصطناعي
+# 6. توليد رسالة بالذكاء الاصطناعي (بدون رسائل افتراضية)
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/generate-message', methods=['POST'])
@@ -514,7 +519,7 @@ def generate_message_api():
         
         category_name = category_names.get(category, 'العملاء')
         
-        # استخدام Gemini API لتوليد النص
+        # ✅ استخدام Gemini API لتوليد النص
         prompt = f"""
         أنت مساعد تسويقي متخصص في سوق محجوب أونلاين.
         قم بكتابة رسالة تسويقية احترافية وجذابة لـ {category_name}،
@@ -529,63 +534,15 @@ def generate_message_api():
         
         response = wa_service._generate_gemini_reply(prompt)
         
-        return jsonify({"success": True, "text": response}), 200
+        if response:
+            return jsonify({"success": True, "text": response}), 200
+        
+        # ❌ في حالة فشل Gemini، نعيد خطأ (بدون رسائل افتراضية)
+        return jsonify({"success": False, "error": "فشل توليد النص بواسطة الذكاء الاصطناعي"}), 500
+        
     except Exception as e:
         logger.error(f"خطأ في توليد الرسالة: {str(e)}")
-        
-        # رسائل افتراضية في حالة فشل Gemini
-        default_messages = {
-            'customers': """مرحباً {name}،
-
-يسعدنا في سوق محجوب أونلاين أن نقدم لك عروضاً حصرية على أحدث المنتجات! 🛍️
-
-🔹 خصم 20% على أول طلب
-🔹 شحن مجاني للطلبات فوق 200 ريال
-🔹 توصيل سريع لجميع المناطق
-
-استخدم كود الخصم: WELCOME20
-
-🌟 ننتظرك في سوق محجوب أونلاين!""",
-            
-            'merchants': """عزيزي التاجر {name}،
-
-نقدم لك في سوق محجوب أونلاين فرصة لتوسيع أعمالك! 📈
-
-🔹 منصة لعرض منتجاتك
-🔹 وصول لأكثر من 10,000 عميل
-🔹 أدوات تسويق متقدمة
-
-انضم الآن واستفد من خصم 30% على الاشتراك السنوي!
-
-نحن هنا لدعم نجاحك! 🚀""",
-            
-            'suppliers': """مرحباً {name}،
-
-سوق محجوب أونلاين يبحث عن موردين جدد! 🤝
-
-🔹 منصة موثوقة للبيع بالجملة
-🔹 عقود طويلة الأجل
-🔹 دعم لوجستي متكامل
-
-سجل منتجاتك الآن واستفد من قاعدة عملائنا الواسعة!
-
-نتطلع لشراكتك! 💪""",
-            
-            'marketers': """مرحباً {name}،
-
-سوق محجوب أونلاين يفتح باب التسويق بالعمولة! 💰
-
-🔹 عمولة تصل إلى 20% على كل عملية بيع
-🔹 مواد تسويقية جاهزة
-🔹 تقارير وتحليلات متقدمة
-
-انضم إلى فريق المسوقين وابدأ في تحقيق أرباحك اليوم!
-
-معاً نحو النجاح! 🌟"""
-        }
-        
-        default_text = default_messages.get(category, default_messages['customers'])
-        return jsonify({"success": True, "text": default_text}), 200
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # =========================================================================
@@ -612,7 +569,7 @@ def mark_contact_read_by_phone(phone):
 
 @contacts_bulk_bp.route('/api/contacts/stats', methods=['GET'])
 def get_contacts_stats_api():
-    """جلب إحصائيات جهات الاتصال"""
+    """جلب إحصائيات جهات الاتصال من قاعدة البيانات"""
     try:
         from apps.models.whatsapp_models import WhatsAppCustomerContact
         from apps.extensions import db
