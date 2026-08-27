@@ -23,6 +23,7 @@ SHOW_IN_SUPPLIER = False
 # ========== روابط القائمة الجانبية الديناميكية ==========
 LINKS = {
     "whatsapp_service.dashboard_view": "المحادثات المباشرة",
+    "whatsapp_service.contacts_bulk_view": "جهات الاتصال والإرسال الجماعي",  # ✅ جديد
     "whatsapp_service.templates_view": "قوالب ميتا المعتمدة",
     "whatsapp_service.webhook_logs_view": "سجل تدفق الويب هوك",
     "whatsapp_service.settings_view": "إعدادات Meta Cloud API",
@@ -46,6 +47,11 @@ def get_nav_metadata():
                 "title": "المحادثات المباشرة",
                 "url": URL_PREFIX + "/dashboard",
                 "icon": "fas fa-comments"
+            },
+            {
+                "title": "📇 جهات الاتصال والإرسال الجماعي",  # ✅ جديد
+                "url": URL_PREFIX + "/contacts-bulk",
+                "icon": "fas fa-address-book"
             },
             {
                 "title": "قوالب ميتا المعتمدة",
@@ -77,6 +83,9 @@ def register_module(app):
         # استيراد المسارات من ملف routes.py
         from apps.whatsapp_service.routes import whatsapp_bp, webhook_public_bp
         
+        # ✅ استيراد مسارات جهات الاتصال
+        from apps.whatsapp_service.contacts_bulk import contacts_bulk_bp
+        
         # استيراد CSRF من ملف الإضافات
         from apps.extensions import csrf
 
@@ -90,14 +99,21 @@ def register_module(app):
             app.register_blueprint(webhook_public_bp)
             print(f"✅ [Module]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
 
+        # ✅ تسجيل مسارات جهات الاتصال والإرسال الجماعي
+        if contacts_bulk_bp.name not in app.blueprints:
+            app.register_blueprint(contacts_bulk_bp)
+            print(f"✅ [Module]: تم تسجيل مسارات جهات الاتصال '/contacts-bulk' بنجاح.")
+
         # 🔥 الأهم: استثناء المسارات من حماية CSRF (حتى تصل رسائل Meta)
         csrf.exempt(whatsapp_bp)
         csrf.exempt(webhook_public_bp)
+        csrf.exempt(contacts_bulk_bp)  # ✅ استثناء مسارات جهات الاتصال
 
     except ImportError:
         # في حالة الاستيراد النسبي
         try:
             from .routes import whatsapp_bp, webhook_public_bp
+            from .contacts_bulk import contacts_bulk_bp  # ✅ استيراد نسبي
             from apps.extensions import csrf
             
             if whatsapp_bp.name not in app.blueprints:
@@ -105,11 +121,16 @@ def register_module(app):
             
             if webhook_public_bp.name not in app.blueprints:
                 app.register_blueprint(webhook_public_bp)
-                
+            
+            if contacts_bulk_bp.name not in app.blueprints:
+                app.register_blueprint(contacts_bulk_bp)
+            
             csrf.exempt(whatsapp_bp)
             csrf.exempt(webhook_public_bp)
+            csrf.exempt(contacts_bulk_bp)
             
             print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' (استيراد نسبي) وتفعيله بنجاح.")
+            print(f"✅ [Module]: تم تسجيل مسارات جهات الاتصال (استيراد نسبي).")
         except Exception as inner_e:
             print(f"❌ [Module Error]: فشل استيراد موديول الواتساب. تفاصيل: {inner_e}")
     except Exception as e:
