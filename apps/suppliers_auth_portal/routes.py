@@ -39,7 +39,6 @@ def test_login():
             <button type="submit" style="padding: 8px 20px; background: #2d0b36; color: #fff; border: none; border-radius: 5px;">دخول</button>
         </form>
         <hr>
-        <p><strong>المستخدم الافتراضي:</strong> test_supplier / 123</p>
         '''
 
     username = request.form.get('username', '').strip()
@@ -54,10 +53,6 @@ def test_login():
         <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
             <h2 style="color: #d9534f;">❌ المستخدم غير موجود</h2>
             <p>المستخدم <strong>'{username}'</strong> غير موجود في قاعدة بيانات الموردين.</p>
-            <p>المستخدمون المسجلون:</p>
-            <ul>
-            {''.join([f"<li>{u.username} ({u.trade_name or 'بدون اسم تجاري'})</li>" for u in Supplier.query.all()])}
-            </ul>
             <a href="/supplier/test-login">محاولة مرة أخرى</a>
         </div>
         """
@@ -69,19 +64,14 @@ def test_login():
                 <h2 style="color: #28a745;">✅ كلمة المرور صحيحة!</h2>
                 <p>المستخدم: <strong>{user.username}</strong></p>
                 <p>المتجر: <strong>{user.trade_name or 'غير محدد'}</strong></p>
-                <p>المعرف: <strong>{user.id}</strong></p>
                 <br>
                 <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">اذهب للداشبورد</a>
-                <br><br>
-                <a href="/supplier/test-login">رجوع</a>
             </div>
             """
         else:
             return f"""
             <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
                 <h2 style="color: #d9534f;">❌ كلمة المرور غير صحيحة</h2>
-                <p>المستخدم: <strong>{user.username}</strong></p>
-                <p>كلمة المرور المدخلة غير صحيحة.</p>
                 <a href="/supplier/test-login">محاولة مرة أخرى</a>
             </div>
             """
@@ -251,32 +241,3 @@ def logout():
     session.clear()
     logout_user()
     return redirect(url_for('suppliers_auth.login'))
-
-
-def fallback_standard_method(supplier_id):
-    return {"status": "fallback", "data": [0.0]}
-
-
-@suppliers_bp.route('/zsa-window/<int:supplier_id>', methods=['GET'])
-@login_required
-def supplier_zsa_window(supplier_id):
-    sample_raw_data = [[10.0, 20.0], [30.0, 40.0], [50.0, 60.0]]
-
-    try:
-        from apps.zsa_engine.engine import zsa_core
-        processed_results = zsa_core.process_window_data(sample_raw_data)
-
-        return jsonify({
-            "status": "success",
-            "engine": "ZSA-State-Zero",
-            "supplier_id": supplier_id,
-            "results": processed_results
-        }), 200
-
-    except Exception as e:
-        fallback_data = fallback_standard_method(supplier_id)
-        return jsonify({
-            "status": "recovered_via_fallback",
-            "error": str(e),
-            "data": fallback_data
-        }), 200
