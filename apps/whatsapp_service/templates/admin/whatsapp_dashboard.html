@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- ✅ حاوية الإشعارات اللحظية داخل الصفحة -->
-<div id="notification-container" class="fixed top-4 left-4 z-50 space-y-2"></div>
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
 <!-- ✅ حاوية إشعارات الرسائل الواردة (أسفل اليسار) -->
 <div id="message-notifications" class="fixed bottom-24 left-4 z-50 space-y-2 max-w-sm w-full"></div>
@@ -21,6 +21,10 @@
         box-shadow: 0 0 16px rgba(34, 197, 94, 0.5);
         flex-shrink: 0;
         border: 2px solid white;
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        z-index: 10;
     }
     
     @keyframes pulse-dot {
@@ -37,6 +41,18 @@
     .contact-card.unread .contact-name {
         color: #1e0226;
         font-weight: 800;
+    }
+    
+    /* ✅ النقطة الخضراء بجانب اسم العميل في رأس المحادثة */
+    .header-unread-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: pulse-dot 1.5s infinite;
+        margin-right: 6px;
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
     }
     
     /* ✅ تنسيق إشعار الرسالة الواردة */
@@ -171,12 +187,12 @@
                     <i class="fab fa-whatsapp text-emerald-500 text-base"></i>
                     <span>محادثات العملاء والتجار</span>
                 </span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1e0226] text-white font-mono" id="totalContacts">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1e0226] text-white font-mono">
                     {{ contacts|length }} جهات
                 </span>
             </div>
 
-            <!-- ✅ فلاتر المحادثات -->
+            <!-- ✅ فلاتر المحادثات: الكل / مقروءة / غير مقروءة -->
             <div class="flex items-center justify-between bg-slate-50 rounded-xl p-1.5">
                 <button onclick="filterContacts('all')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 bg-white shadow-sm" id="filter-all">الكل</button>
                 <button onclick="filterContacts('read')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600" id="filter-read">مقروءة</button>
@@ -204,7 +220,7 @@
                     {{ contact.name[:1] }}
                     <!-- ✅ النقطة الخضراء للرسائل غير المقروءة -->
                     {% if contact.unread_count > 0 %}
-                    <span class="unread-dot absolute -top-0.5 -right-0.5" style="width:14px;height:14px;"></span>
+                    <span class="unread-dot"></span>
                     {% endif %}
                 </div>
                 
@@ -212,7 +228,7 @@
                     <div class="flex items-center justify-between mb-0.5">
                         <span class="font-bold text-xs text-slate-900 truncate contact-name">{{ contact.name }}</span>
                         {% if contact.unread_count > 0 %}
-                        <span class="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full unread-badge">{{ contact.unread_count }}</span>
+                        <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full unread-badge">{{ contact.unread_count }}</span>
                         {% endif %}
                     </div>
                     <div class="flex items-center justify-between">
@@ -241,19 +257,27 @@
     <section class="flex-1 flex flex-col bg-white relative">
         <div class="h-16 px-5 border-b border-slate-200 bg-white flex items-center justify-between shadow-sm z-10">
             <div class="flex items-center gap-3">
+                <!-- صورة العميل في الهيدر -->
                 <div class="w-10 h-10 rounded-full bg-[#1e0226] flex items-center justify-center text-white font-extrabold text-sm shadow-md relative" id="activeContactAvatar">
                     <i class="fas fa-user"></i>
-                    <!-- ✅ نقطة خضراء للمحادثة المفتوحة عند وصول رسائل جديدة -->
-                    <span id="activeChatUnreadDot" class="hidden unread-dot absolute -top-0.5 -right-0.5" style="width:12px;height:12px;"></span>
+                    <!-- ✅ النقطة الخضراء في رأس المحادثة عند وجود رسائل غير مقروءة -->
+                    <span id="activeChatUnreadDot" class="hidden unread-dot" style="width:12px;height:12px;top:-3px;right:-3px;"></span>
                 </div>
                 <div>
-                    <h3 class="text-xs md:text-sm font-extrabold text-slate-900" id="activeContactName">اختر محادثة من القائمة للرد الفوري</h3>
+                    <h3 class="text-xs md:text-sm font-extrabold text-slate-900" id="activeContactName">
+                        <span id="activeContactNameText">اختر محادثة من القائمة للرد الفوري</span>
+                        <span id="headerUnreadIndicator" class="hidden">
+                            <span class="header-unread-dot"></span>
+                            <span id="headerUnreadCount" class="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full">0</span>
+                        </span>
+                    </h3>
                     <span class="text-[11px] text-slate-400 font-mono" id="activeContactPhone">+966...</span>
                     <span id="activeContactStatus" class="text-[10px] text-emerald-500 block">متصل الآن</span>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- ✅ زر تعديل الاسم -->
                 <button type="button" onclick="openEditNameModal()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
                     <i class="fas fa-user-pen"></i>
                     <span>تعديل الاسم</span>
@@ -273,17 +297,20 @@
                     <i class="fab fa-whatsapp text-emerald-500"></i>
                 </div>
                 <h4 class="text-sm font-bold text-slate-700">لوحة مراسلات سوق محجوب أونلاين الذكي</h4>
-                <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة في القائمة لقراءة الرسائل والرد الفوري</p>
+                <p class="text-xs text-slate-400 max-w-sm">انقر على أي محادثة في القائمة لقراءة الرسائل والرد الفوري عبر Meta Cloud API v26.0</p>
             </div>
         </div>
 
         <!-- Input Area -->
         <div class="p-3.5 border-t border-slate-200 bg-white">
             <div class="flex items-center gap-2 max-w-5xl mx-auto">
-                <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all shrink-0">
+                
+                <!-- زر الإيموجي -->
+                <button type="button" onclick="toggleEmojiPicker()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all shrink-0" title="إضافة إيموجي">
                     <i class="far fa-smile text-lg"></i>
                 </button>
                 
+                <!-- حاوية الإيموجي -->
                 <div id="emoji-picker-container" class="hidden absolute bottom-20 left-4 bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 w-64 p-3">
                     <div class="grid grid-cols-6 gap-2">
                         <span onclick="addEmoji('😀')" class="text-2xl cursor-pointer hover:scale-125 transition-transform">😀</span>
@@ -307,20 +334,24 @@
                     </div>
                 </div>
 
+                <!-- زر إرفاق ملفات -->
                 <input type="file" id="attachmentInput" class="hidden" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="handleAttachmentSelect()">
-                <button type="button" onclick="document.getElementById('attachmentInput').click()" class="w-10 h-10 rounded-xl bg-[#1e0226] hover:bg-[#2a083d] text-white flex items-center justify-center transition-all shrink-0">
+                <button type="button" onclick="document.getElementById('attachmentInput').click()" class="w-10 h-10 rounded-xl bg-[#1e0226] hover:bg-[#2a083d] text-white flex items-center justify-center transition-all shrink-0" title="إرفاق ملف">
                     <i class="fas fa-paperclip text-lg"></i>
                 </button>
 
+                <!-- صندوق النص -->
                 <input type="text" id="messageInput" placeholder="اكتب ردك للعميل عبر واتساب..." 
                        class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs md:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#1e0226] focus:bg-white transition-all">
                 
+                <!-- زر الإرسال -->
                 <button type="button" onclick="handleSendMessage()" class="px-5 py-2.5 rounded-2xl bg-[#1e0226] hover:bg-[#2a083d] text-white font-bold text-xs md:text-sm flex items-center gap-2 shadow-md transition-all">
                     <span>إرسال</span>
                     <i class="fas fa-paper-plane text-xs"></i>
                 </button>
             </div>
             
+            <!-- Preview Area -->
             <div id="attachmentPreview" class="hidden mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-slate-600">الملفات المرفقة:</span>
@@ -332,7 +363,7 @@
     </section>
 </div>
 
-<!-- ✅ نافذة تعديل الاسم -->
+<!-- ✅ نافذة تعديل الاسم (Modal) -->
 <div id="edit-name-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
     <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl">
         <div class="flex items-center justify-between mb-4">
@@ -352,78 +383,74 @@
 let currentPhone = null;
 let selectedFiles = [];
 let currentFilter = 'all';
-let unreadMessages = {};
+let lastMessageCount = 0;
+let notificationSound = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+let unreadMessages = {}; // تخزين عدد الرسائل غير المقروءة لكل جهة
 
-// ===================== تشغيل الصوت =====================
-function playNotificationSound() {
-    try {
-        const audio = document.getElementById('notification-audio');
-        if (audio) {
-            audio.currentTime = 0;
-            audio.play().catch(() => {});
-        }
-    } catch(e) {}
+// ✅ دالة تحويل الوقت إلى نظام 12 ساعة (صباحاً / مساءً)
+function formatTime12(timeStr) {
+    if (!timeStr) return '';
+    let [hours, minutes] = timeStr.split(':').map(Number);
+    
+    // إضافة 3 ساعات لتوقيت اليمن (UTC+3)
+    hours = (hours + 3) % 24;
+    
+    let period = hours >= 12 ? 'مساءً' : 'صباحاً';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return `${hours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
-// ===================== عرض إشعار رسالة واردة =====================
-function showIncomingMessageNotification(from, name, message, time, avatar) {
-    playNotificationSound();
-    
-    const container = document.getElementById('message-notifications');
-    const id = 'notif-' + Date.now();
-    
-    const shortMessage = message.length > 60 ? message.substring(0, 60) + '...' : message;
-    const now = new Date();
-    const timeStr = time || now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-    
-    const notification = document.createElement('div');
-    notification.id = id;
-    notification.className = 'message-notification';
-    notification.setAttribute('data-phone', from);
-    notification.innerHTML = `
-        <div class="msg-notif-avatar">${avatar || name.charAt(0).toUpperCase()}</div>
-        <div class="msg-notif-content">
-            <div class="msg-notif-name">
-                ${name}
-                <span class="badge-new">جديد</span>
-                <span class="online-indicator"></span>
+// ✅ دالة عرض إشعار لحظي داخل الصفحة (Toast)
+function showToast(contactName, message, isNew = false) {
+    const container = document.getElementById('notification-container');
+    const dot = isNew ? '<span class="unread-dot" style="width:8px;height:8px;position:static;display:inline-block;margin-left:6px;"></span>' : '';
+    const toast = `
+        <div class="bg-[#1e0226] text-white p-3 rounded-xl shadow-lg flex items-center gap-3" style="border-right: 4px solid #25D366;">
+            <div class="w-10 h-10 rounded-full bg-[#6A0DAD] flex items-center justify-center font-bold">
+                ${contactName.charAt(0)}
             </div>
-            <div class="msg-notif-text">${shortMessage}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-            <span class="msg-notif-time">${timeStr}</span>
-            <button class="msg-notif-close" onclick="dismissNotification('${id}')" title="إغلاق">
-                <i class="fas fa-times"></i>
-            </button>
+            <div>
+                <p class="font-bold text-sm">${contactName} ${dot}</p>
+                <p class="text-xs text-slate-300">${message}</p>
+            </div>
         </div>
     `;
-    
-    notification.addEventListener('click', function(e) {
-        if (e.target.closest('.msg-notif-close')) return;
-        loadChat(from, name);
-        dismissNotification(id);
-    });
-    
-    container.appendChild(notification);
-    
+    container.insertAdjacentHTML('beforeend', toast);
     setTimeout(() => {
-        dismissNotification(id);
-    }, 15000);
-    
-    updateUnreadCount(from, true);
+        const el = container.lastElementChild;
+        if (el) el.remove();
+    }, 5000);
 }
 
-function dismissNotification(id) {
-    const el = document.getElementById(id);
-    if (el) {
-        el.classList.add('exit');
-        setTimeout(() => {
-            if (el.parentNode) el.parentNode.removeChild(el);
-        }, 300);
+// 📣 طلب الإذن من المتصفح
+function requestNotificationPermission() {
+    if ("Notification" in window) {
+        Notification.requestPermission().then(function(permission) {
+            if (permission === "granted") {
+                console.log("✅ تم منح إذن الإشعارات");
+            }
+        });
     }
 }
 
-// ===================== تحديث عداد الرسائل غير المقروءة =====================
+requestNotificationPermission();
+
+// 🔔 دالة عرض إشعار شامل
+function showNotification(title, message) {
+    showToast(title, message, true);
+    
+    if (Notification.permission === "granted") {
+        new Notification(title, {
+            body: message,
+            icon: 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp'
+        });
+    }
+    
+    notificationSound.play().catch(() => {});
+}
+
+// ✅ دالة تحديث عداد الرسائل غير المقروءة
 function updateUnreadCount(phone, increment = true) {
     if (!unreadMessages[phone]) unreadMessages[phone] = 0;
     if (increment) unreadMessages[phone] += 1;
@@ -445,7 +472,7 @@ function updateUnreadCount(phone, increment = true) {
                 const nameDiv = card.querySelector('.flex.items-center.justify-between.mb-0.5');
                 if (nameDiv) {
                     badge = document.createElement('span');
-                    badge.className = 'bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full unread-badge';
+                    badge.className = 'bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full unread-badge';
                     badge.textContent = count;
                     nameDiv.appendChild(badge);
                 }
@@ -458,8 +485,7 @@ function updateUnreadCount(phone, increment = true) {
                 if (count > 0) {
                     if (!dot) {
                         dot = document.createElement('span');
-                        dot.className = 'unread-dot absolute -top-0.5 -right-0.5';
-                        dot.style.cssText = 'width:14px;height:14px;';
+                        dot.className = 'unread-dot';
                         avatarDiv.style.position = 'relative';
                         avatarDiv.appendChild(dot);
                     }
@@ -488,17 +514,29 @@ function updateUnreadCount(phone, increment = true) {
     }
     
     // ✅ النقطة في رأس المحادثة
-    const activeDot = document.getElementById('activeChatUnreadDot');
-    if (activeDot) {
-        if (currentPhone === phone && unreadMessages[phone] > 0) {
-            activeDot.classList.remove('hidden');
-        } else {
-            activeDot.classList.add('hidden');
+    updateHeaderUnreadIndicator(phone);
+}
+
+// ✅ تحديث مؤشر عدم القراءة في رأس المحادثة
+function updateHeaderUnreadIndicator(phone) {
+    const dot = document.getElementById('activeChatUnreadDot');
+    const indicator = document.getElementById('headerUnreadIndicator');
+    const countSpan = document.getElementById('headerUnreadCount');
+    const count = unreadMessages[phone] || 0;
+    
+    if (currentPhone === phone && count > 0) {
+        if (dot) dot.classList.remove('hidden');
+        if (indicator) {
+            indicator.classList.remove('hidden');
+            if (countSpan) countSpan.textContent = count;
         }
+    } else {
+        if (dot) dot.classList.add('hidden');
+        if (indicator) indicator.classList.add('hidden');
     }
 }
 
-// ===================== تصفير العداد عند فتح المحادثة =====================
+// ✅ تصفير العداد عند فتح المحادثة
 function resetUnreadForChat(phone) {
     if (unreadMessages[phone]) {
         unreadMessages[phone] = 0;
@@ -522,241 +560,107 @@ function resetUnreadForChat(phone) {
     });
     
     // ✅ إرسال طلب لتصفير العداد في قاعدة البيانات
-    fetch(`/admin/whatsapp/api/contacts/${phone}/read`, {
+    fetch('/admin/whatsapp/api/contacts/read', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone })
     }).catch(err => console.error('خطأ في تصفير العداد:', err));
     
-    const activeDot = document.getElementById('activeChatUnreadDot');
-    if (activeDot) activeDot.classList.add('hidden');
+    // ✅ إخفاء النقاط في الرأس
+    const dot = document.getElementById('activeChatUnreadDot');
+    if (dot) dot.classList.add('hidden');
+    const indicator = document.getElementById('headerUnreadIndicator');
+    if (indicator) indicator.classList.add('hidden');
     
-    updateUnreadCount(phone, false);
+    // ✅ تحديث العداد الكلي
+    const badge = document.getElementById('unreadCountBadge');
+    let totalUnread = 0;
+    cards.forEach(card => {
+        totalUnread += parseInt(card.getAttribute('data-unread')) || 0;
+    });
+    if (badge) {
+        if (totalUnread > 0) {
+            badge.textContent = totalUnread;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
 }
 
-// ===================== تحميل المحادثة =====================
+// ✅ دالة الفلترة
+function filterContacts(type = '') {
+    if (type) {
+        currentFilter = type;
+        document.getElementById('filter-all').classList.remove('bg-white', 'shadow-sm');
+        document.getElementById('filter-read').classList.remove('bg-white', 'shadow-sm');
+        document.getElementById('filter-unread').classList.remove('bg-white', 'shadow-sm');
+        if (type === 'all') {
+            document.getElementById('filter-all').classList.add('bg-white', 'shadow-sm');
+        } else if (type === 'read') {
+            document.getElementById('filter-read').classList.add('bg-white', 'shadow-sm');
+        } else {
+            document.getElementById('filter-unread').classList.add('bg-white', 'shadow-sm');
+        }
+    }
+    
+    const q = document.getElementById('contactSearch').value.toLowerCase();
+    document.querySelectorAll('.contact-card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const unread = card.querySelector('.bg-red-500');
+        let shouldShow = text.includes(q);
+        if (currentFilter === 'unread' && !unread) {
+            shouldShow = false;
+        }
+        if (currentFilter === 'read' && unread) {
+            shouldShow = false;
+        }
+        card.style.display = shouldShow ? 'flex' : 'none';
+    });
+}
+
+// ✅ دالة فتح المحادثة
 function loadChat(phone, name) {
     currentPhone = phone;
-    document.getElementById('activeContactName').textContent = name;
-    document.getElementById('activeContactPhone').textContent = '+' + phone;
-    document.getElementById('activeContactAvatar').innerHTML = name.charAt(0).toUpperCase();
+    document.getElementById('activeContactNameText').innerText = name;
+    document.getElementById('activeContactPhone').innerText = '(+' + phone + ')';
     
+    // ✅ تصفير العداد
     resetUnreadForChat(phone);
     
-    document.getElementById('activeContactStatus').innerHTML = '<span class="online-indicator"></span> متصل الآن';
-    
-    fetch(`/admin/whatsapp/api/messages?phone=${phone}`)
+    // تحديث حالة الاتصال داخل الشات
+    refreshActiveContactStatus();
+    refreshMessages();
+    clearInterval(window.messagesInterval);
+    window.messagesInterval = setInterval(refreshMessages, 3000);
+}
+
+// ✅ دالة تحديث حالة الظهور داخل الشات
+function refreshActiveContactStatus() {
+    if (!currentPhone) return;
+    fetch('/admin/whatsapp/api/contacts')
         .then(res => res.json())
         .then(data => {
-            const area = document.getElementById('messagesArea');
-            area.innerHTML = '';
-            if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    addMessageToChat(
-                        msg.direction === 'outbound' ? 'sent' : 'received',
-                        msg.content || msg.text,
-                        msg.timestamp
-                    );
-                });
-            } else {
-                area.innerHTML = `
-                    <div class="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-slate-400">
-                        <div class="w-16 h-16 rounded-3xl bg-white border border-slate-200 flex items-center justify-center text-3xl shadow-sm">
-                            <i class="fab fa-whatsapp text-emerald-500"></i>
-                        </div>
-                        <h4 class="text-sm font-bold text-slate-700">لا توجد رسائل سابقة</h4>
-                        <p class="text-xs text-slate-400">ابدأ المحادثة الآن عن طريق إرسال رسالة</p>
-                    </div>
-                `;
+            const contact = data.contacts.find(c => c.phone === currentPhone);
+            if (contact) {
+                if (contact.is_online) {
+                    document.getElementById('activeContactStatus').innerText = 'متصل الآن';
+                    document.getElementById('activeContactStatus').classList.add('text-emerald-500');
+                } else {
+                    document.getElementById('activeContactStatus').innerText = contact.last_seen;
+                    document.getElementById('activeContactStatus').classList.remove('text-emerald-500');
+                }
             }
-        })
-        .catch(err => {
-            console.error('خطأ في تحميل الرسائل:', err);
         });
 }
 
-// ===================== استقبال رسائل جديدة =====================
-function onNewMessage(data) {
-    const { phone, name, message, timestamp } = data;
-    const timeStr = timestamp || new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-    const avatar = name ? name.charAt(0).toUpperCase() : 'م';
-    
-    showIncomingMessageNotification(phone, name || 'عميل', message, timeStr, avatar);
-    
-    if (currentPhone === phone) {
-        addMessageToChat('received', message, timeStr);
-        resetUnreadForChat(phone);
-    }
-}
-
-function addMessageToChat(type, text, time) {
-    const area = document.getElementById('messagesArea');
-    const placeholder = area.querySelector('.flex.flex-col.items-center.justify-center');
-    if (placeholder && area.children.length === 1) {
-        area.innerHTML = '';
-    }
-    
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `flex ${type === 'sent' ? 'justify-end' : 'justify-start'}`;
-    msgDiv.innerHTML = `
-        <div class="max-w-[70%] ${type === 'sent' ? 'bg-[#1e0226] text-white' : 'bg-slate-100 text-slate-800'} rounded-2xl px-4 py-2.5 shadow-sm">
-            <p class="text-xs md:text-sm leading-relaxed">${text}</p>
-            <span class="text-[9px] ${type === 'sent' ? 'text-purple-300' : 'text-slate-400'} block text-left mt-1 font-mono">${time || new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-    `;
-    area.appendChild(msgDiv);
-    area.scrollTop = area.scrollHeight;
-}
-
-// ===================== الفلاتر =====================
-function filterContacts(filter) {
-    if (filter) currentFilter = filter;
-    const search = document.getElementById('contactSearch').value.toLowerCase();
-    const cards = document.querySelectorAll('.contact-card');
-    
-    cards.forEach(card => {
-        const name = card.querySelector('.contact-name')?.textContent?.toLowerCase() || '';
-        const phone = card.getAttribute('data-phone') || '';
-        const unread = parseInt(card.getAttribute('data-unread')) || 0;
-        
-        let show = true;
-        
-        if (search && !name.includes(search) && !phone.includes(search)) {
-            show = false;
-        }
-        
-        if (show && currentFilter === 'unread' && unread === 0) {
-            show = false;
-        }
-        if (show && currentFilter === 'read' && unread > 0) {
-            show = false;
-        }
-        
-        card.style.display = show ? 'flex' : 'none';
-    });
-    
-    document.querySelectorAll('.bg-slate-50 .flex-1').forEach(btn => {
-        btn.classList.remove('bg-white', 'shadow-sm');
-        btn.classList.add('text-slate-600');
-        if (btn.id === `filter-${currentFilter}`) {
-            btn.classList.add('bg-white', 'shadow-sm');
-            btn.classList.remove('text-slate-600');
-        }
-    });
-}
-
-// ===================== دوال الإرسال =====================
-function handleSendMessage() {
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    if (!text && selectedFiles.length === 0) return;
-    if (!currentPhone) {
-        showToast('الرجاء اختيار محادثة أولاً', 'error');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('phone', currentPhone);
-    formData.append('text', text);
-    for (const file of selectedFiles) {
-        formData.append('attachments', file);
-    }
-    
-    fetch('/admin/whatsapp/api/send', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-            addMessageToChat('sent', text || '📎 مرفق', time);
-            input.value = '';
-            clearAttachments();
-        } else {
-            showToast('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'), 'error');
-        }
-    })
-    .catch(err => {
-        showToast('خطأ في الاتصال بالخادم', 'error');
-        console.error(err);
-    });
-}
-
-function showToast(message, type) {
-    const container = document.getElementById('notification-container');
-    const toast = document.createElement('div');
-    toast.className = `px-4 py-3 rounded-xl text-white text-xs font-bold shadow-lg transition-all ${
-        type === 'error' ? 'bg-red-600' : 'bg-emerald-600'
-    }`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-20px)';
-        setTimeout(() => {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 300);
-    }, 3000);
-}
-
-function toggleEmojiPicker() {
-    const picker = document.getElementById('emoji-picker-container');
-    picker.classList.toggle('hidden');
-}
-
-function addEmoji(emoji) {
-    const input = document.getElementById('messageInput');
-    input.value += emoji;
-    input.focus();
-    document.getElementById('emoji-picker-container').classList.add('hidden');
-}
-
-function handleAttachmentSelect() {
-    const input = document.getElementById('attachmentInput');
-    const files = Array.from(input.files);
-    selectedFiles.push(...files);
-    updateAttachmentPreview();
-    input.value = '';
-}
-
-function updateAttachmentPreview() {
-    const preview = document.getElementById('attachmentPreview');
-    const list = document.getElementById('attachmentPreviewList');
-    
-    if (selectedFiles.length === 0) {
-        preview.classList.add('hidden');
-        return;
-    }
-    
-    preview.classList.remove('hidden');
-    list.innerHTML = selectedFiles.map((file, index) => `
-        <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs shadow-sm">
-            <i class="fas ${file.type.startsWith('image/') ? 'fa-image' : file.type.startsWith('video/') ? 'fa-video' : 'fa-file'} text-slate-500"></i>
-            <span class="text-slate-700 max-w-32 truncate">${file.name}</span>
-            <span class="text-slate-400">(${(file.size / 1024).toFixed(1)}KB)</span>
-            <button onclick="removeFile(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-times"></i></button>
-        </div>
-    `).join('');
-}
-
-function removeFile(index) {
-    selectedFiles.splice(index, 1);
-    updateAttachmentPreview();
-}
-
-function clearAttachments() {
-    selectedFiles = [];
-    updateAttachmentPreview();
-    document.getElementById('attachmentInput').value = '';
-}
-
+// ✅ دالة فتح نافذة تعديل الاسم
 function openEditNameModal() {
     if (!currentPhone) {
-        showToast('اختر محادثة أولاً', 'error');
+        alert('يرجى اختيار جهة اتصال أولاً');
         return;
     }
-    const currentName = document.getElementById('activeContactName').textContent;
-    document.getElementById('edit-name-input').value = currentName;
+    document.getElementById('edit-name-input').value = document.getElementById('activeContactNameText').innerText;
     document.getElementById('edit-name-modal').classList.remove('hidden');
 }
 
@@ -764,62 +668,30 @@ function closeEditNameModal() {
     document.getElementById('edit-name-modal').classList.add('hidden');
 }
 
-function saveNewName() {
+// ✅ دالة حفظ الاسم الجديد
+async function saveNewName() {
     const newName = document.getElementById('edit-name-input').value.trim();
     if (!newName) {
-        showToast('الرجاء إدخال اسم صحيح', 'error');
+        alert('يرجى إدخال اسم صحيح');
         return;
     }
     
-    fetch('/admin/whatsapp/api/contacts/update-name', {
+    await fetch('/admin/whatsapp/api/contacts/update-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: currentPhone, name: newName })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('activeContactName').textContent = newName;
-            // تحديث في القائمة الجانبية
-            const cards = document.querySelectorAll('.contact-card');
-            cards.forEach(card => {
-                if (card.getAttribute('data-phone') === currentPhone) {
-                    const nameSpan = card.querySelector('.contact-name');
-                    if (nameSpan) nameSpan.textContent = newName;
-                    const avatarDiv = card.querySelector('.w-11.h-11.rounded-full');
-                    if (avatarDiv) avatarDiv.textContent = newName.charAt(0).toUpperCase();
-                }
-            });
-            closeEditNameModal();
-            showToast('تم تحديث الاسم بنجاح', 'success');
-        } else {
-            showToast('فشل تحديث الاسم: ' + (data.error || 'خطأ غير معروف'), 'error');
-        }
-    })
-    .catch(err => {
-        showToast('خطأ في الاتصال بالخادم', 'error');
-        console.error(err);
     });
+    
+    document.getElementById('activeContactNameText').innerText = newName;
+    closeEditNameModal();
+    refreshContacts();
 }
 
-// ===================== محاكاة استقبال رسائل (للاختبار) =====================
-function simulateIncomingMessage(phone, name, message) {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-    onNewMessage({ phone, name, message, timestamp: timeStr });
+function addEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += emoji;
+    input.focus();
 }
 
-// ===================== WebSocket / EventSource =====================
-function connectToWebSocket() {
-    // يمكنك استخدام WebSocket أو SSE للاتصال بالخادم
-    console.log('✅ جاهز لاستقبال الرسائل الفورية عبر WebSocket');
-}
-
-// تشغيل عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', function() {
-    connectToWebSocket();
-    console.log('✅ لوحة تحكم واتساب جاهزة');
-});
-</script>
-
-{% endblock %}
+function toggleEmojiPicker() {
+    const container =
