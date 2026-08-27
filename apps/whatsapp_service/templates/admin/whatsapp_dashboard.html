@@ -3,6 +3,9 @@
 {% block title %}المحادثات المباشرة - سوق محجوب أونلاين الذكي{% endblock %}
 
 {% block content %}
+<!-- ✅ حاوية الإشعارات اللحظية داخل الصفحة -->
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
 <div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-4.25rem)] bg-white">
     <!-- Sidebar -->
     <aside class="w-80 lg:w-96 border-l border-slate-200 bg-white flex flex-col shadow-sm flex-shrink-0">
@@ -208,6 +211,24 @@ function formatTime12(timeStr) {
     return `${hours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
+// 🔔 دالة عرض إشعار لحظي داخل الصفحة (Toast)
+function showToast(contactName, message) {
+    const container = document.getElementById('notification-container');
+    const toast = `
+        <div class="bg-[#1e0226] text-white p-3 rounded-xl shadow-lg flex items-center gap-3" style="border-right: 4px solid #25D366;">
+            <div class="w-10 h-10 rounded-full bg-[#6A0DAD] flex items-center justify-center font-bold">
+                ${contactName.charAt(0)}
+            </div>
+            <div>
+                <p class="font-bold text-sm">${contactName}</p>
+                <p class="text-xs text-slate-300">${message}</p>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', toast);
+    setTimeout(() => toast.remove(), 5000);
+}
+
 // 📣 طلب الإذن من المتصفح
 function requestNotificationPermission() {
     if ("Notification" in window) {
@@ -222,14 +243,19 @@ function requestNotificationPermission() {
 // استدعاء فوري عند تحميل الصفحة
 requestNotificationPermission();
 
-// 🔔 دالة عرض إشعار منبثق
+// 🔔 دالة عرض إشعار شامل (لحظي داخل الصفحة + المتصفح + الصوت)
 function showNotification(title, message) {
+    // إشعار لحظي داخل الصفحة
+    showToast(title, message);
+    
+    // إشعار المتصفح إذا تم منح الإذن
     if (Notification.permission === "granted") {
         new Notification(title, {
             body: message,
             icon: 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp'
         });
     }
+    
     // تشغيل الصوت دائماً
     notificationSound.play();
 }
