@@ -3,6 +3,7 @@
 {% block title %}سوق محجوب أونلاين - جهات الاتصال والإرسال الجماعي{% endblock %}
 
 {% block content %}
+
 <style>
     /* ✅ ألوان هوية سوق محجوب */
     .bg-mahjoob {
@@ -39,7 +40,6 @@
         background-color: #1e0226 !important;
         color: #ffffff !important;
     }
-    /* ✅ لون واتساب */
     .whatsapp-green {
         color: #25D366 !important;
     }
@@ -47,14 +47,12 @@
         background-color: #25D366 !important;
         border-color: #25D366 !important;
     }
-    /* ✅ تنسيق الجدول */
     .table-hover tbody tr:hover {
         background-color: #faf5ff !important;
     }
     .cursor-pointer {
         cursor: pointer;
     }
-    /* ✅ تنسيق الإشعارات */
     .notification-toast {
         position: fixed;
         top: 20px;
@@ -63,7 +61,6 @@
         min-width: 300px;
         max-width: 450px;
     }
-    /* ✅ تحسين المودال */
     .modal-content {
         border: none !important;
         border-radius: 16px !important;
@@ -80,6 +77,7 @@
 <div id="notification-container" class="notification-toast"></div>
 
 <div class="container-fluid py-4" dir="rtl">
+
     <!-- ✅ الهيدر والإحصائيات -->
     <div class="row mb-4">
         <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-md-center bg-white p-3 rounded-4 shadow-sm border gap-3">
@@ -88,7 +86,9 @@
                     <i class="fas fa-address-book text-mahjoob ms-2"></i>
                     جهات الاتصال والإرسال الجماعي
                 </h4>
-                <p class="text-muted small mb-0">إدارة العملاء والتجار والموردين والمسوقين مع أدوات الاستهداف الذكي</p>
+                <p class="text-muted small mb-0">
+                    إدارة العملاء والتجار والموردين والمسوقين مع أدوات الاستهداف الذكي
+                </p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <button class="btn btn-outline-secondary btn-sm rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#importCsvModal">
@@ -192,7 +192,7 @@
             <table class="table table-hover align-middle mb-0 text-end" id="contactsTable">
                 <thead class="table-light small">
                     <tr>
-                        <th style="width: 40px;">
+                        <th style="width:40px;">
                             <input type="checkbox" id="selectAllCheckbox" class="form-check-input" onchange="toggleSelectAll(this)">
                         </th>
                         <th>الاسم</th>
@@ -275,7 +275,9 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold"><i class="fas fa-file-import text-mahjoob me-2"></i>استيراد جهات اتصال</h5>
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-file-import text-mahjoob me-2"></i>استيراد جهات اتصال
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="importForm" enctype="multipart/form-data">
@@ -359,7 +361,9 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold"><i class="fas fa-user-edit text-mahjoob me-2"></i>تعديل جهة اتصال</h5>
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-user-edit text-mahjoob me-2"></i>تعديل جهة اتصال
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="editContactForm">
@@ -403,7 +407,9 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold"><i class="fab fa-whatsapp text-success me-2"></i>مراسلة المحددين</h5>
+                <h5 class="modal-title fw-bold">
+                    <i class="fab fa-whatsapp text-success me-2"></i>مراسلة المحددين
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="messageSelectedForm">
@@ -688,7 +694,6 @@ function showToast(message, type) {
 
 // ===================== تحميل الصفحة =====================
 document.addEventListener('DOMContentLoaded', function() {
-    // تحديث حالة التحديد
     updateSelectionState();
 });
 </script>
