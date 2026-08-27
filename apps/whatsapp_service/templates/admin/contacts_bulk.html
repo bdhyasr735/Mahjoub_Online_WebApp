@@ -3,421 +3,306 @@
 {% block title %}سوق محجوب أونلاين - جهات الاتصال والإرسال الجماعي{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4" dir="rtl">
+<div class="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
+
     <!-- Top Stats & Header -->
-    <div class="row mb-4">
-        <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-md-center bg-white p-3 rounded-4 shadow-sm border gap-3">
-            <div>
-                <h4 class="fw-bold mb-1 text-dark d-flex align-items-center">
-                    <i class="bi bi-people-fill text-purple-700 ms-2"></i>
-                    جهات الاتصال والإرسال الجماعي عبر الواتساب
-                </h4>
-                <p class="text-muted small mb-0">إدارة تصنيفات العملاء والتجار والموردين والمسوقين مع أدوات الاستهداف الذكي وتوليد النصوص</p>
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-primary btn-sm rounded-3 px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#addContactModal">
-                    <i class="bi bi-person-plus-fill me-1"></i> إضافة جهة اتصال
-                </button>
-                <button class="btn btn-outline-secondary btn-sm rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#importCsvModal">
-                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> استيراد ملف CSV / Excel
-                </button>
-                <button class="btn btn-success btn-sm rounded-3 px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#newBulkCampaignModal">
-                    <i class="bi bi-send-fill me-1"></i> بدء حملة جماعية جديدة
-                </button>
-            </div>
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+            <h1 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-people-group text-[#1e0226]"></i>
+                <span>جهات الاتصال والإرسال الجماعي</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">إدارة العملاء والتجار والموردين والمسوقين مع أدوات الاستهداف الذكي</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <button onclick="openModal('modal-add')" class="bg-[#1e0226] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">
+                <i class="fa-solid fa-user-plus ml-2"></i> إضافة جهة اتصال
+            </button>
+            <button onclick="openModal('modal-import')" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-file-import ml-2"></i> استيراد CSV
+            </button>
+            <button onclick="openModal('modal-broadcast')" class="bg-[#25D366] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-600 transition shadow-md">
+                <i class="fa-solid fa-paper-plane ml-2"></i> إرسال جماعي
+            </button>
         </div>
     </div>
 
     <!-- Category Filter Pills & Metrics -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-light border-start border-4 border-success">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="text-muted small fw-bold">العملاء النهائيين</span>
-                        <h3 class="fw-bold text-success mb-0 mt-1">{{ stats.customers_count | default(124) }}</h3>
-                    </div>
-                    <i class="bi bi-people fs-1 text-success opacity-50"></i>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">العملاء النهائيين</span>
+                    <h3 class="text-2xl font-extrabold text-green-600 mt-1">{{ stats.customers_count | default(124) }}</h3>
                 </div>
+                <i class="fa-solid fa-user text-green-500 opacity-50 text-3xl"></i>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-light border-start border-4 border-primary">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="text-muted small fw-bold">مركز التجار</span>
-                        <h3 class="fw-bold text-primary mb-0 mt-1">{{ stats.merchants_count | default(48) }}</h3>
-                    </div>
-                    <i class="bi bi-shop fs-1 text-primary opacity-50"></i>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">مركز التجار</span>
+                    <h3 class="text-2xl font-extrabold text-blue-600 mt-1">{{ stats.merchants_count | default(48) }}</h3>
                 </div>
+                <i class="fa-solid fa-store text-blue-500 opacity-50 text-3xl"></i>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-light border-start border-4 border-warning">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="text-muted small fw-bold">الموردين والمصانع</span>
-                        <h3 class="fw-bold text-warning mb-0 mt-1">{{ stats.suppliers_count | default(32) }}</h3>
-                    </div>
-                    <i class="bi bi-truck fs-1 text-warning opacity-50"></i>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-amber-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">الموردين والمصانع</span>
+                    <h3 class="text-2xl font-extrabold text-amber-600 mt-1">{{ stats.suppliers_count | default(32) }}</h3>
                 </div>
+                <i class="fa-solid fa-truck text-amber-500 opacity-50 text-3xl"></i>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-light border-start border-4 border-info">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="text-muted small fw-bold">المسوقين بالعمولة</span>
-                        <h3 class="fw-bold text-info mb-0 mt-1">{{ stats.marketers_count | default(55) }}</h3>
-                    </div>
-                    <i class="bi bi-megaphone fs-1 text-info opacity-50"></i>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-slate-500 font-bold">المسوقين بالعمولة</span>
+                    <h3 class="text-2xl font-extrabold text-purple-600 mt-1">{{ stats.marketers_count | default(55) }}</h3>
                 </div>
+                <i class="fa-solid fa-bullhorn text-purple-500 opacity-50 text-3xl"></i>
             </div>
         </div>
     </div>
 
     <!-- Filter & Action Bar -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-body p-3">
-            <div class="row g-2 align-items-center">
-                <div class="col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" id="contactSearchInput" class="form-control border-start-0" placeholder="بحث بالاسم أو رقم الهاتف أو المدينة...">
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <select id="categoryFilter" class="form-select form-select-sm" onchange="filterCategory(this.value)">
-                        <option value="all" {% if current_category == 'all' %}selected{% endif %}>جميع الفئات ({{ contacts|length }})</option>
-                        <option value="customers" {% if current_category == 'customers' %}selected{% endif %}>العملاء</option>
-                        <option value="merchants" {% if current_category == 'merchants' %}selected{% endif %}>التجار</option>
-                        <option value="suppliers" {% if current_category == 'suppliers' %}selected{% endif %}>الموردين</option>
-                        <option value="marketers" {% if current_category == 'marketers' %}selected{% endif %}>المسوقين</option>
-                    </select>
-                </div>
-                <div class="col-md-5 text-start">
-                    <button class="btn btn-sm btn-outline-danger rounded-3" id="btnDeleteSelected" style="display:none;" onclick="deleteSelectedContacts()">
-                        <i class="bi bi-trash me-1"></i> حذف المحدد (<span id="selectedCount">0</span>)
-                    </button>
-                    <button class="btn btn-sm btn-primary rounded-3" id="btnMessageSelected" style="display:none;" onclick="openMessageModalForSelected()">
-                        <i class="bi bi-whatsapp me-1"></i> مراسلة المحدد
-                    </button>
-                </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="flex flex-col md:flex-row gap-3">
+            <div class="flex-1 relative">
+                <i class="fa-solid fa-search absolute right-3 top-3 text-slate-400"></i>
+                <input type="text" id="searchInput" placeholder="بحث بالاسم أو رقم الهاتف..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-3 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
             </div>
+            <select id="categoryFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                <option value="all">جميع الفئات</option>
+                <option value="customers">العملاء</option>
+                <option value="merchants">التجار</option>
+                <option value="suppliers">الموردين</option>
+                <option value="marketers">المسوقين</option>
+            </select>
+            <button class="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 hidden">
+                <i class="fa-solid fa-filter"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Contacts Cards (مطابق للصورة الثانية) -->
-    <div class="row g-3" id="contactsGrid">
+    <!-- Contacts Grid (Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="contactsGrid">
         {% for contact in contacts %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <h6 class="fw-bold text-dark mb-0">{{ contact.name }}</h6>
-                            <small class="text-muted">{{ contact.company or 'فردي' }}</small>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            {% if contact.category == 'customers' %}
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">عميل</span>
-                            {% elif contact.category == 'merchants' %}
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">تاجر</span>
-                            {% elif contact.category == 'suppliers' %}
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">مورد</span>
-                            {% else %}
-                                <span class="badge bg-info-subtle text-info border border-info-subtle">مسوق</span>
-                            {% endif %}
-                            <input type="checkbox" name="selected_contacts" value="{{ contact.id }}" class="form-check-input contact-checkbox" onchange="updateSelectionState()">
-                        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-full bg-[#1e0226] text-white flex items-center justify-center font-bold text-lg">
+                        {{ contact.name[:1] }}
                     </div>
-
-                    <div class="d-flex align-items-center justify-content-between border-top border-bottom py-2 mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-telephone text-success"></i>
-                            <span dir="ltr" class="font-monospace fw-bold text-dark">{{ contact.phone }}</span>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a href="#" onclick="copyPhone('{{ contact.phone }}')" class="text-muted"><i class="bi bi-clipboard"></i></a>
-                            <a href="https://wa.me/{{ contact.phone }}" target="_blank" class="text-success"><i class="bi bi-whatsapp"></i></a>
-                            <button onclick="editContact('{{ contact.id }}')" class="text-secondary border-0 bg-transparent p-0"><i class="bi bi-pencil"></i></button>
-                        </div>
-                    </div>
-
-                    <div class="mb-2">
-                        <div class="d-flex gap-2 flex-wrap">
-                            {% if contact.tags %}
-                                {% for tag in contact.tags %}
-                                <span class="badge bg-light text-dark border">{{ tag }}</span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="badge bg-light text-muted border">بدون وسوم</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        {% if contact.discount_code %}
-                            <code class="bg-light text-primary px-2 py-1 rounded fw-bold">{{ contact.discount_code }}</code>
-                        {% else %}
-                            <span class="text-muted small">لا يوجد كود خصم</span>
-                        {% endif %}
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center text-muted small">
-                        <span><i class="bi bi-geo-alt me-1"></i>{{ contact.city or 'غير محدد' }}</span>
-                        <span>{{ contact.last_interaction or 'مضاف حديثاً' }}</span>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">{{ contact.name }}</h4>
+                        <span class="text-xs text-slate-400">{{ contact.company or 'فردي' }}</span>
                     </div>
                 </div>
+                <div class="flex items-center gap-2">
+                    {% if contact.category == 'customers' %}
+                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-green-100 text-green-700">عميل</span>
+                    {% elif contact.category == 'merchants' %}
+                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">تاجر</span>
+                    {% elif contact.category == 'suppliers' %}
+                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">مورد</span>
+                    {% else %}
+                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-purple-100 text-purple-700">مسوق</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="border-y border-slate-100 py-3 mb-3 flex items-center justify-between">
+                <span dir="ltr" class="font-mono text-slate-700 font-bold text-sm">+{{ contact.phone }}</span>
+                <div class="flex gap-2">
+                    <a href="https://wa.me/{{ contact.phone }}" target="_blank" class="text-[#25D366] hover:text-green-600">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                    </a>
+                    <button onclick="editContact('{{ contact.id }}')" class="text-slate-400 hover:text-blue-600">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 mb-3">
+                {% if contact.tags %}
+                    {% for tag in contact.tags %}
+                    <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">{{ tag }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-slate-50 text-slate-400">بدون وسوم</span>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                {% if contact.discount_code %}
+                    <span class="text-xs font-mono bg-purple-50 text-purple-700 px-2 py-1 rounded-lg font-bold">{{ contact.discount_code }}</span>
+                {% else %}
+                    <span class="text-xs text-slate-400">لا يوجد كود خصم</span>
+                {% endif %}
+            </div>
+            
+            <div class="flex justify-between items-center text-[11px] text-slate-400">
+                <span><i class="fa-solid fa-location-dot ml-1"></i>{{ contact.city or 'غير محدد' }}</span>
+                <span>{{ contact.last_interaction or 'مضاف حديثاً' }}</span>
             </div>
         </div>
         {% else %}
-        <div class="col-12 text-center py-5 text-muted">
-            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-            لا توجد جهات اتصال مسجلة في هذه الفئة حالياً.
+        <div class="col-span-full text-center py-10 text-slate-400">
+            <i class="fa-solid fa-inbox text-4xl mb-2"></i>
+            <p class="text-sm">لا توجد جهات اتصال مسجلة</p>
         </div>
         {% endfor %}
     </div>
 </div>
 
-<!-- ============================================== -->
-<!-- النوافذ المنبثقة (Modals) - خارج الـ container -->
-<!-- ============================================== -->
+<!-- ============ النوافذ المنبثقة (Modals) بأسلوب Tailwind ============ -->
 
-<!-- Modal: استيراد جهات الاتصال CSV / Excel -->
-<div class="modal fade" id="importCsvModal" tabindex="-1" aria-hidden="true" dir="rtl">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">استيراد جهات اتصال (CSV / Excel)</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ url_for('whatsapp_service.import_contacts_view') }}" method="POST" enctype="multipart/form-data">
-                <div class="modal-body py-3">
-                    <p class="text-muted small">قم برفع ملف جهات الاتصال بصيغة CSV أو Excel يحتوي على أعمدة: (Name, Phone, Category, City, DiscountCode).</p>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">تحديد الفئة الافتراضية للمستوردين:</label>
-                        <select name="default_category" class="form-select form-select-sm">
-                            <option value="customers">العملاء (Customers)</option>
-                            <option value="merchants">التجار (Merchants)</option>
-                            <option value="suppliers">الموردين (Suppliers)</option>
-                            <option value="marketers">المسوقين (Marketers)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">الملف المرفق:</label>
-                        <input type="file" name="file" accept=".csv, .xlsx, .xls" class="form-control form-control-sm" required>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary btn-sm rounded-3 px-4">بدء الاستيراد</button>
-                </div>
-            </form>
+<!-- Modal: إضافة جهة اتصال -->
+<div id="modal-add" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100">
+            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-user-plus text-purple-600 ml-2"></i> إضافة جهة اتصال</h3>
+            <button onclick="closeModal('modal-add')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
+        <form action="{{ url_for('whatsapp_service.add_contact_view') }}" method="POST" class="p-5 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">نوع الفئة</label>
+                <select name="category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                    <option value="customers">عميل</option>
+                    <option value="merchants">تاجر</option>
+                    <option value="suppliers">مورد</option>
+                    <option value="marketers">مسوق</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الاسم الكامل</label>
+                <input type="text" name="name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">رقم الواتساب</label>
+                <input type="text" name="phone" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">اسم المؤسسة / المتجر</label>
+                <input type="text" name="company" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">المدينة</label>
+                <input type="text" name="city" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">كود الخصم</label>
+                <input type="text" name="discount_code" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-1 bg-[#1e0226] text-white py-2.5 rounded-xl font-bold text-sm">حفظ</button>
+                <button type="button" onclick="closeModal('modal-add')" class="px-6 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm">إلغاء</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal: إضافة جهة اتصال جديدة (مطابق للصورة الثالثة) -->
-<div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true" dir="rtl">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                    <i class="bi bi-person-plus-fill text-primary"></i>
-                    إضافة جهة اتصال جديدة
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ url_for('whatsapp_service.add_contact_view') }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-body py-3">
-                    <div class="row g-3">
-                        <!-- Type Selection -->
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">نوع الفئة والجمهور المستهدف:</label>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <input type="radio" class="btn-check" name="category" id="cat_customers" value="customers" checked>
-                                <label class="btn btn-outline-success btn-sm rounded-3 px-4" for="cat_customers"><i class="bi bi-people me-1"></i> العملاء</label>
-
-                                <input type="radio" class="btn-check" name="category" id="cat_merchants" value="merchants">
-                                <label class="btn btn-outline-primary btn-sm rounded-3 px-4" for="cat_merchants"><i class="bi bi-shop me-1"></i> التجار</label>
-
-                                <input type="radio" class="btn-check" name="category" id="cat_suppliers" value="suppliers">
-                                <label class="btn btn-outline-warning btn-sm rounded-3 px-4" for="cat_suppliers"><i class="bi bi-truck me-1"></i> الموردين</label>
-
-                                <input type="radio" class="btn-check" name="category" id="cat_marketers" value="marketers">
-                                <label class="btn btn-outline-info btn-sm rounded-3 px-4" for="cat_marketers"><i class="bi bi-megaphone me-1"></i> المسوقين</label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">الاسم الكامل:</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
-                                <input type="text" name="name" class="form-control" placeholder="مثال: عبدالله الشمري" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">رقم الواتساب:</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light">+966</span>
-                                <input type="text" name="phone" class="form-control" dir="ltr" placeholder="501234567" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">اسم المؤسسة / المتجر / النشاط:</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light"><i class="bi bi-building"></i></span>
-                                <input type="text" name="company" class="form-control" placeholder="مثال: مؤسسة الراشد للتجارة">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">المدينة / المنطقة:</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
-                                <input type="text" name="city" class="form-control" placeholder="مثال: الرياض، جدة، القاهرة...">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">الحالة:</label>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="active">نشط (جاهز لاستقبال الرسائل)</option>
-                                <option value="inactive">غير نشط (موقوف)</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">كود الخصم / الحساب المخصص:</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light">%</span>
-                                <input type="text" name="discount_code" class="form-control" placeholder="مثال: VIP2026، WHOLESALE_30">
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">الوسوم والتصنيفات (Tags):</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light"><i class="bi bi-tags"></i></span>
-                                <input type="text" name="tags" class="form-control" placeholder="أدخل وسماً واضغط Enter (مثال: VIP، نشط، عميل ذهبي...)">
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">ملاحظات وتفاصيل إضافية:</label>
-                            <textarea name="notes" rows="3" class="form-control form-control-sm" placeholder="ملاحظات حول العميل أو التفضيلات أو الاتفاقات السابقة..."></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary btn-sm rounded-3 px-4">حفظ جهة الاتصال</button>
-                </div>
-            </form>
+<!-- Modal: استيراد CSV -->
+<div id="modal-import" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100">
+            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-file-import text-blue-600 ml-2"></i> استيراد ملف</h3>
+            <button onclick="closeModal('modal-import')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
+        <form action="{{ url_for('whatsapp_service.import_contacts_view') }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">تحديد الفئة</label>
+                <select name="default_category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                    <option value="customers">العملاء</option>
+                    <option value="merchants">التجار</option>
+                    <option value="suppliers">الموردين</option>
+                    <option value="marketers">المسوقين</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الملف</label>
+                <input type="file" name="file" accept=".csv,.xlsx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">بدء الاستيراد</button>
+        </form>
     </div>
 </div>
 
-<!-- Modal: إطلاق حملة جماعية جديدة (مطابق للصورة الرابعة) -->
-<div class="modal fade" id="newBulkCampaignModal" tabindex="-1" aria-hidden="true" dir="rtl">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-success">
-                    <i class="bi bi-send-fill ms-2"></i> إطلاق حملة رسائل جماعية ذكية
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ url_for('whatsapp_service.send_broadcast_view') }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-body py-3">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">اسم الحملة:</label>
-                            <input type="text" name="campaign_name" class="form-control form-control-sm" placeholder="مثال: عروض الجمعة للتجار" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">الفئة المستهدفة:</label>
-                            <select name="target_category" class="form-select form-select-sm" required>
-                                <option value="all">جميع الفئات</option>
-                                <option value="customers">العملاء النهائيين</option>
-                                <option value="merchants">التجار والمحلات</option>
-                                <option value="suppliers">الموردين والمصانع</option>
-                                <option value="marketers">المسوقين والعمولات</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold d-flex justify-content-between">
-                                <span>نص الرسالة التسويقية:</span>
-                                <span class="text-primary small cursor-pointer" onclick="generateAiText()"><i class="bi bi-stars"></i> توليد بالذكاء الاصطناعي (Gemini)</span>
-                            </label>
-                            <textarea name="message_text" id="campaignMessageText" rows="4" class="form-control form-control-sm" placeholder="مرحباً {name}، يسعدنا في سوق محجوب أونلاين تقديم..." required></textarea>
-                            <small class="text-muted">المتغيرات المتاحة: <code>{name}</code>, <code>{company}</code>, <code>{discount_code}</code>, <code>{city}</code></small>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-success btn-sm rounded-3 px-4 fw-bold">إرسال الحملة الآن</button>
-                </div>
-            </form>
+<!-- Modal: إرسال جماعي -->
+<div id="modal-broadcast" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100">
+            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-paper-plane text-green-600 ml-2"></i> إرسال رسالة جماعية</h3>
+            <button onclick="closeModal('modal-broadcast')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
+        <form action="{{ url_for('whatsapp_service.send_broadcast_view') }}" method="POST" class="p-5 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الفئة المستهدفة</label>
+                <select name="target_category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                    <option value="all">جميع الفئات</option>
+                    <option value="customers">العملاء</option>
+                    <option value="merchants">التجار</option>
+                    <option value="suppliers">الموردين</option>
+                    <option value="marketers">المسوقين</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">نص الرسالة</label>
+                <textarea name="message_text" rows="5" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" placeholder="مرحباً {name}، ..." required></textarea>
+            </div>
+            <button type="submit" class="w-full bg-[#25D366] text-white py-2.5 rounded-xl font-bold text-sm">إرسال الحملة</button>
+        </form>
     </div>
 </div>
 
 <script>
-// تمرير البيانات إلى النافذة عند إضافة جهة اتصال
-function openAddContactModal() {
-    // التأكد من تفعيل الخيار الافتراضي
-    document.getElementById('cat_customers').checked = true;
+// ✅ دوال فتح وإغلاق النوافذ باستخدام JavaScript (بدون Bootstrap)
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
 }
 
-function filterCategory(cat) {
-    window.location.href = "{{ url_for('whatsapp_service.contacts_bulk_view') }}?category=" + cat;
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 }
 
-function copyPhone(phone) {
-    navigator.clipboard.writeText(phone).then(() => {
-        alert("تم نسخ رقم الهاتف: " + phone);
+// إغلاق النافذة عند الضغط على الخلفية
+window.addEventListener('click', function(event) {
+    const modals = document.querySelectorAll('.fixed.inset-0.z-50');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            closeModal(modal.id);
+        }
+    });
+});
+
+// ✅ دالة التعديل
+function editContact(id) {
+    alert('تم اختيار جهة الاتصال رقم: ' + id);
+}
+
+// ✅ دالة البحث
+function filterContacts() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('#contactsGrid > div');
+    cards.forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(query) ? 'block' : 'none';
     });
 }
 
-function editContact(id) {
-    // يمكن هنا فتح نافذة تعديل خاصة بك
-    alert("فتح تعديل جهة الاتصال رقم: " + id);
-}
-
-function updateSelectionState() {
-    const selected = document.querySelectorAll('.contact-checkbox:checked');
-    const count = selected.length;
-    document.getElementById('selectedCount').innerText = count;
-    document.getElementById('btnDeleteSelected').style.display = count > 0 ? 'inline-block' : 'none';
-    document.getElementById('btnMessageSelected').style.display = count > 0 ? 'inline-block' : 'none';
-}
-
-function toggleSelectAll(master) {
-    const checkboxes = document.querySelectorAll('.contact-checkbox');
-    checkboxes.forEach(cb => cb.checked = master.checked);
-    updateSelectionState();
-}
-
-function submitCampaign(e) {
-    e.preventDefault();
-    // هنا كود إرسال الحملة إلى الـ API
-    alert("تم إرسال الحملة بنجاح!");
-    document.getElementById('bulkCampaignForm').reset();
-}
-
-function generateAiText() {
-    // هنا كود توليد النص عبر Gemini API
-    document.getElementById('campaignMessageText').value = "مرحباً {name}، يسعدنا في سوق محجوب أونلاين تقديم عرض حصري لك! استخدم كود الخصم {discount_code} للحصول على خصم {discount_percent}% على منتجاتنا. لفترة محدودة!";
-}
+document.getElementById('searchInput').addEventListener('input', filterContacts);
 </script>
-
-<!-- ✅ سكربت Bootstrap 5 JS (ضروري جداً لفتح وإغلاق النوافذ) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
