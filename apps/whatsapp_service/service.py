@@ -20,7 +20,14 @@ import cloudinary.api
 
 # ✅ استيراد النماذج من المكان الصحيح (حيث توجد الجداول فعلاً)
 from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
-from apps.extensions import db
+from apps.models.supplier_db import Supplier
+from apps.models.marketer_db import Marketer
+
+# استيراد قاعدة البيانات
+try:
+    from apps.extensions import db
+except ImportError:
+    from app import db
 
 class WhatsAppService:
     def __init__(self):
@@ -60,9 +67,33 @@ class WhatsAppService:
             "Content-Type": "application/json"
         }
 
-    def send_message(self, recipient_phone: str, text: str) -> Dict[str, Any]:
+    def _process_message_variables(self, text: str, contact_data: Dict[str, Any]) -> str:
+        """استبدال المتغيرات في الرسالة بالبيانات الحقيقية للعميل أو التاجر أو المسوق"""
+        if not contact_data:
+            return text
+        
+        name = contact_data.get('name', '')
+        company = contact_data.get('company', '')
+        discount_code = contact_data.get('discount_code', '')
+        city = contact_data.get('city', '')
+        phone = contact_data.get('phone', '')
+
+        return (
+            text.replace("{name}", name)
+                .replace("{company}", company)
+                .replace("{discount_code}", discount_code)
+                .replace("{city}", city)
+                .replace("{phone}", phone)
+        )
+
+    def send_message(self, recipient_phone: str, text: str, contact_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API"""
         clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
+        
+        # استبدال المتغيرات في الرسالة إذا كانت البيانات متوفرة
+        if contact_data:
+            text = self._process_message_variables(text, contact_data)
+        
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
@@ -177,6 +208,29 @@ class WhatsAppService:
             
         except Exception as e:
             return {"error": str(e), "status": "failed"}
+
+    def send_bulk_messages(self, campaign_data: Dict[str, Any]) -> Dict[str, Any]:
+        """إرسال رسائل جماعية مستهدفة مع استبدال المتغيرات بالبيانات الحقيقية"""
+        campaign_name = campaign_data.get('campaign_name', '')
+        target_category = campaign_data.get('target_category', 'all')
+        message_text = campaign_data.get('message_text', '')
+        
+        target_contacts = self.get_all_contacts()
+        
+        sent_count = 0
+        for contact in target_contacts:
+            # تصفية حسب الفئة المستهدفة
+            if target_category != 'all' and contact.get('category') != target_category:
+                continue
+            
+            # استبدال المتغيرات في الرسالة
+            personalized_message = self._process_message_variables(message_text, contact)
+            
+            result = self.send_message(contact['phone'], personalized_message, contact)
+            if result.get('status') in ['sent', 'simulated']:
+                sent_count += 1
+        
+        return {"success": True, "sent_count": sent_count, "campaign_name": campaign_name}
 
     # =========================================================================
     # 2. معالجة الـ Webhook الوارد (Inbound Webhook)
@@ -305,7 +359,8 @@ class WhatsAppService:
                     whatsapp_profile_name=name,
                     last_message=last_message,
                     last_timestamp=datetime.utcnow(),
-                    unread_count=1
+                    unread_count=1,
+                    extra_data={"category": "customers"}
                 )
                 db.session.add(contact)
             else:
@@ -415,12 +470,17 @@ class WhatsAppService:
     # =========================================================================
 
     def get_all_contacts(self) -> List[Dict[str, Any]]:
-        """جلب قائمة جهات الاتصال (من قاعدة البيانات أولاً)"""
+        """جلب جميع جهات الاتصال: العملاء، التجار، الموردين، والمسوقين"""
         try:
-            contacts = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+            # 1. جلب العملاء من WhatsAppCustomerContact
+            customers = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
             
             result = []
-            for c in contacts:
+            
+            for c in customers:
+                # قراءة extra_data إذا كان موجوداً
+                extra_data = c.extra_data if isinstance(c.extra_data, dict) else {}
+                
                 data = {
                     'id': c.id,
                     'phone': c.phone,
@@ -430,12 +490,14 @@ class WhatsAppService:
                     'unread_count': c.unread_count or 0,
                     'is_online': False,
                     'last_seen': 'آخر ظهور اليوم',
-                    'category': getattr(c, 'category', 'customers'),
-                    'city': getattr(c, 'city', ''),
-                    'company': getattr(c, 'company', ''),
-                    'email': getattr(c, 'email', ''),
-                    'notes': getattr(c, 'notes', ''),
+                    'category': extra_data.get('category', 'customers'),
+                    'city': extra_data.get('city', ''),
+                    'company': extra_data.get('company', ''),
+                    'discount_code': extra_data.get('discount_code', ''),
+                    'email': extra_data.get('email', ''),
+                    'notes': c.notes or '',
                 }
+                
                 if c.last_timestamp:
                     if isinstance(c.last_timestamp, datetime):
                         c.last_timestamp = c.last_timestamp.replace(tzinfo=None)
@@ -451,9 +513,54 @@ class WhatsAppService:
                                 data['last_seen'] = f"آخر ظهور أمس {c.last_timestamp.strftime('%H:%M')}"
                             else:
                                 data['last_seen'] = f"آخر ظهور {c.last_timestamp.strftime('%d/%m/%Y %H:%M')}"
+                
                 result.append(data)
             
+            # 2. جلب التجار والموردين من Supplier
+            suppliers = Supplier.query.order_by(Supplier.created_at.desc()).all()
+            for s in suppliers:
+                supplier_data = {
+                    'id': f"supplier_{s.id}",
+                    'phone': s.phone,
+                    'name': s.store_name or s.trade_name or s.owner_name or s.username,
+                    'company': s.trade_name or s.store_name,
+                    'city': getattr(s, 'city', ''),
+                    'category': 'suppliers',
+                    'discount_code': '',
+                    'email': '',
+                    'notes': '',
+                    'last_message': '',
+                    'last_timestamp': s.created_at.isoformat() if s.created_at else None,
+                    'unread_count': 0,
+                    'is_online': False,
+                    'last_seen': 'آخر ظهور اليوم',
+                }
+                result.append(supplier_data)
+            
+            # 3. جلب المسوقين من Marketer
+            marketers = Marketer.query.order_by(Marketer.created_at.desc()).all()
+            for m in marketers:
+                marketer_data = {
+                    'id': f"marketer_{m.id}",
+                    'phone': m.phone,
+                    'name': m.full_name,
+                    'company': '',
+                    'city': '',
+                    'category': 'marketers',
+                    'discount_code': '',
+                    'email': '',
+                    'notes': '',
+                    'last_message': '',
+                    'last_timestamp': m.created_at.isoformat() if m.created_at else None,
+                    'unread_count': 0,
+                    'is_online': False,
+                    'last_seen': 'آخر ظهور اليوم',
+                }
+                result.append(marketer_data)
+            
+            # إرجاع القائمة كاملة (تم فرزها حسب الأحدث - يمكن تعديل الترتيب لاحقاً)
             return result
+            
         except Exception as e:
             print(f"⚠️ [خطأ جلب جهات الاتصال من الجداول]: {e}")
             return list(self.contacts_db.values())
@@ -618,7 +725,7 @@ class WhatsAppService:
     # =========================================================================
 
     def add_contact(self, name: str, phone: str, category: str = "customers", 
-                    city: str = "", company: str = "", email: str = "", notes: str = "") -> Dict[str, Any]:
+                    city: str = "", company: str = "", email: str = "", notes: str = "", discount_code: str = "") -> Dict[str, Any]:
         """إضافة جهة اتصال جديدة"""
         try:
             clean_phone = phone.replace("+", "").strip()
@@ -628,16 +735,22 @@ class WhatsAppService:
             if existing:
                 return {"success": False, "error": "رقم الهاتف موجود مسبقاً"}
             
+            # إضافة البيانات إلى extra_data بدلاً من الحقول غير الموجودة
+            extra_data = {
+                "category": category,
+                "city": city,
+                "company": company,
+                "email": email,
+                "discount_code": discount_code
+            }
+            
             contact = WhatsAppCustomerContact(
                 name=name,
                 phone=clean_phone,
-                category=category,
-                city=city,
-                company=company,
-                email=email,
                 notes=notes,
                 unread_count=0,
-                last_timestamp=datetime.utcnow()
+                last_timestamp=datetime.utcnow(),
+                extra_data=extra_data
             )
             db.session.add(contact)
             db.session.commit()
@@ -662,14 +775,21 @@ class WhatsAppService:
                 contact.name = data['name']
             if 'phone' in data:
                 contact.phone = data['phone'].replace("+", "").strip()
+            
+            # تحديث extra_data إذا كانت موجودة
+            extra_data = contact.extra_data if isinstance(contact.extra_data, dict) else {}
             if 'category' in data:
-                contact.category = data['category']
+                extra_data['category'] = data['category']
             if 'city' in data:
-                contact.city = data['city']
+                extra_data['city'] = data['city']
             if 'company' in data:
-                contact.company = data['company']
+                extra_data['company'] = data['company']
             if 'email' in data:
-                contact.email = data['email']
+                extra_data['email'] = data['email']
+            if 'discount_code' in data:
+                extra_data['discount_code'] = data['discount_code']
+            contact.extra_data = extra_data
+            
             if 'notes' in data:
                 contact.notes = data['notes']
             
