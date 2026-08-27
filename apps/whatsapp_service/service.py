@@ -344,6 +344,10 @@ class WhatsAppService:
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
+        # ✅ إرسال رسالة ترحيب واحدة فقط (بدون رد تلقائي مستمر)
+        if not self.gemini_api_key:
+            return
+        
         prompt = (
             "أنت المساعد الذكي الرسمي لخدمة عملاء 'سوق محجوب أونلاين'. "
             "أجب بأسلوب تجاري راقٍ وموجز وودود، واستفسر عما إذا كان العميل بحاجة للمساعدة "
