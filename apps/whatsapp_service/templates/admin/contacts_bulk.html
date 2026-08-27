@@ -5,23 +5,33 @@
 {% block content %}
 <div class="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
 
-    <!-- رأس الصفحة -->
-    <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+    <!-- رأس الصفحة مع الأزرار -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
             <h1 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
                 <i class="fa-solid fa-users-gear text-[#1e0226]"></i>
-                <span>إدارة جهات الاتصال (العملاء، التجار، المسوقين)</span>
+                <span>إدارة جهات الاتصال والمراسلة</span>
             </h1>
-            <p class="text-xs text-slate-500 mt-1">مراسلة مباشرة وإدارة شاملة لجميع الأطراف</p>
+            <p class="text-xs text-slate-500 mt-1">إضافة، بحث، ومراسلة مباشرة لجميع الأطراف</p>
         </div>
-        <div class="flex gap-2">
-            <button onclick="openModal('modal-import')" class="bg-[#1e0226] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">
+        <div class="flex gap-2 flex-wrap">
+            <!-- زر إضافة جهة اتصال (جديد) -->
+            <button onclick="openModal('modal-add-contact')" class="bg-[#1e0226] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">
+                <i class="fa-solid fa-user-plus ml-2"></i> إضافة جهة اتصال
+            </button>
+            <button onclick="openModal('modal-import')" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-200 transition shadow-sm">
                 <i class="fa-solid fa-file-import ml-2"></i> استيراد
             </button>
             <button onclick="openModal('modal-broadcast')" class="bg-[#25D366] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-600 transition shadow-md">
                 <i class="fa-solid fa-paper-plane ml-2"></i> إرسال جماعي
             </button>
         </div>
+    </div>
+
+    <!-- حقل البحث الشامل (جديد) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex items-center gap-3">
+        <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+        <input type="text" id="global-search" onkeyup="filterTables()" placeholder="ابحث بالاسم أو رقم الهاتف في جميع الجداول..." class="w-full bg-transparent focus:outline-none text-slate-700 text-sm font-medium">
     </div>
 
     <!-- ==================== بطاقة العملاء ==================== -->
@@ -32,10 +42,9 @@
                 <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">{{ customers|length or 0 }}</span>
             </h2>
         </div>
-
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-right">
+                <table class="w-full text-sm text-right searchable-table">
                     <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-100">
                         <tr>
                             <th class="px-6 py-4">الاسم</th>
@@ -93,10 +102,9 @@
                 <span class="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full">{{ suppliers|length or 0 }}</span>
             </h2>
         </div>
-
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-right">
+                <table class="w-full text-sm text-right searchable-table">
                     <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-100">
                         <tr>
                             <th class="px-6 py-4">اسم المتجر / التاجر</th>
@@ -161,10 +169,9 @@
                 <span class="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full">{{ marketers|length or 0 }}</span>
             </h2>
         </div>
-
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-right">
+                <table class="w-full text-sm text-right searchable-table">
                     <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-100">
                         <tr>
                             <th class="px-6 py-4">الاسم الكامل</th>
@@ -247,6 +254,155 @@
     </div>
 </div>
 
+<!-- ==================== نافذة إضافة جهة اتصال (جديد) ==================== -->
+<div id="modal-add-contact" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+            <h3 class="text-lg font-extrabold text-slate-800"><i class="fa-solid fa-user-plus text-[#1e0226]"></i> إضافة جهة اتصال</h3>
+            <button onclick="closeModal('modal-add-contact')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form method="POST" action="/admin/whatsapp/add-contact" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">نوع جهة الاتصال</label>
+                <select name="contact_type" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]">
+                    <option value="customer">عميل</option>
+                    <option value="supplier">تاجر (مورد)</option>
+                    <option value="marketer">مسوق</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الاسم / اسم المتجر</label>
+                <input type="text" name="name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">رقم الهاتف</label>
+                <input type="text" name="phone" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" dir="ltr" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">ملاحظات</label>
+                <textarea name="notes" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226] resize-none"></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-[#1e0226] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-opacity-90 transition"><i class="fa-solid fa-floppy-disk ml-2"></i> حفظ</button>
+                <button type="button" onclick="closeModal('modal-add-contact')" class="px-6 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== نافذة تعديل عميل ==================== -->
+<div id="modal-edit-customer" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+            <h3 class="text-lg font-extrabold text-slate-800"><i class="fa-solid fa-user-pen text-blue-600"></i> تعديل عميل</h3>
+            <button onclick="closeModal('modal-edit-customer')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form method="POST" action="/admin/whatsapp/edit-customer" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="contact_id" value="">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الاسم</label>
+                <input type="text" name="name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">رقم الهاتف</label>
+                <input type="text" name="phone" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" dir="ltr" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">ملاحظات</label>
+                <textarea name="notes" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226] resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">حالة الحظر</label>
+                <select name="is_blocked" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]">
+                    <option value="false">نشط</option>
+                    <option value="true">محظور</option>
+                </select>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition"><i class="fa-solid fa-floppy-disk ml-2"></i> حفظ التعديلات</button>
+                <button type="button" onclick="closeModal('modal-edit-customer')" class="px-6 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== نافذة تعديل تاجر (مورد) ==================== -->
+<div id="modal-edit-supplier" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+            <h3 class="text-lg font-extrabold text-slate-800"><i class="fa-solid fa-store text-amber-600"></i> تعديل تاجر (مورد)</h3>
+            <button onclick="closeModal('modal-edit-supplier')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form method="POST" action="/admin/whatsapp/edit-supplier" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="supplier_id" value="">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">اسم المتجر</label>
+                <input type="text" name="store_name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">اسم المالك</label>
+                <input type="text" name="owner_name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">رقم الهاتف</label>
+                <input type="text" name="phone" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" dir="ltr" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الحالة</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]">
+                    <option value="active">نشط</option>
+                    <option value="inactive">موقوف</option>
+                </select>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-amber-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-amber-700 transition"><i class="fa-solid fa-floppy-disk ml-2"></i> حفظ التعديلات</button>
+                <button type="button" onclick="closeModal('modal-edit-supplier')" class="px-6 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== نافذة تعديل مسوق ==================== -->
+<div id="modal-edit-marketer" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+            <h3 class="text-lg font-extrabold text-slate-800"><i class="fa-solid fa-bullhorn text-purple-600"></i> تعديل مسوق</h3>
+            <button onclick="closeModal('modal-edit-marketer')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form method="POST" action="/admin/whatsapp/edit-marketer" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="marketer_id" value="">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الاسم الكامل</label>
+                <input type="text" name="full_name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">رقم الهاتف</label>
+                <input type="text" name="phone" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]" dir="ltr" required>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">الحالة</label>
+                <select name="is_active" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-[#1e0226]">
+                    <option value="true">نشط</option>
+                    <option value="false">موقوف</option>
+                </select>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-purple-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-purple-700 transition"><i class="fa-solid fa-floppy-disk ml-2"></i> حفظ التعديلات</button>
+                <button type="button" onclick="closeModal('modal-edit-marketer')" class="px-6 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition">إلغاء</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- ==================== نافذة الإرسال الجماعي ==================== -->
 <div id="modal-broadcast" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
@@ -282,46 +438,19 @@
     </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // دالة فتح نافذة المراسلة مع تعبئة رقم الهاتف
-    function openModal(modalId, phone = null) {
-        const modals = document.querySelectorAll('.fixed.inset-0.z-50');
-        modals.forEach(modal => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        });
-
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            
-            // إذا كانت نافذة المراسلة
-            if (modalId === 'modal-message' && phone) {
-                document.getElementById('modal-phone-display').innerText = phone;
-                document.getElementById('modal-phone-input').value = phone;
-            }
-        }
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-    }
-
-    window.onclick = function(event) {
-        const modals = document.querySelectorAll('.fixed.inset-0.z-50');
-        modals.forEach(modal => {
-            if (event.target === modal) {
-                closeModal(modal.id);
-            }
-        });
-    }
-</script>
-{% endblock %}
+<!-- ==================== نافذة استيراد جهات الاتصال ==================== -->
+<div id="modal-import" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+            <h3 class="text-lg font-extrabold text-slate-800"><i class="fa-solid fa-file-import text-blue-600"></i> استيراد جهات الاتصال</h3>
+            <button onclick="closeModal('modal-import')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form method="POST" enctype="multipart/form-data" action="/admin/whatsapp/import-contacts" class="p-6 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">رفع ملف CSV أو Excel</label>
+                <input type="file" name="file" accept=".csv, .xlsx" class="w-full border border-slate-300 rounded-lg px-4 py-3 bg-slate-50 focus:outline-none">
+                <p class="text-xs text-slate-500 mt-2">يجب أن يحتوي الملف على أعمدة: Name, Phone</p>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="submit
