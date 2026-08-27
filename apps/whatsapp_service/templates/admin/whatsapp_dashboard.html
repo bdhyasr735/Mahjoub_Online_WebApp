@@ -17,6 +17,12 @@
                 </span>
             </div>
 
+            <!-- فلتر المحادثات غير المقروءة -->
+            <div class="flex items-center justify-between bg-slate-50 rounded-xl p-1.5">
+                <button onclick="filterContacts('all')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 bg-white shadow-sm" id="filter-all">الكل</button>
+                <button onclick="filterContacts('unread')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600" id="filter-unread">غير مقروءة</button>
+            </div>
+
             <div class="relative">
                 <input type="text" id="contactSearch" oninput="filterContacts()" placeholder="بحث بالاسم أو رقم الهاتف..." 
                        class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1e0226] focus:bg-white transition-all">
@@ -28,7 +34,8 @@
             {% for contact in contacts %}
             <div class="p-3.5 hover:bg-purple-50 cursor-pointer flex items-center gap-3 transition-colors contact-card"
                  onclick="loadChat('{{ contact.phone }}', '{{ contact.name }}')">
-                <div class="w-11 h-11 rounded-2xl bg-[#1e0226] text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md">
+                <!-- صورة البروفايل (حرف أول) -->
+                <div class="w-11 h-11 rounded-full bg-[#1e0226] text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md">
                     {{ contact.name[:1] }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -38,7 +45,17 @@
                         <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ contact.unread_count }}</span>
                         {% endif %}
                     </div>
-                    <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+{{ contact.phone }}</span>
+                    <div class="flex items-center justify-between">
+                        <!-- آخر ظهور أو متصل الآن -->
+                        <span class="text-[10px] text-slate-400 truncate">
+                            {% if contact.is_online %}
+                                <span class="text-emerald-500 font-bold">متصل الآن</span>
+                            {% else %}
+                                آخر ظهور {{ contact.last_seen|default('اليوم') }}
+                            {% endif %}
+                        </span>
+                        <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+{{ contact.phone }}</span>
+                    </div>
                 </div>
             </div>
             {% else %}
@@ -55,12 +72,14 @@
     <section class="flex-1 flex flex-col bg-white relative">
         <div class="h-16 px-5 border-b border-slate-200 bg-white flex items-center justify-between shadow-sm z-10">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-[#1e0226] flex items-center justify-center text-white font-extrabold text-sm shadow-md" id="activeContactAvatar">
+                <!-- صورة العميل في الهيدر -->
+                <div class="w-10 h-10 rounded-full bg-[#1e0226] flex items-center justify-center text-white font-extrabold text-sm shadow-md" id="activeContactAvatar">
                     <i class="fas fa-user"></i>
                 </div>
                 <div>
                     <h3 class="text-xs md:text-sm font-extrabold text-slate-900" id="activeContactName">اختر محادثة من القائمة للرد الفوري</h3>
                     <span class="text-[11px] text-slate-400 font-mono" id="activeContactPhone">+966...</span>
+                    <span id="activeContactStatus" class="text-[10px] text-emerald-500 block">متصل الآن</span>
                 </div>
             </div>
 
@@ -148,19 +167,16 @@
 <script>
 let currentPhone = null;
 let selectedFiles = [];
-
-// 🔔 إعدادات الإشعارات
+let currentFilter = 'all';
 let lastMessageCount = 0;
-let notificationSound = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'); // صوت التنبيه
+let notificationSound = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
 
-// 📣 طلب إذن الإشعارات من المتصفح
 if ("Notification" in window) {
     if (Notification.permission !== "granted" && Notification.permission !== "denied") {
         Notification.requestPermission();
     }
 }
 
-// 🔔 دالة عرض إشعار منبثق
 function showNotification(title, message) {
     if (Notification.permission === "granted") {
         new Notification(title, {
@@ -168,11 +184,56 @@ function showNotification(title, message) {
             icon: 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp'
         });
     }
-    // تشغيل الصوت
     notificationSound.play();
 }
 
-// دالة إضافة إيموجي
+function filterContacts(type = '') {
+    if (type) {
+        currentFilter = type;
+        document.getElementById('filter-all').classList.remove('bg-white', 'shadow-sm');
+        document.getElementById('filter-unread').classList.remove('bg-white', 'shadow-sm');
+        if (type === 'all') {
+            document.getElementById('filter-all').classList.add('bg-white', 'shadow-sm');
+        } else {
+            document.getElementById('filter-unread').classList.add('bg-white', 'shadow-sm');
+        }
+    }
+    
+    const q = document.getElementById('contactSearch').value.toLowerCase();
+    document.querySelectorAll('.contact-card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const unread = card.querySelector('.bg-red-500');
+        let shouldShow = text.includes(q);
+        if (currentFilter === 'unread' && !unread) {
+            shouldShow = false;
+        }
+        card.style.display = shouldShow ? 'flex' : 'none';
+    });
+}
+
+function loadChat(phone, name) {
+    currentPhone = phone;
+    document.getElementById('activeContactName').innerText = name;
+    document.getElementById('activeContactPhone').innerText = '(+' + phone + ')';
+    
+    // تحديث حالة الاتصال
+    document.getElementById('activeContactStatus').innerText = 'متصل الآن';
+    document.getElementById('activeContactStatus').classList.add('text-emerald-500');
+    
+    // ✅ تصفير العداد
+    fetch('/admin/whatsapp/api/contacts/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone })
+    }).then(() => {
+        refreshContacts();
+    });
+    
+    refreshMessages();
+    clearInterval(window.messagesInterval);
+    window.messagesInterval = setInterval(refreshMessages, 3000);
+}
+
 function addEmoji(emoji) {
     const input = document.getElementById('messageInput');
     input.value += emoji;
@@ -184,7 +245,6 @@ function toggleEmojiPicker() {
     container.classList.toggle('hidden');
 }
 
-// إغلاق الإيموجي عند الضغط خارجها
 document.addEventListener('click', function(e) {
     const container = document.getElementById('emoji-picker-container');
     const button = document.querySelector('button[onclick="toggleEmojiPicker()"]');
@@ -193,15 +253,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function filterContacts() {
-    const q = document.getElementById('contactSearch').value.toLowerCase();
-    document.querySelectorAll('.contact-card').forEach(card => {
-        const text = card.innerText.toLowerCase();
-        card.style.display = text.includes(q) ? 'flex' : 'none';
-    });
-}
-
-// ✅ دالة اختيار الملفات (تبدأ الإرسال تلقائياً)
 function handleAttachmentSelect() {
     const files = document.getElementById('attachmentInput').files;
     selectedFiles = Array.from(files);
@@ -223,14 +274,12 @@ function handleAttachmentSelect() {
             previewList.insertAdjacentHTML('beforeend', fileHTML);
         });
         
-        // ✅ إرسال تلقائي فوراً في الخلفية
         autoSendFiles();
     } else {
         previewContainer.classList.add('hidden');
     }
 }
 
-// ✅ دالة إرسال الملفات تلقائياً
 async function autoSendFiles() {
     if (!currentPhone) {
         alert('يرجى اختيار جهة اتصال أولاً');
@@ -266,17 +315,6 @@ function clearAttachments() {
     document.getElementById('attachmentPreviewList').innerHTML = '';
 }
 
-function loadChat(phone, name) {
-    currentPhone = phone;
-    document.getElementById('activeContactName').innerText = name;
-    document.getElementById('activeContactPhone').innerText = '(+' + phone + ')';
-    
-    refreshMessages();
-    clearInterval(window.messagesInterval);
-    window.messagesInterval = setInterval(refreshMessages, 3000);
-}
-
-// ✅ دالة تحديث القائمة الجانبية وإصدار الإشعارات
 async function refreshContacts() {
     try {
         const res = await fetch('/admin/whatsapp/api/contacts');
@@ -285,7 +323,6 @@ async function refreshContacts() {
             const list = document.getElementById('contactsList');
             let newHTML = '';
             
-            // حساب عدد الرسائل غير المقروءة
             let totalUnread = 0;
             
             data.contacts.forEach(contact => {
@@ -295,7 +332,7 @@ async function refreshContacts() {
                 newHTML += `
                 <div class="p-3.5 hover:bg-purple-50 cursor-pointer flex items-center gap-3 transition-colors contact-card ${isActive ? 'bg-purple-50' : ''}"
                      onclick="loadChat('${contact.phone}', '${contact.name}')">
-                    <div class="w-11 h-11 rounded-2xl bg-[#1e0226] text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md">
+                    <div class="w-11 h-11 rounded-full bg-[#1e0226] text-white font-bold flex items-center justify-center text-sm flex-shrink-0 shadow-md">
                         ${contact.name.charAt(0)}
                     </div>
                     <div class="flex-1 min-w-0">
@@ -303,7 +340,12 @@ async function refreshContacts() {
                             <span class="font-bold text-xs text-slate-900 truncate">${contact.name}</span>
                             ${contact.unread_count > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">${contact.unread_count}</span>` : ''}
                         </div>
-                        <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+${contact.phone}</span>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-slate-400 truncate">
+                                ${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : 'آخر ظهور اليوم'}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+${contact.phone}</span>
+                        </div>
                     </div>
                 </div>
                 `;
@@ -311,18 +353,18 @@ async function refreshContacts() {
             
             list.innerHTML = newHTML || '<div class="p-10 text-center text-slate-400 text-xs space-y-2"><i class="far fa-comments text-3xl text-slate-300"></i><p class="font-bold text-slate-600">لا توجد محادثات سابقة</p></div>';
             
-            // 🔔 إصدار إشعار إذا زاد عدد الرسائل
             if (totalUnread > lastMessageCount) {
                 showNotification('رسالة جديدة! 📩', 'لديك رسائل جديدة من العملاء.');
                 lastMessageCount = totalUnread;
             }
+            
+            filterContacts();
         }
     } catch (e) {
         // تجاهل الأخطاء
     }
 }
 
-// ✅ دالة عرض الرسائل مع دعم الصور والملفات
 function refreshMessages() {
     if (!currentPhone) return;
     
@@ -335,7 +377,6 @@ function refreshMessages() {
                 data.messages.forEach(msg => {
                     const isOutbound = msg.direction === 'outbound';
                     
-                    // بناء محتوى الرسالة: إذا كانت صورة أو فيديو أو ملف
                     let contentHTML = `<p class="leading-relaxed font-medium">${msg.content}</p>`;
                     
                     if (msg.media_url) {
@@ -357,7 +398,18 @@ function refreshMessages() {
                         }
                     }
                     
-                    // ترتيب الرسالة (العميل يسار، الإدارة يمين)
+                    // إضافة علامات الصح (✓) على الرسائل المرسلة
+                    let statusTicks = '';
+                    if (isOutbound) {
+                        if (msg.status === 'read') {
+                            statusTicks = '<span class="text-sky-400 text-xs">✓✓</span>';
+                        } else if (msg.status === 'delivered') {
+                            statusTicks = '<span class="text-slate-400 text-xs">✓✓</span>';
+                        } else if (msg.status === 'sent') {
+                            statusTicks = '<span class="text-slate-400 text-xs">✓</span>';
+                        }
+                    }
+                    
                     newHTML += `
                     <div class="flex ${isOutbound ? 'justify-end' : 'justify-start'}">
                         <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
@@ -366,7 +418,9 @@ function refreshMessages() {
                             : 'bg-[#1e0226] text-white rounded-bl-none'
                         }">
                             ${contentHTML}
-                            <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">${msg.timestamp || ''}</span>
+                            <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">
+                                ${msg.timestamp || ''} ${statusTicks}
+                            </span>
                         </div>
                     </div>
                     `;
@@ -380,7 +434,6 @@ function refreshMessages() {
     }
 }
 
-// ✅ دالة إرسال رسالة نصية مع تحديث فوري (Optimistic UI)
 async function handleSendMessage() {
     if (!currentPhone) {
         alert('يرجى اختيار جهة اتصال أولاً');
@@ -390,7 +443,6 @@ async function handleSendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
     
-    // ✅ عرض الرسالة فوراً في الشاشة (تحديث وهمي)
     if (text) {
         const area = document.getElementById('messagesArea');
         const now = new Date();
@@ -400,13 +452,12 @@ async function handleSendMessage() {
             <div class="flex justify-end">
                 <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm bg-white text-slate-800 border border-slate-200 rounded-br-none">
                     <p class="leading-relaxed font-medium">${text}</p>
-                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${time}</span>
+                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${time} <span class="text-slate-400">✓</span></span>
                 </div>
             </div>
         `);
         area.scrollTop = area.scrollHeight;
         
-        // إرسال فعلي للسيرفر
         await fetch('/admin/whatsapp/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -414,7 +465,6 @@ async function handleSendMessage() {
         });
     }
     
-    // إرسال الملفات المرفقة (إذا وجدت)
     if (selectedFiles.length > 0) {
         const formData = new FormData();
         formData.append('recipient_phone', currentPhone);
@@ -434,7 +484,6 @@ async function handleSendMessage() {
     refreshMessages();
 }
 
-// بدء التحديث الدوري للقائمة الجانبية
 refreshContacts();
 setInterval(refreshContacts, 3000);
 </script>
