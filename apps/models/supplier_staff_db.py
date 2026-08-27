@@ -6,17 +6,20 @@ from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import event, update
 from apps.extensions import db
 
 
 class SupplierStaff(db.Model, UserMixin):
-    """نموذج موظفي الموردين - يدعم التشفير والعلاقات"""
+    """نموذج موظفي الموردين والملاك - يدعم التشفير الكامل والكود التنظيمي الديناميكي"""
     __tablename__ = 'supplier_staff'
 
     # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
     __table_args__ = (
         db.Index('idx_staff_supplier_id', 'supplier_id'),
         db.Index('idx_staff_username', 'username'),
+        db.Index('idx_staff_code', 'staff_code'),
+        db.Index('idx_staff_phone_search', 'search_phone'),
         db.Index('idx_staff_email_enc', '_email_enc'),
         db.Index('idx_staff_phone_enc', '_phone_enc'),
         db.Index('idx_staff_role', 'role'),
@@ -30,7 +33,10 @@ class SupplierStaff(db.Model, UserMixin):
     # ============================================================
 
     id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id', ondelete='CASCADE'), nullable=False)
+    
+    # ✅ الكود التنظيمي الديناميكي التلقائي (مثل SUP9631-ST1)
+    staff_code = db.Column(db.String(50), unique=True, nullable=True)
 
     # ✅ حقل غير مشفر (للسرعة والبحث)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -43,6 +49,7 @@ class SupplierStaff(db.Model, UserMixin):
     _full_name_enc = db.Column(db.String(255), nullable=True)
     _email_enc = db.Column(db.String(255), nullable=True)
     _phone_enc = db.Column(db.String(255), nullable=True)
+    search_phone = db.Column(db.String(20), nullable=True) # ✅ لسرعة مطابقة أرقام الهواتف
     _position_enc = db.Column(db.String(255), nullable=True)  # المسمى الوظيفي
     _address_enc = db.Column(db.String(500), nullable=True)
 
@@ -110,7 +117,12 @@ class SupplierStaff(db.Model, UserMixin):
 
     @phone.setter
     def phone(self, value):
-        self._phone_enc = self._encrypt(value)
+        if value:
+            self._phone_enc = self._encrypt(value)
+            self.search_phone = str(value)[-9:]
+        else:
+            self._phone_enc = None
+            self.search_phone = None
 
     @property
     def position(self):
@@ -163,10 +175,11 @@ class SupplierStaff(db.Model, UserMixin):
     # ============================================================
 
     def to_dict(self):
-        """تحويل الموظف إلى قاموس آمن (بدون كشف البيانات المشفرة)"""
+        """تحويل الموظف إلى قاموس آمن للاستخدام في واجهات النظام"""
         return {
             'id': self.id,
             'supplier_id': self.supplier_id,
+            'staff_code': self.staff_code,
             'username': self.username,
             'full_name': self.full_name,
             'email': self.email,
@@ -181,4 +194,15 @@ class SupplierStaff(db.Model, UserMixin):
         }
 
     def __repr__(self):
-        return f'<SupplierStaff {self.id}: {self.username} | {self.role} | {self.status}>'
+        return f'<SupplierStaff {self.staff_code or self.id}: {self.username} | Role: {self.role} | Status: {self.status}>'
+
+
+# --- المحرك التلقائي لتوليد الكود التنظيمي الديناميكي للموظف (مثل SUP9631-ST1) ---
+@event.listens_for(SupplierStaff, 'after_insert')
+def receive_staff_after_insert(mapper, connection, target):
+    """توليد كود تنظيمي فريد للموظف مرتبط برقم المالك أو المورد الأساسي فور الحفظ"""
+    # نفترض أن كود المورد الأساسي يعتمد على الـ supplier_id (مثل SUP-963{supplier_id}) أو ندمجه مباشرة
+    new_staff_code = f"SUP963{target.supplier_id}-ST{target.id}"
+    connection.execute(
+        update(SupplierStaff).where(SupplierStaff.id == target.id).values(staff_code=new_staff_code)
+    )
