@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/whatsapp_service/contacts_bulk.py
 """
-سوق محجوب أونلاين - عرض وإدارة جهات الاتصال مع دعم الحملات الجماعية
-يعتمد هذا الملف على WhatsAppService الموجود في service.py
+ملف مساعد (Helper) فقط - لا يحتوي على Blueprint
 """
 
 from flask import render_template, request, redirect, url_for, flash
@@ -19,21 +18,19 @@ from apps.whatsapp_service.service import WhatsAppService
 
 
 # =========================================================================
-# 1. عرض صفحة جهات الاتصال (يتم استدعاؤها من routes.py)
+# 1. عرض صفحة جهات الاتصال
 # =========================================================================
 @login_required
 def contacts_bulk_view():
     wa_service = WhatsAppService()
     
-    # جلب جميع جهات الاتصال من قاعدة البيانات (باستخدام دالة الخدمة)
     all_contacts = wa_service.get_all_contacts()
     
-    # حساب الإحصائيات
     try:
         customers_count = WhatsAppCustomerContact.query.count()
         suppliers_count = Supplier.query.count()
         marketers_count = Marketer.query.count()
-        merchants_count = suppliers_count  # نفس جدول الموردين
+        merchants_count = suppliers_count
     except Exception:
         customers_count, suppliers_count, marketers_count, merchants_count = 0, 0, 0, 0
 
@@ -46,7 +43,6 @@ def contacts_bulk_view():
 
     current_category = request.args.get('category', 'all')
     
-    # إعادة توجيه البيانات للقالب
     return render_template('admin/contacts_bulk.html', 
                            contacts=all_contacts, 
                            stats=stats,
@@ -54,13 +50,12 @@ def contacts_bulk_view():
 
 
 # =========================================================================
-# 2. إضافة جهة اتصال جديدة (يتم استدعاؤها من routes.py)
+# 2. إضافة جهة اتصال جديدة
 # =========================================================================
 @login_required
 def add_contact_view():
     wa_service = WhatsAppService()
     
-    # استقبال البيانات من النموذج
     name = request.form.get('name', '')
     phone = request.form.get('phone', '')
     category = request.form.get('category', 'customers')
@@ -69,7 +64,6 @@ def add_contact_view():
     email = request.form.get('email', '')
     notes = request.form.get('notes', '')
     
-    # استدعاء الدالة الجاهزة في الخدمة
     result = wa_service.add_contact(
         name=name,
         phone=phone,
@@ -89,7 +83,7 @@ def add_contact_view():
 
 
 # =========================================================================
-# 3. استيراد ملف CSV (يتم استدعاؤها من routes.py)
+# 3. استيراد ملف CSV
 # =========================================================================
 @login_required
 def import_contacts_view():
@@ -126,7 +120,7 @@ def import_contacts_view():
 
 
 # =========================================================================
-# 4. إرسال حملة جماعية (يتم استدعاؤها من routes.py)
+# 4. إرسال حملة جماعية
 # =========================================================================
 @login_required
 def send_broadcast_view():
@@ -136,7 +130,6 @@ def send_broadcast_view():
     target_category = request.form.get('target_category', 'all')
     message_text = request.form.get('message_text', '')
     
-    # جلب قائمة الأرقام المستهدفة بناءً على الفئة
     target_phones = []
     
     if target_category == 'all' or target_category == 'customers':
@@ -151,10 +144,8 @@ def send_broadcast_view():
         marketers = Marketer.query.all()
         target_phones.extend([m.phone for m in marketers if m.phone])
     
-    # إرسال الرسائل
     sent_count = 0
     for phone in target_phones:
-        # استبدال المتغيرات في الرسالة (مثال: {name})
         personalized_message = message_text.replace("{phone}", phone)
         
         result = wa_service.send_message(recipient_phone=phone, text=personalized_message)
