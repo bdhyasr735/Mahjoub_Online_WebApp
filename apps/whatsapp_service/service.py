@@ -10,7 +10,7 @@ import json
 import hmac
 import hashlib
 import requests
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
 # ✅ استيراد Cloudinary
@@ -310,7 +310,7 @@ class WhatsAppService:
                     name=name if name != "عميل واتساب" else f"عميل (+{phone})",
                     whatsapp_profile_name=name,
                     last_message=last_message,
-                    last_timestamp=datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))),
+                    last_timestamp=datetime.utcnow(),
                     unread_count=1
                 )
                 db.session.add(contact)
@@ -320,7 +320,7 @@ class WhatsAppService:
                     contact.whatsapp_profile_name = name
                 if last_message:
                     contact.last_message = last_message
-                    contact.last_timestamp = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3)))
+                    contact.last_timestamp = datetime.utcnow()
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -332,7 +332,7 @@ class WhatsAppService:
                 "phone": phone,
                 "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
                 "last_message": last_message,
-                "last_message_time": datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M"),
+                "last_message_time": datetime.utcnow().strftime("%H:%M"),
                 "unread_count": 1
             }
         else:
@@ -340,7 +340,7 @@ class WhatsAppService:
                 self.contacts_db[phone]["name"] = name
             if last_message:
                 self.contacts_db[phone]["last_message"] = last_message
-                self.contacts_db[phone]["last_message_time"] = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M")
+                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
@@ -407,12 +407,12 @@ class WhatsAppService:
             "media_id": media_id,
             "media_url": media_url,
             "status": status,
-            "timestamp": datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M")
+            "timestamp": datetime.utcnow().strftime("%H:%M")
         })
 
     def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
         self.webhook_logs.insert(0, {
-            "timestamp": datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M:%S"),
+            "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
             "event_type": event_type,
             "phone": phone,
             "status": status
@@ -427,26 +427,33 @@ class WhatsAppService:
             
             result = []
             for c in contacts:
-                data = c.to_dict()
-                # ✅ حساب حالة الاتصال و آخر ظهور بتوقيت اليمن (UTC+3)
+                data = {
+                    'phone': c.phone,
+                    'name': c.name or c.whatsapp_profile_name or f"عميل ({c.phone})",
+                    'last_message': c.last_message,
+                    'last_timestamp': c.last_timestamp.isoformat() if c.last_timestamp else None,
+                    'unread_count': c.unread_count,
+                    'is_online': False,
+                    'last_seen': 'آخر ظهور اليوم'
+                }
+                # ✅ حساب حالة الاتصال و آخر ظهور (بدون تعارض)
                 if c.last_timestamp:
-                    # تحويل الوقت إلى توقيت اليمن
-                    local_time = c.last_timestamp + timedelta(hours=3)
-                    time_diff = datetime.now(timezone.utc) - c.last_timestamp
-                    if time_diff.total_seconds() < 300:  # أقل من 5 دقائق
-                        data['is_online'] = True
-                        data['last_seen'] = 'متصل الآن'
-                    else:
-                        data['is_online'] = False
-                        if local_time.date() == datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).date():
-                            data['last_seen'] = f"آخر ظهور اليوم {local_time.strftime('%H:%M')}"
-                        elif local_time.date() == (datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).date() - timedelta(days=1)):
-                            data['last_seen'] = f"آخر ظهور أمس {local_time.strftime('%H:%M')}"
+                    if isinstance(c.last_timestamp, datetime):
+                        # ✅ التعامل مع تواريخ naive فقط
+                        c.last_timestamp = c.last_timestamp.replace(tzinfo=None)
+                        
+                        time_diff = datetime.utcnow() - c.last_timestamp
+                        if time_diff.total_seconds() < 300:  # أقل من 5 دقائق
+                            data['is_online'] = True
+                            data['last_seen'] = 'متصل الآن'
                         else:
-                            data['last_seen'] = f"آخر ظهور {local_time.strftime('%d/%m/%Y %H:%M')}"
-                else:
-                    data['is_online'] = False
-                    data['last_seen'] = 'آخر ظهور غير معروف'
+                            data['is_online'] = False
+                            if c.last_timestamp.date() == datetime.utcnow().date():
+                                data['last_seen'] = f"آخر ظهور اليوم {c.last_timestamp.strftime('%H:%M')}"
+                            elif c.last_timestamp.date() == (datetime.utcnow() - timedelta(days=1)).date():
+                                data['last_seen'] = f"آخر ظهور أمس {c.last_timestamp.strftime('%H:%M')}"
+                            else:
+                                data['last_seen'] = f"آخر ظهور {c.last_timestamp.strftime('%d/%m/%Y %H:%M')}"
                 result.append(data)
             
             return result
@@ -466,8 +473,16 @@ class WhatsAppService:
             # تحويل الرسائل إلى قوائم مع دعم الوسائط
             result = []
             for m in messages:
-                item = m.to_dict()
-                # ✅ لا حاجة لاستدعاء _get_media_url هنا لأن media_url محفوظ بالفعل
+                item = {
+                    'id': m.id,
+                    'direction': m.direction,
+                    'content': m.content,
+                    'status': m.status,
+                    'timestamp': m.timestamp.strftime("%H:%M") if m.timestamp else '',
+                    'media_url': m.media_url,
+                    'media_type': m.message_type,
+                    'media_filename': m.media_filename,
+                }
                 result.append(item)
             
             return result
