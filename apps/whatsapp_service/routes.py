@@ -261,7 +261,7 @@ def webhook_logs_view():
 
 
 # =========================================================================
-# 4. 🆕 مسارات جهات الاتصال والإرسال الجماعي (أضفناها الآن)
+# 4. 🆕 مسارات جهات الاتصال والإرسال الجماعي (تعمل مع service.py الحالي)
 # =========================================================================
 
 @whatsapp_bp.route('/contacts-bulk', methods=['GET'])
@@ -321,10 +321,32 @@ def import_contacts_view():
     wa_service = WhatsAppService()
     
     file = request.files.get('file')
-    # هنا كود قراءة الملف
-    wa_service.import_contacts(file)
+    default_category = request.form.get('default_category', 'customers')
     
-    flash('تم استيراد جهات الاتصال بنجاح!', 'success')
+    if not file:
+        flash('يرجى رفع ملف أولاً', 'danger')
+        return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+    
+    try:
+        import csv
+        import io
+        stream = io.StringIO(file.read().decode("UTF-8"))
+        reader = csv.DictReader(stream)
+        
+        imported_count = 0
+        for row in reader:
+            name = row.get('Name') or row.get('name')
+            phone = row.get('Phone') or row.get('phone')
+            category = row.get('Category', default_category)
+            
+            if name and phone:
+                wa_service.add_contact(name=name, phone=phone, category=category)
+                imported_count += 1
+        
+        flash(f'تم استيراد {imported_count} جهة اتصال بنجاح!', 'success')
+    except Exception as e:
+        flash(f'خطأ في الاستيراد: {str(e)}', 'danger')
+        
     return redirect(url_for('whatsapp_service.contacts_bulk_view'))
 
 
@@ -334,8 +356,31 @@ def send_broadcast_view():
     from apps.whatsapp_service.service import WhatsAppService
     wa_service = WhatsAppService()
     
-    data = request.form.to_dict()
-    result = wa_service.send_bulk_messages(data)
+    campaign_name = request.form.get('campaign_name', '')
+    target_category = request.form.get('target_category', 'all')
+    message_text = request.form.get('message_text', '')
     
-    flash('تم إرسال الحملة بنجاح!', 'success')
+    # جلب قائمة الأرقام المستهدفة
+    target_phones = []
+    
+    if target_category == 'all' or target_category == 'customers':
+        customers = WhatsAppCustomerContact.query.all()
+        target_phones.extend([c.phone for c in customers])
+    
+    if target_category == 'all' or target_category == 'suppliers':
+        suppliers = Supplier.query.all()
+        target_phones.extend([s.phone for s in suppliers if s.phone])
+    
+    if target_category == 'all' or target_category == 'marketers':
+        marketers = Marketer.query.all()
+        target_phones.extend([m.phone for m in marketers if m.phone])
+    
+    sent_count = 0
+    for phone in target_phones:
+        personalized_message = message_text.replace("{phone}", phone)
+        result = wa_service.send_message(recipient_phone=phone, text=personalized_message)
+        if result.get('status') in ['sent', 'simulated']:
+            sent_count += 1
+    
+    flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال!', 'success')
     return redirect(url_for('whatsapp_service.contacts_bulk_view'))
