@@ -6,14 +6,13 @@ WhatsApp Service Package for Meta Cloud API v26.0
 """
 
 from .service import WhatsAppService
-from .routes import whatsapp_bp
-from .contacts_bulk import contacts_bulk_bp  # ✅ إضافة Blueprint جهات الاتصال
+from .routes import whatsapp_bp, webhook_public_bp  # ✅ أضفنا webhook_public_bp
 from .registry import register_service, register_module
 
 __all__ = [
     "WhatsAppService",
     "whatsapp_bp",
-    "contacts_bulk_bp",  # ✅ إضافة إلى القائمة العامة
+    "webhook_public_bp",  # ✅ إضافة webhook_public_bp
     "register_service",
     "register_module"
 ]
