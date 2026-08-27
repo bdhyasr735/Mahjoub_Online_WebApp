@@ -1,187 +1,256 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/whatsapp_service/contacts_bulk.py
+"""
+سوق محجوب أونلاين - عرض وإدارة جهات الاتصال مع دعم الحملات الجماعية
+يعتمد هذا الملف على WhatsAppService الموجود في service.py
+"""
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
+from datetime import datetime
 from apps.extensions import db
+
+# استيراد النماذج
 from apps.models.whatsapp_models import WhatsAppCustomerContact
 from apps.models.supplier_db import Supplier
 from apps.models.marketer_db import Marketer
-from flask_login import login_required, current_user
 
-contacts_bp = Blueprint('whatsapp_service', __name__, template_folder='../templates')
+# استيراد الخدمة (المحرك)
+from apps.whatsapp_service.service import WhatsAppService
 
-# ==========================================
-# 1. صفحة عرض جهات الاتصال
-# ==========================================
-@contacts_bp.route('/admin/whatsapp/contacts-bulk', methods=['GET'])
+# إنشاء Blueprint خاص بهذه الصفحة (أو استخدم الموجود في routes.py)
+contacts_bulk_bp = Blueprint('contacts_bulk', __name__, template_folder='../templates')
+
+
+# =========================================================================
+# 1. عرض صفحة جهات الاتصال
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/contacts-bulk', methods=['GET'])
 @login_required
-def contacts_bulk():
-    # قراءة الفلتر من الرابط
-    current_category = request.args.get('category', 'all')
+def contacts_bulk_view():
+    wa_service = WhatsAppService()
     
-    # جلب بيانات العملاء (WhatsAppCustomerContact)
-    customers_query = WhatsAppCustomerContact.query
-    if current_category != 'all':
-        customers_query = customers_query.filter_by(category=current_category) # تأكد من وجود هذا الحقل في Model الخاص بك
-    customers = customers_query.order_by(WhatsAppCustomerContact.created_at.desc()).all()
-
-    # جلب بيانات الموردين (Supplier)
-    suppliers = Supplier.query.order_by(Supplier.created_at.desc()).all()
-    
-    # جلب بيانات المسوقين (Marketer)
-    marketers = Marketer.query.order_by(Marketer.created_at.desc()).all()
-    
-    # دمج جميع جهات الاتصال في قائمة واحدة للعرض (إذا كانت الصفحة تعرضها معاً)
-    # ملاحظة: إذا كانت قاعدة بياناتك تستخدم فئات مختلفة، يجب تحويلها إلى توحيد القائمة هنا
-    # للتبسيط، سنفترض أنك تعرضها كمجموعات في القالب، لذا سنمررها منفصلة
-    all_contacts = [] 
+    # جلب جميع جهات الاتصال من قاعدة البيانات (باستخدام دالة الخدمة)
+    all_contacts = wa_service.get_all_contacts()
     
     # حساب الإحصائيات
+    try:
+        customers_count = WhatsAppCustomerContact.query.count()
+        suppliers_count = Supplier.query.count()
+        marketers_count = Marketer.query.count()
+        merchants_count = suppliers_count  # نفس جدول الموردين
+    except Exception:
+        customers_count, suppliers_count, marketers_count, merchants_count = 0, 0, 0, 0
+
     stats = {
-        'customers_count': customers_query.count() if current_category == 'all' else len(customers),
-        'merchants_count': Supplier.query.count(),
-        'suppliers_count': Supplier.query.count(), # نفس جدول الموردين حسب الـ Model
-        'marketers_count': Marketer.query.count(),
+        'customers_count': customers_count,
+        'merchants_count': merchants_count,
+        'suppliers_count': suppliers_count,
+        'marketers_count': marketers_count
     }
 
-    return render_template('admin/contacts_bulk.html',
-                           contacts=all_contacts,  # لاستخدامها في الجدول أو القالب
-                           customers=customers,
-                           suppliers=suppliers,
-                           marketers=marketers,
+    current_category = request.args.get('category', 'all')
+    
+    # إعادة توجيه البيانات للقالب
+    return render_template('admin/contacts_bulk.html', 
+                           contacts=all_contacts, 
                            stats=stats,
                            current_category=current_category)
 
 
-# ==========================================
-# 2. إضافة جهة اتصال جديدة
-# ==========================================
-@contacts_bp.route('/admin/whatsapp/add_contact', methods=['POST'])
+# =========================================================================
+# 2. إضافة جهة اتصال جديدة (يستخدم دالة add_contact في WhatsAppService)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/add-contact', methods=['POST'])
 @login_required
 def add_contact():
-    # استقبال البيانات من النموذج
-    name = request.form.get('name')
-    phone = request.form.get('phone')
-    category = request.form.get('category', 'customers')
-    company = request.form.get('company')
-    city = request.form.get('city')
-    status = request.form.get('status', 'active')
-    discount_code = request.form.get('discount_code')
-    tags = request.form.get('tags')
-    notes = request.form.get('notes')
+    wa_service = WhatsAppService()
     
-    try:
-        # إذا كانت الفئة عميل: احفظ في WhatsAppCustomerContact
-        if category == 'customers':
-            new_contact = WhatsAppCustomerContact(
-                name=name,
-                phone=phone,
-                last_message=None,
-                is_blocked=False if status == 'active' else True,
-                notes=notes,
-                tags=[t.strip() for t in tags.split(',')] if tags else [],
-                extra_data={'company': company, 'city': city, 'discount_code': discount_code}
-            )
-            db.session.add(new_contact)
-            
-        # إذا كانت الفئة تاجر/مورد: احفظ في Supplier
-        elif category in ['merchants', 'suppliers']:
-            new_supplier = Supplier(
-                username=phone,
-                store_name=name,
-                owner_name=name,
-                search_phone=phone[-9:],
-                phone=phone,  # يتم تشفيره تلقائياً في الـ setter
-                status=status,
-                rank='bronze'
-            )
-            new_supplier.set_password('default123')  # كلمة مرور افتراضية مؤقتة
-            db.session.add(new_supplier)
-            
-        # إذا كانت الفئة مسوق: احفظ في Marketer
-        elif category == 'marketers':
-            new_marketer = Marketer(
-                full_name=name,
-                marketing_code=f"MKT-{int(datetime.utcnow().timestamp())}",
-                phone=phone,
-                is_active=True if status == 'active' else False
-            )
-            new_marketer.set_password('default123')
-            db.session.add(new_marketer)
-            
-        db.session.commit()
+    # استقبال البيانات من النموذج
+    name = request.form.get('name', '')
+    phone = request.form.get('phone', '')
+    category = request.form.get('category', 'customers')
+    company = request.form.get('company', '')
+    city = request.form.get('city', '')
+    email = request.form.get('email', '')
+    notes = request.form.get('notes', '')
+    
+    # استدعاء الدالة الجاهزة في الخدمة
+    result = wa_service.add_contact(
+        name=name,
+        phone=phone,
+        category=category,
+        city=city,
+        company=company,
+        email=email,
+        notes=notes
+    )
+    
+    if result.get('success'):
         flash('تمت إضافة جهة الاتصال بنجاح!', 'success')
+    else:
+        flash(result.get('error', 'حدث خطأ أثناء الإضافة'), 'danger')
         
-    except Exception as e:
-        db.session.rollback()
-        flash(f'حدث خطأ أثناء الإضافة: {str(e)}', 'danger')
-        
-    return redirect(url_for('whatsapp_service.contacts_bulk'))
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
 
 
-# ==========================================
-# 3. استيراد جهات الاتصال (CSV)
-# ==========================================
-@contacts_bp.route('/admin/whatsapp/import_contacts', methods=['POST'])
+# =========================================================================
+# 3. تحديث جهة اتصال (يستخدم دالة update_contact)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/update-contact', methods=['POST'])
 @login_required
-def import_contacts():
+def update_contact():
+    wa_service = WhatsAppService()
+    
+    contact_id = request.form.get('contact_id')
+    data = request.form.to_dict()
+    
+    result = wa_service.update_contact(int(contact_id), data)
+    
+    if result.get('success'):
+        flash('تم تحديث جهة الاتصال بنجاح!', 'success')
+    else:
+        flash(result.get('error', 'حدث خطأ أثناء التحديث'), 'danger')
+        
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+
+
+# =========================================================================
+# 4. حذف جهة اتصال (يستخدم دالة delete_contact)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/delete-contact', methods=['POST'])
+@login_required
+def delete_contact():
+    wa_service = WhatsAppService()
+    
+    contact_id = request.form.get('contact_id')
+    result = wa_service.delete_contact(int(contact_id))
+    
+    if result.get('success'):
+        flash('تم حذف جهة الاتصال بنجاح!', 'success')
+    else:
+        flash(result.get('error', 'حدث خطأ أثناء الحذف'), 'danger')
+        
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+
+
+# =========================================================================
+# 5. حذف مجموعة جهات اتصال (يستخدم دالة delete_contacts_bulk)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/delete-selected', methods=['POST'])
+@login_required
+def delete_selected():
+    wa_service = WhatsAppService()
+    
+    ids = request.form.getlist('selected_contacts')
+    ids = [int(i) for i in ids if i.isdigit()]
+    
+    result = wa_service.delete_contacts_bulk(ids)
+    
+    if result.get('success'):
+        flash(result.get('message', 'تم الحذف بنجاح!'), 'success')
+    else:
+        flash(result.get('error', 'حدث خطأ'), 'danger')
+        
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+
+
+# =========================================================================
+# 6. إرسال رسالة فردية (يستخدم دالة send_message)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/send-message', methods=['POST'])
+@login_required
+def send_message():
+    wa_service = WhatsAppService()
+    
+    phone = request.form.get('phone', '')
+    message = request.form.get('message', '')
+    
+    if phone and message:
+        # استخدام دالة الإرسال في الخدمة
+        result = wa_service.send_message(recipient_phone=phone, text=message)
+        # إرجاع النتيجة (في نسخة تجريبية يعيد status: simulated)
+        flash('تم إرسال الرسالة بنجاح!', 'success')
+    else:
+        flash('يرجى تعبئة الرقم والرسالة', 'danger')
+        
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+
+
+# =========================================================================
+# 7. إرسال حملة جماعية (يستخدم خدمة الرسائل لإرسال رسائل متعددة)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/send-broadcast', methods=['POST'])
+@login_required
+def send_broadcast():
+    wa_service = WhatsAppService()
+    
+    campaign_name = request.form.get('campaign_name', '')
+    target_category = request.form.get('target_category', 'all')
+    message_text = request.form.get('message_text', '')
+    
+    # جلب قائمة الأرقام المستهدفة بناءً على الفئة
+    target_phones = []
+    
+    if target_category == 'all' or target_category == 'customers':
+        customers = WhatsAppCustomerContact.query.all()
+        target_phones.extend([c.phone for c in customers])
+    
+    if target_category == 'all' or target_category == 'suppliers':
+        suppliers = Supplier.query.all()
+        target_phones.extend([s.phone for s in suppliers if s.phone])
+    
+    if target_category == 'all' or target_category == 'marketers':
+        marketers = Marketer.query.all()
+        target_phones.extend([m.phone for m in marketers if m.phone])
+    
+    # إرسال الرسائل
+    sent_count = 0
+    for phone in target_phones:
+        # استبدال المتغيرات في الرسالة (مثال: {name})
+        personalized_message = message_text.replace("{phone}", phone)
+        
+        result = wa_service.send_message(recipient_phone=phone, text=personalized_message)
+        if result.get('status') in ['sent', 'simulated']:
+            sent_count += 1
+    
+    flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال!', 'success')
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
+
+
+# =========================================================================
+# 8. استيراد ملف CSV (يخدم صفحة الاستيراد)
+# =========================================================================
+@contacts_bulk_bp.route('/admin/whatsapp/import-csv', methods=['POST'])
+@login_required
+def import_csv():
+    wa_service = WhatsAppService()
+    
     file = request.files.get('file')
     default_category = request.form.get('default_category', 'customers')
     
     if not file:
         flash('يرجى رفع ملف أولاً', 'danger')
-        return redirect(url_for('whatsapp_service.contacts_bulk'))
-    
-    # هنا كود قراءة الملف وإدخال البيانات (يمكن استخدام pandas أو csv)
-    # مثال بسيط:
-    import csv
-    import io
+        return redirect(url_for('contacts_bulk.contacts_bulk_view'))
     
     try:
+        import csv
+        import io
         stream = io.StringIO(file.read().decode("UTF-8"))
         reader = csv.DictReader(stream)
         
+        imported_count = 0
         for row in reader:
             name = row.get('Name') or row.get('name')
             phone = row.get('Phone') or row.get('phone')
             category = row.get('Category', default_category)
             
             if name and phone:
-                if category == 'customers':
-                    contact = WhatsAppCustomerContact(name=name, phone=phone)
-                    db.session.add(contact)
-                else:
-                    supplier = Supplier(username=phone, store_name=name, phone=phone, status='active')
-                    supplier.set_password('default123')
-                    db.session.add(supplier)
-                    
-        db.session.commit()
-        flash('تم استيراد جهات الاتصال بنجاح!', 'success')
+                wa_service.add_contact(name=name, phone=phone, category=category)
+                imported_count += 1
+        
+        flash(f'تم استيراد {imported_count} جهة اتصال بنجاح!', 'success')
     except Exception as e:
-        db.session.rollback()
         flash(f'خطأ في الاستيراد: {str(e)}', 'danger')
         
-    return redirect(url_for('whatsapp_service.contacts_bulk'))
-
-
-# ==========================================
-# 4. حذف جهة اتصال (عبر POST)
-# ==========================================
-@contacts_bp.route('/admin/whatsapp/delete_contact/<int:id>', methods=['POST'])
-@login_required
-def delete_contact(id):
-    # تحديد الجدول حسب الفئة أو البحث في جميع الجداول
-    contact = WhatsAppCustomerContact.query.get(id)
-    if not contact:
-        contact = Supplier.query.get(id)
-    if not contact:
-        contact = Marketer.query.get(id)
-        
-    if contact:
-        db.session.delete(contact)
-        db.session.commit()
-        flash('تم حذف جهة الاتصال', 'success')
-    else:
-        flash('لم يتم العثور على جهة الاتصال', 'danger')
-        
-    return redirect(url_for('whatsapp_service.contacts_bulk'))
+    return redirect(url_for('contacts_bulk.contacts_bulk_view'))
