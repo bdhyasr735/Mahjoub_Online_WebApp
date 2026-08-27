@@ -5,7 +5,8 @@
 Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 """
 
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from datetime import datetime
 
 # تعريف الـ Blueprint الإداري
 whatsapp_bp = Blueprint(
@@ -257,3 +258,84 @@ def webhook_logs_view():
     
     logs = wa_service.get_webhook_logs()
     return render_template('admin/webhook_logs.html', logs=logs)
+
+
+# =========================================================================
+# 4. 🆕 مسارات جهات الاتصال والإرسال الجماعي (أضفناها الآن)
+# =========================================================================
+
+@whatsapp_bp.route('/contacts-bulk', methods=['GET'])
+def contacts_bulk_view():
+    """عرض صفحة جهات الاتصال والإرسال الجماعي (مطابقة للصور من Gemini)"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    # جلب البيانات من قاعدة البيانات
+    contacts = wa_service.get_all_contacts()
+    
+    # إحصائيات للعرض
+    stats = {
+        'customers_count': 124,   # يمكن استبدالها بعدد العملاء الحقيقي
+        'merchants_count': 48,
+        'suppliers_count': 32,
+        'marketers_count': 55
+    }
+    
+    current_category = request.args.get('category', 'all')
+    
+    return render_template('admin/contacts_bulk.html', 
+                           contacts=contacts, 
+                           stats=stats,
+                           current_category=current_category)
+
+
+@whatsapp_bp.route('/add-contact', methods=['POST'])
+def add_contact_view():
+    """إضافة جهة اتصال جديدة"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.form.to_dict()
+    result = wa_service.add_contact(
+        name=data.get('name', ''),
+        phone=data.get('phone', ''),
+        category=data.get('category', 'customers'),
+        company=data.get('company', ''),
+        city=data.get('city', ''),
+        email=data.get('email', ''),
+        notes=data.get('notes', '')
+    )
+    
+    if result.get('success'):
+        flash('تمت إضافة جهة الاتصال بنجاح!', 'success')
+    else:
+        flash(result.get('error', 'حدث خطأ أثناء الإضافة'), 'danger')
+        
+    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+
+
+@whatsapp_bp.route('/import-contacts', methods=['POST'])
+def import_contacts_view():
+    """استيراد جهات اتصال من ملف CSV أو Excel"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    file = request.files.get('file')
+    # هنا كود قراءة الملف
+    wa_service.import_contacts(file)
+    
+    flash('تم استيراد جهات الاتصال بنجاح!', 'success')
+    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+
+
+@whatsapp_bp.route('/send-broadcast', methods=['POST'])
+def send_broadcast_view():
+    """إرسال رسالة جماعية مستهدفة"""
+    from apps.whatsapp_service.service import WhatsAppService
+    wa_service = WhatsAppService()
+    
+    data = request.form.to_dict()
+    result = wa_service.send_bulk_messages(data)
+    
+    flash('تم إرسال الحملة بنجاح!', 'success')
+    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
