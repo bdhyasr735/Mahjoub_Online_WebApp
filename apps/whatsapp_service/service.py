@@ -10,7 +10,7 @@ import json
 import hmac
 import hashlib
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 
 # ✅ استيراد Cloudinary
@@ -164,7 +164,7 @@ class WhatsAppService:
                     "messaging_product": "whatsapp",
                     "to": clean_phone,
                     "type": media_type,
-                    media_type: {
+                    "media_type": {
                         "id": media_id
                     }
                 }
@@ -310,7 +310,7 @@ class WhatsAppService:
                     name=name if name != "عميل واتساب" else f"عميل (+{phone})",
                     whatsapp_profile_name=name,
                     last_message=last_message,
-                    last_timestamp=datetime.utcnow(),
+                    last_timestamp=datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))),
                     unread_count=1
                 )
                 db.session.add(contact)
@@ -320,7 +320,7 @@ class WhatsAppService:
                     contact.whatsapp_profile_name = name
                 if last_message:
                     contact.last_message = last_message
-                    contact.last_timestamp = datetime.utcnow()
+                    contact.last_timestamp = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3)))
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -332,7 +332,7 @@ class WhatsAppService:
                 "phone": phone,
                 "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
                 "last_message": last_message,
-                "last_message_time": datetime.utcnow().strftime("%H:%M"),
+                "last_message_time": datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M"),
                 "unread_count": 1
             }
         else:
@@ -340,7 +340,7 @@ class WhatsAppService:
                 self.contacts_db[phone]["name"] = name
             if last_message:
                 self.contacts_db[phone]["last_message"] = last_message
-                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
+                self.contacts_db[phone]["last_message_time"] = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M")
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """توليد وإرسال رد ذكي فوري باسم سوق محجوب أونلاين"""
@@ -407,12 +407,12 @@ class WhatsAppService:
             "media_id": media_id,
             "media_url": media_url,
             "status": status,
-            "timestamp": datetime.utcnow().strftime("%H:%M")
+            "timestamp": datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M")
         })
 
     def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
         self.webhook_logs.insert(0, {
-            "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
+            "timestamp": datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).strftime("%H:%M:%S"),
             "event_type": event_type,
             "phone": phone,
             "status": status
@@ -428,22 +428,22 @@ class WhatsAppService:
             result = []
             for c in contacts:
                 data = c.to_dict()
-                # ✅ حساب حالة الاتصال و آخر ظهور بدقة
+                # ✅ حساب حالة الاتصال و آخر ظهور بتوقيت اليمن (UTC+3)
                 if c.last_timestamp:
-                    time_diff = datetime.utcnow() - c.last_timestamp
+                    # تحويل الوقت إلى توقيت اليمن
+                    local_time = c.last_timestamp + timedelta(hours=3)
+                    time_diff = datetime.now(timezone.utc) - c.last_timestamp
                     if time_diff.total_seconds() < 300:  # أقل من 5 دقائق
                         data['is_online'] = True
                         data['last_seen'] = 'متصل الآن'
                     else:
                         data['is_online'] = False
-                        # تنسيق التاريخ والوقت
-                        last_seen = c.last_timestamp
-                        if last_seen.date() == datetime.utcnow().date():
-                            data['last_seen'] = f"آخر ظهور اليوم {last_seen.strftime('%H:%M')}"
-                        elif last_seen.date() == (datetime.utcnow() - timedelta(days=1)).date():
-                            data['last_seen'] = f"آخر ظهور أمس {last_seen.strftime('%H:%M')}"
+                        if local_time.date() == datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).date():
+                            data['last_seen'] = f"آخر ظهور اليوم {local_time.strftime('%H:%M')}"
+                        elif local_time.date() == (datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3))).date() - timedelta(days=1)):
+                            data['last_seen'] = f"آخر ظهور أمس {local_time.strftime('%H:%M')}"
                         else:
-                            data['last_seen'] = f"آخر ظهور {last_seen.strftime('%d/%m/%Y %H:%M')}"
+                            data['last_seen'] = f"آخر ظهور {local_time.strftime('%d/%m/%Y %H:%M')}"
                 else:
                     data['is_online'] = False
                     data['last_seen'] = 'آخر ظهور غير معروف'
