@@ -428,18 +428,25 @@ class WhatsAppService:
             result = []
             for c in contacts:
                 data = c.to_dict()
-                # ✅ محاكاة "متصل الآن" إذا كان آخر تفاعل قبل أقل من 5 دقائق
+                # ✅ حساب حالة الاتصال و آخر ظهور بدقة
                 if c.last_timestamp:
                     time_diff = datetime.utcnow() - c.last_timestamp
-                    if time_diff.total_seconds() < 300:  # 5 دقائق
+                    if time_diff.total_seconds() < 300:  # أقل من 5 دقائق
                         data['is_online'] = True
                         data['last_seen'] = 'متصل الآن'
                     else:
                         data['is_online'] = False
-                        data['last_seen'] = c.last_timestamp.strftime("%H:%M")
+                        # تنسيق التاريخ والوقت
+                        last_seen = c.last_timestamp
+                        if last_seen.date() == datetime.utcnow().date():
+                            data['last_seen'] = f"آخر ظهور اليوم {last_seen.strftime('%H:%M')}"
+                        elif last_seen.date() == (datetime.utcnow() - timedelta(days=1)).date():
+                            data['last_seen'] = f"آخر ظهور أمس {last_seen.strftime('%H:%M')}"
+                        else:
+                            data['last_seen'] = f"آخر ظهور {last_seen.strftime('%d/%m/%Y %H:%M')}"
                 else:
                     data['is_online'] = False
-                    data['last_seen'] = 'اليوم'
+                    data['last_seen'] = 'آخر ظهور غير معروف'
                 result.append(data)
             
             return result
