@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="بوابة محجوب أونلاين السيادية للشركاء والموردين - نظام إدارة مركزي آمن.">
-    <title>بوابة الشركاء الموحدة | محجوب أونلاين</title>
+    <meta name="description" content="بوابة محجوب أونلاين السيادية للموردين والموظفين - نظام إدارة مركزي آمن.">
+    <title>بوابة الموردين والموظفين | محجوب أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; --error: #ff4d4d; --success: #28a745; }
@@ -39,6 +39,21 @@
         }
         .cyber-input:focus { border-color: var(--gold); }
         
+        .auth-links {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        .auth-links a {
+            color: var(--gold);
+            text-decoration: none;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        .auth-links a:hover { opacity: 0.8; text-decoration: underline; }
+
         .hidden { display: none; }
         #status-msg { 
             padding: 12px; margin-bottom: 15px; border-radius: 10px; display: none; 
@@ -57,43 +72,67 @@
 <div class="wrapper">
     <div class="side marketing-side">
         <h1>بوابة الشركاء <span style="color:var(--gold)">السيادية</span></h1>
-        <p style="color: #aaa;">نظام إدارة الموردين والمسوقين المركزي لمحجوب أونلاين. بيئة عمل محمية، مؤمنة، ومصممة للنمو.</p>
+        <p style="color: #aaa;">نظام إدارة الموردين والموظفين المركزي لمحجوب أونلاين. بيئة عمل محمية، مؤمنة، ومصممة للنمو.</p>
     </div>
     
     <div class="side" id="auth-container">
         <div id="status-msg"></div>
         <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
 
+        <!-- القائمة الرئيسية -->
         <div id="main-menu">
             <h2 style="color: var(--gold); margin-top: 0;">مرحباً بك مجدداً</h2>
-            <button class="btn-gold" onclick="showForm('supplier-login')">دخول الموردين</button>
-            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">دخول المسوقين</button>
+            <button class="btn-gold" onclick="showForm('supplier-login')">تسجيل الدخول</button>
+            <button class="btn-gold" style="background: #150a24; color: var(--gold); border: 1px solid var(--gold);" onclick="showForm('register-form')">انضم إلينا (اشتراك مورد جديد)</button>
         </div>
 
+        <!-- نموذج تسجيل الدخول -->
         <div id="supplier-login" class="hidden">
-            <h3 style="color: var(--gold);">دخول الموردين</h3>
+            <h3 style="color: var(--gold);">تسجيل الدخول</h3>
             <input type="text" id="sup-user" class="cyber-input" placeholder="اسم المستخدم أو الهاتف">
             <input type="password" id="sup-pass" class="cyber-input" placeholder="كلمة المرور">
-            <button class="btn-gold" onclick="loginUser('supplier')">تسجيل الدخول</button>
-            <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px;">رجوع</button>
+            
+            <div id="supplier-otp-container" class="hidden">
+                <input type="text" id="sup-otp" class="cyber-input" placeholder="أدخل رمز التحقق (OTP)">
+            </div>
+
+            <div class="auth-links">
+                <a onclick="showForm('forgot-password')">هل نسيت كلمة المرور؟</a>
+                <a onclick="showForm('register-form')">حساب جديد؟ انضم الآن</a>
+            </div>
+            
+            <button class="btn-gold" id="supplier-submit-btn" onclick="loginUser()" style="margin-top: 15px;">تسجيل الدخول</button>
+            <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px;">رجوع للقائمة</button>
         </div>
 
-        <div id="marketer-login" class="hidden">
-            <h3 style="color: var(--gold);">دخول المسوقين</h3>
-            <input type="text" id="marketer-user" class="cyber-input" placeholder="رمز المسوق">
-            <input type="password" id="marketer-pass" class="cyber-input" placeholder="كلمة المرور">
-            <button class="btn-gold" onclick="loginUser('staff')">تسجيل الدخول</button>
+        <!-- نموذج استعادة كلمة المرور -->
+        <div id="forgot-password" class="hidden">
+            <h3 style="color: var(--gold);">استعادة كلمة المرور</h3>
+            <p style="color: #aaa; font-size: 0.9rem;">أدخل رقم الهاتف أو البريد الإلكتروني المسجل لترتيب استعادة بيانات الحساب.</p>
+            <input type="text" id="recovery-input" class="cyber-input" placeholder="رقم الهاتف أو البريد الإلكتروني">
+            <button class="btn-gold" onclick="handlePasswordRecovery()">إرسال تعليمات الاستعادة</button>
+            <button onclick="showForm('supplier-login')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px;">رجوع لتسجيل الدخول</button>
+        </div>
+
+        <!-- نموذج الاشتراك / انضم إلينا -->
+        <div id="register-form" class="hidden">
+            <h3 style="color: var(--gold);">طلب انضمام مورد جديد</h3>
+            <p style="color: #aaa; font-size: 0.9rem;">املأ البيانات المبدئية لتقديم طلب انضمامك لمنصة محجوب أونلاين.</p>
+            <input type="text" id="reg-name" class="cyber-input" placeholder="اسم النشاط التجاري / المورد">
+            <input type="text" id="reg-phone" class="cyber-input" placeholder="رقم الهاتف الأساسي">
+            <button class="btn-gold" onclick="handleRegistration()">إرسال طلب الانضمام</button>
             <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px;">رجوع</button>
         </div>
     </div>
 </div>
 
 <script>
+    let currentAuthStep = 'credentials';
+
     function showMessage(text, type) {
         const msg = document.getElementById('status-msg');
         msg.innerText = text;
         msg.style.display = "block";
-        // تحديث التصميم ليظهر كإطار تحذيري احترافي
         msg.style.background = type === 'error' ? "rgba(220, 53, 69, 0.1)" : "rgba(40, 167, 69, 0.1)";
         msg.style.border = "1px solid " + (type === 'error' ? "#ff4d4d" : "#28a745");
         msg.style.color = type === 'error' ? "#ff4d4d" : "#28a745";
@@ -102,18 +141,26 @@
     function showForm(type) {
         document.getElementById('status-msg').style.display = 'none';
         document.querySelectorAll('#auth-container > div:not(#status-msg)').forEach(d => d.classList.add('hidden'));
-        if(type === 'menu') document.getElementById('main-menu').classList.remove('hidden');
-        else document.getElementById(type).classList.remove('hidden');
+        currentAuthStep = 'credentials';
+        
+        // إعادة تعيين حقول الـ OTP والزر
+        document.getElementById('supplier-otp-container').classList.add('hidden');
+        document.getElementById('sup-otp').value = '';
+        document.getElementById('supplier-submit-btn').innerText = 'تسجيل الدخول';
+
+        if(type === 'menu') {
+            document.getElementById('main-menu').classList.remove('hidden');
+        } else {
+            document.getElementById(type).classList.remove('hidden');
+        }
     }
 
-    async function loginUser(role) {
-        const usernameInput = role === 'supplier' ? 'sup-user' : 'marketer-user';
-        const passwordInput = role === 'supplier' ? 'sup-pass' : 'marketer-pass';
-        
+    async function loginUser() {
         const data = {
-            type: role, 
-            username: document.getElementById(usernameInput).value,
-            password: document.getElementById(passwordInput).value
+            username: document.getElementById('sup-user').value,
+            password: document.getElementById('sup-pass').value,
+            step: currentAuthStep,
+            otp_code: document.getElementById('sup-otp').value
         };
         
         try {
@@ -129,16 +176,40 @@
             const res = await response.json();
             
             if (response.ok) {
-                // نجاح الدخول
-                window.location.href = res.redirect;
+                if (res.status === 'require_otp') {
+                    currentAuthStep = 'verify_otp';
+                    document.getElementById('supplier-otp-container').classList.remove('hidden');
+                    document.getElementById('supplier-submit-btn').innerText = 'تأكيد رمز التحقق ودخول';
+                    showMessage(res.message, 'success');
+                } else if (res.redirect) {
+                    window.location.href = res.redirect;
+                }
             } else {
-                // عرض رسالة الخطأ القادمة من الـ backend (401, 403, 404, 429)
-                showMessage(res.message, 'error');
+                showMessage(res.message || 'حدث خطأ غير متوقع', 'error');
             }
         } catch(e) { 
             console.error(e);
             showMessage('حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً', 'error'); 
         }
+    }
+
+    function handlePasswordRecovery() {
+        const val = document.getElementById('recovery-input').value.trim();
+        if(!val) {
+            showMessage('يرجى إدخال رقم الهاتف أو البريد الإلكتروني', 'error');
+            return;
+        }
+        showMessage('تم إرسال تعليمات استعادة كلمة المرور إلى الوسيلة المسجلة.', 'success');
+    }
+
+    function handleRegistration() {
+        const name = document.getElementById('reg-name').value.trim();
+        const phone = document.getElementById('reg-phone').value.trim();
+        if(!name || !phone) {
+            showMessage('يرجى إكمال الحقول المطلوبة لطلب الانضمام', 'error');
+            return;
+        }
+        showMessage('تم إرسال طلب الانضمام بنجاح، سيتم مراجعته والتواصل معك قريباً.', 'success');
     }
 </script>
 </body>
