@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/suppliers_auth_portal/routes.py
 
 import os
@@ -10,9 +10,10 @@ from werkzeug.routing import BuildError
 
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
+from apps.suppliers_auth_portal.auth_service import SupplierAuthService
 
-# ✅ تعريف الـ Blueprint بالاسم المعتمد في التطبيق
 suppliers_bp = Blueprint('suppliers_auth', __name__, template_folder='templates')
+auth_service = SupplierAuthService()
 
 
 def get_wait_time(attempts):
@@ -21,9 +22,6 @@ def get_wait_time(attempts):
     return 2 ** (attempts - 6)
 
 
-# ============================================================
-# 🔍 مسار اختبار الدخول (للتشخيص)
-# ============================================================
 @suppliers_bp.route('/test-login', methods=['GET', 'POST'])
 def test_login():
     if request.method == 'GET':
@@ -97,9 +95,6 @@ def test_login():
         """
 
 
-# ============================================================
-# 🟣 مسار تسجيل الدخول الأساسي
-# ============================================================
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
@@ -110,11 +105,14 @@ def login():
             json_data = request.get_json() or {}
             username = json_data.get('username', '').strip()
             password = json_data.get('password', '')
+            step = json_data.get('step', 'credentials')
+            entered_otp = json_data.get('otp_code', '').strip()
         else:
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '')
+            step = request.form.get('step', 'credentials')
+            entered_otp = request.form.get('otp_code', '').strip()
 
-        # 1. التحقق من الحظر المؤقت
         block_until = session.get('block_until')
         if block_until and datetime.now() < datetime.fromisoformat(block_until):
             remaining = int((datetime.fromisoformat(block_until) - datetime.now()).total_seconds() / 60) + 1
@@ -123,7 +121,61 @@ def login():
                 return jsonify({"status": "error", "message": msg}), 429
             return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 2. البحث الشامل في جدول الموردين والموظفين التابعين لهم
+        if step == 'verify_otp':
+            stored_hash = session.get('pending_otp_hash')
+            expires_at_str = session.get('pending_otp_expires')
+            target_user_id = session.get('pending_user_id')
+            found_as = session.get('pending_user_type')
+
+            if not stored_hash or not expires_at_str or not target_user_id:
+                msg = "انتهت صلاحية جلسة التحقق، يرجى إعادة تسجيل الدخول."
+                if request.is_json:
+                    return jsonify({"status": "error", "message": msg}), 400
+                return render_template('suppliers_auth_portal/login.html', error=msg)
+
+            if datetime.now() > datetime.fromisoformat(expires_at_str):
+                session.pop('pending_otp_hash', None)
+                session.pop('pending_otp_expires', None)
+                session.pop('pending_user_id', None)
+                msg = "انتهت صلاحية رمز التحقق (OTP)، يرجى طلب رمز جديد."
+                if request.is_json:
+                    return jsonify({"status": "error", "message": msg}), 400
+                return render_template('suppliers_auth_portal/login.html', error=msg)
+
+            if not auth_service.verify_otp_hash(entered_otp, stored_hash):
+                msg = "رمز التحقق غير صحيح."
+                if request.is_json:
+                    return jsonify({"status": "error", "message": msg}), 400
+                return render_template('suppliers_auth_portal/login.html', error=msg, require_otp=True)
+
+            target_user = Supplier.query.get(target_user_id) if found_as == 'supplier' else SupplierStaff.query.get(target_user_id)
+            if not target_user:
+                msg = "حساب المستخدم غير موجود."
+                if request.is_json:
+                    return jsonify({"status": "error", "message": msg}), 404
+                return render_template('suppliers_auth_portal/login.html', error=msg)
+
+            session.pop('pending_otp_hash', None)
+            session.pop('pending_otp_expires', None)
+            session.pop('pending_user_id', None)
+            session.pop('pending_user_type', None)
+
+            session.permanent = True
+            session['user_type'] = found_as
+            session.pop('login_attempts', None)
+            session.pop('block_until', None)
+
+            login_user(target_user, remember=True)
+
+            try:
+                redirect_url = url_for('suppliers_dashboard.dashboard')
+            except BuildError:
+                redirect_url = '/supplier/dashboard'
+
+            if request.is_json:
+                return jsonify({"status": "success", "redirect": redirect_url})
+            return redirect(redirect_url)
+
         target_user = Supplier.query.filter(
             or_(Supplier.search_phone == username, Supplier.username == username)
         ).first()
@@ -135,14 +187,12 @@ def login():
             ).first()
             found_as = 'supplier_staff' if target_user else None
 
-        # 3. التحقق من وجود الحساب
         if not target_user:
             msg = "المستخدم غير مسجل في منصة الموردين"
             if request.is_json:
                 return jsonify({"status": "error", "message": msg}), 404
             return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 4. التحقق من كلمة المرور
         if not target_user.check_password(password.strip()):
             attempts = session.get('login_attempts', 0) + 1
             session['login_attempts'] = attempts
@@ -155,31 +205,37 @@ def login():
                 return jsonify({"status": "error", "message": msg}), 401
             return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 5. التحقق من التفعيل
         if hasattr(target_user, 'is_active') and not target_user.is_active:
             msg = "الحساب غير مفعل حالياً."
             if request.is_json:
                 return jsonify({"status": "error", "message": msg}), 403
             return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 6. تثبيت الجلسة وتسجيل الدخول
-        session.permanent = True
-        session['user_type'] = found_as
+        supplier_phone = getattr(target_user, 'search_phone', None) or getattr(target_user, 'phone', '')
+        supplier_email = getattr(target_user, 'email', '')
 
-        session.pop('login_attempts', None)
-        session.pop('block_until', None)
+        otp_result = auth_service.process_supplier_auth_otp(supplier_phone, supplier_email)
 
-        login_user(target_user, remember=True)
+        if not otp_result["success"]:
+            msg = "تعذر إرسال رمز التحقق عبر قنوات الاتصال، يرجى المحاولة لاحقاً."
+            if request.is_json:
+                return jsonify({"status": "error", "message": msg}), 500
+            return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        try:
-            redirect_url = url_for('suppliers_dashboard.dashboard')
-        except BuildError:
-            redirect_url = '/supplier/dashboard'
+        session['pending_otp_hash'] = otp_result["hashed_otp"]
+        session['pending_otp_expires'] = otp_result["expires_at"].isoformat()
+        session['pending_user_id'] = target_user.id
+        session['pending_user_type'] = found_as
 
+        success_msg = f"تم إرسال رمز التحقق بنجاح عبر قناة ({otp_result['channel']})."
         if request.is_json:
-            return jsonify({"status": "success", "redirect": redirect_url})
-
-        return redirect(redirect_url)
+            return jsonify({
+                "status": "require_otp",
+                "message": success_msg,
+                "channel": otp_result["channel"]
+            })
+        
+        return render_template('suppliers_auth_portal/login.html', require_otp=True, info=success_msg)
 
     except Exception as e:
         print(f"❌ [Supplier Login Error]: {str(e)}")
@@ -189,9 +245,6 @@ def login():
         return render_template('suppliers_auth_portal/login.html', error=msg)
 
 
-# ============================================================
-# 🟣 مسار تسجيل الخروج
-# ============================================================
 @suppliers_bp.route('/logout')
 @login_required
 def logout():
@@ -200,9 +253,6 @@ def logout():
     return redirect(url_for('suppliers_auth.login'))
 
 
-# ============================================================
-# ⚡ نافذة اختبار معمارية الحالة الصفرية المستقلة (ZSA Engine Window)
-# ============================================================
 def fallback_standard_method(supplier_id):
     return {"status": "fallback", "data": [0.0]}
 
