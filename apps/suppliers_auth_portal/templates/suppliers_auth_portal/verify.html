@@ -1,188 +1,102 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تأكيد الرمز السيادي | محجوب أونلاين</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;600;900&display=swap" rel="stylesheet">
-    <style>
-        :root { 
-            --bg: #05020a; 
-            --gold: #ce9e49; 
-            --card-bg: #0f071c; 
-            --input-bg: #000000;
-            --border-color: #333333;
+{% extends "suppliers_auth_portal/base.html" %}
+
+{% block title %}التحقق من الهوية | محجوب أونلاين{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* تنسيقات إضافية خاصة بصفحة التحقق لضمان التجربة المتكاملة على الهواتف والأجهزة اللوحية */
+    .verify-wrapper {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .otp-display-group {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .verify-wrapper {
+            max-width: 100%;
+            padding: 0 10px;
         }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body { 
-            font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; 
-            min-height: 100vh; display: flex; align-items: center; 
-            justify-content: center; padding: 15px;
+        h1 {
+            font-size: 1.6rem !important;
         }
+    }
+</style>
+{% endblock %}
 
-        .wrapper { 
-            display: flex; width: 100%; max-width: 480px; background: rgba(15, 7, 28, 0.95); 
-            border: 1px solid var(--border-color); border-radius: 25px; 
-            overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
+{% block content %}
+<div class="verify-wrapper">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span style="display: inline-block; padding: 10px; background: rgba(206, 158, 73, 0.1); border-radius: 50%; color: var(--gold); font-size: 1.5rem; margin-bottom: 10px;">🛡️</span>
+        <h1 style="color: var(--gold); margin: 0 0 10px 0;">التحقق الثنائي الآمن</h1>
+        <p style="color: #aaa; font-size: 0.95rem; line-height: 1.6; margin: 0;">
+            تم إرسال رمز التحقق المؤلف من 6 أرقام إلى وسيلة الاتصال المسجلة في حسابك. يرجى إدخاله أدناه لإتمام الجلسة.
+        </p>
+    </div>
 
-        .side { flex: 1; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; }
-        h3 { color: var(--gold); text-align: center; font-size: 1.5rem; font-weight: 900; margin-bottom: 10px; }
-        p { text-align: center; color: #aaa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; }
+    <div id="verify-form" class="otp-display-group">
+        <input type="text" id="otp_code" class="cyber-input" placeholder="------" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
+        <button class="btn-gold" onclick="verifyOTP()">تأكيد الرمز والدخول</button>
+    </div>
 
-        .btn-gold { 
-            padding: 15px; background: linear-gradient(90deg, #ce9e49, #9e7634); 
-            border: none; border-radius: 12px; font-weight: 900; font-family: 'Cairo', sans-serif; 
-            font-size: 1rem; cursor: pointer; color: #000; margin: 8px 0; width: 100%; 
-            transition: all 0.3s ease; text-align: center; 
-        }
-        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(206, 158, 73, 0.3); }
-        .btn-gold:disabled { background: #444 !important; color: #888; cursor: not-allowed; }
-
-        .cyber-input { 
-            background: var(--input-bg); border: 1px solid var(--border-color); 
-            padding: 15px; color: #fff; border-radius: 12px; margin: 15px 0; 
-            width: 100%; font-family: 'Cairo', sans-serif; text-align: center; 
-            font-size: 1.4rem; letter-spacing: 6px; font-weight: 600; 
-            transition: border-color 0.3s ease;
-        }
-        .cyber-input:focus { outline: none; border-color: var(--gold); }
-
-        #status-msg { 
-            padding: 12px; margin: 10px 0; border-radius: 12px; display: none; 
-            text-align: center; font-size: 0.9rem; font-weight: 600; opacity: 0; 
-            transition: opacity 0.4s ease, transform 0.4s ease; transform: translateY(-10px); 
-        }
-        #status-msg.show { display: block; opacity: 1; transform: translateY(0); }
-
-        .change-phone-btn { 
-            background: none; border: none; color: #666; font-family: 'Cairo', sans-serif; 
-            font-size: 0.9rem; cursor: pointer; margin-top: 15px; text-align: center; 
-            text-decoration: underline; transition: color 0.3s; 
-        }
-        .change-phone-btn:hover { color: #fff; }
-
-        @media (max-width: 480px) {
-            .side { padding: 30px 20px; }
-            .cyber-input { font-size: 1.2rem; padding: 12px; }
-        }
-    </style>
-</head>
-<body>
-
-<div class="wrapper">
-    <div class="side">
-        <h3>تأكيد الرمز السيادي</h3>
-        <p>تم إرسال رمز التحقق المكون من 6 أرقام إلى رقم هاتفك عبر الواتساب تلقائياً.</p>
-        
-        <div id="status-msg"></div>
-
-        <input type="text" id="otp-input" class="cyber-input" placeholder="******" maxlength="6" inputmode="numeric" pattern="[0-9]*" oninput="hideMessage()">
-        
-        <button class="btn-gold" id="verify-btn" onclick="verifyOtp()">تأكيد الدخول الملوكي</button>
-        <button class="btn-gold" id="resend-btn" style="background:#222; color:#fff;" onclick="resendOtp()" disabled>إعادة إرسال الرمز</button>
-        
-        <button class="change-phone-btn" onclick="window.location.href='/suppliers/login'">تعديل رقم الهاتف</button>
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="{{ url_for('suppliers_auth.login') }}" style="color: #888; text-decoration: none; font-size: 0.85rem; transition: color 0.2s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='#888'">
+            ← العودة إلى صفحة تسجيل الدخول
+        </a>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const phone = urlParams.get('phone');
-
-    if(!phone) window.location.href = '/suppliers/login';
-
-    function showMessage(text, type) {
-        const msgDiv = document.getElementById('status-msg');
-        msgDiv.innerText = text;
-        msgDiv.className = "";
-        msgDiv.style.display = "block";
-        setTimeout(() => msgDiv.classList.add('show'), 10);
-        msgDiv.style.background = type === 'error' ? "rgba(220, 53, 69, 0.2)" : "rgba(40, 167, 69, 0.2)";
-        msgDiv.style.color = type === 'error' ? "#ff4d4d" : "#28a745";
-    }
-
-    function hideMessage() {
-        const msgDiv = document.getElementById('status-msg');
-        msgDiv.classList.remove('show');
-        setTimeout(() => { if(!msgDiv.classList.contains('show')) msgDiv.style.display = "none"; }, 400);
-    }
-
-    async function verifyOtp() {
-        hideMessage();
-        const otp = document.getElementById('otp-input').value;
-        if(otp.length < 6) {
-            showMessage("الرجاء إدخال الرمز المكون من 6 أرقام كاملاً", "error");
+    async function verifyOTP() {
+        const otpCode = document.getElementById('otp_code').value.trim();
+        if(!otpCode || otpCode.length < 4) {
+            showMessage('يرجى إدخال رمز التحقق كاملاً بشكل صحيح', 'error');
             return;
         }
-        
-        const verifyBtn = document.getElementById('verify-btn');
-        verifyBtn.innerText = "جاري التحقق...";
-        verifyBtn.disabled = true;
+
+        const data = {
+            step: 'verify_otp',
+            otp_code: otpCode
+        };
 
         try {
-            const response = await fetch('/suppliers/login', {
+            const response = await fetch("{{ url_for('suppliers_auth.login') }}", {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({type: 'supplier', phone: phone, otp: otp})
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.getElementById('csrf_token').value
+                },
+                body: JSON.stringify(data)
             });
-            const res = await response.json();
-            if(response.ok && res.status === 'success') {
-                window.location.href = res.redirect;
-            } else { 
-                showMessage(res.message || "رمز التحقق غير صحيح", 'error'); 
-                verifyBtn.innerText = "تأكيد الدخول الملوكي";
-                verifyBtn.disabled = false;
-            }
-        } catch (err) {
-            showMessage("حدث خطأ في الاتصال بالسيرفر", "error");
-            verifyBtn.innerText = "تأكيد الدخول الملوكي";
-            verifyBtn.disabled = false;
-        }
-    }
 
-    async function resendOtp() {
-        hideMessage();
-        const btn = document.getElementById('resend-btn');
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch('/suppliers/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({type: 'supplier', phone: phone, action: 'resend'})
-            });
             const res = await response.json();
-            if(response.ok && res.status === 'success') {
-                showMessage("تم إعادة إرسال الرمز بنجاح", 'success');
-                startTimer(60);
+
+            if (response.ok) {
+                if (res.redirect) {
+                    window.location.href = res.redirect;
+                }
             } else {
-                showMessage(res.message, 'error');
-                btn.disabled = false;
+                showMessage(res.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته', 'error');
             }
-        } catch (err) {
-            showMessage("تعذر إعادة الإرسال، تفقد الشبكة", "error");
-            btn.disabled = false;
+        } catch(e) {
+            console.error(e);
+            showMessage('حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً', 'error');
         }
     }
 
-    function startTimer(duration) {
-        let timer = duration;
-        const btn = document.getElementById('resend-btn');
-        const interval = setInterval(() => {
-            timer--;
-            btn.innerText = "إعادة إرسال (" + timer + ")";
-            if(timer <= 0) { 
-                clearInterval(interval); 
-                btn.innerText = "إعادة إرسال الرمز"; 
-                btn.disabled = false; 
-            }
-        }, 1000);
-    }
-
-    startTimer(60);
+    // دعم الضغط على زر Enter مباشرة لتسريع عملية التحقق
+    document.getElementById('otp_code').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            verifyOTP();
+        }
+    });
 </script>
-</body>
-</html>
+{% endblock %}
