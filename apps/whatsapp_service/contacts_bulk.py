@@ -9,8 +9,10 @@ from flask import Blueprint, request, jsonify, render_template, current_app
 import logging
 import traceback
 import os
-import pandas as pd
+import csv
+import io
 from datetime import datetime
+from openpyxl import load_workbook
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +241,10 @@ def bulk_delete_contacts_api():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# =========================================================================
+# 3. ✅ استيراد جهات الاتصال (بدون pandas)
+# =========================================================================
+
 @contacts_bulk_bp.route('/api/contacts/import', methods=['POST'])
 def import_contacts_api():
     """استيراد جهات الاتصال من ملف CSV/Excel"""
@@ -252,36 +258,74 @@ def import_contacts_api():
         file = request.files['file']
         default_category = request.form.get('default_category', 'customers')
         
-        if file.filename.endswith('.csv'):
-            df = pd.read_csv(file)
-        else:
-            df = pd.read_excel(file)
-        
         imported = 0
-        for _, row in df.iterrows():
-            name = str(row.get('Name', row.get('name', ''))).strip()
-            phone = str(row.get('Phone', row.get('phone', ''))).strip()
+        
+        # ✅ معالجة ملف CSV
+        if file.filename.endswith('.csv'):
+            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            csv_input = csv.DictReader(stream)
+            for row in csv_input:
+                name = row.get('Name', row.get('name', '')).strip()
+                phone = row.get('Phone', row.get('phone', '')).strip()
+                
+                if not name or not phone:
+                    continue
+                
+                existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+                if existing:
+                    continue
+                
+                contact = WhatsAppCustomerContact(
+                    name=name,
+                    phone=phone,
+                    category=row.get('Category', row.get('category', default_category)),
+                    city=row.get('City', row.get('city', '')),
+                    company=row.get('Company', row.get('company', '')),
+                    email=row.get('Email', row.get('email', '')),
+                    notes=row.get('Notes', row.get('notes', '')),
+                    unread_count=0,
+                    last_timestamp=datetime.utcnow()
+                )
+                db.session.add(contact)
+                imported += 1
+        
+        # ✅ معالجة ملف Excel
+        elif file.filename.endswith(('.xlsx', '.xls')):
+            workbook = load_workbook(file)
+            sheet = workbook.active
             
-            if not name or not phone:
-                continue
+            # قراءة العناوين من الصف الأول
+            headers = []
+            for cell in sheet[1]:
+                headers.append(cell.value)
             
-            existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
-            if existing:
-                continue
-            
-            contact = WhatsAppCustomerContact(
-                name=name,
-                phone=phone,
-                category=row.get('Category', row.get('category', default_category)),
-                city=str(row.get('City', row.get('city', ''))).strip(),
-                company=str(row.get('Company', row.get('company', ''))).strip(),
-                email=str(row.get('Email', row.get('email', ''))).strip(),
-                notes=str(row.get('Notes', row.get('notes', ''))).strip(),
-                unread_count=0,
-                last_timestamp=datetime.utcnow()
-            )
-            db.session.add(contact)
-            imported += 1
+            # قراءة البيانات من الصف الثاني فما فوق
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                row_dict = dict(zip(headers, row))
+                
+                name = str(row_dict.get('Name', row_dict.get('name', ''))).strip()
+                phone = str(row_dict.get('Phone', row_dict.get('phone', ''))).strip()
+                
+                if not name or not phone:
+                    continue
+                
+                existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+                if existing:
+                    continue
+                
+                contact = WhatsAppCustomerContact(
+                    name=name,
+                    phone=phone,
+                    category=row_dict.get('Category', row_dict.get('category', default_category)),
+                    city=str(row_dict.get('City', row_dict.get('city', ''))),
+                    company=str(row_dict.get('Company', row_dict.get('company', ''))),
+                    email=str(row_dict.get('Email', row_dict.get('email', ''))),
+                    notes=str(row_dict.get('Notes', row_dict.get('notes', ''))),
+                    unread_count=0,
+                    last_timestamp=datetime.utcnow()
+                )
+                db.session.add(contact)
+                imported += 1
         
         db.session.commit()
         
@@ -291,6 +335,10 @@ def import_contacts_api():
         logger.error(f"خطأ في استيراد جهات الاتصال: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+# =========================================================================
+# 4. تصدير جهات الاتصال المحددة
+# =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/export-selected', methods=['POST'])
 def export_selected_contacts_api():
@@ -329,7 +377,7 @@ def export_selected_contacts_api():
 
 
 # =========================================================================
-# 3. مسارات الرسائل الجماعية والحملات
+# 5. مسارات الرسائل الجماعية والحملات
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/send-bulk', methods=['POST'])
@@ -438,6 +486,10 @@ def send_campaign_api():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# =========================================================================
+# 6. توليد رسالة بالذكاء الاصطناعي
+# =========================================================================
+
 @contacts_bulk_bp.route('/api/generate-message', methods=['POST'])
 def generate_message_api():
     """توليد رسالة تسويقية بالذكاء الاصطناعي (Gemini)"""
@@ -534,7 +586,7 @@ def generate_message_api():
 
 
 # =========================================================================
-# 4. مسار تصفير عداد الرسائل غير المقروءة
+# 7. تصفير عداد الرسائل غير المقروءة
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/<phone>/read', methods=['POST'])
@@ -552,7 +604,7 @@ def mark_contact_read_by_phone(phone):
 
 
 # =========================================================================
-# 5. مسار تصدير جميع جهات الاتصال (للتحميل)
+# 8. تصدير جميع جهات الاتصال
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/export-all', methods=['GET'])
@@ -586,7 +638,7 @@ def export_all_contacts_api():
 
 
 # =========================================================================
-# 6. مسار إحصائيات جهات الاتصال
+# 9. إحصائيات جهات الاتصال
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/stats', methods=['GET'])
