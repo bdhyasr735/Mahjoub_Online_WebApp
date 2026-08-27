@@ -1,4 +1,4 @@
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
 
 {% block title %}سوق محجوب أونلاين - جهات الاتصال والإرسال الجماعي{% endblock %}
 
@@ -208,18 +208,13 @@
             </div>
 
             <div class="mt-4 pt-2 flex items-center justify-between gap-2">
-                <a href="https://wa.me/{{ contact.phone }}" target="_blank" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/40 shadow-xs transition-all active:scale-95">
+                <!-- ✅ التعديل: زر يفتح المحادثة الداخلية -->
+                <a href="{{ url_for('whatsapp_service.dashboard_view', phone=contact.phone) }}" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/40 shadow-xs transition-all active:scale-95">
                     <svg class="w-3.5 h-3.5 text-[#D4AF37]" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.96.524 1.777.818 2.796.818 3.18 0 5.766-2.587 5.767-5.766 0-3.18-2.586-5.804-5.767-5.804zm3.398 8.196c-.144.405-.837.774-1.17.824-.312.045-.634.072-1.808-.413-1.464-.606-2.434-2.072-2.508-2.17-.073-.099-.594-.791-.594-1.51 0-.719.378-1.073.513-1.22.135-.147.297-.184.396-.184.099 0 .198.002.284.006.09.004.211-.034.33.252.122.296.417 1.018.453 1.092.036.074.06.162.012.261-.048.099-.072.162-.144.246-.072.084-.153.187-.218.252-.072.072-.148.15-.064.294.084.144.373.616.802.998.552.492 1.017.644 1.161.716.144.072.228.06.312-.036.084-.096.36-.42.456-.564.096-.144.192-.12.324-.072.132.048.84.396.984.468.144.072.24.108.276.168.036.06.036.348-.108.753z"/>
                     </svg>
-                    <span>مراسلة واتساب</span>
+                    <span>فتح المحادثة</span>
                 </a>
-
-                <button type="button" onclick="openDirectMessage('{{ contact.name }}', '{{ contact.phone }}', '{{ contact.discount_code or '' }}')" class="p-2 rounded-xl text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors" title="إرسال نص مخصص">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                </button>
             </div>
         </div>
         {% else %}
