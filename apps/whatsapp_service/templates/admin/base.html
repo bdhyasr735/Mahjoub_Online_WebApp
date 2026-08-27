@@ -33,6 +33,22 @@
             height: auto;
             border-radius: 12px;
         }
+        
+        /* ✅ تنسيق النشط للروابط */
+        .nav-link-active {
+            background-color: #1e0226 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(30, 2, 38, 0.3);
+        }
+        .nav-link-inactive {
+            color: #475569 !important;
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .nav-link-inactive:hover {
+            color: #1e0226 !important;
+            background-color: #f1f5f9 !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -62,26 +78,37 @@
         </div>
 
         <nav class="flex items-center gap-1.5 md:gap-2">
+            <!-- ✅ لوحة المحادثات -->
             <a href="/admin/whatsapp/dashboard" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/dashboard' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
                 <i class="fa-regular fa-comment-dots ml-1.5"></i>
-                <span>المحادثات المباشرة</span>
+                <span>المحادثات</span>
             </a>
             
-            <a href="/admin/whatsapp/templates" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
-                <i class="fa-solid fa-layer-group ml-1.5"></i>
-                <span>قوالب ميتا</span>
+            <!-- ✅ جهات الاتصال والإرسال الجماعي (جديد) -->
+            <a href="/admin/whatsapp/contacts-bulk" 
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/contacts-bulk' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-address-book ml-1.5"></i>
+                <span>جهات الاتصال</span>
             </a>
 
+            <!-- ✅ قوالب ميتا -->
+            <a href="/admin/whatsapp/templates" 
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/templates' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
+                <i class="fa-solid fa-layer-group ml-1.5"></i>
+                <span>القوالب</span>
+            </a>
+
+            <!-- ✅ سجل الويب هوك -->
             <a href="/admin/whatsapp/webhook-logs" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/webhook-logs' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
                 <i class="fa-solid fa-rss ml-1.5"></i>
                 <span>سجل الويب هوك</span>
             </a>
 
+            <!-- ✅ الإعدادات -->
             <a href="/admin/whatsapp/settings" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}bg-[#1e0226] text-white shadow-md{% else %}text-slate-600 hover:text-[#1e0226] hover:bg-slate-100 border border-slate-200 bg-white{% endif %}">
+               class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all {% if request.path == '/admin/whatsapp/settings' %}nav-link-active{% else %}nav-link-inactive{% endif %}">
                 <i class="fa-solid fa-sliders ml-1.5"></i>
                 <span>الإعدادات</span>
             </a>
