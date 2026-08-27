@@ -283,7 +283,45 @@ def clear_demo_data_api():
 
 
 # =========================================================================
-# 3. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة
+# 3. ✅ دوال إضافية للتحكم في حالة القراءة والإشعارات (جديدة)
+# =========================================================================
+
+@whatsapp_bp.route('/api/contacts/unread', methods=['GET'])
+def get_unread_count():
+    """جلب عدد الرسائل غير المقروءة لكل جهة اتصال"""
+    try:
+        from apps.models.whatsapp_models import WhatsAppCustomerContact
+        from apps.extensions import db
+        
+        contacts = WhatsAppCustomerContact.query.all()
+        result = []
+        for c in contacts:
+            result.append({
+                'phone': c.phone,
+                'unread_count': c.unread_count or 0
+            })
+        
+        return jsonify({"contacts": result}), 200
+    except Exception as e:
+        logger.error(f"خطأ في جلب عدد الرسائل غير المقروءة: {str(e)}")
+        return jsonify({"error": str(e), "contacts": []}), 500
+
+@whatsapp_bp.route('/api/contacts/<phone>/read', methods=['POST'])
+def mark_as_read(phone):
+    """تصفير عداد الرسائل غير المقروءة لمستخدم معين"""
+    try:
+        from apps.whatsapp_service.service import WhatsAppService
+        wa_service = WhatsAppService()
+        
+        result = wa_service.mark_contact_as_read(phone)
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"خطأ في تصفير العداد: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+# =========================================================================
+# 4. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة
 # =========================================================================
 
 @whatsapp_bp.route('/dashboard', methods=['GET'])
@@ -314,7 +352,7 @@ def dashboard_view():
             'admin/whatsapp_dashboard.html',
             contacts=[],
             error=f"حدث خطأ: {str(e)}"
-        ), 200  # استخدام 200 لعرض الصفحة مع الخطأ
+        ), 200
 
 @whatsapp_bp.route('/templates', methods=['GET'])
 def templates_view():
@@ -397,7 +435,7 @@ def webhook_logs_view():
 
 
 # =========================================================================
-# 4. مسار اختبار للتحقق من عمل الخدمة
+# 5. مسار اختبار للتحقق من عمل الخدمة
 # =========================================================================
 
 @whatsapp_bp.route('/test', methods=['GET'])
