@@ -48,11 +48,11 @@
                     </div>
                     <div class="flex items-center justify-between">
                         <!-- آخر ظهور أو متصل الآن -->
-                        <span class="text-[10px] text-slate-400 truncate">
+                        <span class="text-[10px] truncate">
                             {% if contact.is_online %}
                                 <span class="text-emerald-500 font-bold">متصل الآن</span>
                             {% else %}
-                                {{ contact.last_seen|default('آخر ظهور اليوم') }}
+                                <span class="text-red-500">{{ contact.last_seen|default('آخر ظهور اليوم') }}</span>
                             {% endif %}
                         </span>
                         <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+{{ contact.phone }}</span>
@@ -193,6 +193,20 @@ let selectedFiles = [];
 let currentFilter = 'all';
 let lastMessageCount = 0;
 let notificationSound = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+
+// ✅ دالة تحويل الوقت إلى نظام 12 ساعة (صباحاً / مساءً)
+function formatTime12(timeStr) {
+    if (!timeStr) return '';
+    let [hours, minutes] = timeStr.split(':').map(Number);
+    
+    // إضافة 3 ساعات لتوقيت اليمن (UTC+3)
+    hours = (hours + 3) % 24;
+    
+    let period = hours >= 12 ? 'مساءً' : 'صباحاً';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return `${hours}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
 
 if ("Notification" in window) {
     if (Notification.permission !== "granted" && Notification.permission !== "denied") {
@@ -423,8 +437,8 @@ async function refreshContacts() {
                             ${contact.unread_count > 0 ? `<span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">${contact.unread_count}</span>` : ''}
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] text-slate-400 truncate">
-                                ${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : contact.last_seen}
+                            <span class="text-[10px] truncate">
+                                ${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : `<span class="text-red-500">${contact.last_seen}</span>`}
                             </span>
                             <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+${contact.phone}</span>
                         </div>
@@ -494,6 +508,9 @@ function refreshMessages() {
                         }
                     }
                     
+                    // عرض الوقت بنظام 12 ساعة
+                    let formattedTime = formatTime12(msg.timestamp || '');
+                    
                     newHTML += `
                     <div class="flex ${isOutbound ? 'justify-end' : 'justify-start'}">
                         <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
@@ -503,7 +520,7 @@ function refreshMessages() {
                         }">
                             ${contentHTML}
                             <span class="text-[9px] block mt-1 ${isOutbound ? 'text-slate-400' : 'text-purple-300'} font-mono">
-                                ${msg.timestamp || ''} ${statusTicks}
+                                ${formattedTime} ${statusTicks}
                             </span>
                         </div>
                     </div>
@@ -531,12 +548,13 @@ async function handleSendMessage() {
         const area = document.getElementById('messagesArea');
         const now = new Date();
         const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        let formattedTime = formatTime12(time);
         
         area.insertAdjacentHTML('beforeend', `
             <div class="flex justify-end">
                 <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm bg-white text-slate-800 border border-slate-200 rounded-br-none">
                     <p class="leading-relaxed font-medium">${text}</p>
-                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${time} <span class="text-slate-400">✓</span></span>
+                    <span class="text-[9px] block mt-1 text-slate-400 font-mono">${formattedTime} <span class="text-slate-400">✓</span></span>
                 </div>
             </div>
         `);
