@@ -117,8 +117,8 @@ def get_contact_api(contact_id):
 def add_contact_api():
     """إضافة جهة اتصال جديدة"""
     try:
-        from apps.models.whatsapp_models import WhatsAppCustomerContact
-        from apps.extensions import db
+        from apps.whatsapp_service.service import WhatsAppService
+        wa_service = WhatsAppService()
         
         data = request.get_json(silent=True) or {}
         
@@ -133,28 +133,9 @@ def add_contact_api():
         if not name or not phone:
             return jsonify({"success": False, "error": "الاسم ورقم الهاتف مطلوبان"}), 400
         
-        # التحقق من عدم وجود الرقم مسبقاً
-        existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
-        if existing:
-            return jsonify({"success": False, "error": "رقم الهاتف موجود مسبقاً"}), 400
-        
-        contact = WhatsAppCustomerContact(
-            name=name,
-            phone=phone,
-            category=category,
-            city=city,
-            company=company,
-            email=email,
-            notes=notes,
-            unread_count=0,
-            last_timestamp=datetime.utcnow()
-        )
-        db.session.add(contact)
-        db.session.commit()
-        
-        return jsonify({"success": True, "message": "تم إضافة جهة الاتصال بنجاح", "id": contact.id}), 200
+        result = wa_service.add_contact(name, phone, category, city, company, email, notes)
+        return jsonify(result), 200 if result.get('success') else 400
     except Exception as e:
-        db.session.rollback()
         logger.error(f"خطأ في إضافة جهة الاتصال: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -163,36 +144,13 @@ def add_contact_api():
 def update_contact_api(contact_id):
     """تحديث جهة اتصال"""
     try:
-        from apps.models.whatsapp_models import WhatsAppCustomerContact
-        from apps.extensions import db
-        
-        contact = WhatsAppCustomerContact.query.get(contact_id)
-        if not contact:
-            return jsonify({"success": False, "error": "جهة الاتصال غير موجودة"}), 404
+        from apps.whatsapp_service.service import WhatsAppService
+        wa_service = WhatsAppService()
         
         data = request.get_json(silent=True) or {}
-        
-        if 'name' in data:
-            contact.name = data['name'].strip()
-        if 'phone' in data:
-            contact.phone = data['phone'].strip()
-        if 'category' in data:
-            contact.category = data['category']
-        if 'city' in data:
-            contact.city = data['city']
-        if 'company' in data:
-            contact.company = data['company']
-        if 'email' in data:
-            contact.email = data['email']
-        if 'notes' in data:
-            contact.notes = data['notes']
-        
-        contact.last_timestamp = datetime.utcnow()
-        db.session.commit()
-        
-        return jsonify({"success": True, "message": "تم تحديث جهة الاتصال بنجاح"}), 200
+        result = wa_service.update_contact(contact_id, data)
+        return jsonify(result), 200 if result.get('success') else 400
     except Exception as e:
-        db.session.rollback()
         logger.error(f"خطأ في تحديث جهة الاتصال: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -201,19 +159,12 @@ def update_contact_api(contact_id):
 def delete_contact_api(contact_id):
     """حذف جهة اتصال"""
     try:
-        from apps.models.whatsapp_models import WhatsAppCustomerContact
-        from apps.extensions import db
+        from apps.whatsapp_service.service import WhatsAppService
+        wa_service = WhatsAppService()
         
-        contact = WhatsAppCustomerContact.query.get(contact_id)
-        if not contact:
-            return jsonify({"success": False, "error": "جهة الاتصال غير موجودة"}), 404
-        
-        db.session.delete(contact)
-        db.session.commit()
-        
-        return jsonify({"success": True, "message": "تم حذف جهة الاتصال بنجاح"}), 200
+        result = wa_service.delete_contact(contact_id)
+        return jsonify(result), 200 if result.get('success') else 400
     except Exception as e:
-        db.session.rollback()
         logger.error(f"خطأ في حذف جهة الاتصال: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -222,8 +173,8 @@ def delete_contact_api(contact_id):
 def bulk_delete_contacts_api():
     """حذف مجموعة من جهات الاتصال دفعة واحدة"""
     try:
-        from apps.models.whatsapp_models import WhatsAppCustomerContact
-        from apps.extensions import db
+        from apps.whatsapp_service.service import WhatsAppService
+        wa_service = WhatsAppService()
         
         data = request.get_json(silent=True) or {}
         ids = data.get('ids', [])
@@ -231,18 +182,15 @@ def bulk_delete_contacts_api():
         if not ids:
             return jsonify({"success": False, "error": "لم يتم تحديد أي جهات اتصال"}), 400
         
-        deleted = WhatsAppCustomerContact.query.filter(WhatsAppCustomerContact.id.in_(ids)).delete(synchronize_session=False)
-        db.session.commit()
-        
-        return jsonify({"success": True, "deleted": deleted, "message": f"تم حذف {deleted} جهة اتصال"}), 200
+        result = wa_service.delete_contacts_bulk(ids)
+        return jsonify(result), 200 if result.get('success') else 400
     except Exception as e:
-        db.session.rollback()
         logger.error(f"خطأ في الحذف الجماعي: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 # =========================================================================
-# 3. ✅ استيراد جهات الاتصال (بدون pandas)
+# 3. استيراد جهات الاتصال (بدون pandas)
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/import', methods=['POST'])
@@ -259,35 +207,43 @@ def import_contacts_api():
         default_category = request.form.get('default_category', 'customers')
         
         imported = 0
+        errors = []
         
         # ✅ معالجة ملف CSV
         if file.filename.endswith('.csv'):
             stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
             csv_input = csv.DictReader(stream)
             for row in csv_input:
-                name = row.get('Name', row.get('name', '')).strip()
-                phone = row.get('Phone', row.get('phone', '')).strip()
-                
-                if not name or not phone:
+                try:
+                    name = row.get('Name', row.get('name', '')).strip()
+                    phone = row.get('Phone', row.get('phone', '')).strip()
+                    
+                    if not name or not phone:
+                        continue
+                    
+                    # تنظيف رقم الهاتف
+                    phone = phone.replace('+', '').replace(' ', '').strip()
+                    
+                    existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+                    if existing:
+                        continue
+                    
+                    contact = WhatsAppCustomerContact(
+                        name=name,
+                        phone=phone,
+                        category=row.get('Category', row.get('category', default_category)),
+                        city=row.get('City', row.get('city', '')),
+                        company=row.get('Company', row.get('company', '')),
+                        email=row.get('Email', row.get('email', '')),
+                        notes=row.get('Notes', row.get('notes', '')),
+                        unread_count=0,
+                        last_timestamp=datetime.utcnow()
+                    )
+                    db.session.add(contact)
+                    imported += 1
+                except Exception as e:
+                    errors.append(str(e))
                     continue
-                
-                existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
-                if existing:
-                    continue
-                
-                contact = WhatsAppCustomerContact(
-                    name=name,
-                    phone=phone,
-                    category=row.get('Category', row.get('category', default_category)),
-                    city=row.get('City', row.get('city', '')),
-                    company=row.get('Company', row.get('company', '')),
-                    email=row.get('Email', row.get('email', '')),
-                    notes=row.get('Notes', row.get('notes', '')),
-                    unread_count=0,
-                    last_timestamp=datetime.utcnow()
-                )
-                db.session.add(contact)
-                imported += 1
         
         # ✅ معالجة ملف Excel
         elif file.filename.endswith(('.xlsx', '.xls')):
@@ -301,35 +257,47 @@ def import_contacts_api():
             
             # قراءة البيانات من الصف الثاني فما فوق
             for row in sheet.iter_rows(min_row=2, values_only=True):
-                row_dict = dict(zip(headers, row))
-                
-                name = str(row_dict.get('Name', row_dict.get('name', ''))).strip()
-                phone = str(row_dict.get('Phone', row_dict.get('phone', ''))).strip()
-                
-                if not name or not phone:
+                try:
+                    row_dict = dict(zip(headers, row))
+                    
+                    name = str(row_dict.get('Name', row_dict.get('name', ''))).strip()
+                    phone = str(row_dict.get('Phone', row_dict.get('phone', ''))).strip()
+                    
+                    if not name or not phone:
+                        continue
+                    
+                    # تنظيف رقم الهاتف
+                    phone = phone.replace('+', '').replace(' ', '').strip()
+                    
+                    existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+                    if existing:
+                        continue
+                    
+                    contact = WhatsAppCustomerContact(
+                        name=name,
+                        phone=phone,
+                        category=row_dict.get('Category', row_dict.get('category', default_category)),
+                        city=str(row_dict.get('City', row_dict.get('city', ''))),
+                        company=str(row_dict.get('Company', row_dict.get('company', ''))),
+                        email=str(row_dict.get('Email', row_dict.get('email', ''))),
+                        notes=str(row_dict.get('Notes', row_dict.get('notes', ''))),
+                        unread_count=0,
+                        last_timestamp=datetime.utcnow()
+                    )
+                    db.session.add(contact)
+                    imported += 1
+                except Exception as e:
+                    errors.append(str(e))
                     continue
-                
-                existing = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
-                if existing:
-                    continue
-                
-                contact = WhatsAppCustomerContact(
-                    name=name,
-                    phone=phone,
-                    category=row_dict.get('Category', row_dict.get('category', default_category)),
-                    city=str(row_dict.get('City', row_dict.get('city', ''))),
-                    company=str(row_dict.get('Company', row_dict.get('company', ''))),
-                    email=str(row_dict.get('Email', row_dict.get('email', ''))),
-                    notes=str(row_dict.get('Notes', row_dict.get('notes', ''))),
-                    unread_count=0,
-                    last_timestamp=datetime.utcnow()
-                )
-                db.session.add(contact)
-                imported += 1
         
         db.session.commit()
         
-        return jsonify({"success": True, "imported": imported, "message": f"تم استيراد {imported} جهة اتصال"}), 200
+        return jsonify({
+            "success": True, 
+            "imported": imported, 
+            "errors": errors,
+            "message": f"تم استيراد {imported} جهة اتصال" + (f" مع {len(errors)} خطأ" if errors else "")
+        }), 200
     except Exception as e:
         db.session.rollback()
         logger.error(f"خطأ في استيراد جهات الاتصال: {str(e)}")
@@ -376,6 +344,36 @@ def export_selected_contacts_api():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@contacts_bulk_bp.route('/api/contacts/export-all', methods=['GET'])
+def export_all_contacts_api():
+    """تصدير جميع جهات الاتصال كملف JSON"""
+    try:
+        from apps.models.whatsapp_models import WhatsAppCustomerContact
+        from apps.extensions import db
+        
+        contacts = WhatsAppCustomerContact.query.all()
+        
+        result = []
+        for c in contacts:
+            result.append({
+                "id": c.id,
+                "name": c.name,
+                "phone": c.phone,
+                "category": getattr(c, 'category', 'customers'),
+                "city": getattr(c, 'city', ''),
+                "company": getattr(c, 'company', ''),
+                "email": getattr(c, 'email', ''),
+                "notes": getattr(c, 'notes', ''),
+                "unread_count": c.unread_count or 0,
+                "last_interaction": c.last_timestamp.strftime('%Y-%m-%d %H:%M') if c.last_timestamp else None
+            })
+        
+        return jsonify({"success": True, "data": result, "count": len(result)}), 200
+    except Exception as e:
+        logger.error(f"خطأ في تصدير جميع جهات الاتصال: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # =========================================================================
 # 5. مسارات الرسائل الجماعية والحملات
 # =========================================================================
@@ -402,6 +400,7 @@ def send_bulk_messages_api():
         
         sent = 0
         failed = 0
+        failed_list = []
         
         for contact in contacts:
             try:
@@ -410,17 +409,20 @@ def send_bulk_messages_api():
                 msg = msg.replace('{phone}', contact.phone or '')
                 msg = msg.replace('{company}', getattr(contact, 'company', '') or '')
                 msg = msg.replace('{city}', getattr(contact, 'city', '') or '')
+                msg = msg.replace('{email}', getattr(contact, 'email', '') or '')
                 
                 wa_service.send_message(contact.phone, msg)
                 sent += 1
             except Exception as e:
                 logger.error(f"فشل إرسال رسالة إلى {contact.phone}: {str(e)}")
                 failed += 1
+                failed_list.append(contact.phone)
         
         return jsonify({
             "success": True,
             "sent": sent,
             "failed": failed,
+            "failed_list": failed_list,
             "total": len(contacts),
             "message": f"تم إرسال {sent} رسالة بنجاح، فشل {failed}"
         }), 200
@@ -479,6 +481,7 @@ def send_campaign_api():
             "failed": failed,
             "total": len(contacts),
             "campaign": campaign_name,
+            "target_category": target_category,
             "message": f"تم إرسال الحملة '{campaign_name}' إلى {sent} جهة اتصال"
         }), 200
     except Exception as e:
@@ -604,41 +607,7 @@ def mark_contact_read_by_phone(phone):
 
 
 # =========================================================================
-# 8. تصدير جميع جهات الاتصال
-# =========================================================================
-
-@contacts_bulk_bp.route('/api/contacts/export-all', methods=['GET'])
-def export_all_contacts_api():
-    """تصدير جميع جهات الاتصال كملف JSON"""
-    try:
-        from apps.models.whatsapp_models import WhatsAppCustomerContact
-        from apps.extensions import db
-        
-        contacts = WhatsAppCustomerContact.query.all()
-        
-        result = []
-        for c in contacts:
-            result.append({
-                "id": c.id,
-                "name": c.name,
-                "phone": c.phone,
-                "category": getattr(c, 'category', 'customers'),
-                "city": getattr(c, 'city', ''),
-                "company": getattr(c, 'company', ''),
-                "email": getattr(c, 'email', ''),
-                "notes": getattr(c, 'notes', ''),
-                "unread_count": c.unread_count or 0,
-                "last_interaction": c.last_timestamp.strftime('%Y-%m-%d %H:%M') if c.last_timestamp else None
-            })
-        
-        return jsonify({"success": True, "data": result, "count": len(result)}), 200
-    except Exception as e:
-        logger.error(f"خطأ في تصدير جميع جهات الاتصال: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-# =========================================================================
-# 9. إحصائيات جهات الاتصال
+# 8. إحصائيات جهات الاتصال
 # =========================================================================
 
 @contacts_bulk_bp.route('/api/contacts/stats', methods=['GET'])
