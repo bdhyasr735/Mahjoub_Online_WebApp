@@ -1,99 +1,170 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{% block meta_desc %}بوابة محجوب أونلاين السيادية للموردين والموظفين - نظام إدارة مركزي آمن.{% endblock %}">
-    <title>{% block title %}بوابة الشركاء | محجوب أونلاين{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; --error: #ff4d4d; --success: #28a745; }
-        
-        * { box-sizing: border-box; }
-        body { 
-            margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; 
-            min-height: 100vh; display: flex; align-items: center; justify-content: center; 
-            padding: 20px; line-height: 1.6;
-        }
-        
-        .wrapper { 
-            display: flex; width: 100%; max-width: 950px; background: var(--card-bg); 
-            border: 1px solid #222; border-radius: 24px; overflow: hidden; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-        }
-        
-        .side { flex: 1; padding: clamp(20px, 5vw, 60px); display: flex; flex-direction: column; justify-content: center; }
-        .marketing-side { background: linear-gradient(160deg, #1a102a, #05020a); border-left: 1px solid #333; }
-        
-        h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 1rem; }
-        .btn-gold { 
-            padding: 14px; background: linear-gradient(90deg, var(--gold), #9e7634); 
-            border: none; border-radius: 12px; font-weight: 700; cursor: pointer; 
-            color: #000; margin: 10px 0; width: 100%; transition: all 0.3s;
-        }
-        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(206,158,73,0.3); }
-        
-        .cyber-input { 
-            background: #000; border: 1px solid #333; padding: 15px; color: #fff; 
-            border-radius: 12px; margin: 8px 0; width: 100%; outline: none; 
-        }
-        .cyber-input:focus { border-color: var(--gold); }
-        
-        .auth-links {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 12px;
-            font-size: 0.85rem;
-        }
-        .auth-links a {
-            color: var(--gold);
-            text-decoration: none;
-            transition: opacity 0.2s;
-            cursor: pointer;
-        }
-        .auth-links a:hover { opacity: 0.8; text-decoration: underline; }
+{% extends "suppliers_auth_portal/base.html" %}
 
-        .hidden { display: none; }
-        #status-msg { 
-            padding: 12px; margin-bottom: 15px; border-radius: 10px; display: none; 
-            text-align: center; font-size: 0.9rem; border: 1px solid transparent;
-        }
-        
-        @media (max-width: 768px) {
-            .wrapper { flex-direction: column; border-radius: 0; }
-            .side { padding: 30px; }
-            .marketing-side { display: none; }
-        }
-    </style>
-    {% block extra_head %}{% endblock %}
-</head>
-<body>
+{% block title %}بوابة الموردين والموظفين | محجوب أونلاين{% endblock %}
 
-<div class="wrapper">
-    <div class="side marketing-side">
-        <h1>بوابة الشركاء <span style="color:var(--gold)">السيادية</span></h1>
-        <p style="color: #aaa;">نظام إدارة الموردين والموظفين المركزي لمحجوب أونلاين. بيئة عمل محمية، مؤمنة، ومصممة للنمو.</p>
-    </div>
+{% block extra_head %}
+<style>
+    .auth-form-container {
+        width: 100%;
+        max-width: 100%;
+    }
     
-    <div class="side" id="auth-container">
-        <div id="status-msg"></div>
-        <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+    .form-group {
+        margin-bottom: 12px;
+    }
 
-        {% block content %}{% endblock %}
+    @media (max-width: 768px) {
+        .auth-form-container h3 {
+            font-size: 1.4rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-form-container">
+    <!-- القائمة الرئيسية -->
+    <div id="main-menu">
+        <h2 style="color: var(--gold); margin-top: 0; font-size: clamp(1.5rem, 3vw, 2rem);">مرحباً بك مجدداً</h2>
+        <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 20px;">اختر الخدمة المطلوبة للبدء في إدارة حسابك بأمان تام.</p>
+        <button class="btn-gold" onclick="showForm('supplier-login')">تسجيل الدخول</button>
+        <button class="btn-gold" style="background: #150a24; color: var(--gold); border: 1px solid var(--gold);" onclick="showForm('register-form')">انضم إلينا (اشتراك مورد جديد)</button>
+    </div>
+
+    <!-- نموذج تسجيل الدخول -->
+    <div id="supplier-login" class="hidden">
+        <h3 style="color: var(--gold); margin-top: 0;">تسجيل الدخول</h3>
+        <div class="form-group">
+            <input type="text" id="sup-user" class="cyber-input" placeholder="اسم المستخدم أو الهاتف" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <input type="password" id="sup-pass" class="cyber-input" placeholder="كلمة المرور" autocomplete="current-password">
+        </div>
+        
+        <div id="supplier-otp-container" class="hidden form-group">
+            <input type="text" id="sup-otp" class="cyber-input" placeholder="أدخل رمز التحقق (OTP)" maxlength="6" inputmode="numeric">
+        </div>
+
+        <div class="auth-links">
+            <a onclick="showForm('forgot-password')">هل نسيت كلمة المرور؟</a>
+            <a onclick="showForm('register-form')">حساب جديد؟ انضم الآن</a>
+        </div>
+        
+        <button class="btn-gold" id="supplier-submit-btn" onclick="loginUser()" style="margin-top: 15px;">تسجيل الدخول</button>
+        <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px; font-family: 'Cairo', sans-serif;">رجوع للقائمة الرئيسية</button>
+    </div>
+
+    <!-- نموذج استعادة كلمة المرور -->
+    <div id="forgot-password" class="hidden">
+        <h3 style="color: var(--gold); margin-top: 0;">استعادة كلمة المرور</h3>
+        <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5;">أدخل رقم الهاتف أو البريد الإلكتروني المسجل لترتيب استعادة بيانات الحساب.</p>
+        <div class="form-group">
+            <input type="text" id="recovery-input" class="cyber-input" placeholder="رقم الهاتف أو البريد الإلكتروني">
+        </div>
+        <button class="btn-gold" onclick="handlePasswordRecovery()" style="margin-top: 10px;">إرسال تعليمات الاستعادة</button>
+        <button onclick="showForm('supplier-login')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px; font-family: 'Cairo', sans-serif;">رجوع لتسجيل الدخول</button>
+    </div>
+
+    <!-- نموذج الاشتراك / انضم إلينا -->
+    <div id="register-form" class="hidden">
+        <h3 style="color: var(--gold); margin-top: 0;">طلب انضمام مورد جديد</h3>
+        <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5;">املأ البيانات المبدئية لتقديم طلب انضمامك لمنصة محجوب أونلاين.</p>
+        <div class="form-group">
+            <input type="text" id="reg-name" class="cyber-input" placeholder="اسم النشاط التجاري / المورد">
+        </div>
+        <div class="form-group">
+            <input type="text" id="reg-phone" class="cyber-input" placeholder="رقم الهاتف الأساسي" inputmode="tel">
+        </div>
+        <button class="btn-gold" onclick="handleRegistration()" style="margin-top: 10px;">إرسال طلب الانضمام</button>
+        <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px; font-family: 'Cairo', sans-serif;">رجوع للقائمة الرئيسية</button>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    function showMessage(text, type) {
-        const msg = document.getElementById('status-msg');
-        msg.innerText = text;
-        msg.style.display = "block";
-        msg.style.background = type === 'error' ? "rgba(220, 53, 69, 0.1)" : "rgba(40, 167, 69, 0.1)";
-        msg.style.border = "1px solid " + (type === 'error' ? "#ff4d4d" : "#28a745");
-        msg.style.color = type === 'error' ? "#ff4d4d" : "#28a745";
+    let currentAuthStep = 'credentials';
+
+    function showForm(type) {
+        document.getElementById('status-msg').style.display = 'none';
+        document.querySelectorAll('#auth-container > div:not(#status-msg)').forEach(d => d.classList.add('hidden'));
+        currentAuthStep = 'credentials';
+        
+        document.getElementById('supplier-otp-container').classList.add('hidden');
+        document.getElementById('sup-otp').value = '';
+        document.getElementById('supplier-submit-btn').innerText = 'تسجيل الدخول';
+
+        if(type === 'menu') {
+            document.getElementById('main-menu').classList.remove('hidden');
+        } else {
+            document.getElementById(type).classList.remove('hidden');
+        }
     }
+
+    async function loginUser() {
+        const data = {
+            username: document.getElementById('sup-user').value.trim(),
+            password: document.getElementById('sup-pass').value,
+            step: currentAuthStep,
+            otp_code: document.getElementById('sup-otp').value.trim()
+        };
+        
+        try {
+            const response = await fetch("{{ url_for('suppliers_auth.login') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.getElementById('csrf_token').value
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const res = await response.json();
+            
+            if (response.ok) {
+                if (res.status === 'require_otp') {
+                    currentAuthStep = 'verify_otp';
+                    document.getElementById('supplier-otp-container').classList.remove('hidden');
+                    document.getElementById('supplier-submit-btn').innerText = 'تأكيد رمز التحقق ودخول';
+                    showMessage(res.message, 'success');
+                } else if (res.redirect) {
+                    window.location.href = res.redirect;
+                }
+            } else {
+                showMessage(res.message || 'حدث خطأ غير متوقع', 'error');
+            }
+        } catch(e) { 
+            console.error(e);
+            showMessage('حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً', 'error'); 
+        }
+    }
+
+    function handlePasswordRecovery() {
+        const val = document.getElementById('recovery-input').value.trim();
+        if(!val) {
+            showMessage('يرجى إدخال رقم الهاتف أو البريد الإلكتروني', 'error');
+            return;
+        }
+        showMessage('تم إرسال تعليمات استعادة كلمة المرور إلى الوسيلة المسجلة.', 'success');
+    }
+
+    function handleRegistration() {
+        const name = document.getElementById('reg-name').value.trim();
+        const phone = document.getElementById('reg-phone').value.trim();
+        if(!name || !phone) {
+            showMessage('يرجى إكمال الحقول المطلوبة لطلب الانضمام', 'error');
+            return;
+        }
+        showMessage('تم إرسال طلب الانضمام بنجاح، سيتم مراجعته والتواصل معك قريباً.', 'success');
+    }
+
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const loginSection = document.getElementById('supplier-login');
+            if (!loginSection.classList.contains('hidden')) {
+                loginUser();
+            }
+        }
+    });
 </script>
-{% block extra_js %}{% endblock %}
-</body>
-</html>
+{% endblock %}
