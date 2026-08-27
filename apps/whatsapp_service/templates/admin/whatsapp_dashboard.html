@@ -51,7 +51,7 @@
                             {% if contact.is_online %}
                                 <span class="text-emerald-500 font-bold">متصل الآن</span>
                             {% else %}
-                                آخر ظهور {{ contact.last_seen|default('اليوم') }}
+                                {{ contact.last_seen|default('آخر ظهور اليوم') }}
                             {% endif %}
                         </span>
                         <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+{{ contact.phone }}</span>
@@ -216,7 +216,7 @@ function loadChat(phone, name) {
     document.getElementById('activeContactName').innerText = name;
     document.getElementById('activeContactPhone').innerText = '(+' + phone + ')';
     
-    // تحديث حالة الاتصال
+    // تحديث حالة الاتصال داخل الشات
     document.getElementById('activeContactStatus').innerText = 'متصل الآن';
     document.getElementById('activeContactStatus').classList.add('text-emerald-500');
     
@@ -342,7 +342,7 @@ async function refreshContacts() {
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] text-slate-400 truncate">
-                                ${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : 'آخر ظهور اليوم'}
+                                ${contact.is_online ? '<span class="text-emerald-500 font-bold">متصل الآن</span>' : contact.last_seen}
                             </span>
                             <span class="text-[10px] text-slate-400 font-mono dir-ltr block">+${contact.phone}</span>
                         </div>
