@@ -254,7 +254,7 @@ class WhatsAppService:
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
                             
-                            # ✅ تسجيل الرسالة كـ inbound (هنا أيضاً يتم زيادة unread_count)
+                            # ✅ تسجيل الرسالة كـ inbound
                             self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id, media_url=media_url)
 
                             # ❌ تم تعطيل الرد الآلي
@@ -286,7 +286,7 @@ class WhatsAppService:
             print(f"⚠️ [خطأ تحديث حالة الرسالة]: {e}")
 
     # =========================================================================
-    # 3. ✅ دالة إضافة/تحديث جهة الاتصال (مع زيادة unread_count)
+    # 3. دالة إضافة/تحديث جهة الاتصال (مع زيادة unread_count)
     # =========================================================================
 
     def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
@@ -305,18 +305,16 @@ class WhatsAppService:
                     whatsapp_profile_name=name,
                     last_message=last_message,
                     last_timestamp=datetime.utcnow(),
-                    unread_count=1  # ✅ أول رسالة = 1
+                    unread_count=1
                 )
                 db.session.add(contact)
             else:
-                # ✅ تحديث بيانات جهة الاتصال الموجودة
                 if name and name != "عميل واتساب":
                     contact.name = name
                     contact.whatsapp_profile_name = name
                 if last_message:
                     contact.last_message = last_message
                     contact.last_timestamp = datetime.utcnow()
-                    # ✅ ✅ ✅ زيادة عداد الرسائل غير المقروءة (المهم!)
                     contact.unread_count = (contact.unread_count or 0) + 1
             db.session.commit()
         except Exception as e:
@@ -338,32 +336,15 @@ class WhatsAppService:
             if last_message:
                 self.contacts_db[phone]["last_message"] = last_message
                 self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
-                # ✅ ✅ ✅ زيادة العداد في الذاكرة أيضاً
                 self.contacts_db[phone]["unread_count"] = (self.contacts_db[phone].get("unread_count", 0) or 0) + 1
 
     # =========================================================================
-    # 4. ❌ تم تعطيل الرد الآلي
+    # 4. تم تعطيل الرد الآلي
     # =========================================================================
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """❌ تم تعطيل الرد الآلي بناءً على طلب العميل"""
-        # تم إيقاف الرد الآلي - لا يتم إرسال أي ردود تلقائية
         return
-        
-        # الكود التالي لن يتم تنفيذه أبداً
-        if not self.gemini_api_key:
-            return
-        
-        prompt = (
-            "أنت المساعد الذكي الرسمي لخدمة عملاء 'سوق محجوب أونلاين'. "
-            "أجب بأسلوب تجاري راقٍ وموجز وودود، واستفسر عما إذا كان العميل بحاجة للمساعدة "
-            "في إتمام طلبه أو الاستعلام عن الشحنات والأسعار.\n"
-            f"رسالة العميل: {customer_message}"
-        )
-        
-        reply_text = self._generate_gemini_reply(prompt)
-        if reply_text:
-            self.send_message(sender_phone, reply_text)
 
     def _generate_gemini_reply(self, prompt: str) -> str:
         """استدعاء نموذج Gemini AI لتوليد الردود الفورية"""
@@ -388,10 +369,8 @@ class WhatsAppService:
     def _record_message(self, phone: str, content: str, direction: str, media_id: str = "", media_url: str = "", status: str = "received") -> None:
         clean_phone = phone.replace("+", "").strip()
         
-        # ✅ نمرر last_message فقط، وزيادة unread_count ستتم داخل _ensure_contact_exists
         self._ensure_contact_exists(clean_phone, last_message=content)
         
-        # ✅ الحفظ في قاعدة البيانات
         try:
             msg = WhatsAppMessageLog(
                 direction=direction,
@@ -409,7 +388,6 @@ class WhatsAppService:
             db.session.rollback()
             print(f"⚠️ [خطأ حفظ الرسالة في الجدول]: {e}")
         
-        # ✅ الحفظ في الذاكرة (القاموس)
         if clean_phone not in self.messages_db:
             self.messages_db[clean_phone] = []
         self.messages_db[clean_phone].append({
@@ -444,13 +422,19 @@ class WhatsAppService:
             result = []
             for c in contacts:
                 data = {
+                    'id': c.id,
                     'phone': c.phone,
                     'name': c.name or c.whatsapp_profile_name or f"عميل ({c.phone})",
                     'last_message': c.last_message,
                     'last_timestamp': c.last_timestamp.isoformat() if c.last_timestamp else None,
                     'unread_count': c.unread_count or 0,
                     'is_online': False,
-                    'last_seen': 'آخر ظهور اليوم'
+                    'last_seen': 'آخر ظهور اليوم',
+                    'category': getattr(c, 'category', 'customers'),
+                    'city': getattr(c, 'city', ''),
+                    'company': getattr(c, 'company', ''),
+                    'email': getattr(c, 'email', ''),
+                    'notes': getattr(c, 'notes', ''),
                 }
                 if c.last_timestamp:
                     if isinstance(c.last_timestamp, datetime):
@@ -621,7 +605,6 @@ class WhatsAppService:
             if contact:
                 contact.unread_count = 0
                 db.session.commit()
-                # تحديث في الذاكرة أيضاً
                 if clean_phone in self.contacts_db:
                     self.contacts_db[clean_phone]["unread_count"] = 0
                 return {"success": True, "message": "تم تصفير العداد"}
@@ -629,3 +612,108 @@ class WhatsAppService:
         except Exception as e:
             db.session.rollback()
             return {"error": str(e), "status": "failed"}
+
+    # =========================================================================
+    # 10. دالة إضافة جهة اتصال (للاستخدام من contacts_bulk)
+    # =========================================================================
+
+    def add_contact(self, name: str, phone: str, category: str = "customers", 
+                    city: str = "", company: str = "", email: str = "", notes: str = "") -> Dict[str, Any]:
+        """إضافة جهة اتصال جديدة"""
+        try:
+            clean_phone = phone.replace("+", "").strip()
+            
+            # التحقق من وجود الرقم
+            existing = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+            if existing:
+                return {"success": False, "error": "رقم الهاتف موجود مسبقاً"}
+            
+            contact = WhatsAppCustomerContact(
+                name=name,
+                phone=clean_phone,
+                category=category,
+                city=city,
+                company=company,
+                email=email,
+                notes=notes,
+                unread_count=0,
+                last_timestamp=datetime.utcnow()
+            )
+            db.session.add(contact)
+            db.session.commit()
+            
+            return {"success": True, "message": "تم إضافة جهة الاتصال بنجاح", "id": contact.id}
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # 11. دالة تحديث جهة اتصال (للاستخدام من contacts_bulk)
+    # =========================================================================
+
+    def update_contact(self, contact_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """تحديث جهة اتصال"""
+        try:
+            contact = WhatsAppCustomerContact.query.get(contact_id)
+            if not contact:
+                return {"success": False, "error": "جهة الاتصال غير موجودة"}
+            
+            if 'name' in data:
+                contact.name = data['name']
+            if 'phone' in data:
+                contact.phone = data['phone'].replace("+", "").strip()
+            if 'category' in data:
+                contact.category = data['category']
+            if 'city' in data:
+                contact.city = data['city']
+            if 'company' in data:
+                contact.company = data['company']
+            if 'email' in data:
+                contact.email = data['email']
+            if 'notes' in data:
+                contact.notes = data['notes']
+            
+            contact.last_timestamp = datetime.utcnow()
+            db.session.commit()
+            
+            return {"success": True, "message": "تم تحديث جهة الاتصال بنجاح"}
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # 12. دالة حذف جهة اتصال (للاستخدام من contacts_bulk)
+    # =========================================================================
+
+    def delete_contact(self, contact_id: int) -> Dict[str, Any]:
+        """حذف جهة اتصال"""
+        try:
+            contact = WhatsAppCustomerContact.query.get(contact_id)
+            if not contact:
+                return {"success": False, "error": "جهة الاتصال غير موجودة"}
+            
+            db.session.delete(contact)
+            db.session.commit()
+            
+            return {"success": True, "message": "تم حذف جهة الاتصال بنجاح"}
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # 13. دالة حذف مجموعة جهات اتصال (للاستخدام من contacts_bulk)
+    # =========================================================================
+
+    def delete_contacts_bulk(self, ids: List[int]) -> Dict[str, Any]:
+        """حذف مجموعة جهات اتصال"""
+        try:
+            if not ids:
+                return {"success": False, "error": "لم يتم تحديد أي جهات اتصال"}
+            
+            deleted = WhatsAppCustomerContact.query.filter(WhatsAppCustomerContact.id.in_(ids)).delete(synchronize_session=False)
+            db.session.commit()
+            
+            return {"success": True, "deleted": deleted, "message": f"تم حذف {deleted} جهة اتصال"}
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "error": str(e)}
