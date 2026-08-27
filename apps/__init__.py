@@ -98,7 +98,8 @@ def seed_database():
     # 3. زراعة مورد تجريبي مع محفظة ورصيد افتتاحي
     # ============================================================
     try:
-        if not Supplier.query.filter_by(username='test_supplier').first():
+        supplier = Supplier.query.filter_by(username='test_supplier').first()
+        if not supplier:
             supplier = Supplier(
                 username='test_supplier',
                 trade_name='متجر محجوب التجريبي',
@@ -111,6 +112,8 @@ def seed_database():
             db.session.add(supplier)
             db.session.flush()
 
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+        if not wallet:
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
                 wallet_code=f"MAH-WEL963{supplier.id}",
@@ -120,6 +123,14 @@ def seed_database():
             db.session.add(wallet)
             db.session.flush()
 
+        # التحقق مما إذا كانت المعاملة الافتتاحية موجودة مسبقاً لتجنب التكرار في حال إعادة التشغيل
+        existing_tx = WalletTransaction.query.filter_by(
+            wallet_id=wallet.id,
+            trans_type='deposit',
+            amount=1000000.00
+        ).first()
+
+        if not existing_tx:
             now = datetime.utcnow()
             date_str = now.strftime('%Y%m%d')
             time_stamp = now.strftime('%H%M%S%f')[:9]
@@ -169,11 +180,11 @@ def seed_database():
 
             db.session.commit()
             print("✅ [الزراعة]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
-            print(f"   📌 كود المورد: SUP-963{supplier.id}")
-            print(f"   📌 كود المحفظة: WEL-963{supplier.id}")
-            print(f"   📌 رقم السند: {seed_voucher_number}")
+            print(f"    📌 كود المورد: SUP-963{supplier.id}")
+            print(f"    📌 كود المحفظة: WEL-963{supplier.id}")
+            print(f"    📌 رقم السند: {seed_voucher_number}")
         else:
-            print("ℹ️ [الزراعة]: المورد التجريبي موجود مسبقاً.")
+            print("ℹ️ [الزراعة]: المورد التجريبي والمحفظة ومعاملة الرصيد الافتتاحي موجودة مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
