@@ -251,22 +251,28 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ التهيئة الآمنة للجداول والبيانات (بدون حذف البيانات القديمة)
+    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع (حذف وإعادة بناء)
     # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            # ✅ إنشاء الجداول المفقودة فقط (بدون استخدام db.drop_all لضمان سلامة البيانات)
-            db.create_all()
-            print("✅ [التهيئة الآمنة]: تم التحقق من إنشاء الجداول بنجاح دون المساس بالبيانات الموجودة.")
+            # 🗑️ حذف وإعادة إنشائها بالكامل (تفريغ الـ Schema وإعادة بناؤها)
+            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            db.session.execute(text("CREATE SCHEMA public;"))
+            db.session.commit()
+            print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
 
-            # ✅ زراعة البيانات المبدئية إذا لم تكن موجودة
+            # ✅ إنشاء الجداول بالهيكل الجديد
+            db.create_all()
+            print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
+
+            # ✅ زراعة البيانات المبدئية
             seed_database()
-            print("✅ [التهيئة الآمنة]: تمت مراجعة وزراعة البيانات المبدئية بنجاح.")
+            print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
 
         except Exception as e:
             db.session.rollback()
-            print(f"❌ [خطأ في التهيئة الآمنة]: {e}")
+            print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً عند الحاجة القصوى
@@ -500,17 +506,14 @@ def create_app():
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
 
-        # ✅ تسجيل مسار الويب هوك العام (المسار الذي تستخدمه Meta)
         if webhook_public_bp.name not in app.blueprints:
             app.register_blueprint(webhook_public_bp)
             print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
 
-        # ✅ تسجيل مسارات لوحة التحكم (مهم جداً لحل مشكلة 404)!
         if whatsapp_bp.name not in app.blueprints:
             app.register_blueprint(whatsapp_bp)
             print("✅ [واتساب]: تم تسجيل مسارات لوحة التحكم '/admin/whatsapp' بنجاح.")
 
-        # استثناء كلا المسارين من حماية CSRF (الأهم)
         csrf.exempt(whatsapp_bp)
         csrf.exempt(webhook_public_bp)
 
@@ -539,7 +542,6 @@ def create_app():
                         
                         if item == 'whatsapp_service' or 'whatsapp' in item:
                             try:
-                                # تم استثناء المسارات مسبقاً في التسجيل اليدوي أعلاه
                                 print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
                             except Exception as ex_csrf:
                                 print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
