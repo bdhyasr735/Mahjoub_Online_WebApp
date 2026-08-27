@@ -632,4 +632,194 @@ function filterContacts(filter) {
         }
         
         card.style.display = show ? 'flex' : 'none';
-   
+    });
+    
+    document.querySelectorAll('.bg-slate-50 .flex-1').forEach(btn => {
+        btn.classList.remove('bg-white', 'shadow-sm');
+        btn.classList.add('text-slate-600');
+        if (btn.id === `filter-${currentFilter}`) {
+            btn.classList.add('bg-white', 'shadow-sm');
+            btn.classList.remove('text-slate-600');
+        }
+    });
+}
+
+// ===================== دوال الإرسال =====================
+function handleSendMessage() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (!text && selectedFiles.length === 0) return;
+    if (!currentPhone) {
+        showToast('الرجاء اختيار محادثة أولاً', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('phone', currentPhone);
+    formData.append('text', text);
+    for (const file of selectedFiles) {
+        formData.append('attachments', file);
+    }
+    
+    fetch('/admin/whatsapp/api/send', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+            addMessageToChat('sent', text || '📎 مرفق', time);
+            input.value = '';
+            clearAttachments();
+        } else {
+            showToast('فشل إرسال الرسالة: ' + (data.error || 'خطأ غير معروف'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast('خطأ في الاتصال بالخادم', 'error');
+        console.error(err);
+    });
+}
+
+function showToast(message, type) {
+    const container = document.getElementById('notification-container');
+    const toast = document.createElement('div');
+    toast.className = `px-4 py-3 rounded-xl text-white text-xs font-bold shadow-lg transition-all ${
+        type === 'error' ? 'bg-red-600' : 'bg-emerald-600'
+    }`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-20px)';
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emoji-picker-container');
+    picker.classList.toggle('hidden');
+}
+
+function addEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += emoji;
+    input.focus();
+    document.getElementById('emoji-picker-container').classList.add('hidden');
+}
+
+function handleAttachmentSelect() {
+    const input = document.getElementById('attachmentInput');
+    const files = Array.from(input.files);
+    selectedFiles.push(...files);
+    updateAttachmentPreview();
+    input.value = '';
+}
+
+function updateAttachmentPreview() {
+    const preview = document.getElementById('attachmentPreview');
+    const list = document.getElementById('attachmentPreviewList');
+    
+    if (selectedFiles.length === 0) {
+        preview.classList.add('hidden');
+        return;
+    }
+    
+    preview.classList.remove('hidden');
+    list.innerHTML = selectedFiles.map((file, index) => `
+        <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs shadow-sm">
+            <i class="fas ${file.type.startsWith('image/') ? 'fa-image' : file.type.startsWith('video/') ? 'fa-video' : 'fa-file'} text-slate-500"></i>
+            <span class="text-slate-700 max-w-32 truncate">${file.name}</span>
+            <span class="text-slate-400">(${(file.size / 1024).toFixed(1)}KB)</span>
+            <button onclick="removeFile(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-times"></i></button>
+        </div>
+    `).join('');
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    updateAttachmentPreview();
+}
+
+function clearAttachments() {
+    selectedFiles = [];
+    updateAttachmentPreview();
+    document.getElementById('attachmentInput').value = '';
+}
+
+function openEditNameModal() {
+    if (!currentPhone) {
+        showToast('اختر محادثة أولاً', 'error');
+        return;
+    }
+    const currentName = document.getElementById('activeContactName').textContent;
+    document.getElementById('edit-name-input').value = currentName;
+    document.getElementById('edit-name-modal').classList.remove('hidden');
+}
+
+function closeEditNameModal() {
+    document.getElementById('edit-name-modal').classList.add('hidden');
+}
+
+function saveNewName() {
+    const newName = document.getElementById('edit-name-input').value.trim();
+    if (!newName) {
+        showToast('الرجاء إدخال اسم صحيح', 'error');
+        return;
+    }
+    
+    fetch('/admin/whatsapp/api/contacts/update-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: currentPhone, name: newName })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('activeContactName').textContent = newName;
+            // تحديث في القائمة الجانبية
+            const cards = document.querySelectorAll('.contact-card');
+            cards.forEach(card => {
+                if (card.getAttribute('data-phone') === currentPhone) {
+                    const nameSpan = card.querySelector('.contact-name');
+                    if (nameSpan) nameSpan.textContent = newName;
+                    const avatarDiv = card.querySelector('.w-11.h-11.rounded-full');
+                    if (avatarDiv) avatarDiv.textContent = newName.charAt(0).toUpperCase();
+                }
+            });
+            closeEditNameModal();
+            showToast('تم تحديث الاسم بنجاح', 'success');
+        } else {
+            showToast('فشل تحديث الاسم: ' + (data.error || 'خطأ غير معروف'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast('خطأ في الاتصال بالخادم', 'error');
+        console.error(err);
+    });
+}
+
+// ===================== محاكاة استقبال رسائل (للاختبار) =====================
+function simulateIncomingMessage(phone, name, message) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+    onNewMessage({ phone, name, message, timestamp: timeStr });
+}
+
+// ===================== WebSocket / EventSource =====================
+function connectToWebSocket() {
+    // يمكنك استخدام WebSocket أو SSE للاتصال بالخادم
+    console.log('✅ جاهز لاستقبال الرسائل الفورية عبر WebSocket');
+}
+
+// تشغيل عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    connectToWebSocket();
+    console.log('✅ لوحة تحكم واتساب جاهزة');
+});
+</script>
+
+{% endblock %}
