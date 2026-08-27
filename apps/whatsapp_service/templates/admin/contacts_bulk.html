@@ -1,308 +1,333 @@
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
 
 {% block title %}سوق محجوب أونلاين - جهات الاتصال والإرسال الجماعي{% endblock %}
 
 {% block content %}
-<div class="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6" dir="rtl">
 
-    <!-- Top Stats & Header -->
-    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div>
-            <h1 class="text-lg md:text-xl font-extrabold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-people-group text-[#1e0226]"></i>
-                <span>جهات الاتصال والإرسال الجماعي</span>
-            </h1>
-            <p class="text-xs text-slate-500 mt-1">إدارة العملاء والتجار والموردين والمسوقين مع أدوات الاستهداف الذكي</p>
+    <!-- Top Sovereign Header Bar -->
+    <div class="bg-[#1a0b2e] rounded-3xl p-6 shadow-xl border border-purple-900/50 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-900 to-[#1a0b2e] border-2 border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shadow-lg shrink-0">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-xl font-extrabold tracking-tight text-white">إدارة جهات الاتصال والإرسال الجماعي</h1>
+                    <span class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/40 shadow-inner">
+                        Meta Cloud API v26.0
+                    </span>
+                </div>
+                <p class="text-xs text-purple-200/80 mt-1 font-medium">
+                    منظومة السيادة التسويقية لسوق محجوب أونلاين - استهداف العملاء، التجار، الموردين والمسوقين
+                </p>
+            </div>
         </div>
-        <div class="flex gap-2 flex-wrap">
-            <button onclick="openModal('modal-add')" class="bg-[#1e0226] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">
-                <i class="fa-solid fa-user-plus ml-2"></i> إضافة جهة اتصال
+
+        <!-- Header Action Buttons -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <button type="button" onclick="window.location.reload()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#c49f2f] text-[#1a0b2e] shadow-lg shadow-[#D4AF37]/20 border border-[#D4AF37] transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>تحديث البيانات</span>
             </button>
-            <button onclick="openModal('modal-import')" class="bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-200 transition shadow-sm">
-                <i class="fa-solid fa-file-import ml-2"></i> استيراد CSV
+
+            <button type="button" onclick="openModal('importModal')" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>استيراد CSV / Excel</span>
             </button>
-            <button onclick="openModal('modal-broadcast')" class="bg-[#25D366] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-600 transition shadow-md">
-                <i class="fa-solid fa-paper-plane ml-2"></i> إرسال جماعي
+
+            <button type="button" onclick="openModal('addContactModal')" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>إضافة جهة اتصال</span>
+            </button>
+
+            <button type="button" onclick="openModal('broadcastModal')" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-xl shadow-black/40 transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4 h-4 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                <span>إرسال حملة</span>
             </button>
         </div>
     </div>
 
-    <!-- Category Filter Pills & Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-green-500">
+    <!-- Category Stats Counters (4 Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Customers -->
+        <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-xs text-slate-500 font-bold">العملاء النهائيين</span>
-                    <h3 class="text-2xl font-extrabold text-green-600 mt-1">{{ stats.customers_count | default(124) }}</h3>
+                    <span class="text-xs font-bold text-slate-500 block mb-1">العملاء النهائيين</span>
+                    <h3 class="text-2xl font-black text-[#1a0b2e]">{{ stats.customers_count }}</h3>
                 </div>
-                <i class="fa-solid fa-user text-green-500 opacity-50 text-3xl"></i>
+                <div class="w-12 h-12 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-[#1a0b2e]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between pt-3 border-t border-purple-100 text-[11px]">
+                <span class="text-slate-400">تحديث فوري</span>
+                <span class="font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-0.5 rounded-md">B2C</span>
             </div>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-blue-500">
+
+        <!-- Merchants -->
+        <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-xs text-slate-500 font-bold">مركز التجار</span>
-                    <h3 class="text-2xl font-extrabold text-blue-600 mt-1">{{ stats.merchants_count | default(48) }}</h3>
+                    <span class="text-xs font-bold text-slate-500 block mb-1">مركز التجار والمحلات</span>
+                    <h3 class="text-2xl font-black text-[#1a0b2e]">{{ stats.merchants_count }}</h3>
                 </div>
-                <i class="fa-solid fa-store text-blue-500 opacity-50 text-3xl"></i>
+                <div class="w-12 h-12 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-[#1a0b2e]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between pt-3 border-t border-purple-100 text-[11px]">
+                <span class="text-slate-400">أسعار الجملة</span>
+                <span class="font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-0.5 rounded-md">B2B</span>
             </div>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-amber-500">
+
+        <!-- Suppliers -->
+        <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-xs text-slate-500 font-bold">الموردين والمصانع</span>
-                    <h3 class="text-2xl font-extrabold text-amber-600 mt-1">{{ stats.suppliers_count | default(32) }}</h3>
+                    <span class="text-xs font-bold text-slate-500 block mb-1">الموردين والمصانع</span>
+                    <h3 class="text-2xl font-black text-[#1a0b2e]">{{ stats.suppliers_count }}</h3>
                 </div>
-                <i class="fa-solid fa-truck text-amber-500 opacity-50 text-3xl"></i>
+                <div class="w-12 h-12 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-[#1a0b2e]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between pt-3 border-t border-purple-100 text-[11px]">
+                <span class="text-slate-400">سلاسل الإمداد</span>
+                <span class="font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-0.5 rounded-md">Supply</span>
             </div>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-r-4 border-r-purple-500">
+
+        <!-- Marketers -->
+        <div class="bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:border-[#D4AF37]/50 transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-xs text-slate-500 font-bold">المسوقين بالعمولة</span>
-                    <h3 class="text-2xl font-extrabold text-purple-600 mt-1">{{ stats.marketers_count | default(55) }}</h3>
+                    <span class="text-xs font-bold text-slate-500 block mb-1">المسوقين والعمولات</span>
+                    <h3 class="text-2xl font-black text-[#1a0b2e]">{{ stats.marketers_count }}</h3>
                 </div>
-                <i class="fa-solid fa-bullhorn text-purple-500 opacity-50 text-3xl"></i>
+                <div class="w-12 h-12 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-[#1a0b2e]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between pt-3 border-t border-purple-100 text-[11px]">
+                <span class="text-slate-400">نظام الإحالات</span>
+                <span class="font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-2 py-0.5 rounded-md">Affiliate</span>
             </div>
         </div>
     </div>
 
-    <!-- Filter & Action Bar -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div class="flex flex-col md:flex-row gap-3">
-            <div class="flex-1 relative">
-                <i class="fa-solid fa-search absolute right-3 top-3 text-slate-400"></i>
-                <input type="text" id="searchInput" placeholder="بحث بالاسم أو رقم الهاتف..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-3 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
+    <!-- Search & Filters Control Card -->
+    <div class="bg-white rounded-2xl p-4 border border-purple-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3 flex-1">
+            <div class="relative flex-1 max-w-md">
+                <input type="text" id="contactSearchInput" onkeyup="filterCards()" placeholder="بحث بالاسم، رقم الواتساب، المدينة، أو كود الخصم..." class="w-full bg-purple-50/50 border border-purple-200 rounded-xl pr-10 pl-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1a0b2e] focus:bg-white transition-all">
+                <svg class="w-4 h-4 text-purple-400 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
             </div>
-            <select id="categoryFilter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+
+            <select id="categoryFilter" onchange="filterCategory(this.value)" class="bg-purple-50 border border-purple-200 text-purple-950 font-bold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#1a0b2e] cursor-pointer">
                 <option value="all">جميع الفئات</option>
                 <option value="customers">العملاء</option>
                 <option value="merchants">التجار</option>
                 <option value="suppliers">الموردين</option>
                 <option value="marketers">المسوقين</option>
             </select>
-            <button class="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 hidden">
-                <i class="fa-solid fa-filter"></i>
-            </button>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <span>عدد البطاقات المعروضة:</span>
+            <span id="renderedCount" class="font-bold text-[#1a0b2e] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-lg">{{ contacts|length }}</span>
         </div>
     </div>
 
-    <!-- Contacts Grid (Cards) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="contactsGrid">
+    <!-- Cards Grid (Separated Cards, No Tables) -->
+    <div id="contactsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for contact in contacts %}
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between mb-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-full bg-[#1e0226] text-white flex items-center justify-center font-bold text-lg">
-                        {{ contact.name[:1] }}
+        <div class="contact-card bg-white rounded-2xl p-5 border border-purple-200 shadow-xs hover:shadow-md hover:border-purple-300 transition-all flex flex-col justify-between" data-category="{{ contact.category }}" data-search="{{ contact.name }} {{ contact.phone }} {{ contact.city }} {{ contact.discount_code }}">
+            <!-- Card Top Header -->
+            <div>
+                <div class="flex items-start justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-[#1a0b2e] font-extrabold text-sm shrink-0">
+                            {{ contact.name[:1] }}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm leading-tight">{{ contact.name }}</h4>
+                            <span class="text-[11px] text-slate-400 block mt-0.5">{{ contact.company or 'فردي / مباشر' }}</span>
+                        </div>
                     </div>
-                    <div>
-                        <h4 class="font-bold text-slate-800 text-sm">{{ contact.name }}</h4>
-                        <span class="text-xs text-slate-400">{{ contact.company or 'فردي' }}</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
+
+                    <!-- Category Badge -->
                     {% if contact.category == 'customers' %}
-                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-green-100 text-green-700">عميل</span>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-900 border border-purple-200">عميل</span>
                     {% elif contact.category == 'merchants' %}
-                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">تاجر</span>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">تاجر</span>
                     {% elif contact.category == 'suppliers' %}
-                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">مورد</span>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200">مورد</span>
+                    {% elif contact.category == 'marketers' %}
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-100 text-[#1a0b2e] border border-purple-300">مسوق</span>
                     {% else %}
-                        <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-purple-100 text-purple-700">مسوق</span>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-900 border border-purple-200">{{ contact.category }}</span>
                     {% endif %}
                 </div>
-            </div>
-            
-            <div class="border-y border-slate-100 py-3 mb-3 flex items-center justify-between">
-                <span dir="ltr" class="font-mono text-slate-700 font-bold text-sm">+{{ contact.phone }}</span>
-                <div class="flex gap-2">
-                    <a href="https://wa.me/{{ contact.phone }}" target="_blank" class="text-[#25D366] hover:text-green-600">
-                        <i class="fa-brands fa-whatsapp text-lg"></i>
-                    </a>
-                    <button onclick="editContact('{{ contact.id }}')" class="text-slate-400 hover:text-blue-600">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
+
+                <!-- Info Details -->
+                <div class="space-y-2 py-3 border-y border-purple-50 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">رقم الواتساب:</span>
+                        <span class="font-mono font-bold text-slate-800" dir="ltr">+{{ contact.phone }}</span>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">المدينة / المنطقة:</span>
+                        <span class="font-medium text-slate-700">{{ contact.city or 'غير محدد' }}</span>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">كود الخصم المخصص:</span>
+                        {% if contact.discount_code %}
+                            <code class="bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 px-2 py-0.5 rounded font-mono font-bold text-[11px]">{{ contact.discount_code }}</code>
+                        {% else %}
+                            <span class="text-slate-400">-</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            
-            <div class="flex flex-wrap gap-2 mb-3">
-                {% if contact.tags %}
-                    {% for tag in contact.tags %}
-                    <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">{{ tag }}</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="px-2 py-1 text-[10px] font-bold rounded-full bg-slate-50 text-slate-400">بدون وسوم</span>
-                {% endif %}
-            </div>
-            
-            <div class="mb-3">
-                {% if contact.discount_code %}
-                    <span class="text-xs font-mono bg-purple-50 text-purple-700 px-2 py-1 rounded-lg font-bold">{{ contact.discount_code }}</span>
-                {% else %}
-                    <span class="text-xs text-slate-400">لا يوجد كود خصم</span>
-                {% endif %}
-            </div>
-            
-            <div class="flex justify-between items-center text-[11px] text-slate-400">
-                <span><i class="fa-solid fa-location-dot ml-1"></i>{{ contact.city or 'غير محدد' }}</span>
-                <span>{{ contact.last_interaction or 'مضاف حديثاً' }}</span>
+
+            <!-- Card Bottom Actions -->
+            <div class="mt-4 pt-2 flex items-center justify-between gap-2">
+                <a href="https://wa.me/{{ contact.phone }}" target="_blank" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/40 shadow-xs transition-all active:scale-95">
+                    <svg class="w-3.5 h-3.5 text-[#D4AF37]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.96.524 1.777.818 2.796.818 3.18 0 5.766-2.587 5.767-5.766 0-3.18-2.586-5.804-5.767-5.804zm3.398 8.196c-.144.405-.837.774-1.17.824-.312.045-.634.072-1.808-.413-1.464-.606-2.434-2.072-2.508-2.17-.073-.099-.594-.791-.594-1.51 0-.719.378-1.073.513-1.22.135-.147.297-.184.396-.184.099 0 .198.002.284.006.09.004.211-.034.33.252.122.296.417 1.018.453 1.092.036.074.06.162.012.261-.048.099-.072.162-.144.246-.072.084-.153.187-.218.252-.072.072-.148.15-.064.294.084.144.373.616.802.998.552.492 1.017.644 1.161.716.144.072.228.06.312-.036.084-.096.36-.42.456-.564.096-.144.192-.12.324-.072.132.048.84.396.984.468.144.072.24.108.276.168.036.06.036.348-.108.753z"/>
+                    </svg>
+                    <span>مراسلة واتساب</span>
+                </a>
+
+                <button type="button" onclick="openDirectMessage('{{ contact.name }}', '{{ contact.phone }}', '{{ contact.discount_code or '' }}')" class="p-2 rounded-xl text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors" title="إرسال نص مخصص">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </button>
             </div>
         </div>
         {% else %}
-        <div class="col-span-full text-center py-10 text-slate-400">
-            <i class="fa-solid fa-inbox text-4xl mb-2"></i>
-            <p class="text-sm">لا توجد جهات اتصال مسجلة</p>
+        <div class="col-span-full bg-white rounded-3xl p-12 border border-purple-200 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 mx-auto flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+            </div>
+            <h3 class="font-bold text-slate-800 text-base mb-1">لا توجد جهات اتصال مسجلة</h3>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto mb-4">ابدأ بإضافة أول جهة اتصال أو استيراد ملف العملاء والتجار بصيغة CSV أو Excel</p>
+            <button type="button" onclick="openModal('addContactModal')" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-md">
+                <span>إضافة جهة اتصال الآن</span>
+            </button>
         </div>
         {% endfor %}
     </div>
+
 </div>
 
-<!-- ============ النوافذ المنبثقة (Modals) بأسلوب Tailwind ============ -->
-
-<!-- Modal: إضافة جهة اتصال -->
-<div id="modal-add" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between p-5 border-b border-slate-100">
-            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-user-plus text-purple-600 ml-2"></i> إضافة جهة اتصال</h3>
-            <button onclick="closeModal('modal-add')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+<!-- Modal 1: Add Contact (Pure Tailwind) -->
+<div id="addContactModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-purple-200 overflow-hidden">
+        <div class="bg-[#1a0b2e] px-6 py-4 border-b border-purple-900/50 flex items-center justify-between text-white">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-900/80 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                </div>
+                <h3 class="font-bold text-sm text-white">إضافة جهة اتصال جديدة</h3>
+            </div>
+            <button type="button" onclick="closeModal('addContactModal')" class="text-purple-300 hover:text-white">✕</button>
         </div>
-        <form action="{{ url_for('whatsapp_service.add_contact_view') }}" method="POST" class="p-5 space-y-4">
+
+        <form action="{{ url_for('whatsapp_service.add_contact_view') }}" method="POST" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">نوع الفئة</label>
-                <select name="category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
-                    <option value="customers">عميل</option>
-                    <option value="merchants">تاجر</option>
-                    <option value="suppliers">مورد</option>
-                    <option value="marketers">مسوق</option>
-                </select>
+                <label class="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل / اسم النشاط:</label>
+                <input type="text" name="name" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="مثال: متجر النور للأواني">
             </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">الاسم الكامل</label>
-                <input type="text" name="name" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]" required>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">رقم الواتساب (مع الرمز الدولي):</label>
+                    <input type="text" name="phone" required dir="ltr" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="249912345678">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الفئة والتصنيف:</label>
+                    <select name="category" required class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]">
+                        <option value="customers">العملاء (Customers)</option>
+                        <option value="merchants">التجار (Merchants)</option>
+                        <option value="suppliers">الموردين (Suppliers)</option>
+                        <option value="marketers">المسوقين (Marketers)</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">رقم الواتساب</label>
-                <input type="text" name="phone" dir="ltr" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]" required>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">المدينة / المنطقة:</label>
+                    <input type="text" name="city" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]" placeholder="مثال: الخرطوم / بورتسودان">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">كود الخصم المخصص (اختياري):</label>
+                    <input type="text" name="discount_code" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:border-[#1a0b2e]" placeholder="MAHGOOB10">
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">اسم المؤسسة / المتجر</label>
-                <input type="text" name="company" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">المدينة</label>
-                <input type="text" name="city" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">كود الخصم</label>
-                <input type="text" name="discount_code" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e0226]">
-            </div>
-            <div class="flex gap-3 pt-2">
-                <button type="submit" class="flex-1 bg-[#1e0226] text-white py-2.5 rounded-xl font-bold text-sm">حفظ</button>
-                <button type="button" onclick="closeModal('modal-add')" class="px-6 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm">إلغاء</button>
+
+            <div class="pt-3 border-t border-purple-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeModal('addContactModal')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-purple-50 hover:bg-purple-100 border border-purple-200">إلغاء</button>
+                <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#1a0b2e] hover:bg-[#271044] border border-[#D4AF37]/50 shadow-md">حفظ جهة الاتصال</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal: استيراد CSV -->
-<div id="modal-import" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between p-5 border-b border-slate-100">
-            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-file-import text-blue-600 ml-2"></i> استيراد ملف</h3>
-            <button onclick="closeModal('modal-import')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+<!-- Modal 2: Import Contacts CSV / Excel (Pure Tailwind) -->
+<div id="importModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" dir="rtl">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-purple-200 overflow-hidden">
+        <div class="bg-[#1a0b2e] px-6 py-4 border-b border-purple-900/50 flex items-center justify-between text-white">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-900/80 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                </div>
+                <h3 class="font-bold text-sm text-white">استيراد جهات الاتصال (CSV / Excel)</h3>
+            </div>
+            <button type="button" onclick="closeModal('importModal')" class="text-purple-300 hover:text-white">✕</button>
         </div>
-        <form action="{{ url_for('whatsapp_service.import_contacts_view') }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
+
+        <form action="{{ url_for('whatsapp_service.import_contacts_view') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+                يرجى رفع ملف يحتوي على الأعمدة التالية: <code class="bg-purple-50 text-purple-900 px-1 py-0.5 rounded font-mono">name, phone, category, city, discount_code</code>.
+            </p>
+
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">تحديد الفئة</label>
-                <select name="default_category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
-                    <option value="customers">العملاء</option>
-                    <option value="merchants">التجار</option>
-                    <option value="suppliers">الموردين</option>
-                    <option value="marketers">المسوقين</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">الملف</label>
-                <input type="file" name="file" accept=".csv,.xlsx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" required>
-            </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm">بدء الاستيراد</button>
-        </form>
-    </div>
-</div>
-
-<!-- Modal: إرسال جماعي -->
-<div id="modal-broadcast" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between p-5 border-b border-slate-100">
-            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-paper-plane text-green-600 ml-2"></i> إرسال رسالة جماعية</h3>
-            <button onclick="closeModal('modal-broadcast')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-        </div>
-        <form action="{{ url_for('whatsapp_service.send_broadcast_view') }}" method="POST" class="p-5 space-y-4">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">الفئة المستهدفة</label>
-                <select name="target_category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
-                    <option value="all">جميع الفئات</option>
-                    <option value="customers">العملاء</option>
-                    <option value="merchants">التجار</option>
-                    <option value="suppliers">الموردين</option>
-                    <option value="marketers">المسوقين</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">نص الرسالة</label>
-                <textarea name="message_text" rows="5" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" placeholder="مرحباً {name}، ..." required></textarea>
-            </div>
-            <button type="submit" class="w-full bg-[#25D366] text-white py-2.5 rounded-xl font-bold text-sm">إرسال الحملة</button>
-        </form>
-    </div>
-</div>
-
-<script>
-// ✅ دوال فتح وإغلاق النوافذ باستخدام JavaScript (بدون Bootstrap)
-function openModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-}
-
-function closeModal(id) {
-    const modal = document.getElementById(id);
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-}
-
-// إغلاق النافذة عند الضغط على الخلفية
-window.addEventListener('click', function(event) {
-    const modals = document.querySelectorAll('.fixed.inset-0.z-50');
-    modals.forEach(modal => {
-        if (event.target === modal) {
-            closeModal(modal.id);
-        }
-    });
-});
-
-// ✅ دالة التعديل
-function editContact(id) {
-    alert('تم اختيار جهة الاتصال رقم: ' + id);
-}
-
-// ✅ دالة البحث
-function filterContacts() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    const cards = document.querySelectorAll('#contactsGrid > div');
-    cards.forEach(card => {
-        card.style.display = card.innerText.toLowerCase().includes(query) ? 'block' : 'none';
-    });
-}
-
-document.getElementById('searchInput').addEventListener('input', filterContacts);
-</script>
-{% endblock %}
+                <label class="block text-xs font-bold text-slate-700 mb-1">الفئة الافتراضية إذا لم تحدد بالملف:</label>
+                <select name="default_category" class="w-full bg-purple-50/50 border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#1a0b2e]">
+                    <option value="customers">العملاء (Customers)</option>
+                    <option value="merchants">التجار (Merch
