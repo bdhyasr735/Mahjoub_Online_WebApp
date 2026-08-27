@@ -827,4 +827,13 @@ class WhatsAppService:
     def delete_contacts_bulk(self, ids: List[int]) -> Dict[str, Any]:
         """حذف مجموعة جهات اتصال"""
         try:
-            if not
+            if not ids:
+                return {"success": False, "error": "لم يتم تحديد أي جهات اتصال"}
+            
+            deleted = WhatsAppCustomerContact.query.filter(WhatsAppCustomerContact.id.in_(ids)).delete(synchronize_session=False)
+            db.session.commit()
+            
+            return {"success": True, "deleted": deleted, "message": f"تم حذف {deleted} جهة اتصال"}
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "error": str(e)}
