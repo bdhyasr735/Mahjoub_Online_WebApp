@@ -17,9 +17,10 @@
                 </span>
             </div>
 
-            <!-- فلتر المحادثات غير المقروءة -->
+            <!-- ✅ فلاتر المحادثات: الكل / مقروءة / غير مقروءة -->
             <div class="flex items-center justify-between bg-slate-50 rounded-xl p-1.5">
                 <button onclick="filterContacts('all')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 bg-white shadow-sm" id="filter-all">الكل</button>
+                <button onclick="filterContacts('read')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600" id="filter-read">مقروءة</button>
                 <button onclick="filterContacts('unread')" class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600" id="filter-unread">غير مقروءة</button>
             </div>
 
@@ -84,6 +85,12 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- ✅ زر تعديل الاسم -->
+                <button type="button" onclick="openEditNameModal()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                    <i class="fas fa-user-pen"></i>
+                    <span>تعديل الاسم</span>
+                </button>
+
                 <a href="/admin/whatsapp/templates" class="px-3 py-1.5 rounded-xl bg-[#1e0226] hover:bg-[#2a083d] text-white border border-transparent text-xs font-bold transition-all flex items-center gap-1.5 shadow-md">
                     <i class="fas fa-layer-group"></i>
                     <span>إرسال قالب رسمي</span>
@@ -164,6 +171,22 @@
     </section>
 </div>
 
+<!-- ✅ نافذة تعديل الاسم (Modal) -->
+<div id="edit-name-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-900">تعديل اسم العميل</h3>
+            <button type="button" onclick="closeEditNameModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="text" id="edit-name-input" placeholder="الاسم الجديد..." 
+               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1e0226] focus:bg-white">
+        <div class="mt-4 flex justify-end gap-2">
+            <button type="button" onclick="closeEditNameModal()" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">إلغاء</button>
+            <button type="button" onclick="saveNewName()" class="px-4 py-2 rounded-xl bg-[#1e0226] hover:bg-[#2a083d] text-white text-xs font-bold transition-all">حفظ الاسم</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentPhone = null;
 let selectedFiles = [];
@@ -187,13 +210,17 @@ function showNotification(title, message) {
     notificationSound.play();
 }
 
+// ✅ دالة الفلترة (الكل / مقروءة / غير مقروءة)
 function filterContacts(type = '') {
     if (type) {
         currentFilter = type;
         document.getElementById('filter-all').classList.remove('bg-white', 'shadow-sm');
+        document.getElementById('filter-read').classList.remove('bg-white', 'shadow-sm');
         document.getElementById('filter-unread').classList.remove('bg-white', 'shadow-sm');
         if (type === 'all') {
             document.getElementById('filter-all').classList.add('bg-white', 'shadow-sm');
+        } else if (type === 'read') {
+            document.getElementById('filter-read').classList.add('bg-white', 'shadow-sm');
         } else {
             document.getElementById('filter-unread').classList.add('bg-white', 'shadow-sm');
         }
@@ -207,18 +234,21 @@ function filterContacts(type = '') {
         if (currentFilter === 'unread' && !unread) {
             shouldShow = false;
         }
+        if (currentFilter === 'read' && unread) {
+            shouldShow = false;
+        }
         card.style.display = shouldShow ? 'flex' : 'none';
     });
 }
 
+// ✅ دالة فتح المحادثة وتحديث حالة الظهور
 function loadChat(phone, name) {
     currentPhone = phone;
     document.getElementById('activeContactName').innerText = name;
     document.getElementById('activeContactPhone').innerText = '(+' + phone + ')';
     
-    // تحديث حالة الاتصال داخل الشات
-    document.getElementById('activeContactStatus').innerText = 'متصل الآن';
-    document.getElementById('activeContactStatus').classList.add('text-emerald-500');
+    // تحديث حالة الاتصال داخل الشات ديناميكياً
+    refreshActiveContactStatus();
     
     // ✅ تصفير العداد
     fetch('/admin/whatsapp/api/contacts/read', {
@@ -232,6 +262,58 @@ function loadChat(phone, name) {
     refreshMessages();
     clearInterval(window.messagesInterval);
     window.messagesInterval = setInterval(refreshMessages, 3000);
+}
+
+// ✅ دالة تحديث حالة الظهور داخل الشات
+function refreshActiveContactStatus() {
+    if (!currentPhone) return;
+    fetch('/admin/whatsapp/api/contacts')
+        .then(res => res.json())
+        .then(data => {
+            const contact = data.contacts.find(c => c.phone === currentPhone);
+            if (contact) {
+                if (contact.is_online) {
+                    document.getElementById('activeContactStatus').innerText = 'متصل الآن';
+                    document.getElementById('activeContactStatus').classList.add('text-emerald-500');
+                } else {
+                    document.getElementById('activeContactStatus').innerText = contact.last_seen;
+                    document.getElementById('activeContactStatus').classList.remove('text-emerald-500');
+                }
+            }
+        });
+}
+
+// ✅ دالة فتح نافذة تعديل الاسم
+function openEditNameModal() {
+    if (!currentPhone) {
+        alert('يرجى اختيار جهة اتصال أولاً');
+        return;
+    }
+    document.getElementById('edit-name-input').value = document.getElementById('activeContactName').innerText;
+    document.getElementById('edit-name-modal').classList.remove('hidden');
+}
+
+function closeEditNameModal() {
+    document.getElementById('edit-name-modal').classList.add('hidden');
+}
+
+// ✅ دالة حفظ الاسم الجديد
+async function saveNewName() {
+    const newName = document.getElementById('edit-name-input').value.trim();
+    if (!newName) {
+        alert('يرجى إدخال اسم صحيح');
+        return;
+    }
+    
+    await fetch('/admin/whatsapp/api/contacts/update-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: currentPhone, name: newName })
+    });
+    
+    document.getElementById('activeContactName').innerText = newName;
+    closeEditNameModal();
+    refreshContacts();
 }
 
 function addEmoji(emoji) {
@@ -358,6 +440,8 @@ async function refreshContacts() {
                 lastMessageCount = totalUnread;
             }
             
+            // تحديث حالة الظهور في الشات
+            refreshActiveContactStatus();
             filterContacts();
         }
     } catch (e) {
