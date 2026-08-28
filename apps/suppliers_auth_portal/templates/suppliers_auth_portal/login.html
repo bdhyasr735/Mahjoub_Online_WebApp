@@ -70,7 +70,8 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
-                    <a href="{{ url_for('suppliers_auth_portal.forgot_password_page') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <!-- ✅ تغيير: suppliers_auth_portal.forgot_password_page → suppliers_auth_bp.forgot_password_page -->
+                    <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -114,7 +115,8 @@
         <!-- رابط التسجيل للموردين الجدد -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="{{ url_for('suppliers_auth_portal.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <!-- ✅ تغيير: suppliers_auth_portal.register → suppliers_auth_bp.register_page -->
+            <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب واشتراك مورد جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -216,11 +218,13 @@
             identifier: form.identifier.value.trim(),
             password: form.password.value,
             user_type: currentUserType,
-            remember_me: form.remember_me.checked
+            remember_me: form.remember_me.checked,
+            csrf_token: form.csrf_token.value
         };
 
         try {
-            const response = await window.secureFetch("{{ url_for('suppliers_auth_portal.login') }}", {
+            // ✅ تغيير: suppliers_auth_portal.login → suppliers_auth_bp.login
+            const response = await window.secureFetch("{{ url_for('suppliers_auth_bp.login') }}", {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -229,7 +233,7 @@
             if (response.ok && data.success) {
                 showAlert('تمت المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/supplier/dashboard';
+                    window.location.href = data.redirect_url || '/suppliers/dashboard';
                 }, 1000);
             } else {
                 failedAttempts++;
