@@ -344,9 +344,9 @@ def create_app():
 
     @login_manager.unauthorized_handler
     def unauthorized():
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier'):
             return redirect(url_for('suppliers_auth.login'))
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         return redirect(admin_login_path)
 
     @app.before_request
@@ -387,12 +387,16 @@ def create_app():
             if path.startswith('/admin') or path.startswith('/dashboard'):
                 if is_admin_side:
                     return
-                return redirect(url_for('suppliers_auth.login'))
+                if is_supplier_side:
+                    return redirect('/supplier/dashboard')
+                return redirect(admin_login_path)
 
             if path.startswith('/supplier'):
                 if is_supplier_side:
                     return
-                return redirect(admin_login_path)
+                if is_admin_side:
+                    return redirect('/dashboard')
+                return redirect(url_for('suppliers_auth.login'))
 
             return
 
@@ -465,7 +469,6 @@ def create_app():
     def deceptive_admin_honeypot():
         """مسار خادع لتسجيل الدخول الوهمي يتم توجيه الفضوليين والأنظمة الآلية إليه."""
         from flask import render_template
-        # يمكنك توجيهه لصفحة تسجيل دخول وهمية أو عرض واجهة مصطنعة
         try:
             return render_template('auth/deceptive_login.html')
         except Exception:
@@ -473,15 +476,20 @@ def create_app():
 
     @app.route('/')
     def index():
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
+
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
         if current_user.is_authenticated:
             if isinstance(current_user, (Supplier, SupplierStaff)):
                 return redirect('/supplier/dashboard')
-            return redirect('/dashboard')
+            elif isinstance(current_user, (AdminUser, AdminStaff)):
+                return redirect('/dashboard')
+            return redirect(admin_login_path)
 
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         return redirect(admin_login_path)
 
     # ============================================================
