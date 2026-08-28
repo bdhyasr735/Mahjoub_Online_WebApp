@@ -33,7 +33,7 @@ from apps.models.whatsapp_models import (
     WhatsAppMediaCache
 )
 
-__all__ + [
+__all__ = [
     'db',
     'AdminStaff',
     'AdminUser',
