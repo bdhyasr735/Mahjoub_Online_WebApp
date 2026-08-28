@@ -9,7 +9,7 @@ from .auth_service import auth_service
 suppliers_bp = Blueprint(
     'suppliers_auth_portal',
     __name__,
-    url_prefix='/suppliers',
+    url_prefix='/supplier',
     template_folder='templates',
     static_folder='static'
 )
@@ -73,6 +73,12 @@ def register():
     }), 201
 
 
+@suppliers_bp.route('/forgot-password-page', methods=['GET'])
+def forgot_password_page():
+    """عرض صفحة استعادة كلمة المرور (HTML) - تم إضافتها لحل خطأ الـ BuildError"""
+    return render_template('suppliers_auth_portal/forgot_password.html')
+
+
 @suppliers_bp.route('/verify-page', methods=['GET'])
 def verify_page():
     """عرض صفحة التحقق من الرمز OTP (HTML)"""
@@ -81,7 +87,7 @@ def verify_page():
 
 @suppliers_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    """طلب رمز التحقق لاستعادة كلمة المرور"""
+    """طلب رمز التحقق لاستعادة كلمة المرور (API)"""
     data = request.get_json() if request.is_json else request.form
     identifier = data.get("identifier", "")
     
