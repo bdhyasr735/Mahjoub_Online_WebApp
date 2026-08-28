@@ -297,7 +297,7 @@ def create_app():
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    
+
     from apps.extensions import csrf, limiter
     csrf.init_app(app)
     limiter.init_app(app)
@@ -555,11 +555,11 @@ def create_app():
             if os.path.exists(registry_file):
                 try:
                     module = importlib.import_module(f"apps.{item}.registry")
-                    
+
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
                         print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
-                        
+
                         if item == 'whatsapp_service' or 'whatsapp' in item:
                             try:
                                 print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
