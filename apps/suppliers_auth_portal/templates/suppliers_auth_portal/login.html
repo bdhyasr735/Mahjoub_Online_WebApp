@@ -49,7 +49,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
             <input type="hidden" id="userTypeInput" name="user_type" value="supplier">
 
-            <!-- حقل المعرف (السجل التجاري أو البريد للمورد / البريد للموظف) -->
+            <!-- حقل المعرف -->
             <div>
                 <label id="identifierLabel" class="block text-xs font-medium text-slate-300 mb-2">
                     رقم السجل التجاري أو البريد الإلكتروني
@@ -70,7 +70,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
-                    <a href="{{ url_for('suppliers_auth.forgot_password') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <a href="{{ url_for('suppliers_auth_portal.forgot_password_page') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -114,7 +114,7 @@
         <!-- رابط التسجيل للموردين الجدد -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="{{ url_for('suppliers_auth.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="{{ url_for('suppliers_auth_portal.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب واشتراك مورد جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -184,7 +184,7 @@
         };
 
         try {
-            const response = await window.secureFetch("{{ url_for('suppliers_auth.login') }}", {
+            const response = await window.secureFetch("{{ url_for('suppliers_auth_portal.login') }}", {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -193,7 +193,7 @@
             if (response.ok && data.success) {
                 showAlert('تم تسجيل الدخول بنجاح! جاري التوجيه...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || "{{ url_for('suppliers_auth.dashboard') if 'suppliers_auth.dashboard' in [].__class__.__name__ else '/supplier/dashboard' }}";
+                    window.location.href = data.redirect_url || '/supplier/dashboard';
                 }, 1000);
             } else {
                 showAlert(data.message || 'فشل تسجيل الدخول. تحقق من البيانات المدخلة.');
