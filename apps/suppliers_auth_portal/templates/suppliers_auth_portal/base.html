@@ -3,44 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ (seo.title if seo else None)|default(page_title|default("محجوب أونلاين | سوقك الذكي - منصة اللامركزية لحوكمة التجارة اليمنية")) }}{% endblock %}</title>
     
-    <!-- تحسين محركات البحث والظهور (SEO Meta Tags) -->
-    <meta name="description" content="{% block meta_description %}{{ (seo.description if seo else None)|default('محجوب أونلاين - منصة اللامركزية لحوكمة التجارة اليمنية. بوابة الموردين وموظفيهم بسعر التكلفة وبأسعار تنافسية مع لوحة تحكم مجانية وعزز مبيعاتك مع شبكة واسعة من المسوقين والشركاء.') }}{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}{{ (seo.keywords if seo else None)|default('محجوب أونلاين, سوقك الذكي, حوكمة التجارة اليمنية, بوابة الموردين, شبكة المسوقين, سعر التكلفة, لوحة تحكم مجانية, المحفظة الرقمية') }}{% endblock %}">
-    <meta name="robots" content="{% block meta_robots %}{{ (seo.robots if seo else None)|default('index, follow, max-snippet:-1, max-image-preview:large') }}{% endblock %}">
-    <link rel="canonical" href="{% block canonical_url %}{{ (seo.canonical_url if seo else None)|default('https://ais-pre-4wgncape5dthaf7v6vpvcp-197283697281.europe-west1.run.app/suppliers/login') }}{% endblock %}">
+    <title>{% block title %}{{ seo.title if seo and seo.title else (page_title ~ ' | محجوب أونلاين - سوقك الذكي' if page_title else 'محجوب أونلاين | سوقك الذكي - منصة اللامركزية لحوكمة التجارة اليمنية') }}{% endblock %}</title>
     
-    <!-- وسوم المشاركة Open Graph و Twitter Card للظهور في منصات التواصل -->
+    <meta name="description" content="{% block meta_description %}{{ seo.description if seo and seo.description else 'محجوب أونلاين - منصة اللامركزية لحوكمة التجارة اليمنية. بوابة الموردين وموظفيهم بسعر التكلفة وبأسعار تنافسية مع لوحة تحكم مجانية وعزز مبيعاتك مع شبكة واسعة من المسوقين والشركاء.' }}{% endblock %}">
+    
+    <meta name="keywords" content="{% block meta_keywords %}{{ seo.keywords if seo and seo.keywords else 'محجوب أونلاين, سوقك الذكي, حوكمة التجارة اليمنية, بوابة الموردين, شبكة المسوقين, سعر التكلفة, لوحة تحكم مجانية, المحفظة الرقمية, توريد اليمن' }}{% endblock %}">
+    
+    <meta name="robots" content="{% block meta_robots %}{{ seo.robots if seo and seo.robots else 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' }}{% endblock %}">
+    
+    <link rel="canonical" href="{% block canonical_url %}{{ seo.canonical_url if seo and seo.canonical_url else request.base_url }}{% endblock %}">
+    
     <meta property="og:site_name" content="محجوب أونلاين - سوقك الذكي">
-    <meta property="og:title" content="{% block og_title %}{{ (seo.og.title if seo and seo.og else None)|default(page_title|default('محجوب أونلاين | سوقك الذكي - منصة اللامركزية لحوكمة التجارة اليمنية')) }}{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}{{ (seo.og.description if seo and seo.og else None)|default('منصة اللامركزية لحوكمة التجارة اليمنية - عزز مبيعاتك مع شبكة من المسوقين، أسعار تكلفة تنافسية، ولوحة تحكم مجانية.') }}{% endblock %}">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ (seo.og.url if seo and seo.og else None)|default('https://ais-pre-4wgncape5dthaf7v6vpvcp-197283697281.europe-west1.run.app/suppliers/login') }}">
-    <meta property="og:image" content="{{ (seo.og.image if seo and seo.og else None)|default('https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp') }}">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block twitter_title %}{{ (seo.twitter.title if seo and seo.twitter else None)|default(page_title|default('محجوب أونلاين | سوقك الذكي')) }}{% endblock %}">
-    <meta name="twitter:description" content="{% block twitter_description %}{{ (seo.twitter.description if seo and seo.twitter else None)|default('منصة اللامركزية لحوكمة التجارة اليمنية - عزز مبيعاتك مع شبكة واسعة من المسوقين والشركاء.') }}{% endblock %}">
-    <meta name="twitter:image" content="{{ (seo.twitter.image if seo and seo.twitter else None)|default('https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp') }}">
+    <meta property="og:locale" content="ar_AR">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ seo.og.title if seo and seo.og and seo.og.title else (page_title or 'محجوب أونلاين | سوقك الذكي - منصة اللامركزية لحوكمة التجارة اليمنية') }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ seo.og.description if seo and seo.og and seo.og.description else 'منصة اللامركزية لحوكمة التجارة اليمنية - عزز مبيعاتك مع شبكة من المسوقين، أسعار تكلفة تنافسية، ولوحة تحكم مجانية.' }}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ seo.og.url if seo and seo.og and seo.og.url else request.url }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ seo.og.image if seo and seo.og and seo.og.image else 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp' }}{% endblock %}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
-    <!-- البيانات المنظمة Schema.org JSON-LD للظهور الغني في نتائج بحث Google -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ seo.twitter.title if seo and seo.twitter and seo.twitter.title else (page_title or 'محجوب أونلاين | سوقك الذكي') }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ seo.twitter.description if seo and seo.twitter and seo.twitter.description else 'منصة اللامركزية لحوكمة التجارة اليمنية - عزز مبيعاتك مع شبكة واسعة من المسوقين والشركاء.' }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ seo.twitter.image if seo and seo.twitter and seo.twitter.image else 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp' }}{% endblock %}">
+
     {% if seo and seo.jsonld %}
     <script type="application/ld+json">
         {{ seo.jsonld|tojson|safe }}
     </script>
+    {% else %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "محجوب أونلاين",
+      "alternateName": "Mahgoub Online",
+      "url": "{{ request.url_root }}",
+      "description": "منصة اللامركزية لحوكمة التجارة اليمنية وبوابة الموردين وموظفيهم المعتمدة.",
+      "inLanguage": "ar"
+    }
+    </script>
     {% endif %}
     {% block schema_jsonld %}{% endblock %}
 
-    <!-- CSRF Token Meta Tags -->
     <meta name="csrf-token" content="{{ csrf_token|default('') }}">
     <meta name="csrf-param" content="csrf_token">
     
-    <!-- خط Cairo الملكي -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS CDN للاعتماد في القوالب -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -101,10 +115,8 @@
 </head>
 <body class="flex flex-col justify-between min-h-screen text-slate-100 selection:bg-royalGold/30 selection:text-royalGold">
 
-    <!-- شريط الترويسة العلوي -->
     <header class="w-full border-b border-royalGold/20 bg-royalDark/90 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <!-- الشعار والهوية -->
             <a href="{{ url_for('suppliers_auth_portal.login') }}" class="flex items-center gap-3 group">
                 <div class="w-12 h-12 rounded-xl bg-[#05020a] border border-royalGold/40 p-1 flex items-center justify-center shadow-lg group-hover:border-royalGold transition-all overflow-hidden">
                     <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp"
@@ -113,14 +125,13 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-xl font-black gold-gradient-text tracking-wide">محجوب أونلاين</h1>
+                        <span class="text-xl font-black gold-gradient-text tracking-wide">محجوب أونلاين</span>
                         <span class="text-[10px] px-2 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30">سوقك الذكي</span>
                     </div>
                     <p class="text-xs text-royalGold/70">منصة اللامركزية لحوكمة التجارة اليمنية</p>
                 </div>
             </a>
 
-            <!-- روابط الملاحة السريعة -->
             <nav class="hidden md:flex items-center gap-4 text-sm font-medium">
                 <a href="{{ url_for('suppliers_auth_portal.login') }}" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
                     تسجيل الدخول
@@ -135,7 +146,6 @@
         </div>
     </header>
 
-    <!-- شريط تنبيه حوكمة الأسعار وعرض النمو والتسويق -->
     <div class="w-full bg-gradient-to-r from-[#1d1003] via-[#331c03] to-[#1d1003] border-b border-royalGold/30 text-amber-100 py-3 px-4 text-xs">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
             <div class="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
@@ -151,12 +161,10 @@
         </div>
     </div>
 
-    <!-- المحتوى الرئيسي للقالب -->
     <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- التذييل الملكي مع مؤشرات الأمان وحماية CSRF -->
     <footer class="w-full border-t border-royalGold/15 bg-[#030107] py-6">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
             <div class="flex items-center gap-2">
@@ -169,7 +177,6 @@
         </div>
     </footer>
 
-    <!-- سكريبت حماية CSRF الموحد لجميع طلبات Fetch -->
     <script>
         window.getCsrfToken = function() {
             const meta = document.querySelector('meta[name="csrf-token"]');
