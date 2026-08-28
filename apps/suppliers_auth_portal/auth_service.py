@@ -62,6 +62,7 @@ class SupplierAuthService:
         
         self.suppliers_db[demo_supplier_id] = {
             "id": demo_supplier_id,
+            "username": "royal_supply",
             "company_name": "شركة أفق التوريد الملكية",
             "commercial_register": "1010789456",
             "tax_number": "300456789100003",
@@ -96,6 +97,7 @@ class SupplierAuthService:
         self.employees_db[emp_id] = {
             "id": emp_id,
             "supplier_id": demo_supplier_id,
+            "username": "tariq_manager",
             "full_name": "م. طارق المنصور",
             "role": "manager",
             "role_title": EMPLOYEE_ROLES["manager"]["title_ar"],
@@ -126,7 +128,7 @@ class SupplierAuthService:
     def register_supplier(self, data: Dict[str, Any]) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         تسجيل مورد جديد مع:
-        1. حفظ بيانات المنشأة ونشاط التوريد والعنوان الكامل
+        1. حفظ بيانات المنشأة ونشاط التوريد والعنوان الكامل واسم المستخدم
         2. تشفير كلمة المرور بـ set_password
         3. إنشاء المحفظة المالية تلقائياً
         4. إنشاء حسابات الموظفين الأولية المرفقة إن وجدت
@@ -136,6 +138,7 @@ class SupplierAuthService:
         email = data.get("email", "").strip().lower()
         phone = data.get("phone", "").strip()
         password = data.get("password", "")
+        username = data.get("username", "").strip().lower()
 
         if not all([company_name, full_address, email, phone, password]):
             return False, "جميع الحقول الإلزامية مطلوبة", None
@@ -143,8 +146,10 @@ class SupplierAuthService:
         commercial_register = data.get("commercial_register", "").strip()
         tax_number = data.get("tax_number", "").strip()
 
-        # التحقق من عدم تكرار البريد أو السجل التجاري إن وُجد
+        # التحقق من عدم تكرار البريد أو السجل التجاري أو اسم المستخدم إن وُجد
         for sup in self.suppliers_db.values():
+            if username and sup.get("username") and sup.get("username").lower() == username:
+                return False, "اسم المستخدم مسجل مسبقاً", None
             if commercial_register and sup.get("commercial_register") == commercial_register:
                 return False, "رقم السجل التجاري مسجل مسبقاً في النظام", None
             if sup["email"] == email:
@@ -157,6 +162,7 @@ class SupplierAuthService:
         # 1. إنشاء وتخزين بيانات المورد
         supplier_record = {
             "id": supplier_id,
+            "username": username or None,
             "company_name": company_name,
             "commercial_register": commercial_register or None,
             "tax_number": tax_number or None,
@@ -200,6 +206,7 @@ class SupplierAuthService:
                 emp_record = {
                     "id": emp_id,
                     "supplier_id": supplier_id,
+                    "username": emp.get("username", "").strip().lower() or None,
                     "full_name": emp["full_name"],
                     "role": emp_role,
                     "role_title": EMPLOYEE_ROLES.get(emp_role, {}).get("title_ar", "موظف"),
@@ -224,14 +231,19 @@ class SupplierAuthService:
     def authenticate(self, identifier: str, password: str, user_type: str = "supplier") -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         المصادقة للمورد أو الموظف التابع
-        identifier: يمكن أن يكون السجل التجاري، البريد الإلكتروني، أو رقم الجوال
+        identifier: يمكن أن يكون اسم المستخدم، السجل التجاري، البريد الإلكتروني، أو رقم الجوال
         """
         identifier = identifier.strip().lower()
         
         if user_type == "employee":
-            # البحث في موظفي الموردين
+            # البحث في موظفي الموردين (البريد، الجوال، أو اسم المستخدم)
             for emp in self.employees_db.values():
-                if (emp["email"] == identifier or emp["phone"] == identifier) and emp.get("is_active"):
+                match_emp = (
+                    emp["email"].lower() == identifier or 
+                    emp.get("phone", "").lower() == identifier or
+                    (emp.get("username") and emp["username"].lower() == identifier)
+                )
+                if match_emp and emp.get("is_active"):
                     if PasswordHasher.check_password(password, emp["password_hash"]):
                         supplier = self.suppliers_db.get(emp["supplier_id"], {})
                         wallet = self.wallets_db.get(supplier.get("wallet_id"), {})
@@ -243,11 +255,14 @@ class SupplierAuthService:
                         }
             return False, "بيانات دخول موظف المورد غير صحيحة أو الحساب غير مفعل", None
 
-        # تسجيل دخول المورد الرئيسي
+        # تسجيل دخول المورد الرئيسي (البريد، السجل التجاري، الجوال، أو اسم المستخدم)
         for sup in self.suppliers_db.values():
-            match_id = (sup["email"].lower() == identifier or 
-                        (sup.get("commercial_register") and sup["commercial_register"] == identifier) or 
-                        sup["phone"] == identifier)
+            match_id = (
+                sup["email"].lower() == identifier or 
+                (sup.get("commercial_register") and sup["commercial_register"].lower() == identifier) or 
+                sup.get("phone", "").lower() == identifier or
+                (sup.get("username") and sup["username"].lower() == identifier)
+            )
             if match_id:
                 if PasswordHasher.check_password(password, sup["password_hash"]):
                     wallet = self.wallets_db.get(sup.get("wallet_id"), {})
@@ -259,7 +274,7 @@ class SupplierAuthService:
                         "employees_count": len(employees),
                     }
 
-        return False, "البريد الإلكتروني أو رقم الجوال أو كلمة المرور غير صحيحة", None
+        return False, "اسم المستخدم أو السجل أو البريد الإلكتروني أو رقم الجوال أو كلمة المرور غير صحيحة", None
 
     # ==================== تدفق استعادة كلمة المرور على مرحلتين ====================
     def initiate_forgot_password(self, identifier: str) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
@@ -270,17 +285,22 @@ class SupplierAuthService:
         found_target = None
         target_type = None
 
-        # البحث في الموردين
+        # البحث في الموردين (يشمل البريد، السجل، الهاتف، واسم المستخدم)
         for sup in self.suppliers_db.values():
-            if sup["email"].lower() == identifier or sup["commercial_register"] == identifier or sup["phone"] == identifier:
+            if (sup["email"].lower() == identifier or 
+                (sup.get("commercial_register") and sup["commercial_register"].lower() == identifier) or 
+                sup["phone"].lower() == identifier or
+                (sup.get("username") and sup["username"].lower() == identifier)):
                 found_target = sup
                 target_type = "supplier"
                 break
 
-        # البحث في الموظفين
+        # البحث في الموظفين (يشمل البريد، الهاتف، واسم المستخدم)
         if not found_target:
             for emp in self.employees_db.values():
-                if emp["email"].lower() == identifier or emp["phone"] == identifier:
+                if (emp["email"].lower() == identifier or 
+                    emp.get("phone", "").lower() == identifier or
+                    (emp.get("username") and emp["username"].lower() == identifier)):
                     found_target = emp
                     target_type = "employee"
                     break
@@ -363,9 +383,13 @@ class SupplierAuthService:
             return False, "المورد غير موجود", None
 
         email = data.get("email", "").strip().lower()
+        username = data.get("username", "").strip().lower()
+        
         for emp in self.employees_db.values():
             if emp["email"] == email:
                 return False, "البريد الإلكتروني للموظف مستخدم بالفعل", None
+            if username and emp.get("username") and emp["username"].lower() == username:
+                return False, "اسم المستخدم للموظف مستخدم بالفعل", None
 
         emp_id = f"EMP-{secrets.token_hex(3).upper()}"
         role = data.get("role", "sales")
@@ -374,6 +398,7 @@ class SupplierAuthService:
         emp_record = {
             "id": emp_id,
             "supplier_id": supplier_id,
+            "username": username or None,
             "full_name": data.get("full_name", "").strip(),
             "role": role,
             "role_title": role_info["title_ar"],
