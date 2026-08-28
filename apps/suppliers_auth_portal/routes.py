@@ -8,9 +8,9 @@ from .auth_service import auth_service
 from .seo_service import seo_service
 
 suppliers_bp = Blueprint(
-    'suppliers_auth_portal',
+    'suppliers_bp',  # ← تغيير: يجب أن يتطابق مع الاسم في apps/__init__.py
     __name__,
-    url_prefix='/supplier',
+    url_prefix='/suppliers',  # ← تغيير: من /supplier إلى /suppliers
     template_folder='templates',
     static_folder='static'
 )
@@ -77,7 +77,7 @@ def login():
         "success": True,
         "message": message,
         "data": result,
-        "redirect_url": "/supplier/dashboard"
+        "redirect_url": "/suppliers/dashboard"  # ← تغيير: من /supplier إلى /suppliers
     }), 200
 
 
@@ -110,7 +110,7 @@ def register():
         "success": True,
         "message": message,
         "data": result,
-        "redirect_url": "/supplier/login"
+        "redirect_url": "/suppliers/login"  # ← تغيير: من /supplier إلى /suppliers
     }), 201
 
 
@@ -230,7 +230,7 @@ def reset_password():
     return jsonify({
         "success": True,
         "message": message,
-        "redirect_url": "/supplier/login"
+        "redirect_url": "/suppliers/login"  # ← تغيير: من /supplier إلى /suppliers
     }), 200
 
 
@@ -259,13 +259,10 @@ def verify_otp():
     if not otp_code or len(otp_code) < 4:
         return jsonify({"success": False, "message": "يرجى إدخال رمز التحقق بشكل صحيح"}), 400
     
-    # هنا يمكن إضافة منطق التحقق من OTP لتأكيد الحساب
-    # يمكن ربطه مع auth_service إذا تم إضافة دالة verify_account
-    
     return jsonify({
         "success": True,
         "message": "تم التحقق من الحساب بنجاح",
-        "redirect_url": "/supplier/login"
+        "redirect_url": "/suppliers/login"  # ← تغيير: من /supplier إلى /suppliers
     }), 200
 
 
@@ -275,7 +272,7 @@ def logout():
     """تسجيل الخروج وإنهاء الجلسة"""
     session.clear()
     if request.method == 'GET' or 'text/html' in request.headers.get('Accept', ''):
-        return redirect(url_for('suppliers_auth_portal.login'))
+        return redirect(url_for('suppliers_bp.login'))  # ← تغيير
     return jsonify({"success": True, "message": "تم تسجيل الخروج بنجاح"}), 200
 
 
@@ -284,7 +281,7 @@ def logout():
 def dashboard():
     """لوحة تحكم المورد (مؤقتة لعرضها بعد تسجيل الدخول)"""
     if 'user_id' not in session:
-        return redirect(url_for('suppliers_auth_portal.login'))
+        return redirect(url_for('suppliers_bp.login'))  # ← تغيير
     
     return jsonify({
         "message": "مرحباً بك في لوحة التحكم",
