@@ -51,7 +51,8 @@
                 إعادة إرسال الرمز؟
             </button>
 
-            <a href="{{ url_for('suppliers_auth.login') }}" class="text-slate-400 hover:text-royalGold transition">
+            <!-- ✅ تغيير: suppliers_auth.login → suppliers_auth_bp.login -->
+            <a href="{{ url_for('suppliers_auth_bp.login') }}" class="text-slate-400 hover:text-royalGold transition">
                 &larr; العودة لتسجيل الدخول
             </a>
         </div>
@@ -75,6 +76,7 @@
 
     async function handleVerifySubmit(e) {
         e.preventDefault();
+        const form = e.target;
         const code = document.getElementById('otpCode').value.trim();
         const submitBtn = document.getElementById('submitBtn');
         const btnText = document.getElementById('btnText');
@@ -90,9 +92,13 @@
         btnSpinner.classList.remove('hidden');
 
         try {
-            const res = await window.secureFetch(window.location.href, {
+            // ✅ استخدام المسار الصحيح '/suppliers/verify' مع CSRF
+            const res = await window.secureFetch('/suppliers/verify', {
                 method: 'POST',
-                body: JSON.stringify({ otp_code: code })
+                body: JSON.stringify({ 
+                    otp_code: code,
+                    csrf_token: form.csrf_token.value 
+                })
             });
 
             const data = await res.json();
@@ -119,8 +125,11 @@
         resendBtn.textContent = 'جاري إرسال رمز جديد...';
 
         try {
+            // ✅ إضافة CSRF Token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const res = await window.secureFetch('/suppliers/resend-otp', {
-                method: 'POST'
+                method: 'POST',
+                body: JSON.stringify({ csrf_token: csrfToken })
             });
             const data = await res.json();
             if (res.ok && data.success) {
