@@ -346,7 +346,6 @@ def create_app():
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        # ✅ لا تعيد التوجيه لصفحات تسجيل الدخول
         if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
             return redirect(url_for('suppliers_auth_bp.login'))
         return redirect(admin_login_path)
@@ -365,7 +364,7 @@ def create_app():
 
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        # ✅ إضافة جميع مسارات المصادقة هنا لمنع التوجيه اللانهائي
+        # ✅ جميع مسارات المصادقة مستثناة من الحماية
         exempt_prefixes = [
             '/static',
             '/graphql',
@@ -389,7 +388,7 @@ def create_app():
             '/whatsapp'
         ]
 
-        # ✅ التحقق من المسار بشكل دقيق
+        # ✅ إذا كان المسار مستثنى، لا تفعل شيئاً
         if path == '/' or any(path == p or path.startswith(p + '/') for p in exempt_prefixes):
             return
 
@@ -409,12 +408,12 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_auth_bp.login'))
+                return redirect(admin_login_path)
 
             return
 
         # ✅ إذا لم يكن المستخدم مصادقاً وكان المسار يبدأ بـ /supplier أو /suppliers
-        # لا تفعل شيئاً (تم التعامل معه في exempt)
+        # لا تفعل شيئاً (الصفحة مستثناة أصلاً)
         if path.startswith('/supplier') or path.startswith('/suppliers'):
             return
 
