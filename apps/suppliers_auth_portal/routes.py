@@ -8,9 +8,9 @@ from .auth_service import auth_service
 from .seo_service import seo_service
 
 suppliers_bp = Blueprint(
-    'suppliers_bp',  # ← تغيير: يجب أن يتطابق مع الاسم في apps/__init__.py
+    'suppliers_bp',
     __name__,
-    url_prefix='/suppliers',  # ← تغيير: من /supplier إلى /suppliers
+    url_prefix='/suppliers',
     template_folder='templates',
     static_folder='static'
 )
@@ -30,9 +30,7 @@ def before_request():
 def login():
     """صفحة تسجيل الدخول للموردين أو الموظفين"""
     if request.method == 'GET':
-        # التحقق مما إذا كان الطلب قادماً من متصفح (يريد صفحة HTML) أو طلب API برْمجي
         if 'text/html' in request.headers.get('Accept', ''):
-            # تمرير CSRF token إلى القالب
             return render_template(
                 'suppliers_auth_portal/login.html',
                 csrf_token=session.get('csrf_token', auth_service.generate_csrf_token())
@@ -45,7 +43,6 @@ def login():
 
     data = request.get_json() if request.is_json else request.form
     
-    # دعم مرن لاستقبال المعرف من أي حقل محتمل (identifier, username, email, phone)
     identifier = (
         data.get("identifier") or 
         data.get("username") or 
@@ -59,7 +56,6 @@ def login():
     if not identifier or not password:
         return jsonify({"success": False, "message": "الرجاء إدخال البريد الإلكتروني أو رقم الجوال وكلمة المرور"}), 400
 
-    # التحقق من CSRF للطلبات غير GET
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
 
@@ -68,7 +64,6 @@ def login():
     if not success:
         return jsonify({"success": False, "message": message}), 401
 
-    # حفظ الجلسة
     session['user_id'] = result.get('supplier', {}).get('id') or result.get('employee', {}).get('id')
     session['user_type'] = result.get('user_type')
     session['supplier_id'] = result.get('supplier', {}).get('id')
@@ -77,7 +72,7 @@ def login():
         "success": True,
         "message": message,
         "data": result,
-        "redirect_url": "/suppliers/dashboard"  # ← تغيير: من /supplier إلى /suppliers
+        "redirect_url": "/suppliers/dashboard"
     }), 200
 
 
@@ -97,7 +92,6 @@ def register():
     """مسار تسجيل مورد جديد وإنشاء المحفظة المالية"""
     data = request.get_json() if request.is_json else request.form
     
-    # التحقق من CSRF
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
@@ -110,7 +104,7 @@ def register():
         "success": True,
         "message": message,
         "data": result,
-        "redirect_url": "/suppliers/login"  # ← تغيير: من /supplier إلى /suppliers
+        "redirect_url": "/suppliers/login"
     }), 201
 
 
@@ -130,7 +124,6 @@ def request_otp():
     """طلب رمز التحقق لاستعادة كلمة المرور"""
     data = request.get_json() if request.is_json else request.form
     
-    # التحقق من CSRF
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
@@ -148,7 +141,6 @@ def request_otp():
     if not success:
         return jsonify({"success": False, "message": message}), 404
 
-    # تخزين المعرف في الجلسة للاستخدام في reset-password
     session['reset_identifier'] = identifier
 
     return jsonify({
@@ -165,11 +157,9 @@ def resend_otp():
     """إعادة إرسال رمز التحقق"""
     data = request.get_json() if request.is_json else request.form
     
-    # التحقق من CSRF
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
-    # استرجاع المعرف من الجلسة أو من الطلب
     identifier = data.get("identifier") or session.get('reset_identifier')
     
     if not identifier:
@@ -192,7 +182,6 @@ def reset_password():
     """إعادة تعيين كلمة المرور باستخدام رمز التحقق (OTP)"""
     data = request.get_json() if request.is_json else request.form
     
-    # التحقق من CSRF
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
@@ -224,13 +213,12 @@ def reset_password():
     if not success:
         return jsonify({"success": False, "message": message}), 400
 
-    # مسح بيانات الجلسة بعد النجاح
     session.pop('reset_identifier', None)
 
     return jsonify({
         "success": True,
         "message": message,
-        "redirect_url": "/suppliers/login"  # ← تغيير: من /supplier إلى /suppliers
+        "redirect_url": "/suppliers/login"
     }), 200
 
 
@@ -250,7 +238,6 @@ def verify_otp():
     """التحقق من رمز OTP لتأكيد الحساب"""
     data = request.get_json() if request.is_json else request.form
     
-    # التحقق من CSRF
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
@@ -262,7 +249,7 @@ def verify_otp():
     return jsonify({
         "success": True,
         "message": "تم التحقق من الحساب بنجاح",
-        "redirect_url": "/suppliers/login"  # ← تغيير: من /supplier إلى /suppliers
+        "redirect_url": "/suppliers/login"
     }), 200
 
 
@@ -272,7 +259,7 @@ def logout():
     """تسجيل الخروج وإنهاء الجلسة"""
     session.clear()
     if request.method == 'GET' or 'text/html' in request.headers.get('Accept', ''):
-        return redirect(url_for('suppliers_bp.login'))  # ← تغيير
+        return redirect(url_for('suppliers_bp.login'))
     return jsonify({"success": True, "message": "تم تسجيل الخروج بنجاح"}), 200
 
 
@@ -281,7 +268,7 @@ def logout():
 def dashboard():
     """لوحة تحكم المورد (مؤقتة لعرضها بعد تسجيل الدخول)"""
     if 'user_id' not in session:
-        return redirect(url_for('suppliers_bp.login'))  # ← تغيير
+        return redirect(url_for('suppliers_bp.login'))
     
     return jsonify({
         "message": "مرحباً بك في لوحة التحكم",
