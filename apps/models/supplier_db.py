@@ -11,117 +11,116 @@ from apps.extensions import db
 
 
 class Supplier(db.Model, UserMixin):
-    """نموذج المورد - يدعم التشفير والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X"""
-    __tablename__ = 'suppliers'
-    
-    # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
-    __table_args__ = (
-        db.Index('idx_sup_username', 'username'),
-        db.Index('idx_sup_code', 'supplier_code'),
-        db.Index('idx_sup_trade', 'trade_name'),
-        db.Index('idx_sup_store', 'store_name'),
-        db.Index('idx_sup_phone', 'search_phone'),
-        db.Index('idx_sup_status', 'status'),
-        db.Index('idx_sup_rank', 'rank'),
-        db.Index('idx_sup_created', 'created_at'),
-        {'extend_existing': True}
-    )
+    """نموذج المورد - يدعم التشفير والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X"""
+    __tablename__ = 'suppliers'
+    
+    # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
+    __table_args__ = (
+        db.Index('idx_sup_username', 'username'),
+        db.Index('idx_sup_code', 'supplier_code'),
+        db.Index('idx_sup_trade', 'trade_name'),
+        db.Index('idx_sup_store', 'store_name'),
+        db.Index('idx_sup_phone', 'search_phone'),
+        db.Index('idx_sup_status', 'status'),
+        db.Index('idx_sup_rank', 'rank'),
+        db.Index('idx_sup_created', 'created_at'),
+        {'extend_existing': True}
+    )
 
-    # المعرفات الأساسية
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    supplier_code = db.Column(db.String(50), unique=True, nullable=True)
-    owner_name = db.Column(db.String(150), nullable=True) 
-    trade_name = db.Column(db.String(150), nullable=True)
-    store_name = db.Column(db.String(150), nullable=True)  # ✅ حقل اسم المتجر الجديد مضافاً مع الفهرسة
-    
-    # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
-    _phone_enc = db.Column(db.String(255), nullable=False) 
-    search_phone = db.Column(db.String(20))
-    
-    # الأمن وإدارة الحساب
-    password_hash = db.Column(db.String(255), nullable=True)
-    status = db.Column(db.String(20), default='active')
-    rank = db.Column(db.String(20), default='bronze')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_login = db.Column(db.DateTime, nullable=True)
+    # المعرفات الأساسية
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    supplier_code = db.Column(db.String(50), unique=True, nullable=True)
+    owner_name = db.Column(db.String(150), nullable=True) 
+    trade_name = db.Column(db.String(150), nullable=True)
+    store_name = db.Column(db.String(150), nullable=True)  # ✅ حقل اسم المتجر الجديد مضافاً مع الفهرسة
+    
+    # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
+    _phone_enc = db.Column(db.String(255), nullable=False) 
+    search_phone = db.Column(db.String(20))
+    
+    # الأمن وإدارة الحساب
+    password_hash = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(20), default='active')
+    rank = db.Column(db.String(20), default='bronze')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
 
-    # العلاقات: باستخدام التحميل الكسول (lazy='select')
-    supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
-    wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
-    
-    # ✅ العلاقة المطلوبة مع الطلبات (Orders)
-    orders = db.relationship('Order', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
-    
-    financials = db.relationship('OrderFinancial', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
-    
-    # الربط مع الموظفين (يستخدم الاسم النصي لتجنب التكرار والتضارب)
-    staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
-    
-    # ✅ الربط مع منتجات قمرة (ProductSupplierMapping)
-    product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
+    # العلاقات: باستخدام التحميل الكسول (lazy='select')
+    supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
+    wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
+    
+    # ✅ العلاقة المطلوبة مع الطلبات (Orders)
+    orders = db.relationship('Order', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
+    
+    financials = db.relationship('OrderFinancial', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
+    
+    # الربط مع الموظفين (يستخدم الاسم النصي لتجنب التكرار والتضارب)
+    staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
+    
+    # ✅ الربط مع منتجات قمرة (ProductSupplierMapping)
+    product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
 
-    # --- نظام التشفير ---
-    @staticmethod
-    def _get_key():
-        key = os.environ.get('ENCRYPTION_KEY')
-        return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
+    # --- نظام التشفير ---
+    @staticmethod
+    def _get_key():
+        key = os.environ.get('ENCRYPTION_KEY')
+        return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
 
-    @property
-    def phone(self):
-        try:
-            return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
-        except:
-            return None
+    @property
+    def phone(self):
+        try:
+            return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
+        except:
+            return None
 
-    @phone.setter
-    def phone(self, value):
-        if value:
-            self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-            self.search_phone = str(value)[-9:]
+    @phone.setter
+    def phone(self, value):
+        if value:
+            self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
+            self.search_phone = str(value)[-9:]
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
-    # ✅ تم تصحيح الكلمة المفتاحية من fn إلى def
-    def to_dict(self):
-        """تحويل المورد إلى قاموس"""
-        return {
-            'id': self.id,
-            'username': self.username,
-            'supplier_code': self.supplier_code,
-            'owner_name': self.owner_name,
-            'trade_name': self.trade_name,
-            'store_name': self.store_name,
-            'phone': self.phone,
-            'status': self.status,
-            'rank': self.rank,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_login': self.last_login.isoformat() if self.last_login else None
-        }
+    def to_dict(self):
+        """تحويل المورد إلى قاموس"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'supplier_code': self.supplier_code,
+            'owner_name': self.owner_name,
+            'trade_name': self.trade_name,
+            'store_name': self.store_name,
+            'phone': self.phone,
+            'status': self.status,
+            'rank': self.rank,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
 
-    def __repr__(self):
-        return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
+    def __repr__(self):
+        return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
 
 
 # --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) بمعرف ديناميكي دقيق ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً بناءً على الـ id الديناميكي."""
-    from apps.models.wallet_db import SupplierWallet
-    
-    new_supplier_code = f"SUP-963{target.id}"
-    new_wallet_code = f"WEL-963{target.id}"
-    
-    # 1. تحديث كود المورد بالمعرف الديناميكي
-    connection.execute(
-        update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_supplier_code)
-    )
-    
-    # 2. تحديث كود المحفظة المرتبطة به ليكون مطابقاً تماماً في الرقم ومتبيناً في البادئة
-    connection.execute(
-        update(SupplierWallet).where(SupplierWallet.supplier_id == target.id).values(wallet_code=new_wallet_code)
-    )
+    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً بناءً على الـ id الديناميكي."""
+    from apps.models.wallet_db import SupplierWallet
+    
+    new_supplier_code = f"SUP-963{target.id}"
+    new_wallet_code = f"WEL-963{target.id}"
+    
+    # 1. تحديث كود المورد بالمعرف الديناميكي
+    connection.execute(
+        update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_supplier_code)
+    )
+    
+    # 2. تحديث كود المحفظة المرتبطة به ليكون مطابقاً تماماً في الرقم ومتبيناً في البادئة
+    connection.execute(
+        update(SupplierWallet).where(SupplierWallet.supplier_id == target.id).values(wallet_code=new_wallet_code)
+    )
