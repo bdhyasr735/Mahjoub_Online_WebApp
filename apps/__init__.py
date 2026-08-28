@@ -372,6 +372,9 @@ def create_app():
             '/supplier/login',
             '/supplier/register',
             '/supplier/forgot-password',
+            '/suppliers/login',  # تمت إضافة الدعم لتجنب الخطأ في حال طلب بالجمع
+            '/suppliers/register',
+            '/suppliers/forgot-password',
             admin_login_path,
             '/auth',
             '/whatsapp'
@@ -391,7 +394,7 @@ def create_app():
                     return redirect('/supplier/dashboard')
                 return redirect(admin_login_path)
 
-            if path.startswith('/supplier'):
+            if path.startswith('/supplier') or path.startswith('/suppliers'):
                 if is_supplier_side:
                     return
                 if is_admin_side:
@@ -400,7 +403,7 @@ def create_app():
 
             return
 
-        if path.startswith('/supplier'):
+        if path.startswith('/supplier') or path.startswith('/suppliers'):
             return redirect(url_for('suppliers_bp.login'))
 
         return redirect(admin_login_path)
@@ -418,6 +421,15 @@ def create_app():
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
+
+    # معالجة طلبات التوجيه التلقائي للمسار بالجمع لتجنب أخطاء 404 أو 500
+    @app.route('/suppliers/login', methods=['GET', 'POST'])
+    def suppliers_login_redirect_alias():
+        return redirect(url_for('suppliers_auth_portal.login', **request.args))
+
+    @app.route('/suppliers/register', methods=['GET', 'POST'])
+    def suppliers_register_redirect_alias():
+        return redirect(url_for('suppliers_auth_portal.register', **request.args))
 
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
     @csrf.exempt
