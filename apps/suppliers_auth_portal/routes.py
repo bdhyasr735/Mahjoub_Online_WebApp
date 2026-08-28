@@ -34,7 +34,7 @@ suppliers_bp = Blueprint(
     "suppliers_auth",
     __name__,
     template_folder="templates",
-    url_prefix="/suppliers"
+    url_prefix="/supplier"
 )
 
 def require_csrf(f: Callable) -> Callable:
@@ -90,7 +90,7 @@ def login():
         return jsonify({
             "success": True,
             "message": message,
-            "redirect_url": "/suppliers/dashboard",
+            "redirect_url": "/supplier/dashboard",
             "data": result
         }), 200
     else:
@@ -134,7 +134,7 @@ def register():
         return jsonify({
             "success": True,
             "message": message,
-            "redirect_url": "/suppliers/login?registered=1",
+            "redirect_url": "/supplier/login?registered=1",
             "data": result
         }), 201
     else:
@@ -212,7 +212,7 @@ def reset_password_with_otp():
         return jsonify({
             "success": True,
             "message": message,
-            "redirect_url": "/suppliers/login?reset_done=1"
+            "redirect_url": "/supplier/login?reset_done=1"
         }), 200
     else:
         return jsonify({
