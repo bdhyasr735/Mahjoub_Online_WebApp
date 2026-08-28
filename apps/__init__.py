@@ -36,8 +36,7 @@ def import_all_models():
 
 def seed_database():
     """
-    زراعة البيانات المبدئية بشكل آمن وديناميكي.
-    يتم التحقق من وجود البيانات قبل إضافتها لتجنب التكرار.
+    زراعة البيانات المبدئية بشكل آمن وديناميكي مع التحقق الكامل من القيود والعلاقات.
     """
     try:
         from apps.models.admin_db import AdminUser
@@ -53,7 +52,8 @@ def seed_database():
     # 1. زراعة حساب المالك (Owner)
     # ============================================================
     try:
-        if not AdminUser.query.filter_by(username='ali_mahjoub').first():
+        admin = AdminUser.query.filter_by(username='ali_mahjoub').first()
+        if not admin:
             admin = AdminUser(username='ali_mahjoub', role='Owner')
             admin.set_password('123')
             db.session.add(admin)
@@ -69,7 +69,8 @@ def seed_database():
     # 2. زراعة موظف إدارة (Admin Staff)
     # ============================================================
     try:
-        if not AdminStaff.query.filter_by(username='admin_staff_test').first():
+        staff = AdminStaff.query.filter_by(username='admin_staff_test').first()
+        if not staff:
             staff = AdminStaff(
                 username='admin_staff_test',
                 name='موظف الإدارة التجريبي',
@@ -95,7 +96,7 @@ def seed_database():
         print(f"⚠️ [خطأ زراعة موظف الإدارة]: {e}")
 
     # ============================================================
-    # 3. زراعة مورد تجريبي مع محفظة ورصيد افتتاحي
+    # 3. زراعة مورد تجريبي مع محفظة ورصيد افتتاحي وسند خزينة
     # ============================================================
     try:
         supplier = Supplier.query.filter_by(username='test_supplier').first()
@@ -110,7 +111,7 @@ def seed_database():
             supplier.phone = '779077746'
             supplier.set_password('123')
             db.session.add(supplier)
-            db.session.flush()
+            db.session.flush() # لتوليد supplier.id
 
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         if not wallet:
@@ -121,7 +122,7 @@ def seed_database():
                 status='active'
             )
             db.session.add(wallet)
-            db.session.flush()
+            db.session.flush() # لتوليد wallet.id
 
         existing_tx = WalletTransaction.query.filter_by(
             wallet_id=wallet.id,
@@ -372,7 +373,7 @@ def create_app():
             '/supplier/login',
             '/supplier/register',
             '/supplier/forgot-password',
-            '/suppliers/login',  # تمت إضافة الدعم لتجنب الخطأ في حال طلب بالجمع
+            '/suppliers/login',
             '/suppliers/register',
             '/suppliers/forgot-password',
             admin_login_path,
@@ -422,7 +423,6 @@ def create_app():
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
 
-    # معالجة طلبات التوجيه التلقائي للمسار بالجمع لتجنب أخطاء 404 أو 500
     @app.route('/suppliers/login', methods=['GET', 'POST'])
     def suppliers_login_redirect_alias():
         return redirect(url_for('suppliers_auth_portal.login', **request.args))
@@ -474,12 +474,8 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
-    # ============================================================
-    # 🎭 المسار الخادع (لتمويه المتسللين والآدمن الوهميين)
-    # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
-        """مسار خادع لتسجيل الدخول الوهمي يتم توجيه الفضوليين والأنظمة الآلية إليه."""
         from flask import render_template
         try:
             return render_template('auth/deceptive_login.html')
@@ -532,9 +528,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
-    # ============================================================
-    # 📱 تسجيل مسار الواتساب العام
-    # ============================================================
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
 
@@ -552,9 +545,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
-    # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
-    # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
 
@@ -571,52 +561,6 @@ def create_app():
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
                         print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
-                        
-                        if item == 'whatsapp_service' or 'whatsapp' in item:
-                            try:
-                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
-                            except Exception as ex_csrf:
-                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
-                    else:
-                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
-
-                    try:
-                        app_module = importlib.import_module(f"apps.{item}")
-                        if hasattr(app_module, 'init_app'):
-                            app_module.init_app(app)
-                    except ImportError:
-                        pass
-
-                    links_data = {}
-                    if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
-                        for nav in module.NAV_ITEMS:
-                            ep = nav.get('endpoint')
-                            title = nav.get('title')
-                            if ep and title:
-                                links_data[ep] = title
-                    if not links_data and hasattr(module, 'LINKS'):
-                        raw_links = getattr(module, 'LINKS')
-                        if isinstance(raw_links, dict):
-                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
-                        elif isinstance(raw_links, list):
-                            links_data = {ep: lbl for ep, lbl in raw_links}
-                    menu_items_func = getattr(module, 'get_menu_items', None)
-                    if not links_data and menu_items_func:
-                        res = menu_items_func()
-                        if isinstance(res, dict):
-                            links_data = res
-                        elif isinstance(res, list):
-                            links_data = {ep: lbl for ep, lbl in res}
-                    if links_data:
-                        mod_data = {
-                            "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
-                            "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
-                            "links": links_data,
-                        }
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
-                            SUPPLIER_MODULES[item] = mod_data
-                        else:
-                            ADMIN_MODULES[item] = mod_data
                 except Exception as e:
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
