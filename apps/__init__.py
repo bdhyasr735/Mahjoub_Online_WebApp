@@ -111,7 +111,7 @@ def seed_database():
             supplier.phone = '779077746'
             supplier.set_password('123')
             db.session.add(supplier)
-            db.session.flush()
+            db.session.flush() # لتوليد supplier.id
 
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         if not wallet:
@@ -122,7 +122,7 @@ def seed_database():
                 status='active'
             )
             db.session.add(wallet)
-            db.session.flush()
+            db.session.flush() # لتوليد wallet.id
 
         existing_tx = WalletTransaction.query.filter_by(
             wallet_id=wallet.id,
@@ -346,8 +346,8 @@ def create_app():
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_bp.login'))
+        if request.path.startswith('/supplier'):
+            return redirect(url_for('suppliers_auth_portal.login'))
         return redirect(admin_login_path)
 
     @app.before_request
@@ -373,9 +373,6 @@ def create_app():
             '/supplier/login',
             '/supplier/register',
             '/supplier/forgot-password',
-            '/supplier/forgot-password-page',
-            '/supplier/verify-page',
-            '/supplier/reset-password',
             '/suppliers/login',
             '/suppliers/register',
             '/suppliers/forgot-password',
@@ -403,12 +400,12 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_bp.login'))
+                return redirect(url_for('suppliers_auth_portal.login'))
 
             return
 
         if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_bp.login'))
+            return redirect(url_for('suppliers_auth_portal.login'))
 
         return redirect(admin_login_path)
 
@@ -426,16 +423,13 @@ def create_app():
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
 
-    # ============================================================
-    # ⚠️ تصحيح التوجيهات (Redirects) - باستخدام الاسم الصحيح
-    # ============================================================
     @app.route('/suppliers/login', methods=['GET', 'POST'])
     def suppliers_login_redirect_alias():
-        return redirect(url_for('suppliers_bp.login', **request.args))
+        return redirect(url_for('suppliers_auth_portal.login', **request.args))
 
     @app.route('/suppliers/register', methods=['GET', 'POST'])
     def suppliers_register_redirect_alias():
-        return redirect(url_for('suppliers_bp.register', **request.args))
+        return redirect(url_for('suppliers_auth_portal.register_page', **request.args))
 
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
     @csrf.exempt
@@ -518,7 +512,7 @@ def create_app():
 
     try:
         from apps.suppliers_auth_portal.routes import suppliers_bp
-        app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
+        app.register_blueprint(suppliers_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
     except Exception as e:
