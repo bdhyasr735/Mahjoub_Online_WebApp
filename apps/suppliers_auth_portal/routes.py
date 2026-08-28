@@ -18,6 +18,9 @@ suppliers_bp = Blueprint(
 def login():
     """صفحة تسجيل الدخول للموردين أو الموظفين"""
     if request.method == 'GET':
+        # التحقق مما إذا كان الطلب قادماً من متصفح (يريد صفحة HTML) أو طلب API برْمجي
+        if 'text/html' in request.headers.get('Accept', ''):
+            return render_template('suppliers_auth_portal/login.html')
         return jsonify({
             "status": "success",
             "message": "مرحباً بك في بوابة تسجيل الدخول للموردين",
@@ -48,6 +51,12 @@ def login():
     }), 200
 
 
+@suppliers_bp.route('/register-page', methods=['GET'])
+def register_page():
+    """عرض صفحة إنشاء حساب مورد جديد (HTML)"""
+    return render_template('suppliers_auth_portal/register.html')
+
+
 @suppliers_bp.route('/register', methods=['POST'])
 def register():
     """مسار تسجيل مورد جديد وإنشاء المحفظة المالية"""
@@ -62,6 +71,12 @@ def register():
         "message": message,
         "data": result
     }), 201
+
+
+@suppliers_bp.route('/verify-page', methods=['GET'])
+def verify_page():
+    """عرض صفحة التحقق من الرمز OTP (HTML)"""
+    return render_template('suppliers_auth_portal/verify.html')
 
 
 @suppliers_bp.route('/forgot-password', methods=['POST'])
@@ -103,4 +118,6 @@ def reset_password():
 def logout():
     """تسجيل الخروج وإنهاء الجلسة"""
     session.clear()
+    if request.method == 'GET' or 'text/html' in request.headers.get('Accept', ''):
+        return redirect(url_for('suppliers_auth_portal.login'))
     return jsonify({"success": True, "message": "تم تسجيل الخروج بنجاح"})
