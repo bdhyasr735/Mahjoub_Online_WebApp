@@ -9,7 +9,7 @@ class SeoService:
     """خدمة مركزية لإدارة بيانات التحسين لمحركات البحث الخاصة ببوابة الموردين"""
 
     def __init__(self):
-        self.base_url = "https://mahjoob-online.com/suppliers"
+        self.base_url = "https://mahjoob-online.com/supplier"
         self.pages_meta = {
             "login": {
                 "title": "تسجيل دخول الموردين والموظفين | محجوب أونلاين",
@@ -45,13 +45,16 @@ class SeoService:
         """إرجاع البيانات الوصفية الكاملة مع هيكلة Schema.org JSON-LD للصفحة المحددة"""
         meta = self.pages_meta.get(page_key, self.pages_meta["login"])
         
+        page_suffix = f"/{page_key}" if page_key != 'login' else ""
+        canonical_url = f"{self.base_url}{page_suffix}"
+
         # توليد هيكل البيانات المنظمة (Schema.org)
         schema_org = {
             "@context": "https://schema.org",
             "@type": "WebPage",
             "name": meta["title"],
             "description": meta["description"],
-            "url": f"{self.base_url}/{page_key if page_key != 'login' else ''}",
+            "url": canonical_url,
             "publisher": {
                 "@type": "Organization",
                 "name": "محجوب أونلاين",
@@ -65,7 +68,7 @@ class SeoService:
             "keywords": meta["keywords"],
             "robots": meta["robots"],
             "og_type": meta["og_type"],
-            "canonical_url": f"{self.base_url}/{page_key if page_key != 'login' else ''}",
+            "canonical_url": canonical_url,
             "schema_org": schema_org
         }
 
@@ -74,37 +77,36 @@ def generate_robots_txt() -> str:
     """توليد محتوى ملف robots.txt مع حماية المسارات الحساسة وتوجيه عناكب البحث"""
     return """# Robots.txt for محجوب أونلاين - Suppliers Portal
 User-agent: *
-Allow: /suppliers/login
-Allow: /suppliers/register
-Allow: /suppliers/forgot-password
-Disallow: /suppliers/verify
-Disallow: /suppliers/dashboard
-Disallow: /suppliers/wallet/
-Disallow: /suppliers/employees
+Allow: /supplier/login
+Allow: /supplier/register
+Allow: /supplier/forgot-password
+Disallow: /supplier/verify
+Disallow: /supplier/dashboard
+Disallow: /supplier/wallet/
+Disallow: /supplier/employees
 
-Sitemap: https://mahjoob-online.com/suppliers/sitemap.xml
+Sitemap: https://mahjoob-online.com/supplier/sitemap.xml
 """
 
 
 def generate_sitemap_xml() -> str:
     """توليد خريطة الموقع (Sitemap.xml) الديناميكية لصفحات الموديول العامة"""
     urls = [
-        {"loc": "https://mahjoob-online.com/suppliers/login", "changefreq": "monthly", "priority": "1.0"},
-        {"loc": "https://mahjoob-online.com/suppliers/register", "changefreq": "monthly", "priority": "0.9"},
-        {"loc": "https://mahjoob-online.com/suppliers/forgot-password", "changefreq": "yearly", "priority": "0.3"}
+        {"loc": "https://mahjoob-online.com/supplier/login", "changefreq": "monthly", "priority": "1.0"},
+        {"loc": "https://mahjoob-online.com/supplier/register", "changefreq": "monthly", "priority": "0.9"},
+        {"loc": "https://mahjoob-online.com/supplier/forgot-password", "changefreq": "yearly", "priority": "0.3"}
     ]
 
     xml_items = []
     for u in urls:
-        xml_items.append(f"""  <url>
-    <loc>{u['loc']}</loc>
-    <changefreq>{u['changefreq']}</changefreq>
-    <priority>{u['priority']}</priority>
-  </url>""")
+        xml_items.append(
+            f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>"
+        )
 
+    joined_items = "\n".join(xml_items)
     sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{'\n'.join(xml_items)}
+{joined_items}
 </urlset>"""
 
     return sitemap_content.strip()
