@@ -29,9 +29,9 @@ from .auth_service import auth_service
 from .registry import SECURITY_CONFIG, EMPLOYEE_ROLES, SEO_CONFIG
 from .seo_service import seo_service, generate_sitemap_xml, generate_robots_txt
 
-# تعريف مسار الموديول مع مطابقة اسم الـ Blueprint المطلوب في النظام الرئيسي
+# تعريف مسار الموديول مع مطابقة اسم الـ Blueprint المطلوب في النظام الرئيسي والقوالب
 suppliers_bp = Blueprint(
-    "suppliers_bp",
+    "suppliers_auth_portal",
     __name__,
     template_folder="templates",
     url_prefix="/supplier"
