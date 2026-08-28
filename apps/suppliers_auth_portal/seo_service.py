@@ -99,15 +99,16 @@ def generate_sitemap_xml() -> str:
 
     xml_items = []
     for u in urls:
-        xml_items.append(
-            f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>"
+        item = "  <url>\n    <loc>{}</loc>\n    <changefreq>{}</changefreq>\n    <priority>{}</priority>\n  </url>".format(
+            u['loc'], u['changefreq'], u['priority']
         )
+        xml_items.append(item)
 
     joined_items = "\n".join(xml_items)
-    sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+    sitemap_content = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{joined_items}
-</urlset>"""
+{}
+</urlset>""".format(joined_items)
 
     return sitemap_content.strip()
 
