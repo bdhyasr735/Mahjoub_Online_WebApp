@@ -123,7 +123,6 @@ def seed_database():
             db.session.add(wallet)
             db.session.flush()
 
-        # التحقق مما إذا كانت المعاملة الافتتاحية موجودة مسبقاً لتجنب التكرار في حال إعادة التشغيل
         existing_tx = WalletTransaction.query.filter_by(
             wallet_id=wallet.id,
             trans_type='deposit',
@@ -251,22 +250,19 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع (حذف وإعادة بناء)
+    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع
     # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            # 🗑️ حذف وإعادة إنشائها بالكامل (تفريغ الـ Schema وإعادة بناؤها)
             db.session.execute(text("DROP SCHEMA public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
             print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
 
-            # ✅ إنشاء الجداول بالهيكل الجديد
             db.create_all()
             print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
-            # ✅ زراعة البيانات المبدئية
             seed_database()
             print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
 
@@ -275,7 +271,7 @@ def create_app():
             print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
 
     # ============================================================
-    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً عند الحاجة القصوى
+    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
     # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
@@ -462,6 +458,19 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
+    # ============================================================
+    # 🎭 المسار الخادع (لتمويه المتسللين والآدمن الوهميين)
+    # ============================================================
+    @app.route('/auth/m7jb_sovereign_hq_v2_99x')
+    def deceptive_admin_honeypot():
+        """مسار خادع لتسجيل الدخول الوهمي يتم توجيه الفضوليين والأنظمة الآلية إليه."""
+        from flask import render_template
+        # يمكنك توجيهه لصفحة تسجيل دخول وهمية أو عرض واجهة مصطنعة
+        try:
+            return render_template('auth/deceptive_login.html')
+        except Exception:
+            return "<h1>401 Unauthorized</h1><p>Access Denied to Sovereign HQ.</p>", 401
+
     @app.route('/')
     def index():
         from apps.models.supplier_db import Supplier
@@ -475,6 +484,9 @@ def create_app():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         return redirect(admin_login_path)
 
+    # ============================================================
+    # 🗂️ تسجيل البوابات والموديولات
+    # ============================================================
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
@@ -501,7 +513,7 @@ def create_app():
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
-    # 📱 تسجيل مسار الواتساب العام (لحل مشكلة 404 بدون لمس القائمة)
+    # 📱 تسجيل مسار الواتساب العام
     # ============================================================
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
