@@ -31,7 +31,7 @@ from .seo_service import seo_service, generate_sitemap_xml, generate_robots_txt
 
 # تعريف مسار الموديول مع مطابقة اسم الـ Blueprint المطلوب في النظام الرئيسي
 suppliers_bp = Blueprint(
-    "suppliers_auth",
+    "suppliers_bp",
     __name__,
     template_folder="templates",
     url_prefix="/supplier"
