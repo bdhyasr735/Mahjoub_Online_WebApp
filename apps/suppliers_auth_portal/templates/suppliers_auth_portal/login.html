@@ -26,7 +26,7 @@
             <!-- صندوق تنبيه حوكمة الأسعار وسعر التكلفة -->
             <div class="mt-4 p-3 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-[11px] text-amber-200 text-right leading-relaxed">
                 <strong class="text-royalGoldLight block font-bold mb-0.5">تنويه حوكمة الأسعار:</strong>
-                للعلم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
+                للعلْم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
             </div>
         </div>
 
@@ -70,7 +70,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
-                    <a href="/suppliers/forgot-password" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <a href="{{ url_for('suppliers_auth.forgot_password') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -114,7 +114,7 @@
         <!-- رابط التسجيل للموردين الجدد -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="/suppliers/register" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="{{ url_for('suppliers_auth.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب واشتراك مورد جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -184,8 +184,7 @@
         };
 
         try {
-            // استخدام secureFetch لنقل رموز المصادقة و حماية CSRF الخاصة بالإنتاج
-            const response = await window.secureFetch('/suppliers/login', {
+            const response = await window.secureFetch("{{ url_for('suppliers_auth.login') }}", {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -194,7 +193,7 @@
             if (response.ok && data.success) {
                 showAlert('تم تسجيل الدخول بنجاح! جاري التوجيه...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/suppliers/dashboard';
+                    window.location.href = data.redirect_url || "{{ url_for('suppliers_auth.dashboard') if 'suppliers_auth.dashboard' in [].__class__.__name__ else '/supplier/dashboard' }}";
                 }, 1000);
             } else {
                 showAlert(data.message || 'فشل تسجيل الدخول. تحقق من البيانات المدخلة.');
