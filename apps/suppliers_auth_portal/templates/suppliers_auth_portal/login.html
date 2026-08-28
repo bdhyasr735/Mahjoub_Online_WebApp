@@ -14,7 +14,7 @@
             <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#05020a] border-2 border-royalGold/50 p-2 mb-3 shadow-xl overflow-hidden">
                 <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
                      alt="محجوب أونلاين - سوقك الذكي"
-                     class="w-full h-full object-contain">
+                     class="w-full h-full object-contain brightness-0 invert">
             </div>
             <h2 class="text-2xl font-black gold-gradient-text tracking-wide mb-1">
                 محجوب أونلاين
@@ -138,12 +138,12 @@
         if (type === 'supplier') {
             tabSup.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
             tabEmp.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
-            label.textContent = 'رقم السجل التجاري أو البريد الإلكتروني للمورد';
+            label.textContent = 'رقم السجل التجاري أو البريد الإلكتروني';
             input.placeholder = 'مثال: 1010789456 أو البريد';
         } else {
             tabEmp.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
             tabSup.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
-            label.textContent = 'البريد الإلكتروني أو رقم جوال موظف المورد';
+            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
             input.placeholder = 'مثال: emp@company.sa أو 05xxxxxxxx';
         }
     }
