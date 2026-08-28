@@ -46,6 +46,40 @@
     }
     </script>
     {% endif %}
+
+    <!-- البيانات المنظمة FAQPage Schema.org للظهور الغني في نتائج بحث Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "ما هي سياسة تسعير التكلفة واللوحة المجانية في محجوب أونلاين؟",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "لوحة التحكم في منصة محجوب أونلاين مجانية بالكامل لجميع الموردين، والشرط الأساسي لاستمرار تفعيلها هو الالتزام بالبيع والتوريد بسعر التكلفة وبأسعار تنافسية عادلة. في حال تبين وجود أسعار غير مناسبة، يتم توقيف لوحة التحكم فوراً."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "كيف يتم تسجيل مورد جديد في منصة محجوب أونلاين؟",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "من خلال الضغط على زر اشتراك مورد جديد، إدخال بيانات المنشأة، وتوثيق الحساب للحصول على لوحة التحكم المجانية والربط مع شبكة المسوقين."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "هل يمكن للمورد إضافة موظفين وصلاحيات داخل لوحة التحكم؟",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "نعم، تتيح المنصة نظام دخول موظف المورد مع صلاحيات دقيقة ومحددة لإدارة العمليات والمبيعات."
+          }
+        }
+      ]
+    }
+    </script>
     {% block schema_jsonld %}{% endblock %}
 
     <meta name="csrf-token" content="{{ csrf_token|default('') }}">
@@ -161,8 +195,51 @@
         </div>
     </div>
 
-    <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+    <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full">
         {% block content %}{% endblock %}
+
+        <!-- قسم الأسئلة الشائعة (FAQ Section) -->
+        <section class="w-full max-w-3xl mx-auto mt-16 mb-8 px-4">
+            <div class="text-center mb-6">
+                <h3 class="text-lg font-bold gold-gradient-text mb-1">الأسئلة الشائعة ومعلومات الحوكمة</h3>
+                <p class="text-[11px] text-royalGold/70">إجابات استباقية لمعايير حوكمة التجارة اليمنية وسعر التكلفة</p>
+            </div>
+
+            <div class="space-y-3">
+                <!-- السؤال الأول -->
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60">
+                    <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
+                        <span>ما هي سياسة تسعير التكلفة واللوحة المجانية في محجوب أونلاين؟</span>
+                        <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="faq-content hidden mt-3 pt-3 border-t border-royalGold/20 text-[11px] text-slate-300 leading-relaxed">
+                        لوحة التحكم في منصة محجوب أونلاين مجانية بالكامل لجميع الموردين، والشرط الأساسي لاستمرار تفعيلها هو الالتزام بالبيع والتوريد بسعر التكلفة وبأسعار تنافسية عادلة. في حال تبين وجود أسعار غير مناسبة، يتم توقيف لوحة التحكم فوراً.
+                    </div>
+                </div>
+
+                <!-- السؤال الثاني -->
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60">
+                    <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
+                        <span>كيف يتم تسجيل مورد جديد في منصة محجوب أونلاين؟</span>
+                        <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="faq-content hidden mt-3 pt-3 border-t border-royalGold/20 text-[11px] text-slate-300 leading-relaxed">
+                        من خلال الضغط على زر اشتراك مورد جديد، إدخال بيانات المنشأة، وتوثيق الحساب للحصول على لوحة التحكم المجانية والربط مع شبكة المسوقين.
+                    </div>
+                </div>
+
+                <!-- السؤال الثالث -->
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60">
+                    <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
+                        <span>هل يمكن للمورد إضافة موظفين وصلاحيات داخل لوحة التحكم؟</span>
+                        <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="faq-content hidden mt-3 pt-3 border-t border-royalGold/20 text-[11px] text-slate-300 leading-relaxed">
+                        نعم، تتيح المنصة نظام دخول موظف المورد مع صلاحيات دقيقة ومحددة لإدارة العمليات والمبيعات.
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer class="w-full border-t border-royalGold/15 bg-[#030107] py-6">
@@ -178,6 +255,13 @@
     </footer>
 
     <script>
+        function toggleFaq(button) {
+            const content = button.nextElementSibling;
+            const arrow = button.querySelector('span:last-child');
+            content.classList.toggle('hidden');
+            arrow.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
         window.getCsrfToken = function() {
             const meta = document.querySelector('meta[name="csrf-token"]');
             return meta ? meta.getAttribute('content') : '';
