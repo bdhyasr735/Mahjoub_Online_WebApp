@@ -40,8 +40,8 @@
             </button>
         </div>
 
-        <!-- صندوق التنبيهات -->
-        <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-2 transition-all"></div>
+        <!-- صندوق التنبيهات الملكي المحسن -->
+        <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- نموذج تسجيل الدخول -->
         <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-5 relative z-10">
@@ -126,6 +126,8 @@
 {% block scripts %}
 <script>
     let currentUserType = 'supplier';
+    let failedAttempts = 0;
+    let lockoutTimer = null;
 
     function switchUserType(type) {
         currentUserType = type;
@@ -153,16 +155,50 @@
         input.type = input.type === 'password' ? 'text' : 'password';
     }
 
-    function showAlert(msg, isSuccess = false) {
+    function showAlert(title, msg, isSuccess = false) {
         const box = document.getElementById('alertBox');
         box.classList.remove('hidden');
         if (isSuccess) {
-            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300';
-            box.innerHTML = `<span>✓</span> <span>${msg}</span>`;
+            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 shadow-xl';
+            box.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-500/40 flex items-center justify-center shrink-0 text-emerald-400 font-bold">✓</div>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-emerald-200">${title}</span>
+                    <span class="text-emerald-300/90 text-[11px]">${msg}</span>
+                </div>
+            `;
         } else {
-            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-2 bg-rose-950/80 border border-rose-500/50 text-rose-300';
-            box.innerHTML = `<span>⚠</span> <span>${msg}</span>`;
+            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl';
+            box.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-rose-900/50 border border-rose-500/40 flex items-center justify-center shrink-0 text-rose-400 font-bold">⚠</div>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-rose-200">${title}</span>
+                    <span class="text-rose-300/90 text-[11px]">${msg}</span>
+                </div>
+            `;
         }
+    }
+
+    function startLockoutCountdown(seconds) {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        let remaining = seconds;
+
+        const updateTimer = () => {
+            if (remaining > 0) {
+                showAlert(
+                    "الحظر المؤقت للأمان", 
+                    `تم تجاوز الحد الأقصى للمحاولات الخاطئة. يرجى الانتظار (${remaining} ثانية) قبل إعادة المحاولة.`
+                );
+                remaining--;
+                lockoutTimer = setTimeout(updateTimer, 1000);
+            } else {
+                document.getElementById('alertBox').classList.add('hidden');
+                submitBtn.disabled = false;
+                failedAttempts = 0;
+            }
+        };
+        updateTimer();
     }
 
     async function handleLoginSubmit(event) {
@@ -191,19 +227,30 @@
 
             const data = await response.json();
             if (response.ok && data.success) {
-                showAlert('تم تسجيل الدخول بنجاح! جاري التوجيه...', true);
+                showAlert('تم المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
                 setTimeout(() => {
                     window.location.href = data.redirect_url || '/supplier/dashboard';
                 }, 1000);
             } else {
-                showAlert(data.message || 'فشل تسجيل الدخول. تحقق من البيانات المدخلة.');
+                failedAttempts++;
+                if (failedAttempts >= 5) {
+                    startLockoutCountdown(60);
+                } else {
+                    submitBtn.disabled = false;
+                    showAlert(
+                        'خطأ في بيانات الاعتماد', 
+                        data.message || 'اسم المستخدم أو كلمة المرور غير صحيح. يرجى التحقق وإعادة المحاولة.'
+                    );
+                }
             }
         } catch (err) {
-            showAlert('تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
-        } finally {
             submitBtn.disabled = false;
-            btnText.textContent = 'دخول المنظومة الملكية';
-            btnSpinner.classList.add('hidden');
+            showAlert('خطأ في الاتصال', 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
+        } finally {
+            if (failedAttempts < 5) {
+                btnText.textContent = 'دخول المنظومة الملكية';
+                btnSpinner.classList.add('hidden');
+            }
         }
     }
 </script>
