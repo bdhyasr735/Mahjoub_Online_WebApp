@@ -57,7 +57,6 @@ class SupplierAuthService:
     """خدمة المصادقة الموحدة للموردين وموظفيهم - تدعم SQLAlchemy"""
 
     def __init__(self):
-        # لا حاجة لقواميس - كل شيء في قاعدة البيانات
         pass
 
     # ==================== إدارة CSRF ====================
@@ -121,7 +120,7 @@ class SupplierAuthService:
             
             # إنشاء المورد
             supplier = Supplier(
-                username=email,  # ✅ إضافة username
+                username=email,
                 company_name=company_name,
                 commercial_register=commercial_register or None,
                 tax_number=tax_number or None,
@@ -134,7 +133,7 @@ class SupplierAuthService:
                 password_hash=password_hash,
                 is_verified=True,
                 created_at=datetime.utcnow(),
-                status='active'  # ✅ إضافة status
+                status='active'
             )
             
             db.session.add(supplier)
@@ -145,8 +144,8 @@ class SupplierAuthService:
             
             wallet = Wallet(
                 supplier_id=supplier.id,
-                wallet_code=wallet_number,  # ✅ تغيير account_number إلى wallet_code
-                balance_sar=0.00,  # ✅ تغيير balance إلى balance_sar
+                wallet_code=wallet_number,
+                balance_sar=0.00,
                 hold_balance=0.00,
                 currency="SAR",
                 status="active",
@@ -196,8 +195,8 @@ class SupplierAuthService:
             
             wallet_data = {
                 "wallet_id": wallet.id,
-                "account_number": wallet.wallet_code,  # ✅ تغيير
-                "balance": wallet.balance_sar,  # ✅ تغيير
+                "account_number": wallet.wallet_code,
+                "balance": wallet.balance_sar,
                 "currency": wallet.currency,
                 "status": wallet.status,
             }
@@ -219,7 +218,7 @@ class SupplierAuthService:
     def authenticate(self, identifier: str, password: str, user_type: str = "supplier") -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         المصادقة للمورد أو الموظف التابع
-        identifier: يُقبل فقط البريد الإلكتروني أو رقم الهاتف
+        identifier: يُقبل البريد الإلكتروني أو رقم الهاتف أو اسم المستخدم
         """
         identifier = identifier.strip().lower()
         
@@ -260,7 +259,9 @@ class SupplierAuthService:
 
         # تسجيل دخول المورد الرئيسي
         supplier = Supplier.query.filter(
-            (Supplier.email == identifier) | (Supplier.phone == identifier)
+            (Supplier.email == identifier) | 
+            (Supplier.phone == identifier) |
+            (Supplier.username == identifier)
         ).first()
         
         if supplier:
@@ -281,6 +282,7 @@ class SupplierAuthService:
                         "company_name": supplier.company_name,
                         "email": supplier.email,
                         "phone": supplier.phone,
+                        "username": supplier.username,
                         "is_verified": supplier.is_verified,
                     },
                     "wallet": {
@@ -299,7 +301,9 @@ class SupplierAuthService:
         
         # البحث عن المورد
         supplier = Supplier.query.filter(
-            (Supplier.email == identifier) | (Supplier.phone == identifier)
+            (Supplier.email == identifier) | 
+            (Supplier.phone == identifier) |
+            (Supplier.username == identifier)
         ).first()
         
         target_id = None
@@ -328,7 +332,7 @@ class SupplierAuthService:
         otp_code = f"{secrets.randbelow(900000) + 100000}"
         expiry = datetime.utcnow() + timedelta(seconds=SECURITY_CONFIG["otp_expiration_seconds"])
 
-        # تخزين OTP في الجلسة مؤقتاً (بدلاً من نموذج OTPStore)
+        # تخزين OTP في الجلسة
         session['otp_data'] = {
             'identifier': identifier,
             'otp_code': otp_code,
