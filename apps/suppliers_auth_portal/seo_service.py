@@ -72,6 +72,9 @@ class SeoService:
             "schema_org": schema_org
         }
 
+# دعم التوافقية الكاملة في حال طلب النظام الاستيراد بالحروف الكبيرة SEOService
+SEOService = SeoService
+
 
 def generate_robots_txt() -> str:
     """توليد محتوى ملف robots.txt مع حماية المسارات الحساسة وتوجيه عناكب البحث"""
