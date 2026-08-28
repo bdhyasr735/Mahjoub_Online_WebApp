@@ -46,68 +46,12 @@ class SupplierAuthService:
     """خدمة المصادقة الموحدة للموردين وموظفيهم"""
 
     def __init__(self):
-        # في بيئة الإنتاج يتم الربط مع ORM / Database
-        # هنا مخزن البيانات والذاكرة للموديول
+        # القواميس تبدأ فارغة تماماً بدون أي بيانات تجريبية
         self.suppliers_db: Dict[str, Dict[str, Any]] = {}
         self.employees_db: Dict[str, Dict[str, Any]] = {}
         self.wallets_db: Dict[str, Dict[str, Any]] = {}
         self.otp_store: Dict[str, Dict[str, Any]] = {}
         self.csrf_tokens: Dict[str, float] = {}
-        self._seed_sample_data()
-
-    def _seed_sample_data(self):
-        """تجهيز بيانات تجريبية معتمدة للاختبار والمعاينة الفورية"""
-        demo_supplier_id = "SUP-2025-001"
-        pw_hash = PasswordHasher.set_password("Royal@2025")
-        
-        self.suppliers_db[demo_supplier_id] = {
-            "id": demo_supplier_id,
-            "username": "royal_supply",
-            "company_name": "شركة أفق التوريد الملكية",
-            "commercial_register": "1010789456",
-            "tax_number": "300456789100003",
-            "email": "supplier@royal-supply.sa",
-            "phone": "+966501234567",
-            "owner_name": "عبدالعزيز بن فهد آل سعود",
-            "category": "معدات صناعية وتجهيزات كبرى",
-            "city": "الرياض",
-            "password_hash": pw_hash,
-            "is_verified": True,
-            "created_at": time.time(),
-        }
-
-        # إنشاء المحفظة المالية المرتبطة تلقائياً
-        wallet_id = f"WLT-{demo_supplier_id}"
-        self.wallets_db[wallet_id] = {
-            "wallet_id": wallet_id,
-            "supplier_id": demo_supplier_id,
-            "account_number": "SA84800002025000109988",
-            "balance": 142500.00,
-            "hold_balance": 12000.00,
-            "currency": "SAR",
-            "status": "active",
-            "transactions_count": 28,
-            "created_at": time.time(),
-        }
-        self.suppliers_db[demo_supplier_id]["wallet_id"] = wallet_id
-
-        # إضافة موظف تجريبي تابع للمورد
-        emp_id = "EMP-001"
-        emp_pw = PasswordHasher.set_password("Emp@2025")
-        self.employees_db[emp_id] = {
-            "id": emp_id,
-            "supplier_id": demo_supplier_id,
-            "username": "tariq_manager",
-            "full_name": "م. طارق المنصور",
-            "role": "manager",
-            "role_title": EMPLOYEE_ROLES["manager"]["title_ar"],
-            "email": "tariq@royal-supply.sa",
-            "phone": "+966559876543",
-            "permissions": EMPLOYEE_ROLES["manager"]["permissions"],
-            "password_hash": emp_pw,
-            "is_active": True,
-            "created_at": time.time(),
-        }
 
     # ==================== إدارة CSRF ====================
     def generate_csrf_token(self) -> str:
@@ -236,7 +180,6 @@ class SupplierAuthService:
         identifier = identifier.strip().lower()
         
         if user_type == "employee":
-            # البحث في موظفي الموردين (البريد، الجوال، أو اسم المستخدم)
             for emp in self.employees_db.values():
                 match_emp = (
                     emp["email"].lower() == identifier or 
@@ -255,7 +198,7 @@ class SupplierAuthService:
                         }
             return False, "بيانات دخول موظف المورد غير صحيحة أو الحساب غير مفعل", None
 
-        # تسجيل دخول المورد الرئيسي (البريد، السجل التجاري، الجوال، أو اسم المستخدم)
+        # تسجيل دخول المورد الرئيسي
         for sup in self.suppliers_db.values():
             match_id = (
                 sup["email"].lower() == identifier or 
@@ -278,14 +221,10 @@ class SupplierAuthService:
 
     # ==================== تدفق استعادة كلمة المرور على مرحلتين ====================
     def initiate_forgot_password(self, identifier: str) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
-        """
-        المرحلة الأولى: التحقق من وجود المستخدم وإرسال رمز التحقق otp_sent
-        """
         identifier = identifier.strip().lower()
         found_target = None
         target_type = None
 
-        # البحث في الموردين (يشمل البريد، السجل، الهاتف، واسم المستخدم)
         for sup in self.suppliers_db.values():
             if (sup["email"].lower() == identifier or 
                 (sup.get("commercial_register") and sup["commercial_register"].lower() == identifier) or 
@@ -295,7 +234,6 @@ class SupplierAuthService:
                 target_type = "supplier"
                 break
 
-        # البحث في الموظفين (يشمل البريد، الهاتف، واسم المستخدم)
         if not found_target:
             for emp in self.employees_db.values():
                 if (emp["email"].lower() == identifier or 
@@ -308,11 +246,9 @@ class SupplierAuthService:
         if not found_target:
             return False, "لم يتم العثور على حساب مرتبط بالبيانات المدخلة", None
 
-        # توليد رمز تحقق OTP مكون من 6 أرقام
         otp_code = f"{secrets.randbelow(900000) + 100000}"
         expiry = time.time() + SECURITY_CONFIG["otp_expiration_seconds"]
 
-        # حفظ الرمز
         self.otp_store[identifier] = {
             "otp_code": otp_code,
             "target_id": found_target["id"],
@@ -321,7 +257,6 @@ class SupplierAuthService:
             "attempts": 0,
         }
 
-        # تمويه البريد أو الجوال للخصوصية
         contact_phone = found_target.get("phone", "")
         masked_phone = contact_phone[:4] + "****" + contact_phone[-3:] if len(contact_phone) >= 7 else contact_phone
 
@@ -330,14 +265,10 @@ class SupplierAuthService:
             "identifier": identifier,
             "masked_phone": masked_phone,
             "expires_in": SECURITY_CONFIG["otp_expiration_seconds"],
-            # لأغراض التطوير والاختبار يتم إرسال الرمز للواجهة
             "_dev_otp": otp_code,
         }
 
     def verify_otp_and_reset_password(self, identifier: str, otp_code: str, new_password: str) -> Tuple[bool, str]:
-        """
-        المرحلة الثانية: التحقق من الرمز وتحديث كلمة المرور بعد تشفيرها بـ set_password
-        """
         identifier = identifier.strip().lower()
         record = self.otp_store.get(identifier)
 
@@ -359,9 +290,7 @@ class SupplierAuthService:
         if len(new_password) < SECURITY_CONFIG["min_password_length"]:
             return False, f"يجب أن تتكون كلمة المرور من {SECURITY_CONFIG['min_password_length']} خانات على الأقل"
 
-        # تشفير كلمة المرور بـ set_password
         new_hash = PasswordHasher.set_password(new_password)
-
         target_id = record["target_id"]
         target_type = record["target_type"]
 
@@ -372,13 +301,11 @@ class SupplierAuthService:
         else:
             return False, "حدث خطأ أثناء تحديث بيانات المستخدم"
 
-        # إبطال رمز OTP
         self.otp_store.pop(identifier, None)
         return True, "تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن"
 
     # ==================== إدارة موظفي المورد ====================
     def add_employee(self, supplier_id: str, data: Dict[str, Any]) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
-        """إضافة موظف جديد تابع للمورد مع تخصيص الصلاحيات"""
         if supplier_id not in self.suppliers_db:
             return False, "المورد غير موجود", None
 
@@ -413,7 +340,6 @@ class SupplierAuthService:
         return True, "تمت إضافة الموظف بنجاح", {k: v for k, v in emp_record.items() if k != "password_hash"}
 
     def get_supplier_employees(self, supplier_id: str) -> List[Dict[str, Any]]:
-        """قائمة موظفي المورد"""
         result = []
         for emp in self.employees_db.values():
             if emp["supplier_id"] == supplier_id:
@@ -421,7 +347,6 @@ class SupplierAuthService:
         return sorted(result, key=lambda x: x["created_at"], reverse=True)
 
     def get_supplier_wallet(self, supplier_id: str) -> Optional[Dict[str, Any]]:
-        """استرجاع بيانات المحفظة المالية التابعة للمورد"""
         sup = self.suppliers_db.get(supplier_id)
         if sup and sup.get("wallet_id"):
             return self.wallets_db.get(sup["wallet_id"])
