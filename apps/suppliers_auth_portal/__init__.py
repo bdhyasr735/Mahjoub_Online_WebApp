@@ -1,24 +1,14 @@
-"""
-بوابة الموردين وموظفيهم (Suppliers & Employees Authentication Portal)
-=====================================================================
-موديول متكامل للمصادقة، التسجيل، إدارة المحافظ المالية، وموظفي الموردين
-مع الالتزام بالهوية الملكية وحماية CSRF، وتحسين محركات البحث والظهور (SEO).
-"""
+# -*- coding: utf-8 -*-
+# 📂 apps/suppliers_auth_portal/__init__.py
 
-from .routes import suppliers_bp
-from .registry import MODULE_INFO, PERMISSIONS, SEO_CONFIG
-from .auth_service import SupplierAuthService
-from .seo_service import SEOService, seo_service, generate_sitemap_xml, generate_robots_txt
+from flask import Blueprint
 
-__version__ = "2.5.0"
-__all__ = [
-    "suppliers_bp",
-    "MODULE_INFO",
-    "PERMISSIONS",
-    "SEO_CONFIG",
-    "SupplierAuthService",
-    "SEOService",
-    "seo_service",
-    "generate_sitemap_xml",
-    "generate_robots_txt",
-]
+suppliers_bp = Blueprint(
+    'suppliers_auth_portal',
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
+
+# الاستيراد المؤجل (Lazy Import) لمنع خطأ الاستيراد الدائري
+from apps.suppliers_auth_portal import routes
