@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="بوابة محجوب أونلاين السيادية للموردين والموظفين - نظام إدارة مركزي آمن.">
-    <title>بوابة الموردين والموظفين | محجوب أونلاين</title>
+    <meta name="description" content="لوحة التحكم السيادية للإدارة - محجوب أونلاين.">
+    <title>تسجيل دخول الإدارة السيادية | محجوب أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; --error: #ff4d4d; --success: #28a745; }
@@ -56,30 +56,24 @@
 
 <div class="wrapper">
     <div class="side marketing-side">
-        <h1>بوابة الشركاء <span style="color:var(--gold)">السيادية</span></h1>
-        <p style="color: #aaa;">نظام إدارة الموردين والموظفين المركزي لمحجوب أونلاين. بيئة عمل محمية، مؤمنة، ومصممة للنمو.</p>
+        <h1>المنظومة <span style="color:var(--gold)">الإدارية السيادية</span></h1>
+        <p style="color: #aaa;">بوابة التحكم المركزي لمحجوب أونلاين. صلاحيات مطلقة ومراقبة أمنية مشددة للعمليات.</p>
     </div>
     
     <div class="side" id="auth-container">
         <div id="status-msg"></div>
         <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
 
-        <div id="main-menu">
-            <h2 style="color: var(--gold); margin-top: 0;">مرحباً بك مجدداً</h2>
-            <button class="btn-gold" onclick="showForm('supplier-login')">دخول الموردين والموظفين</button>
-        </div>
-
-        <div id="supplier-login" class="hidden">
-            <h3 style="color: var(--gold);">تسجيل الدخول</h3>
-            <input type="text" id="sup-user" class="cyber-input" placeholder="اسم المستخدم أو الهاتف">
-            <input type="password" id="sup-pass" class="cyber-input" placeholder="كلمة المرور">
+        <div id="admin-login">
+            <h2 style="color: var(--gold); margin-top: 0;">تسجيل دخول الإدارة</h2>
+            <input type="text" id="admin-user" class="cyber-input" placeholder="اسم المستخدم الإداري">
+            <input type="password" id="admin-pass" class="cyber-input" placeholder="كلمة المرور الإدارية">
             
-            <div id="supplier-otp-container" class="hidden">
-                <input type="text" id="sup-otp" class="cyber-input" placeholder="أدخل رمز التحقق (OTP)">
+            <div id="admin-otp-container" class="hidden">
+                <input type="text" id="admin-otp" class="cyber-input" placeholder="رمز التحقق السيادي (OTP)">
             </div>
             
-            <button class="btn-gold" id="supplier-submit-btn" onclick="loginUser()">تسجيل الدخول</button>
-            <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; width:100%; margin-top:10px;">رجوع</button>
+            <button class="btn-gold" id="admin-submit-btn" onclick="loginAdmin()">دخول المشرفين</button>
         </div>
     </div>
 </div>
@@ -96,33 +90,16 @@
         msg.style.color = type === 'error' ? "#ff4d4d" : "#28a745";
     }
 
-    function showForm(type) {
-        document.getElementById('status-msg').style.display = 'none';
-        document.querySelectorAll('#auth-container > div:not(#status-msg)').forEach(d => d.classList.add('hidden'));
-        currentAuthStep = 'credentials';
-        
-        // إعادة تعيين حقول الـ OTP والزر
-        document.getElementById('supplier-otp-container').classList.add('hidden');
-        document.getElementById('sup-otp').value = '';
-        document.getElementById('supplier-submit-btn').innerText = 'تسجيل الدخول';
-
-        if(type === 'menu') {
-            document.getElementById('main-menu').classList.remove('hidden');
-        } else {
-            document.getElementById(type).classList.remove('hidden');
-        }
-    }
-
-    async function loginUser() {
+    async function loginAdmin() {
         const data = {
-            username: document.getElementById('sup-user').value,
-            password: document.getElementById('sup-pass').value,
+            username: document.getElementById('admin-user').value,
+            password: document.getElementById('admin-pass').value,
             step: currentAuthStep,
-            otp_code: document.getElementById('sup-otp').value
+            otp_code: document.getElementById('admin-otp').value
         };
         
         try {
-            const response = await fetch("{{ url_for('suppliers_auth.login') }}", {
+            const response = await fetch("{{ url_for('auth_portal.login') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,14 +113,14 @@
             if (response.ok) {
                 if (res.status === 'require_otp') {
                     currentAuthStep = 'verify_otp';
-                    document.getElementById('supplier-otp-container').classList.remove('hidden');
-                    document.getElementById('supplier-submit-btn').innerText = 'تأكيد رمز التحقق ودخول';
+                    document.getElementById('admin-otp-container').classList.remove('hidden');
+                    document.getElementById('admin-submit-btn').innerText = 'تأكيد الرمز والدخول السيادي';
                     showMessage(res.message, 'success');
                 } else if (res.redirect) {
                     window.location.href = res.redirect;
                 }
             } else {
-                showMessage(res.message || 'حدث خطأ غير متوقع', 'error');
+                showMessage(res.message || 'بيانات الدخول غير صحيحة', 'error');
             }
         } catch(e) { 
             console.error(e);
