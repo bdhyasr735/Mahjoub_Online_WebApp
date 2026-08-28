@@ -9,7 +9,7 @@ MODULE_INFO = {
     "version": "2.5.0",
     "description": "منظومة تسجيل ودخول الموردين وموظفيهم مع إدارة المحفظة المالية الذكية وتحسين محركات البحث والظهور (SEO)",
     "author": "Royal Enterprise Solutions",
-    "url_prefix": "/supplier",
+    "url_prefix": "/suppliers",  # ✅ تغيير من /supplier إلى /suppliers
     "theme": {
         "primary_dark": "#05020a",
         "secondary_dark": "#0f071c",
@@ -100,7 +100,7 @@ SEO_CONFIG = {
         "المنظومة الملكية",
     ],
     "robots_directive": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-    "sitemap_endpoint": "/supplier/sitemap.xml",
-    "robots_endpoint": "/supplier/robots.txt",
+    "sitemap_endpoint": "/suppliers/sitemap.xml",  # ✅ تغيير من /supplier إلى /suppliers
+    "robots_endpoint": "/suppliers/robots.txt",    # ✅ تغيير من /supplier إلى /suppliers
     "schema_org_types": ["WebSite", "Organization", "WebApplication", "BreadcrumbList", "FAQPage"],
 }
