@@ -3,14 +3,14 @@
 
 from flask import Blueprint
 
-# تعريف الـ Blueprint مع إضافة url_prefix اختياري لتوحيد المسارات
-suppliers_bp = Blueprint(
-    'suppliers_auth_portal',
+# ✅ تغيير: استخدام نفس اسم Blueprint الموجود في routes.py
+suppliers_auth_bp = Blueprint(
+    'suppliers_auth_bp',  # ← نفس الاسم في routes.py
     __name__,
     template_folder='templates',
     static_folder='static',
-    static_url_path='/suppliers/static',  # إضافة مسار ثابت واضح
-    url_prefix='/supplier'  # توحيد جميع المسارات تحت /supplier
+    static_url_path='/suppliers/static',
+    url_prefix='/suppliers'  # ← نفس المسار في routes.py
 )
 
 # الاستيراد المؤجل (Lazy Import) لمنع خطأ الاستيراد الدائري
