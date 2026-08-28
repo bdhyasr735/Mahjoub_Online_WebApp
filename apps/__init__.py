@@ -346,6 +346,7 @@ def create_app():
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        # ✅ لا تعيد التوجيه لصفحات تسجيل الدخول
         if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
             return redirect(url_for('suppliers_auth_bp.login'))
         return redirect(admin_login_path)
@@ -364,6 +365,7 @@ def create_app():
 
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
+        # ✅ إضافة جميع مسارات المصادقة هنا لمنع التوجيه اللانهائي
         exempt_prefixes = [
             '/static',
             '/graphql',
@@ -373,15 +375,22 @@ def create_app():
             '/supplier/login',
             '/supplier/register',
             '/supplier/forgot-password',
+            '/supplier/forgot-password-page',
+            '/supplier/verify-page',
+            '/supplier/reset-password',
             '/suppliers/login',
             '/suppliers/register',
             '/suppliers/forgot-password',
+            '/suppliers/forgot-password-page',
+            '/suppliers/verify-page',
+            '/suppliers/reset-password',
             admin_login_path,
             '/auth',
             '/whatsapp'
         ]
 
-        if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
+        # ✅ التحقق من المسار بشكل دقيق
+        if path == '/' or any(path == p or path.startswith(p + '/') for p in exempt_prefixes):
             return
 
         if current_user.is_authenticated:
@@ -404,8 +413,10 @@ def create_app():
 
             return
 
+        # ✅ إذا لم يكن المستخدم مصادقاً وكان المسار يبدأ بـ /supplier أو /suppliers
+        # لا تفعل شيئاً (تم التعامل معه في exempt)
         if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_auth_bp.login'))
+            return
 
         return redirect(admin_login_path)
 
