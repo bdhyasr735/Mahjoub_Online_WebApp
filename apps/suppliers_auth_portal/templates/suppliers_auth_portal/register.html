@@ -25,7 +25,7 @@
             <!-- تنويه الحوكمة والتسعير -->
             <div class="mt-4 p-3.5 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-xs text-amber-200 text-right leading-relaxed">
                 <strong class="text-royalGoldLight block font-bold mb-0.5">ميثاق حوكمة الأسعار وسعر التكلفة:</strong>
-                للعلم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
+                للعلّم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
             </div>
         </div>
 
@@ -179,7 +179,7 @@
     function addEmployeeRow() {
         const container = document.getElementById('employeesContainer');
         const emptyNotice = document.getElementById('emptyEmployeesNotice');
-        if (emptyNotice) emptyNotice.remove();
+        if (emptyNotice) emptyNotice.classList.add('hidden');
 
         employeeCount++;
         const row = document.createElement('div');
@@ -211,6 +211,14 @@
     function removeEmployeeRow(idx) {
         const row = document.getElementById(`emp-row-${idx}`);
         if (row) row.remove();
+
+        // إذا تم حذف كافة الموظفين، نعيد إظهار رسالة التنبيه الإرشادية
+        const container = document.getElementById('employeesContainer');
+        const rows = container.querySelectorAll('[id^="emp-row-"]');
+        if (rows.length === 0) {
+            const emptyNotice = document.getElementById('emptyEmployeesNotice');
+            if (emptyNotice) emptyNotice.classList.remove('hidden');
+        }
     }
 
     function showAlert(msg, isSuccess = false) {
@@ -238,7 +246,7 @@
 
         // جمع الموظفين
         const employees = [];
-        const rows = document.querySelectorAll('#employeesContainer > div');
+        const rows = document.querySelectorAll('#employeesContainer > [id^="emp-row-"]');
         rows.forEach(r => {
             const name = r.querySelector('.emp-name')?.value;
             const email = r.querySelector('.emp-email')?.value;
@@ -269,7 +277,6 @@
         btnSpinner.classList.remove('hidden');
 
         try {
-            // إرسال عبر secureFetch المضمن فيه حماية CSRF الخاصة بالإنتاج
             const res = await window.secureFetch('/suppliers/register', {
                 method: 'POST',
                 body: JSON.stringify(payload)
