@@ -227,7 +227,7 @@
 
             const data = await response.json();
             if (response.ok && data.success) {
-                showAlert('تم المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
+                showAlert('تمت المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
                 setTimeout(() => {
                     window.location.href = data.redirect_url || '/supplier/dashboard';
                 }, 1000);
@@ -239,7 +239,7 @@
                     submitBtn.disabled = false;
                     showAlert(
                         'خطأ في بيانات الاعتماد', 
-                        data.message || 'اسم المستخدم أو كلمة المرور غير صحيح. يرجى التحقق وإعادة المحاولة.'
+                        'اسم المستخدم أو كلمة المرور غير صحيح. يرجى التحقق وإعادة المحاولة.'
                     );
                 }
             }
