@@ -235,14 +235,10 @@ def login():
         return render_template('suppliers_auth_portal/login.html', error=msg)
 
 
-# تم إضافة مسار التسجيل (register) لتجنيب حدوث خطأ BuildError الذي ظهر في السجلات عند محاولة استدعائه من القوالب
 @suppliers_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'GET':
-        # تأكد من إنشاء أو توفر قالب register.html أو تعديل الرابط في القوالب
         return render_template('suppliers_auth_portal/register.html')
-    
-    # ضع هنا منطق معالجة طلب التسجيل الجديد إن وجد
     return jsonify({"status": "info", "message": "صفحة التسجيل قيد الدعم"})
 
 
