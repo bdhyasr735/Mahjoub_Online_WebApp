@@ -170,7 +170,7 @@ def request_password_reset_otp():
     if not identifier:
         return jsonify({
             "success": False,
-            "message": "يرجى إدخال السجل التجاري أو البريد الإلكتروني المسجل"
+            "message": "يرجى إدخال اسم المستخدم، رقم الهاتف، أو البريد الإلكتروني المسجل"
         }), 400
 
     success, message, result = auth_service.initiate_forgot_password(identifier)
@@ -193,7 +193,7 @@ def request_password_reset_otp():
 @require_csrf
 def reset_password_with_otp():
     """
-    المرحلة الثانية: التحقق من الرمز وتحديث كلمة المرور بعد تشفيرها بـ set_password
+    المرحلة الثانية: التحقق من الرمز وتحديث كلمة المرور بعد تشفيرها
     """
     data = (request.get_json(silent=True) or request.form.to_dict()) if HAS_FLASK else {}
     identifier = data.get("identifier", "").strip()
