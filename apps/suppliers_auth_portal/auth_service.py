@@ -18,8 +18,8 @@ from sqlalchemy.exc import IntegrityError
 from .registry import SECURITY_CONFIG, EMPLOYEE_ROLES, PERMISSIONS
 from apps.extensions import db
 from apps.models.supplier_staff_db import SupplierStaff
-from apps.models.supplier import Supplier  # افتراض وجود نموذج Supplier
-from apps.models.wallet import Wallet  # افتراض وجود نموذج Wallet
+from apps.models.supplier_db import Supplier  # ✅ استيراد صحيح
+from apps.models.wallet_db import SupplierWallet as Wallet  # ✅ استيراد صحيح
 
 
 class PasswordHasher:
@@ -63,7 +63,6 @@ class SupplierAuthService:
     # ==================== إدارة CSRF ====================
     def generate_csrf_token(self) -> str:
         token = secrets.token_hex(32)
-        # تخزين في الجلسة بدلاً من قاعدة البيانات (أسهل)
         session['csrf_token'] = token
         session['csrf_expiry'] = time.time() + 3600
         return token
@@ -89,9 +88,6 @@ class SupplierAuthService:
         3. إنشاء المحفظة المالية تلقائياً
         4. إضافة الموظفين إن وُجدوا
         """
-        from apps.models.supplier import Supplier
-        from apps.models.wallet import Wallet
-        
         company_name = data.get("company_name", "").strip()
         full_address = (data.get("full_address") or data.get("city", "")).strip()
         email = data.get("email", "").strip().lower()
@@ -125,6 +121,7 @@ class SupplierAuthService:
             
             # إنشاء المورد
             supplier = Supplier(
+                username=email,  # ✅ إضافة username
                 company_name=company_name,
                 commercial_register=commercial_register or None,
                 tax_number=tax_number or None,
@@ -136,7 +133,8 @@ class SupplierAuthService:
                 city=data.get("city", full_address.split("،")[0] if full_address else "الرياض"),
                 password_hash=password_hash,
                 is_verified=True,
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
+                status='active'  # ✅ إضافة status
             )
             
             db.session.add(supplier)
@@ -147,8 +145,8 @@ class SupplierAuthService:
             
             wallet = Wallet(
                 supplier_id=supplier.id,
-                account_number=wallet_number,
-                balance=0.00,
+                wallet_code=wallet_number,  # ✅ تغيير account_number إلى wallet_code
+                balance_sar=0.00,  # ✅ تغيير balance إلى balance_sar
                 hold_balance=0.00,
                 currency="SAR",
                 status="active",
@@ -198,8 +196,8 @@ class SupplierAuthService:
             
             wallet_data = {
                 "wallet_id": wallet.id,
-                "account_number": wallet.account_number,
-                "balance": wallet.balance,
+                "account_number": wallet.wallet_code,  # ✅ تغيير
+                "balance": wallet.balance_sar,  # ✅ تغيير
                 "currency": wallet.currency,
                 "status": wallet.status,
             }
@@ -223,26 +221,19 @@ class SupplierAuthService:
         المصادقة للمورد أو الموظف التابع
         identifier: يُقبل فقط البريد الإلكتروني أو رقم الهاتف
         """
-        from apps.models.supplier import Supplier
-        from apps.models.wallet import Wallet
-        
         identifier = identifier.strip().lower()
         
         if user_type == "employee":
             # البحث عن الموظف
             staff = SupplierStaff.query.filter(
-                (SupplierStaff._email_enc == SupplierStaff._encrypt(identifier)) |
+                (SupplierStaff.username == identifier) |
                 (SupplierStaff.search_phone == str(identifier)[-9:])
             ).first()
-            
-            # إذا لم يتم العثور، نحاول البحث باستخدام username
-            if not staff:
-                staff = SupplierStaff.query.filter_by(username=identifier).first()
             
             if staff and staff.status == "active":
                 if staff.check_password(password):
                     # استرجاع بيانات المورد
-                    supplier = staff.supplier
+                    supplier = Supplier.query.get(staff.supplier_id)
                     wallet = Wallet.query.filter_by(supplier_id=supplier.id).first()
                     
                     # تحديث وقت آخر دخول
@@ -260,8 +251,8 @@ class SupplierAuthService:
                         },
                         "wallet": {
                             "wallet_id": wallet.id,
-                            "account_number": wallet.account_number,
-                            "balance": wallet.balance,
+                            "account_number": wallet.wallet_code,
+                            "balance": wallet.balance_sar,
                         } if wallet else None,
                     }
             
@@ -294,8 +285,8 @@ class SupplierAuthService:
                     },
                     "wallet": {
                         "wallet_id": wallet.id,
-                        "account_number": wallet.account_number,
-                        "balance": wallet.balance,
+                        "account_number": wallet.wallet_code,
+                        "balance": wallet.balance_sar,
                     } if wallet else None,
                     "employees_count": len(employees),
                 }
@@ -304,9 +295,6 @@ class SupplierAuthService:
 
     # ==================== استعادة كلمة المرور ====================
     def initiate_forgot_password(self, identifier: str) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
-        from apps.models.supplier import Supplier
-        from apps.models.otp_store import OTPStore  # افتراض وجود نموذج OTPStore
-        
         identifier = identifier.strip().lower()
         
         # البحث عن المورد
@@ -325,8 +313,8 @@ class SupplierAuthService:
         else:
             # البحث عن الموظف
             staff = SupplierStaff.query.filter(
-                (SupplierStaff._email_enc == SupplierStaff._encrypt(identifier)) |
-                (SupplierStaff.username == identifier)
+                (SupplierStaff.username == identifier) |
+                (SupplierStaff.search_phone == str(identifier)[-9:])
             ).first()
             
             if staff:
@@ -340,19 +328,15 @@ class SupplierAuthService:
         otp_code = f"{secrets.randbelow(900000) + 100000}"
         expiry = datetime.utcnow() + timedelta(seconds=SECURITY_CONFIG["otp_expiration_seconds"])
 
-        # تخزين OTP
-        otp_record = OTPStore(
-            identifier=identifier,
-            otp_code=otp_code,
-            target_id=target_id,
-            target_type=target_type,
-            expiry=expiry,
-            attempts=0,
-            created_at=datetime.utcnow()
-        )
-        
-        db.session.add(otp_record)
-        db.session.commit()
+        # تخزين OTP في الجلسة مؤقتاً (بدلاً من نموذج OTPStore)
+        session['otp_data'] = {
+            'identifier': identifier,
+            'otp_code': otp_code,
+            'target_id': target_id,
+            'target_type': target_type,
+            'expiry': expiry.isoformat(),
+            'attempts': 0
+        }
 
         masked_phone = contact_phone[:4] + "****" + contact_phone[-3:] if contact_phone and len(contact_phone) >= 7 else contact_phone or identifier
 
@@ -361,60 +345,60 @@ class SupplierAuthService:
             "identifier": identifier,
             "masked_phone": masked_phone,
             "expires_in": SECURITY_CONFIG["otp_expiration_seconds"],
-            "_dev_otp": otp_code,  # للتطوير فقط
+            "_dev_otp": otp_code,
         }
 
     def verify_otp_and_reset_password(self, identifier: str, otp_code: str, new_password: str) -> Tuple[bool, str]:
-        from apps.models.supplier import Supplier
-        from apps.models.otp_store import OTPStore
-        
         identifier = identifier.strip().lower()
         
-        otp_record = OTPStore.query.filter_by(identifier=identifier).first()
+        otp_data = session.get('otp_data')
         
-        if not otp_record:
+        if not otp_data:
             return False, "انتهت صلاحية طلب إعادة التعيين أو لم يتم طلبه"
 
-        if datetime.utcnow() > otp_record.expiry:
-            db.session.delete(otp_record)
-            db.session.commit()
+        if otp_data.get('identifier') != identifier:
+            return False, "المعرف غير متطابق مع طلب إعادة التعيين"
+
+        expiry = datetime.fromisoformat(otp_data['expiry'])
+        if datetime.utcnow() > expiry:
+            session.pop('otp_data', None)
             return False, "انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد"
 
-        if otp_record.attempts >= SECURITY_CONFIG["max_otp_attempts"]:
-            db.session.delete(otp_record)
-            db.session.commit()
+        if otp_data['attempts'] >= SECURITY_CONFIG["max_otp_attempts"]:
+            session.pop('otp_data', None)
             return False, "تم تجاوز الحد الأقصى للمحاولات الخاطئة"
 
-        if otp_record.otp_code != otp_code.strip():
-            otp_record.attempts += 1
-            db.session.commit()
-            return False, f"رمز التحقق غير صحيح. المتبقي: {SECURITY_CONFIG['max_otp_attempts'] - otp_record.attempts} محاولات"
+        if otp_data['otp_code'] != otp_code.strip():
+            otp_data['attempts'] += 1
+            session['otp_data'] = otp_data
+            return False, f"رمز التحقق غير صحيح. المتبقي: {SECURITY_CONFIG['max_otp_attempts'] - otp_data['attempts']} محاولات"
 
         if len(new_password) < SECURITY_CONFIG["min_password_length"]:
             return False, f"يجب أن تتكون كلمة المرور من {SECURITY_CONFIG['min_password_length']} خانات على الأقل"
 
         # تحديث كلمة المرور
-        if otp_record.target_type == "supplier":
-            supplier = Supplier.query.get(otp_record.target_id)
+        target_id = otp_data['target_id']
+        target_type = otp_data['target_type']
+
+        if target_type == "supplier":
+            supplier = Supplier.query.get(target_id)
             if supplier:
                 supplier.password_hash = PasswordHasher.set_password(new_password)
-        elif otp_record.target_type == "employee":
-            staff = SupplierStaff.query.get(otp_record.target_id)
+        elif target_type == "employee":
+            staff = SupplierStaff.query.get(target_id)
             if staff:
                 staff.set_password(new_password)
         else:
             return False, "حدث خطأ أثناء تحديث بيانات المستخدم"
 
-        # حذف سجل OTP
-        db.session.delete(otp_record)
+        # حذف بيانات OTP من الجلسة
+        session.pop('otp_data', None)
         db.session.commit()
 
         return True, "تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن"
 
     # ==================== إدارة الموظفين ====================
     def add_employee(self, supplier_id: int, data: Dict[str, Any]) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
-        from apps.models.supplier import Supplier
-        
         email = data.get("email", "").strip().lower()
         phone = data.get("phone", "").strip()
         
@@ -429,7 +413,6 @@ class SupplierAuthService:
             return False, "البريد الإلكتروني للموظف مستخدم بالفعل", None
         
         if phone:
-            # التحقق من رقم الهاتف عبر search_phone
             existing = SupplierStaff.query.filter_by(search_phone=str(phone)[-9:]).first()
             if existing:
                 return False, "رقم الجوال للموظف مستخدم بالفعل", None
@@ -463,14 +446,12 @@ class SupplierAuthService:
         return [emp.to_dict() for emp in employees]
 
     def get_supplier_wallet(self, supplier_id: int) -> Optional[Dict[str, Any]]:
-        from apps.models.wallet import Wallet
-        
         wallet = Wallet.query.filter_by(supplier_id=supplier_id).first()
         if wallet:
             return {
                 "wallet_id": wallet.id,
-                "account_number": wallet.account_number,
-                "balance": wallet.balance,
+                "account_number": wallet.wallet_code,
+                "balance": wallet.balance_sar,
                 "hold_balance": wallet.hold_balance,
                 "currency": wallet.currency,
                 "status": wallet.status,
