@@ -7,8 +7,9 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from .auth_service import auth_service
 from .seo_service import seo_service
 
-suppliers_bp = Blueprint(
-    'suppliers_bp',
+# ✅ اسم فريد لتجنب التضارب
+suppliers_auth_bp = Blueprint(
+    'suppliers_auth_bp',
     __name__,
     url_prefix='/suppliers',
     template_folder='templates',
@@ -17,18 +18,16 @@ suppliers_bp = Blueprint(
 
 
 # ==================== قبل كل طلب ====================
-@suppliers_bp.before_request
+@suppliers_auth_bp.before_request
 def before_request():
-    """توليد CSRF token وإضافته إلى السياق العالمي للقوالب"""
     if 'csrf_token' not in session:
         session['csrf_token'] = auth_service.generate_csrf_token()
     g.csrf_token = session['csrf_token']
 
 
 # ==================== تسجيل الدخول ====================
-@suppliers_bp.route('/login', methods=['GET', 'POST'])
+@suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """صفحة تسجيل الدخول للموردين أو الموظفين"""
     if request.method == 'GET':
         if 'text/html' in request.headers.get('Accept', ''):
             return render_template(
@@ -77,9 +76,8 @@ def login():
 
 
 # ==================== عرض صفحة التسجيل ====================
-@suppliers_bp.route('/register-page', methods=['GET'])
+@suppliers_auth_bp.route('/register-page', methods=['GET'])
 def register_page():
-    """عرض صفحة إنشاء حساب مورد جديد (HTML)"""
     return render_template(
         'suppliers_auth_portal/register.html',
         csrf_token=session.get('csrf_token', auth_service.generate_csrf_token())
@@ -87,9 +85,8 @@ def register_page():
 
 
 # ==================== تسجيل مورد جديد ====================
-@suppliers_bp.route('/register', methods=['POST'])
+@suppliers_auth_bp.route('/register', methods=['POST'])
 def register():
-    """مسار تسجيل مورد جديد وإنشاء المحفظة المالية"""
     data = request.get_json() if request.is_json else request.form
     
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
@@ -109,19 +106,17 @@ def register():
 
 
 # ==================== صفحة استعادة كلمة المرور ====================
-@suppliers_bp.route('/forgot-password-page', methods=['GET'])
+@suppliers_auth_bp.route('/forgot-password-page', methods=['GET'])
 def forgot_password_page():
-    """عرض صفحة استعادة كلمة المرور (HTML)"""
     return render_template(
         'suppliers_auth_portal/forgot_password.html',
         csrf_token=session.get('csrf_token', auth_service.generate_csrf_token())
     )
 
 
-# ==================== طلب OTP لاستعادة كلمة المرور ====================
-@suppliers_bp.route('/forgot-password/request-otp', methods=['POST'])
+# ==================== طلب OTP ====================
+@suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 def request_otp():
-    """طلب رمز التحقق لاستعادة كلمة المرور"""
     data = request.get_json() if request.is_json else request.form
     
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
@@ -152,9 +147,8 @@ def request_otp():
 
 
 # ==================== إعادة إرسال OTP ====================
-@suppliers_bp.route('/resend-otp', methods=['POST'])
+@suppliers_auth_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
-    """إعادة إرسال رمز التحقق"""
     data = request.get_json() if request.is_json else request.form
     
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
@@ -177,9 +171,8 @@ def resend_otp():
 
 
 # ==================== إعادة تعيين كلمة المرور ====================
-@suppliers_bp.route('/reset-password', methods=['POST'])
+@suppliers_auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    """إعادة تعيين كلمة المرور باستخدام رمز التحقق (OTP)"""
     data = request.get_json() if request.is_json else request.form
     
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
@@ -222,20 +215,18 @@ def reset_password():
     }), 200
 
 
-# ==================== صفحة التحقق من الحساب ====================
-@suppliers_bp.route('/verify-page', methods=['GET'])
+# ==================== صفحة التحقق ====================
+@suppliers_auth_bp.route('/verify-page', methods=['GET'])
 def verify_page():
-    """عرض صفحة التحقق من الرمز OTP (HTML)"""
     return render_template(
         'suppliers_auth_portal/verify.html',
         csrf_token=session.get('csrf_token', auth_service.generate_csrf_token())
     )
 
 
-# ==================== التحقق من OTP (POST) ====================
-@suppliers_bp.route('/verify', methods=['POST'])
+# ==================== التحقق من OTP ====================
+@suppliers_auth_bp.route('/verify', methods=['POST'])
 def verify_otp():
-    """التحقق من رمز OTP لتأكيد الحساب"""
     data = request.get_json() if request.is_json else request.form
     
     if not auth_service.validate_csrf_token(data.get("csrf_token")):
@@ -254,21 +245,19 @@ def verify_otp():
 
 
 # ==================== تسجيل الخروج ====================
-@suppliers_bp.route('/logout', methods=['POST', 'GET'])
+@suppliers_auth_bp.route('/logout', methods=['POST', 'GET'])
 def logout():
-    """تسجيل الخروج وإنهاء الجلسة"""
     session.clear()
     if request.method == 'GET' or 'text/html' in request.headers.get('Accept', ''):
-        return redirect(url_for('suppliers_bp.login'))
+        return redirect(url_for('suppliers_auth_bp.login'))
     return jsonify({"success": True, "message": "تم تسجيل الخروج بنجاح"}), 200
 
 
-# ==================== لوحة التحكم (مؤقت) ====================
-@suppliers_bp.route('/dashboard', methods=['GET'])
+# ==================== لوحة التحكم ====================
+@suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    """لوحة تحكم المورد (مؤقتة لعرضها بعد تسجيل الدخول)"""
     if 'user_id' not in session:
-        return redirect(url_for('suppliers_bp.login'))
+        return redirect(url_for('suppliers_auth_bp.login'))
     
     return jsonify({
         "message": "مرحباً بك في لوحة التحكم",
@@ -278,15 +267,13 @@ def dashboard():
 
 
 # ==================== مسارات SEO ====================
-@suppliers_bp.route('/sitemap.xml', methods=['GET'])
+@suppliers_auth_bp.route('/sitemap.xml', methods=['GET'])
 def sitemap():
-    """خريطة الموقع للمحركات البحث"""
     from .seo_service import generate_sitemap_xml
     return generate_sitemap_xml(), 200, {'Content-Type': 'application/xml'}
 
 
-@suppliers_bp.route('/robots.txt', methods=['GET'])
+@suppliers_auth_bp.route('/robots.txt', methods=['GET'])
 def robots():
-    """ملف تعليمات محركات البحث"""
     from .seo_service import generate_robots_txt
     return generate_robots_txt(), 200, {'Content-Type': 'text/plain'}
