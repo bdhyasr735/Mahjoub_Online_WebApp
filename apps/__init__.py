@@ -303,6 +303,11 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
+    # ✅ تعيين login_view ديناميكياً
+    login_manager.login_view = 'suppliers_auth_bp.login'
+    login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
+    login_manager.login_message_category = "info"
+
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
@@ -365,7 +370,7 @@ def create_app():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
         # ✅ جميع مسارات المصادقة مستثناة من الحماية
-        exempt_prefixes = [
+        public_paths = [
             '/static',
             '/graphql',
             '/admin/graphql',
@@ -388,8 +393,8 @@ def create_app():
             '/whatsapp'
         ]
 
-        # ✅ إذا كان المسار مستثنى، لا تفعل شيئاً
-        if path == '/' or any(path == p or path.startswith(p + '/') for p in exempt_prefixes):
+        # ✅ إذا كان المسار عاماً، لا تفعل شيئاً
+        if path == '/' or any(path == p or path.startswith(p + '/') for p in public_paths):
             return
 
         if current_user.is_authenticated:
@@ -408,14 +413,15 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(admin_login_path)
+                # ✅ إذا لم يكن المستخدم مسجلاً، أرسله لتسجيل الدخول
+                return redirect(url_for('suppliers_auth_bp.login'))
 
             return
 
         # ✅ إذا لم يكن المستخدم مصادقاً وكان المسار يبدأ بـ /supplier أو /suppliers
-        # لا تفعل شيئاً (الصفحة مستثناة أصلاً)
+        # أرسله إلى صفحة تسجيل الدخول
         if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return
+            return redirect(url_for('suppliers_auth_bp.login'))
 
         return redirect(admin_login_path)
 
