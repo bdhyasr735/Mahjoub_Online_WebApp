@@ -65,24 +65,21 @@ class SupplierAuthService:
         expiry = self.csrf_tokens.get(token)
         if expiry and expiry > time.time():
             return True
-        # السماح بالرموز المؤقتة أثناء التطوير أو اختبار الواجهة
         return len(token) >= 16
 
     # ==================== تسجيل مورد جديد ====================
     def register_supplier(self, data: Dict[str, Any]) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         تسجيل مورد جديد مع:
-        1. حفظ بيانات المنشأة ونشاط التوريد والعنوان الكامل واسم المستخدم
+        1. حفظ بيانات المنشأة ونشاط التوريد والعنوان الكامل ورقم الهاتف والبريد
         2. تشفير كلمة المرور بـ set_password
         3. إنشاء المحفظة المالية تلقائياً
-        4. إنشاء حسابات الموظفين الأولية المرفقة إن وجدت
         """
         company_name = data.get("company_name", "").strip()
         full_address = (data.get("full_address") or data.get("city", "")).strip()
         email = data.get("email", "").strip().lower()
         phone = data.get("phone", "").strip()
         password = data.get("password", "")
-        username = data.get("username", "").strip().lower()
 
         if not all([company_name, full_address, email, phone, password]):
             return False, "جميع الحقول الإلزامية مطلوبة", None
@@ -90,10 +87,10 @@ class SupplierAuthService:
         commercial_register = data.get("commercial_register", "").strip()
         tax_number = data.get("tax_number", "").strip()
 
-        # التحقق من عدم تكرار البريد أو السجل التجاري أو اسم المستخدم إن وُجد
+        # التحقق من عدم تكرار البريد أو الهاتف أو السجل التجاري إن وُجد
         for sup in self.suppliers_db.values():
-            if username and sup.get("username") and sup.get("username").lower() == username:
-                return False, "اسم المستخدم مسجل مسبقاً", None
+            if phone and sup.get("phone") == phone:
+                return False, "رقم الهاتف مسجل مسبقاً", None
             if commercial_register and sup.get("commercial_register") == commercial_register:
                 return False, "رقم السجل التجاري مسجل مسبقاً في النظام", None
             if sup["email"] == email:
@@ -106,7 +103,6 @@ class SupplierAuthService:
         # 1. إنشاء وتخزين بيانات المورد
         supplier_record = {
             "id": supplier_id,
-            "username": username or None,
             "company_name": company_name,
             "commercial_register": commercial_register or None,
             "tax_number": tax_number or None,
@@ -150,12 +146,11 @@ class SupplierAuthService:
                 emp_record = {
                     "id": emp_id,
                     "supplier_id": supplier_id,
-                    "username": emp.get("username", "").strip().lower() or None,
                     "full_name": emp["full_name"],
                     "role": emp_role,
                     "role_title": EMPLOYEE_ROLES.get(emp_role, {}).get("title_ar", "موظف"),
                     "email": emp["email"].strip().lower(),
-                    "phone": emp.get("phone", ""),
+                    "phone": emp.get("phone", "").strip(),
                     "permissions": EMPLOYEE_ROLES.get(emp_role, {}).get("permissions", []),
                     "password_hash": PasswordHasher.set_password(emp_pw),
                     "is_active": True,
@@ -171,11 +166,11 @@ class SupplierAuthService:
         }
         return True, "تم تسجيل المورد وإنشاء المحفظة المالية بنجاح", result_payload
 
-    # ==================== تسجيل الدخول ====================
+    # ==================== تسجيل الدخول (رقم الهاتف أو البريد الإلكتروني + كلمة المرور) ====================
     def authenticate(self, identifier: str, password: str, user_type: str = "supplier") -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         المصادقة للمورد أو الموظف التابع
-        identifier: يمكن أن يكون اسم المستخدم، السجل التجاري، البريد الإلكتروني، أو رقم الجوال
+        identifier: يُقبل فقط البريد الإلكتروني أو رقم الهاتف
         """
         identifier = identifier.strip().lower()
         
@@ -183,8 +178,7 @@ class SupplierAuthService:
             for emp in self.employees_db.values():
                 match_emp = (
                     emp["email"].lower() == identifier or 
-                    emp.get("phone", "").lower() == identifier or
-                    (emp.get("username") and emp["username"].lower() == identifier)
+                    emp.get("phone", "").lower() == identifier
                 )
                 if match_emp and emp.get("is_active"):
                     if PasswordHasher.check_password(password, emp["password_hash"]):
@@ -196,15 +190,13 @@ class SupplierAuthService:
                             "supplier": {k: v for k, v in supplier.items() if k != "password_hash"},
                             "wallet": wallet,
                         }
-            return False, "بيانات دخول موظف المورد غير صحيحة أو الحساب غير مفعل", None
+            return False, "رقم الجوال أو البريد الإلكتروني أو كلمة المرور لموظف المورد غير صحيحة", None
 
-        # تسجيل دخول المورد الرئيسي
+        # تسجيل دخول المورد الرئيسي (باستخدام رقم الهاتف أو البريد الإلكتروني فقط)
         for sup in self.suppliers_db.values():
             match_id = (
                 sup["email"].lower() == identifier or 
-                (sup.get("commercial_register") and sup["commercial_register"].lower() == identifier) or 
-                sup.get("phone", "").lower() == identifier or
-                (sup.get("username") and sup["username"].lower() == identifier)
+                sup.get("phone", "").lower() == identifier
             )
             if match_id:
                 if PasswordHasher.check_password(password, sup["password_hash"]):
@@ -217,7 +209,7 @@ class SupplierAuthService:
                         "employees_count": len(employees),
                     }
 
-        return False, "اسم المستخدم أو السجل أو البريد الإلكتروني أو رقم الجوال أو كلمة المرور غير صحيحة", None
+        return False, "رقم الجوال أو البريد الإلكتروني أو كلمة المرور غير صحيحة", None
 
     # ==================== تدفق استعادة كلمة المرور على مرحلتين ====================
     def initiate_forgot_password(self, identifier: str) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
@@ -226,25 +218,20 @@ class SupplierAuthService:
         target_type = None
 
         for sup in self.suppliers_db.values():
-            if (sup["email"].lower() == identifier or 
-                (sup.get("commercial_register") and sup["commercial_register"].lower() == identifier) or 
-                sup["phone"].lower() == identifier or
-                (sup.get("username") and sup["username"].lower() == identifier)):
+            if sup["email"].lower() == identifier or sup["phone"].lower() == identifier:
                 found_target = sup
                 target_type = "supplier"
                 break
 
         if not found_target:
             for emp in self.employees_db.values():
-                if (emp["email"].lower() == identifier or 
-                    emp.get("phone", "").lower() == identifier or
-                    (emp.get("username") and emp["username"].lower() == identifier)):
+                if emp["email"].lower() == identifier or emp.get("phone", "").lower() == identifier:
                     found_target = emp
                     target_type = "employee"
                     break
 
         if not found_target:
-            return False, "لم يتم العثور على حساب مرتبط بالبيانات المدخلة", None
+            return False, "لم يتم العثور على حساب مرتبط برقم الجوال أو البريد المدخل", None
 
         otp_code = f"{secrets.randbelow(900000) + 100000}"
         expiry = time.time() + SECURITY_CONFIG["otp_expiration_seconds"]
@@ -310,13 +297,13 @@ class SupplierAuthService:
             return False, "المورد غير موجود", None
 
         email = data.get("email", "").strip().lower()
-        username = data.get("username", "").strip().lower()
+        phone = data.get("phone", "").strip()
         
         for emp in self.employees_db.values():
             if emp["email"] == email:
                 return False, "البريد الإلكتروني للموظف مستخدم بالفعل", None
-            if username and emp.get("username") and emp["username"].lower() == username:
-                return False, "اسم المستخدم للموظف مستخدم بالفعل", None
+            if phone and emp.get("phone") == phone:
+                return False, "رقم الجوال للموظف مستخدم بالفعل", None
 
         emp_id = f"EMP-{secrets.token_hex(3).upper()}"
         role = data.get("role", "sales")
@@ -325,12 +312,11 @@ class SupplierAuthService:
         emp_record = {
             "id": emp_id,
             "supplier_id": supplier_id,
-            "username": username or None,
             "full_name": data.get("full_name", "").strip(),
             "role": role,
             "role_title": role_info["title_ar"],
             "email": email,
-            "phone": data.get("phone", "").strip(),
+            "phone": phone,
             "permissions": data.get("permissions") or role_info["permissions"],
             "password_hash": PasswordHasher.set_password(data.get("password", "Staff@2025")),
             "is_active": True,
