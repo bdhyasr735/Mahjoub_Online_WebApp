@@ -28,7 +28,15 @@ def login():
         })
 
     data = request.get_json() if request.is_json else request.form
-    identifier = data.get("identifier", "").strip()
+    
+    # دعم مرن لاستقبال المعرف من أي حقل محتمل (identifier, username, email, phone)
+    identifier = (
+        data.get("identifier") or 
+        data.get("username") or 
+        data.get("email") or 
+        data.get("phone", "")
+    ).strip()
+    
     password = data.get("password", "")
     user_type = data.get("user_type", "supplier")
 
@@ -89,7 +97,12 @@ def verify_page():
 def forgot_password():
     """طلب رمز التحقق لاستعادة كلمة المرور (API)"""
     data = request.get_json() if request.is_json else request.form
-    identifier = data.get("identifier", "")
+    identifier = (
+        data.get("identifier") or 
+        data.get("username") or 
+        data.get("email") or 
+        data.get("phone", "")
+    ).strip()
     
     success, message, result = auth_service.initiate_forgot_password(identifier)
     if not success:
@@ -106,7 +119,12 @@ def forgot_password():
 def reset_password():
     """إعادة تعيين كلمة المرور باستخدام رمز التحقق (OTP)"""
     data = request.get_json() if request.is_json else request.form
-    identifier = data.get("identifier", "")
+    identifier = (
+        data.get("identifier") or 
+        data.get("username") or 
+        data.get("email") or 
+        data.get("phone", "")
+    ).strip()
     otp_code = data.get("otp_code", "")
     new_password = data.get("new_password", "")
 
