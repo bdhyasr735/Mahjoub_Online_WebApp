@@ -517,6 +517,12 @@ def create_app():
         app.register_blueprint(suppliers_auth_bp, url_prefix='/suppliers')
         csrf.exempt(suppliers_auth_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+        
+        # ✅ طباعة المسارات للتأكد
+        for rule in app.url_map.iter_rules():
+            if 'suppliers' in str(rule):
+                print(f"   📍 المسار: {rule}")
+                
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
