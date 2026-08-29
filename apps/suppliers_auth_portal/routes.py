@@ -3,6 +3,7 @@
 
 from flask import render_template, request, jsonify, session, redirect
 from flask_login import login_user, current_user
+from flask_wtf.csrf import CSRFProtect
 from apps.suppliers_auth_portal import suppliers_auth_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.registry import SupplierPortalRegistry
@@ -12,6 +13,10 @@ from apps.suppliers_auth_portal.security import (
 )
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
+
+# ✅ إضافة هذا السطر لحل مشكلة CSRF
+csrf = CSRFProtect()
+csrf.exempt(suppliers_auth_bp)
 
 @suppliers_auth_bp.route('/login', methods=['GET'])
 def login_page():
