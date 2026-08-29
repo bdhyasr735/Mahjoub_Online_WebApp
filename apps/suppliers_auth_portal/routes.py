@@ -1,6 +1,10 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py
 
+print("=" * 60)
+print("🚀 [DEBUG] routes.py is being loaded!")
+print("=" * 60)
+
 """
 🚪 مسارات بوابة المصادقة للموردين والموظفين
 تسجيل الدخول، التسجيل، استعادة كلمة المرور، التحقق
@@ -20,6 +24,7 @@ from apps.models.otp_db import OTP
 # ✅ استيراد أدوات الأمان من نفس المجلد
 from .security import PasswordHasher, CSRFProtector
 
+print("✅ [DEBUG] All imports completed in routes.py")
 
 # ==================== Blueprint ====================
 suppliers_auth_bp = Blueprint(
@@ -30,12 +35,12 @@ suppliers_auth_bp = Blueprint(
     static_folder='static'
 )
 
+print(f"✅ [DEBUG] Blueprint created: {suppliers_auth_bp.name}")
 
 # ==================== قبل كل طلب ====================
 @suppliers_auth_bp.before_request
 def before_request():
     """تهيئة CSRF - بدون إعادة توجيه"""
-    # ✅ Debug
     print(f"🔍 [BEFORE_REQUEST] Path: {request.path}")
     print(f"🔍 [BEFORE_REQUEST] Session: {dict(session)}")
     
@@ -46,18 +51,15 @@ def before_request():
     g.csrf_token = session.get('csrf_token')
     print(f"🔍 [BEFORE_REQUEST] g.csrf_token: {g.csrf_token}")
 
-
 def validate_csrf_token(token):
     """التحقق من CSRF"""
     return CSRFProtector.validate_token(token)
-
 
 # ==================== الصفحة الرئيسية ====================
 @suppliers_auth_bp.route('/')
 def index():
     print(f"🔍 [INDEX] Redirecting to login")
     return redirect(url_for('suppliers_auth_bp.login'))
-
 
 # ==================== مسار اختبار ====================
 @suppliers_auth_bp.route('/test')
@@ -69,12 +71,10 @@ def test():
         "timestamp": datetime.utcnow().isoformat()
     }), 200
 
-
 # ==================== تسجيل الدخول ====================
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     try:
-        # ✅ Debug
         print(f"🔍 [LOGIN] Called with method: {request.method}")
         print(f"🔍 [LOGIN] Session: {dict(session)}")
         print(f"🔍 [LOGIN] Headers Accept: {request.headers.get('Accept', '')}")
@@ -185,7 +185,6 @@ def login():
         traceback.print_exc()
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
-
 # ==================== عرض صفحة التسجيل ====================
 @suppliers_auth_bp.route('/register-page', methods=['GET'])
 def register_page():
@@ -199,7 +198,6 @@ def register_page():
         print(f"❌ [REGISTER_PAGE] Error: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
-
 
 # ==================== تسجيل مورد جديد ====================
 @suppliers_auth_bp.route('/register', methods=['POST'])
@@ -286,7 +284,6 @@ def register():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"حدث خطأ أثناء التسجيل: {str(e)}"}), 400
 
-
 # ==================== صفحة استعادة كلمة المرور ====================
 @suppliers_auth_bp.route('/forgot-password-page', methods=['GET'])
 def forgot_password_page():
@@ -300,7 +297,6 @@ def forgot_password_page():
         print(f"❌ [FORGOT_PASSWORD_PAGE] Error: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
-
 
 # ==================== طلب OTP ====================
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
@@ -346,7 +342,6 @@ def request_otp():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"حدث خطأ: {str(e)}"}), 500
 
-
 # ==================== إعادة تعيين كلمة المرور ====================
 @suppliers_auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
@@ -391,7 +386,6 @@ def reset_password():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"حدث خطأ: {str(e)}"}), 500
 
-
 # ==================== صفحة التحقق ====================
 @suppliers_auth_bp.route('/verify-page', methods=['GET'])
 def verify_page():
@@ -405,7 +399,6 @@ def verify_page():
         print(f"❌ [VERIFY_PAGE] Error: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
-
 
 # ==================== التحقق من OTP ====================
 @suppliers_auth_bp.route('/verify', methods=['POST'])
@@ -442,7 +435,6 @@ def verify_otp():
         print(f"❌ [VERIFY_OTP] Error: {e}")
         traceback.print_exc()
         return jsonify({"success": False, "message": f"حدث خطأ: {str(e)}"}), 500
-
 
 # ==================== إعادة إرسال OTP ====================
 @suppliers_auth_bp.route('/resend-otp', methods=['POST'])
@@ -490,14 +482,12 @@ def resend_otp():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"حدث خطأ: {str(e)}"}), 500
 
-
 # ==================== تسجيل الخروج ====================
 @suppliers_auth_bp.route('/logout', methods=['POST', 'GET'])
 def logout():
     print(f"🔍 [LOGOUT] Clearing session")
     session.clear()
     return redirect(url_for('suppliers_auth_bp.login'))
-
 
 # ==================== لوحة التحكم ====================
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
@@ -517,3 +507,11 @@ def dashboard():
         print(f"❌ [DASHBOARD] Error: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+# ==================== طباعة المسارات للتأكد ====================
+print("=" * 60)
+print("✅ [DEBUG] routes.py loaded successfully!")
+print("📋 [DEBUG] Routes defined in this blueprint:")
+for rule in suppliers_auth_bp.url_map.iter_rules():
+    print(f"   📍 {rule}")
+print("=" * 60)
