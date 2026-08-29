@@ -21,6 +21,7 @@ from apps.models.order_items_db import OrderItem
 from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.sync_log import SyncLog
+from apps.models.otp_db import OTP  # ← ✅ أضف هذا السطر
 
 # استيراد نماذج الواتساب بشكل صحيح ودون مشاكل في مسارات الاستيراد
 from apps.models.whatsapp_models import (
@@ -41,6 +42,7 @@ __all__ = [
     'Order',
     'OrderFinancial',
     'OrderItem',
+    'OTP',  # ← ✅ أضف هذا السطر
     'Product',
     'ProductSupplierMapping',
     'Supplier',
