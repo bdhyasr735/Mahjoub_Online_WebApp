@@ -146,7 +146,7 @@ def resend_otp():
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
-    seo = SupplierPortalSEOService.get_meta_tags("forgot_password")  # ✅ تم التصحيح
+    seo = SupplierPortalSEOService.get_meta_tags("forgot_password")
     return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
 
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
