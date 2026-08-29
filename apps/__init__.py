@@ -423,13 +423,15 @@ def create_app():
     # ============================================================
     # ✅ التوجيهات
     # ============================================================
-    @app.route('/suppliers/login', methods=['GET', 'POST'])
-    def suppliers_login_redirect_alias():
-        return redirect(url_for('suppliers_auth_bp.login', **request.args))
+    # ❌ تم حذف الـ Alias المسبب للمشكلة
+    # @app.route('/suppliers/login', methods=['GET', 'POST'])
+    # def suppliers_login_redirect_alias():
+    #     return redirect(url_for('suppliers_auth_bp.login', **request.args))
 
-    @app.route('/suppliers/register', methods=['GET', 'POST'])
-    def suppliers_register_redirect_alias():
-        return redirect(url_for('suppliers_auth_bp.register_page', **request.args))
+    # ❌ تم حذف الـ Alias المسبب للمشكلة
+    # @app.route('/suppliers/register', methods=['GET', 'POST'])
+    # def suppliers_register_redirect_alias():
+    #     return redirect(url_for('suppliers_auth_bp.register_page', **request.args))
 
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
     @csrf.exempt
