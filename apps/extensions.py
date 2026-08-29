@@ -60,6 +60,6 @@ def load_user(user_id):
         return None
 
 # ✅ إعدادات تسجيل الدخول - تم التصحيح
-login_manager.login_view = 'suppliers_auth_bp.login'  # ✅ صحيح
+login_manager.login_view = 'suppliers_auth_bp.login_page'  # ✅ الصحيح
 login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
 login_manager.login_message_category = "info"
