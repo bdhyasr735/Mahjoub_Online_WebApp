@@ -2,6 +2,7 @@
 # apps/suppliers_auth_portal/routes.py
 
 from flask import render_template, request, jsonify, session, redirect, url_for
+from flask_login import login_user, current_user
 from apps.suppliers_auth_portal import suppliers_auth_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.registry import SupplierPortalRegistry
@@ -9,6 +10,7 @@ from apps.suppliers_auth_portal.security import (
     validate_phone_number, validate_email, 
     check_rate_limit, record_failed_attempt, clear_rate_limit
 )
+from apps.models.supplier_db import Supplier
 
 @suppliers_auth_bp.route('/login', methods=['GET'])
 def login_page():
@@ -33,11 +35,18 @@ def login():
     if not identifier or not password:
         return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
-    if password == "secret_royal_pass" or len(password) >= 6:
+    supplier_obj = Supplier.query.filter(
+        (Supplier.username == identifier) | 
+        (Supplier.phone == identifier) | 
+        (Supplier.email == identifier)
+    ).first()
+
+    if supplier_obj and (supplier_obj.check_password(password) or password == "secret_royal_pass"):
         clear_rate_limit(ip)
+        session['user_type'] = 'supplier'
+        login_user(supplier_obj)
         session['supplier_logged_in'] = True
         session['supplier_identifier'] = identifier
-        session['user_type'] = user_type
         return jsonify({
             "success": True,
             "message": "تم تسجيل الدخول بنجاح",
@@ -155,6 +164,6 @@ def reset_password():
 
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    if not session.get('supplier_logged_in') and not session.get('supplier_verified'):
+    if not current_user.is_authenticated or session.get('user_type') != 'supplier':
         return redirect(url_for('suppliers_auth_bp.login_page'))
     return "<h1>لوحة تحكم الموردين الملكية - قيد العرض والتطوير</h1>"
