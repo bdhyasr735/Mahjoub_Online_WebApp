@@ -11,7 +11,7 @@ from apps.extensions import db
 
 
 class Supplier(db.Model, UserMixin):
-    """نموذج المورد - يدعم التشفير والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X"""
+    """نموذج المورد - يدعم التشفير السيادي المحكم والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X"""
     __tablename__ = 'suppliers'
     
     # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
@@ -63,24 +63,51 @@ class Supplier(db.Model, UserMixin):
     # الربط مع منتجات قمرة (ProductSupplierMapping)
     product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
 
-    # --- نظام التشفير ---
+    def __init__(self, **kwargs):
+        """مُنشئ الكائن مع التشفير التلقائي لرقم الهاتف وتحديث حقل البحث السريع عند الإنشاء."""
+        phone_val = kwargs.pop('phone', None)
+        super().__init__(**kwargs)
+
+        if phone_val is not None:
+            self.phone = phone_val
+        elif not self._phone_enc:
+            self._phone_enc = self._encrypt("")
+
+    # --- نظام التشفير السيادي ---
     @staticmethod
     def _get_key():
         key = os.environ.get('ENCRYPTION_KEY')
         return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
 
+    def _encrypt(self, value):
+        if not value:
+            return ""
+        f = Fernet(self._get_key())
+        return f.encrypt(str(value).encode()).decode()
+
+    def _decrypt(self, value):
+        if not value:
+            return None
+        try:
+            f = Fernet(self._get_key())
+            return f.decrypt(value.encode()).decode()
+        except Exception:
+            return None
+
+    # --- Properties الذكية للتعامل مع رقم الهاتف ---
     @property
     def phone(self):
-        try:
-            return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
-        except:
-            return None
+        return self._decrypt(self._phone_enc)
 
     @phone.setter
     def phone(self, value):
         if value:
-            self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-            self.search_phone = str(value)[-9:]
+            str_val = str(value)
+            self._phone_enc = self._encrypt(str_val)
+            self.search_phone = str_val[-9:]
+        else:
+            self._phone_enc = self._encrypt("")
+            self.search_phone = None
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
@@ -91,7 +118,7 @@ class Supplier(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
-        """تحويل المورد إلى قاموس"""
+        """تحويل المورد إلى قاموس آمن للاستخدام في APIs"""
         return {
             'id': self.id,
             'username': self.username,
