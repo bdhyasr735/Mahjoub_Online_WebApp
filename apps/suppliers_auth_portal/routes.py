@@ -53,7 +53,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/suppliers/dashboard"
+                "redirect_url": "/supplier/dashboard"
             })
 
         elif user_type == 'employee':
@@ -77,7 +77,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/suppliers/dashboard"
+                "redirect_url": "/supplier/dashboard"
             })
 
         else:
