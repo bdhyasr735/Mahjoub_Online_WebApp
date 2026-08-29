@@ -150,11 +150,31 @@ def verify():
         data = request.get_json(force=True, silent=True) or request.form or {}
         otp_code = data.get('otp_code', '').strip()
         
+        is_registration_flow = session.get('pending_verification_phone') is not None
         identifier = session.get('pending_verification_phone') or session.get('supplier_identifier')
+
+        if not identifier:
+            return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة المحاولة."}), 400
 
         success, message = SupplierPortalRegistry.verify_supplier_otp(identifier, otp_code)
         if success:
-            session['supplier_verified'] = True
+            if is_registration_flow:
+                session['supplier_verified'] = True
+                session['user_type'] = 'supplier'
+                
+                clean_phone_suffix = identifier[-9:] if identifier and identifier.isdigit() else identifier
+                supplier_obj = db.session.query(Supplier).filter(
+                    (Supplier.phone == identifier) |
+                    (Supplier.search_phone == clean_phone_suffix) |
+                    (Supplier.email == identifier)
+                ).first()
+
+                if supplier_obj:
+                    login_user(supplier_obj)
+                    session['supplier_logged_in'] = True
+                
+                session.pop('pending_verification_phone', None)
+
             return jsonify({
                 "success": True,
                 "message": message,
@@ -243,7 +263,7 @@ def reset_password():
         session.pop('reset_identifier', None)
 
         return jsonify({
-            "success": "true",
+            "success": True,
             "message": "تم تحديث كلمة المرور بنجاح",
             "redirect_url": url_for('suppliers_bp.login')
         })
