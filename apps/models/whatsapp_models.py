@@ -52,7 +52,7 @@ class WhatsAppMessageLog(db.Model):
     recipient_number = db.Column(db.String(30), nullable=False)
     conversation_id = db.Column(db.String(100), nullable=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('whatsapp_customer_contacts.id'), nullable=True)
-    user_id = db.Column(db.Integer, nullable=True)               # معرف المسؤول/الوكيل
+    user_id = db.Column(db.Integer, nullable=True)                # معرف المسؤول/الوكيل
     message_type = db.Column(db.String(30), default='text')
     content = db.Column(db.Text, nullable=True)
     # وسائط
@@ -152,6 +152,7 @@ class WhatsAppCustomerContact(db.Model):
     name = db.Column(db.String(100), nullable=True)
     whatsapp_profile_name = db.Column(db.String(100), nullable=True)
     avatar_url = db.Column(db.String(500), nullable=True)
+    category = db.Column(db.String(50), nullable=True)  # ✅ أضفنا هذا الحقل لتجنب خطأ الوسيط غير المعتمد
     is_online = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime, nullable=True)
     last_message = db.Column(db.Text, nullable=True)
@@ -201,6 +202,7 @@ class WhatsAppCustomerContact(db.Model):
             'id': self.id,
             'phone': self.phone,
             'name': self.display_name,
+            'category': self.category,
             'is_online': self.is_online,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
             'last_message': self.last_message,
