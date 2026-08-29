@@ -36,13 +36,17 @@ def login():
         if not identifier or not password:
             return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
+        # استخراج آخر 9 أرقام للبحث في حقل search_phone لتفادي خطأ التشفير
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
+
         supplier_obj = Supplier.query.filter(
             (Supplier.username == identifier) | 
-            (Supplier.phone == identifier) | 
-            (Supplier.email == identifier)
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix)
         ).first()
 
-        if supplier_obj and supplier_obj.check_password(password):
+        # التحقق من وجود الحساب ووجود كلمة مرور مشفرة وتطابقها
+        if supplier_obj and supplier_obj.password_hash and supplier_obj.check_password(password):
             clear_rate_limit(ip)
             session['user_type'] = 'supplier'
             login_user(supplier_obj)
