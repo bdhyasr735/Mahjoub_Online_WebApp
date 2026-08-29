@@ -1,11 +1,5 @@
-"""
-apps/suppliers_auth_portal/__init__.py
-تهيئة تطبيق بوابة الموردين وموظفيهم
-"""
-
 from flask import Blueprint
 
-# إنشاء الـ Blueprint الرئيسي
 suppliers_auth_bp = Blueprint(
     'suppliers_auth_bp',
     __name__,
@@ -14,7 +8,8 @@ suppliers_auth_bp = Blueprint(
     static_folder='static'
 )
 
-# استيراد المسارات
+# استيراد المسارات من routes.py فقط
 from . import routes
+from . import registry_routes
 
 __all__ = ['suppliers_auth_bp']
