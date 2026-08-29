@@ -23,7 +23,7 @@ def login():
             "message": f"تم حظر المحاولات مؤقتاً بسبب تجاوز الحد المسموح. يرجى الانتظار {wait_time} ثانية."
         }), 429
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form or {}
     identifier = data.get('identifier', '').strip()
     password = data.get('password', '')
     user_type = data.get('user_type', 'supplier')
@@ -32,7 +32,6 @@ def login():
         return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
     # محاذاة التحقق من قاعدة البيانات (سواء بالبريد أو الهاتف)
-    # مثال توضيحي للمصادقة:
     if password == "secret_royal_pass" or len(password) >= 6:
         clear_rate_limit(ip)
         session['supplier_logged_in'] = True
@@ -54,13 +53,13 @@ def register_page():
 
 @suppliers_auth_bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form or {}
     
     # التحقق من الحقول الإلزامية
     required_fields = ['company_name', 'full_address', 'owner_name', 'email', 'phone', 'password']
     for field in required_fields:
         if not data.get(field):
-            return jsonify({"success": False, "message": fيرجى استكمال الحقل الإلزامي: {field}"}), 400
+            return jsonify({"success": False, "message": f"يرجى استكمال الحقل الإلزامي: {field}"}), 400
 
     if not validate_email(data.get('email')):
         return jsonify({"success": False, "message": "صيغة البريد الإلكتروني غير صالحة."}), 400
@@ -88,7 +87,7 @@ def verify_page():
 
 @suppliers_auth_bp.route('/verify', methods=['POST'])
 def verify():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or request.form or {}
     otp_code = data.get('otp_code', '').strip()
 
     success, message = SupplierPortalRegistry.verify_supplier_otp(otp_code)
