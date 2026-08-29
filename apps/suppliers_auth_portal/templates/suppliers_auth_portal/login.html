@@ -70,7 +70,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
-                    <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <a href="/suppliers/forgot-password" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -114,7 +114,7 @@
         <!-- رابط التسجيل للموردين الجدد -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="/suppliers/register" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب واشتراك مورد جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -221,7 +221,7 @@
         };
 
         try {
-            const response = await fetch("{{ url_for('suppliers_auth_bp.login') }}", {
+            const response = await fetch("/suppliers/login", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
