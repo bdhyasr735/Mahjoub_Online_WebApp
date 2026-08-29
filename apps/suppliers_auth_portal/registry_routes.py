@@ -9,7 +9,7 @@ MODULE_INFO = {
     "version": "2.5.0",
     "description": "منظومة تسجيل ودخول الموردين وموظفيهم مع إدارة المحفظة المالية الذكية وتحسين محركات البحث والظهور (SEO)",
     "author": "Royal Enterprise Solutions",
-    "url_prefix": "/suppliers",  # ✅ تغيير من /supplier إلى /suppliers
+    "url_prefix": "/suppliers",
     "theme": {
         "primary_dark": "#05020a",
         "secondary_dark": "#0f071c",
@@ -27,7 +27,6 @@ MODULE_INFO = {
     ],
 }
 
-# تعريفات الصلاحيات المعتمدة
 class PERMISSIONS:
     SUPPLIER_OWNER = "supplier.owner"
     MANAGE_EMPLOYEES = "supplier.manage_employees"
@@ -38,8 +37,6 @@ class PERMISSIONS:
     DELIVERY_MANAGEMENT = "supplier.delivery_management"
     ACCOUNTING_VIEW = "supplier.accounting_view"
 
-
-# أدوار موظفي الموردين المعتمدة مع الصلاحيات الافتراضية
 EMPLOYEE_ROLES = {
     "manager": {
         "title_ar": "مدير العمليات والتوريد",
@@ -75,17 +72,15 @@ EMPLOYEE_ROLES = {
     },
 }
 
-# إعدادات الأمان
 SECURITY_CONFIG = {
     "csrf_header_primary": "X-CSRFToken",
     "csrf_header_secondary": "X-CSRF-Token",
-    "otp_expiration_seconds": 300,  # 5 دقائق
+    "otp_expiration_seconds": 300,
     "otp_length": 6,
     "max_otp_attempts": 3,
     "min_password_length": 8,
 }
 
-# إعدادات تحسين محركات البحث والظهور (SEO Configuration)
 SEO_CONFIG = {
     "site_name": "منظومة التوريد الملكية",
     "portal_name": "بوابة الموردين وموظفيهم",
@@ -100,7 +95,7 @@ SEO_CONFIG = {
         "المنظومة الملكية",
     ],
     "robots_directive": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-    "sitemap_endpoint": "/suppliers/sitemap.xml",  # ✅ تغيير من /supplier إلى /suppliers
-    "robots_endpoint": "/suppliers/robots.txt",    # ✅ تغيير من /supplier إلى /suppliers
+    "sitemap_endpoint": "/suppliers/sitemap.xml",
+    "robots_endpoint": "/suppliers/robots.txt",
     "schema_org_types": ["WebSite", "Organization", "WebApplication", "BreadcrumbList", "FAQPage"],
 }
