@@ -559,7 +559,7 @@ def create_app():
         print("📋 [المسارات المسجلة للبوابة]:")
         for rule in app.url_map.iter_rules():
             if 'suppliers' in str(rule):
-                print(f"   📍 {rule}")
+                print(f"    📍 {rule}")
                 
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
