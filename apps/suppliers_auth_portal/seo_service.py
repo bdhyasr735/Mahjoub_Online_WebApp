@@ -5,6 +5,7 @@ apps/suppliers_auth_portal/seo_service.py
 
 from typing import Dict, Any, List
 
+
 class SeoService:
     """خدمة مركزية لإدارة بيانات التحسين لمحركات البحث الخاصة ببوابة الموردين"""
 
@@ -43,7 +44,15 @@ class SeoService:
         }
 
     def get_page_metadata(self, page_key: str) -> Dict[str, Any]:
-        """إرجاع البيانات الوصفية الكاملة مع هيكلة Schema.org JSON-LD للصفحة المحددة"""
+        """
+        إرجاع البيانات الوصفية الكاملة مع هيكلة Schema.org JSON-LD للصفحة المحددة
+        
+        Args:
+            page_key: مفتاح الصفحة (login, register, forgot_password, verify)
+            
+        Returns:
+            Dict: البيانات الوصفية للصفحة
+        """
         meta = self.pages_meta.get(page_key, self.pages_meta["login"])
         
         page_suffix = f"/{page_key}" if page_key != 'login' else ""
@@ -73,12 +82,18 @@ class SeoService:
             "schema_org": schema_org
         }
 
+
 # دعم التوافقية الكاملة في حال طلب النظام الاستيراد بالحروف الكبيرة SEOService
 SEOService = SeoService
 
 
 def generate_robots_txt() -> str:
-    """توليد محتوى ملف robots.txt مع حماية المسارات الحساسة وتوجيه عناكب البحث"""
+    """
+    توليد محتوى ملف robots.txt مع حماية المسارات الحساسة وتوجيه عناكب البحث
+    
+    Returns:
+        str: محتوى ملف robots.txt
+    """
     # ✅ تغيير: supplier → suppliers
     return """# Robots.txt for محجوب أونلاين - Suppliers Portal
 User-agent: *
@@ -95,7 +110,12 @@ Sitemap: https://mahjoob-online.com/suppliers/sitemap.xml
 
 
 def generate_sitemap_xml() -> str:
-    """توليد خريطة الموقع (Sitemap.xml) الديناميكية لصفحات الموديول العامة"""
+    """
+    توليد خريطة الموقع (Sitemap.xml) الديناميكية لصفحات الموديول العامة
+    
+    Returns:
+        str: محتوى ملف Sitemap.xml
+    """
     # ✅ تغيير: supplier → suppliers
     urls = [
         {"loc": "https://mahjoob-online.com/suppliers/login", "changefreq": "monthly", "priority": "1.0"},
@@ -106,7 +126,7 @@ def generate_sitemap_xml() -> str:
 
     xml_items = []
     for u in urls:
-        item = "  <url>\n    <loc>{}</loc>\n    <changefreq>{}</changefreq>\n    <priority>{}</priority>\n  </url>".format(
+        item = '  <url>\n    <loc>{}</loc>\n    <changefreq>{}</changefreq>\n    <priority>{}</priority>\n  </url>'.format(
             u['loc'], u['changefreq'], u['priority']
         )
         xml_items.append(item)
