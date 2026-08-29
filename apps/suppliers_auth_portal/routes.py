@@ -56,6 +56,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
+                # توجيه المورد مباشرة إلى لوحة التحكم (Dashboard) بعد تسجيل الدخول بنجاح
                 "redirect_url": url_for('suppliers_auth_bp.dashboard')
             })
         else:
@@ -126,6 +127,7 @@ def verify():
             return jsonify({
                 "success": True,
                 "message": message,
+                # توجيه المورد إلى لوحة التحكم (Dashboard) مباشرةً بعد إتمام التحقق بنجاح
                 "redirect_url": url_for('suppliers_auth_bp.dashboard')
             })
         else:
