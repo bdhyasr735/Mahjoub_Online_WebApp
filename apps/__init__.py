@@ -2,6 +2,7 @@
 # 📂 apps/__init__.py
 
 import os
+import sys  # ✅ أضفنا sys للـ Debug
 import importlib
 import secrets
 import string
@@ -16,6 +17,13 @@ from sqlalchemy import text, select
 import config
 from apps.extensions import db, login_manager, migrate, limiter
 from apps.services.graphql_client import GraphQLClient
+
+# ✅ Debug - تأكد من تحميل الملف
+print("=" * 60)
+print("🚀 [DEBUG] apps/__init__.py is being loaded!")
+print(f"📂 Current directory: {os.getcwd()}")
+print(f"📂 Apps directory: {os.path.dirname(__file__)}")
+print("=" * 60)
 
 ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
@@ -191,6 +199,10 @@ def seed_database():
 
 
 def create_app():
+    print("=" * 60)
+    print("🚀 [DEBUG] create_app() is being called!")
+    print("=" * 60)
+    
     app = Flask(__name__, static_folder='../static')
     app.config.from_object('config.Config')
     config.Config.validate_config()
@@ -514,6 +526,10 @@ def create_app():
     # ============================================================
     # 🗂️ تسجيل البوابات والموديولات
     # ============================================================
+    print("=" * 60)
+    print("🔍 [DEBUG] Starting blueprint registration...")
+    print("=" * 60)
+
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
@@ -522,9 +538,14 @@ def create_app():
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
     try:
+        print("🔍 [DEBUG] Importing suppliers_auth_portal...")
         from apps.suppliers_auth_portal import suppliers_auth_bp
+        print(f"✅ [DEBUG] Import successful: {suppliers_auth_bp}")
+        
+        print("🔍 [DEBUG] Registering blueprint...")
         app.register_blueprint(suppliers_auth_bp, url_prefix='/suppliers')
         csrf.exempt(suppliers_auth_bp)
+        print("✅ [DEBUG] Blueprint registered successfully!")
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
         
         # ✅ طباعة المسارات للتأكد
@@ -535,6 +556,8 @@ def create_app():
                 
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+        import traceback
+        traceback.print_exc()
 
     try:
         from apps.admin.graphql_routes import graphql_bp
@@ -631,4 +654,8 @@ def create_app():
             response.headers['X-CSRF-Token'] = generate_csrf()
         return response
 
+    print("=" * 60)
+    print("✅ [DEBUG] create_app() completed successfully!")
+    print("=" * 60)
+    
     return app
