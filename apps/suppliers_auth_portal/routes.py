@@ -1,5 +1,5 @@
 from flask import render_template, request, jsonify, session, redirect, url_for
-from flask_login import login_user, current_user
+from flask_login import login_user, logout_user, current_user
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.security import (
@@ -98,6 +98,13 @@ def login():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
+
+
+@suppliers_bp.route('/logout')
+def logout():
+    logout_user()
+    session.clear()
+    return redirect(url_for('suppliers_bp.login'))
 
 
 @suppliers_bp.route('/register', methods=['GET', 'POST'])
