@@ -260,7 +260,278 @@
         } catch (err) {
             console.error("Login error:", err);
             submitBtn.disabled = false;
+            showAlert('خطأ في الاتصال', err.message || 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');{% extends "suppliers_auth_portal/base.html" %}
+
+{% block title %}تسجيل دخول الموردين وموظفيهم | البوابة الملكية{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-md mx-auto">
+    <!-- بطاقة تسجيل الدخول الملكية -->
+    <div class="bg-royalSurface/95 border border-royalGold/30 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative overflow-hidden royal-border">
+        <!-- لمسة إضاءة علوية ذهبية -->
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-royalGold/15 blur-3xl rounded-full pointer-events-none"></div>
+
+        <!-- الترويسة والعنوان مع الشعار الرسمي -->
+        <div class="text-center mb-6 relative z-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#05020a] border-2 border-royalGold/50 p-2 mb-3 shadow-xl overflow-hidden">
+                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
+                     alt="محجوب أونلاين - سوقك الذكي"
+                     class="w-full h-full object-contain brightness-0 invert">
+            </div>
+            <h2 class="text-2xl font-black gold-gradient-text tracking-wide mb-1">
+                محجوب أونلاين
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30 align-middle mr-1.5 font-normal">سوقك الذكي</span>
+            </h2>
+            <p class="text-xs text-royalGold/80 font-medium">منصة اللامركزية لحوكمة التجارة اليمنية</p>
+            <p class="text-[11px] text-slate-400 mt-1">بوابة الموردين وموظفيهم المعتمدة</p>
+
+            <!-- صندوق تنبيه حوكمة الأسعار وسعر التكلفة -->
+            <div class="mt-4 p-3 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-[11px] text-amber-200 text-right leading-relaxed">
+                <strong class="text-royalGoldLight block font-bold mb-0.5">تنويه حوكمة الأسعار:</strong>
+                للعلْم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
+            </div>
+        </div>
+
+        <!-- محول نوع الحساب: مورد vs موظف مورد -->
+        <div class="grid grid-cols-2 p-1 bg-royalDark/80 rounded-xl border border-royalGold/20 mb-6">
+            <button type="button" id="tabSupplier" onclick="switchUserType('supplier')" class="py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md">
+                حساب المورد
+            </button>
+            <button type="button" id="tabEmployee" onclick="switchUserType('employee')" class="py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                دخول موظف المورد
+            </button>
+        </div>
+
+        <!-- صندوق التنبيهات الملكي المحسن -->
+        <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
+
+        <!-- نموذج تسجيل الدخول -->
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-5 relative z-10">
+            <!-- حقل CSRF المخفي -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
+            <input type="hidden" id="userTypeInput" name="user_type" value="supplier">
+
+            <!-- حقل المعرف -->
+            <div>
+                <label id="identifierLabel" class="block text-xs font-medium text-slate-300 mb-2">
+                    رقم الهاتف أو البريد الإلكتروني
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-royalGold/60">
+                        <svg id="identifierIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <input type="text" id="identifierInput" name="identifier" required
+                           placeholder="مثال: 77xxxxxxx أو البريد الإلكتروني"
+                           class="w-full pr-11 pl-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
+                </div>
+            </div>
+
+            <!-- حقل كلمة المرور -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
+                    <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                        نسيت كلمة المرور؟
+                    </a>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-royalGold/60">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                    </div>
+                    <input type="password" id="passwordInput" name="password" required
+                           placeholder="••••••••"
+                           class="w-full pr-11 pl-11 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
+                    <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-royalGold">
+                        <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- تذكرني -->
+            <div class="flex items-center justify-between text-xs">
+                <label class="flex items-center gap-2 cursor-pointer select-none text-slate-300">
+                    <input type="checkbox" name="remember_me" class="rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold">
+                    <span>تذكر بيانات الدخول</span>
+                </label>
+                <span class="text-slate-400 text-[11px]">اتصال مشفر وآمن</span>
+            </div>
+
+            <!-- زر الدخول -->
+            <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 gold-btn rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
+                <span id="btnText">دخول المنظومة الملكية</span>
+                <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-black" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </form>
+
+        <!-- رابط التسجيل للموردين الجدد -->
+        <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
+            <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
+            <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+                <span>فتح حساب واشتراك مورد جديد</span>
+                <span aria-hidden="true">&larr;</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentUserType = 'supplier';
+    let failedAttempts = 0;
+    let lockoutTimer = null;
+
+    function switchUserType(type) {
+        currentUserType = type;
+        document.getElementById('userTypeInput').value = type;
+        const tabSup = document.getElementById('tabSupplier');
+        const tabEmp = document.getElementById('tabEmployee');
+        const label = document.getElementById('identifierLabel');
+        const input = document.getElementById('identifierInput');
+
+        if (type === 'supplier') {
+            tabSup.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
+            tabEmp.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
+            input.placeholder = 'مثال: 77xxxxxxx أو البريد الإلكتروني';
+        } else {
+            tabEmp.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
+            tabSup.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
+            input.placeholder = 'مثال: emp@company.sa أو 05xxxxxxxx';
+        }
+    }
+
+    function togglePasswordVisibility() {
+        const input = document.getElementById('passwordInput');
+        input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function showAlert(title, msg, isSuccess = false) {
+        const box = document.getElementById('alertBox');
+        box.classList.remove('hidden');
+        if (isSuccess) {
+            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 shadow-xl';
+            box.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-500/40 flex items-center justify-center shrink-0 text-emerald-400 font-bold">✓</div>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-emerald-200">${title}</span>
+                    <span class="text-emerald-300/90 text-[11px]">${msg}</span>
+                </div>
+            `;
+        } else {
+            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl';
+            box.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-rose-900/50 border border-rose-500/40 flex items-center justify-center shrink-0 text-rose-400 font-bold">⚠</div>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-rose-200">${title}</span>
+                    <span class="text-rose-300/90 text-[11px]">${msg}</span>
+                </div>
+            `;
+        }
+    }
+
+    function startLockoutCountdown(seconds) {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        let remaining = seconds;
+
+        const updateTimer = () => {
+            if (remaining > 0) {
+                showAlert(
+                    "الحظر المؤقت للأمان", 
+                    `تم تجاوز الحد الأقصى للمحاولات الخاطئة. يرجى الانتظار (${remaining} ثانية) قبل إعادة المحاولة.`
+                );
+                remaining--;
+                lockoutTimer = setTimeout(updateTimer, 1000);
+            } else {
+                document.getElementById('alertBox').classList.add('hidden');
+                submitBtn.disabled = false;
+                failedAttempts = 0;
+            }
+        };
+        updateTimer();
+    }
+
+    async function handleLoginSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+
+        submitBtn.disabled = true;
+        btnText.textContent = 'جاري التحقق الأمني...';
+        btnSpinner.classList.remove('hidden');
+
+        const payload = {
+            identifier: form.identifier.value.trim(),
+            password: form.password.value,
+            user_type: currentUserType,
+            remember_me: form.remember_me.checked,
+            csrf_token: form.csrf_token.value
+        };
+
+        try {
+            const response = await fetch("{{ url_for('suppliers_auth_bp.login') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRFToken': form.csrf_token.value
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const textResponse = await response.text();
+            let data;
+            try {
+                data = JSON.parse(textResponse);
+            } catch (e) {
+                console.error("Server response is not valid JSON:", textResponse);
+                throw new Error("استجابة الخادم غير صالحة (خطأ برمي داخلي 500)");
+            }
+
+            if (response.ok && data.success) {
+                showAlert('تمت المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
+                setTimeout(() => {
+                    window.location.href = data.redirect_url || '/suppliers/dashboard';
+                }, 1000);
+            } else {
+                failedAttempts++;
+                if (failedAttempts >= 5) {
+                    startLockoutCountdown(60);
+                } else {
+                    submitBtn.disabled = false;
+                    showAlert(
+                        'خطأ في بيانات الاعتماد', 
+                        data.message || 'اسم المستخدم أو كلمة المرور غير صحيح. يرجى التحقق وإعادة المحاولة.'
+                    );
+                }
+            }
+        } catch (err) {
+            console.error("Login error:", err);
+            submitBtn.disabled = false;
             showAlert('خطأ في الاتصال', err.message || 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
+        } finally {
+            if (failedAttempts < 5) {
+                btnText.textContent = 'دخول المنظومة الملكية';
+                btnSpinner.classList.add('hidden');
+            }
+        }
+    }
+</script>
+{% endblock %}
         } finally {
             if (failedAttempts < 5) {
                 btnText.textContent = 'دخول المنظومة الملكية';
