@@ -8,7 +8,7 @@ import secrets
 import string
 import click
 from datetime import datetime
-from flask import Flask, redirect, session, url_for, request, jsonify, make_response
+from flask import Flask, redirect, session, request, jsonify, make_response
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
@@ -16,7 +16,6 @@ from flask_cors import CORS
 from sqlalchemy import text, select
 import config
 from apps.extensions import db, login_manager, migrate, limiter
-from apps.services.graphql_client import GraphQLClient
 
 # ✅ Debug - تأكد من تحميل الملف
 print("=" * 60)
@@ -370,7 +369,7 @@ def create_app():
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_auth_bp.login_page'))  # ✅ تم التصحيح
+            return redirect("/suppliers/login")  # ✅ تم التصحيح - رابط مباشر
         return redirect(admin_login_path)
 
     @app.before_request
@@ -430,12 +429,12 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_auth_bp.login_page'))  # ✅ تم التصحيح
+                return redirect("/suppliers/login")  # ✅ تم التصحيح - رابط مباشر
 
             return
 
         if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_auth_bp.login_page'))  # ✅ تم التصحيح
+            return redirect("/suppliers/login")  # ✅ تم التصحيح - رابط مباشر
 
         return redirect(admin_login_path)
 
@@ -477,8 +476,16 @@ def create_app():
                 query = data.get('query')
                 variables = data.get('variables')
                 operation_name = data.get('operationName')
-            client = GraphQLClient()
-            result = client.execute(query, variables, operation_name)
+            
+            # ✅ بدون GraphQLClient - نستخدم requests مباشرة
+            import requests
+            graphql_endpoint = os.environ.get('GRAPHQL_ENDPOINT', 'https://your-graphql-endpoint.com/graphql')
+            response = requests.post(
+                graphql_endpoint,
+                json={"query": query, "variables": variables, "operationName": operation_name},
+                headers={"Content-Type": "application/json"}
+            )
+            result = response.json()
             response = jsonify(result)
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -493,9 +500,15 @@ def create_app():
     @app.route('/m7jb_test_connection')
     def test_graphql_connection():
         try:
-            client = GraphQLClient()
-            success = client.test_connection()
-            return jsonify({"connection_status": success, "endpoint": client.endpoint, "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"})
+            import requests
+            graphql_endpoint = os.environ.get('GRAPHQL_ENDPOINT', 'https://your-graphql-endpoint.com/graphql')
+            response = requests.post(
+                graphql_endpoint,
+                json={"query": "{ __typename }"},
+                headers={"Content-Type": "application/json"}
+            )
+            success = response.status_code == 200
+            return jsonify({"connection_status": success, "endpoint": graphql_endpoint, "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"})
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
