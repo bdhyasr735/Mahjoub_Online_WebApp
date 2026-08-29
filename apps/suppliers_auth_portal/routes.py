@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, session, redirect
 from flask_login import login_user, current_user
-from apps.suppliers_auth_portal import suppliers_auth_bp
+from apps.suppliers_auth_portal import suppliers_bp  # ✅ تم التصحيح
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.security import (
     validate_phone_number, validate_email,
@@ -13,12 +13,12 @@ from apps.extensions import db
 # ✅ استيراد Registry
 from apps.suppliers_auth_portal.registry import SupplierPortalRegistry
 
-@suppliers_auth_bp.route('/login', methods=['GET'])
+@suppliers_bp.route('/login', methods=['GET'])
 def login_page():
     seo = SupplierPortalSEOService.get_meta_tags("login")
     return render_template('suppliers_auth_portal/login.html', seo=seo)
 
-@suppliers_auth_bp.route('/login', methods=['POST'])
+@suppliers_bp.route('/login', methods=['POST'])
 def login():
     try:
         ip = request.remote_addr
@@ -95,12 +95,12 @@ def login():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_auth_bp.route('/register', methods=['GET'])
+@suppliers_bp.route('/register', methods=['GET'])
 def register_page():
     seo = SupplierPortalSEOService.get_meta_tags("register")
     return render_template('suppliers_auth_portal/register.html', seo=seo)
 
-@suppliers_auth_bp.route('/register', methods=['POST'])
+@suppliers_bp.route('/register', methods=['POST'])
 def register():
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
@@ -134,12 +134,12 @@ def register():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_auth_bp.route('/verify', methods=['GET'])
+@suppliers_bp.route('/verify', methods=['GET'])
 def verify_page():
     seo = SupplierPortalSEOService.get_meta_tags("verify")
     return render_template('suppliers_auth_portal/verify.html', seo=seo)
 
-@suppliers_auth_bp.route('/verify', methods=['POST'])
+@suppliers_bp.route('/verify', methods=['POST'])
 def verify():
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
@@ -162,19 +162,19 @@ def verify():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_auth_bp.route('/resend-otp', methods=['POST'])
+@suppliers_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
     return jsonify({
         "success": True,
         "message": "تم إرسال رمز تحقق جديد بنجاح إلى هاتفك المسجل."
     })
 
-@suppliers_auth_bp.route('/forgot-password', methods=['GET'])
+@suppliers_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
     seo = SupplierPortalSEOService.get_meta_tags("forgot_password")
     return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
 
-@suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
+@suppliers_bp.route('/forgot-password/request-otp', methods=['POST'])
 def forgot_password_request_otp():
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
@@ -200,7 +200,7 @@ def forgot_password_request_otp():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_auth_bp.route('/reset-password', methods=['POST'])
+@suppliers_bp.route('/reset-password', methods=['POST'])
 def reset_password():
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
@@ -244,7 +244,7 @@ def reset_password():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_auth_bp.route('/dashboard', methods=['GET'])
+@suppliers_bp.route('/dashboard', methods=['GET'])
 def dashboard():
     if not current_user.is_authenticated or session.get('user_type') != 'supplier':
         return redirect("/supplier/login")
