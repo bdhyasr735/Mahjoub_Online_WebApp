@@ -188,9 +188,6 @@ def seed_database():
 
             db.session.commit()
             print("✅ [الزراعة]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
-            print(f"    📌 كود المورد: SUP-963{supplier.id}")
-            print(f"    📌 كود المحفظة: WEL-963{supplier.id}")
-            print(f"    📌 رقم السند: {seed_voucher_number}")
         else:
             print("ℹ️ [الزراعة]: المورد التجريبي والمحفظة ومعاملة الرصيد الافتتاحي موجودة مسبقاً.")
     except Exception as e:
@@ -200,11 +197,10 @@ def seed_database():
 
 def rebuild_database():
     """
-    ✅ حذف جميع الجداول وإعادة بنائها بالكامل مع الزراعة التلقائية
-    هذه الدالة تستدعى تلقائياً عند كل رفع (Deploy)
+    ✅ حذف جميع الجداول وإعادة بنائها بالكامل مع الزراعة التلقائية (يدوياً عبر الأمر فقط)
     """
     print("=" * 60)
-    print("🔄 [إعادة البناء التلقائي]: جاري حذف وإعادة بناء قاعدة البيانات...")
+    print("🔄 [إعادة البناء]: جاري حذف وإعادة بناء قاعدة البيانات...")
     print("=" * 60)
     
     try:
@@ -225,7 +221,7 @@ def rebuild_database():
         print("✅ [إعادة البناء]: تم زراعة البيانات المبدئية بنجاح")
         
         print("=" * 60)
-        print("🎉 [إعادة البناء التلقائي]: اكتملت عملية إعادة بناء قاعدة البيانات!")
+        print("🎉 [إعادة البناء]: اكتملت عملية إعادة بناء قاعدة البيانات!")
         print("=" * 60)
         
     except Exception as e:
@@ -300,10 +296,12 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ✅ إعادة بناء قاعدة البيانات تلقائياً عند الرفع
+    # ✅ إنشاء الجداول أول مرة فقط بدون حذف البيانات الموجودة
     # ============================================================
     with app.app_context():
-        rebuild_database()
+        import_all_models()
+        db.create_all()
+        seed_database()
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
@@ -384,13 +382,11 @@ def create_app():
 
         path = request.path
 
-        # ✅ تجاهل الملفات الثابتة
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
             return
 
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        # ✅ جميع مسارات المصادقة مستثناة من الحماية
         public_paths = [
             '/static',
             '/graphql',
@@ -415,7 +411,6 @@ def create_app():
             '/whatsapp'
         ]
 
-        # ✅ إذا كان المسار عاماً، لا تفعل شيئاً
         if path == '/' or any(path == p or path.startswith(p + '/') for p in public_paths):
             return
 
@@ -439,7 +434,6 @@ def create_app():
 
             return
 
-        # ✅ إذا لم يكن المستخدم مصادقاً
         if path.startswith('/supplier') or path.startswith('/suppliers'):
             return redirect(url_for('suppliers_auth_bp.login'))
 
@@ -555,7 +549,6 @@ def create_app():
         print("✅ [DEBUG] Blueprint registered successfully!")
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
         
-        # ✅ طباعة المسارات للتأكد
         print("📋 [المسارات المسجلة للبوابة]:")
         for rule in app.url_map.iter_rules():
             if 'suppliers' in str(rule):
