@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+# 📂 apps/suppliers_auth_portal/routes.py
+
 from flask import render_template, request, jsonify, session, redirect, url_for
 from flask_login import login_user, logout_user, current_user
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.security import (
     validate_phone_number, validate_email,
-    check_rate_limit, record_failed_attempt, clear_rate_limit
+    check_rate_limit, record_failed_attempt, clear_rate_limit,
+    SupplierAuthSecurity
 )
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
@@ -218,16 +222,34 @@ def forgot_password_request_otp():
         if not identifier:
             return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
 
-        mock_otp = "123456"
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
+        supplier_obj = db.session.query(Supplier).filter(
+            (Supplier.username == identifier) |
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix) |
+            (Supplier.phone == identifier)
+        ).first()
+
+        if not supplier_obj:
+            return jsonify({"success": False, "message": "المورد غير مسجل في النظام."}), 404
+
+        # إرسال الرمز الحقيقي عبر وحدة الأمان (واتساب مع بديل البريد الإلكتروني)
+        res = SupplierAuthSecurity.generate_and_send_otp(supplier_obj, channel='whatsapp')
+        if not res.get("success"):
+            res = SupplierAuthSecurity.generate_and_send_otp(supplier_obj, channel='email')
+
+        if not res.get("success"):
+            return jsonify({"success": False, "message": res.get("message", "فشل إرسال رمز التحقق.")}), 500
+
         session['reset_identifier'] = identifier
         
+        masked_id = identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89"
         return jsonify({
             "success": True,
             "otp_sent": True,
-            "message": "تم إرسال رمز التحقق بنجاح.",
+            "message": "تم إرسال رمز التحقق بنجاح إلى هاتفك أو بريدك المسجل.",
             "data": {
-                "masked_phone": identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89",
-                "_dev_otp": mock_otp
+                "masked_phone": masked_id
             }
         })
     except Exception as e:
@@ -244,15 +266,17 @@ def reset_password():
         new_password = data.get('new_password', '')
         confirm_password = data.get('confirm_password', '')
 
-        if otp_code != "123456":
-            return jsonify({"success": False, "message": "رمز التحقق غير صحيح."}), 400
-
         if not new_password or new_password != confirm_password:
             return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
 
         identifier = session.get('reset_identifier')
         if not identifier:
             return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة محاولة استعادة كلمة المرور."}), 400
+
+        # التحقق من صحة الرمز الحقيقي باستخدام جدول قاعدة البيانات OTP
+        verification_res = SupplierAuthSecurity.verify_supplier_otp(identifier, otp_code)
+        if not verification_res.get("success"):
+            return jsonify({"success": False, "message": verification_res.get("message", "رمز التحقق غير صحيح أو انتهت صلاحيته.")}), 400
 
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
         supplier_obj = db.session.query(Supplier).filter(
