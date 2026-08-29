@@ -19,42 +19,48 @@ def login_page():
 
 @suppliers_auth_bp.route('/login', methods=['POST'])
 def login():
-    ip = request.remote_addr
-    allowed, wait_time = check_rate_limit(ip)
-    if not allowed:
-        return jsonify({
-            "success": False,
-            "message": f"تم حظر المحاولات مؤقتاً بسبب تجاوز الحد المسموح. يرجى الانتظار {wait_time} ثانية."
-        }), 429
+    try:
+        ip = request.remote_addr
+        allowed, wait_time = check_rate_limit(ip)
+        if not allowed:
+            return jsonify({
+                "success": False,
+                "message": f"تم حظر المحاولات مؤقتاً بسبب تجاوز الحد المسموح. يرجى الانتظار {wait_time} ثانية."
+            }), 429
 
-    data = request.get_json(silent=True) or request.form or {}
-    identifier = data.get('identifier', '').strip()
-    password = data.get('password', '')
-    user_type = data.get('user_type', 'supplier')
+        data = request.get_json(silent=True) or request.form or {}
+        identifier = data.get('identifier', '').strip()
+        password = data.get('password', '')
+        user_type = data.get('user_type', 'supplier')
 
-    if not identifier or not password:
-        return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
+        if not identifier or not password:
+            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
-    supplier_obj = Supplier.query.filter(
-        (Supplier.username == identifier) | 
-        (Supplier.phone == identifier) | 
-        (Supplier.email == identifier)
-    ).first()
+        supplier_obj = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.phone == identifier) | 
+            (Supplier.email == identifier)
+        ).first()
 
-    if supplier_obj and (supplier_obj.check_password(password) or password == "secret_royal_pass"):
-        clear_rate_limit(ip)
-        session['user_type'] = 'supplier'
-        login_user(supplier_obj)
-        session['supplier_logged_in'] = True
-        session['supplier_identifier'] = identifier
-        return jsonify({
-            "success": True,
-            "message": "تم تسجيل الدخول بنجاح",
-            "redirect_url": url_for('suppliers_auth_bp.dashboard')
-        })
-    else:
-        record_failed_attempt(ip)
-        return jsonify({"success": False, "message": "بيانات الاعتماد غير صحيحة. يرجى التحقق."}), 401
+        if supplier_obj and (supplier_obj.check_password(password) or password == "secret_royal_pass"):
+            clear_rate_limit(ip)
+            session['user_type'] = 'supplier'
+            login_user(supplier_obj)
+            session['supplier_logged_in'] = True
+            session['supplier_identifier'] = identifier
+            return jsonify({
+                "success": True,
+                "message": "تم تسجيل الدخول بنجاح",
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+        else:
+            record_failed_attempt(ip)
+            return jsonify({"success": False, "message": "بيانات الاعتماد غير صحيحة. يرجى التحقق."}), 401
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/register', methods=['GET'])
 def register_page():
