@@ -2,7 +2,7 @@
 # 📂 apps/__init__.py
 
 import os
-import sys  # ✅ أضفنا sys للـ Debug
+import sys
 import importlib
 import secrets
 import string
@@ -198,6 +198,43 @@ def seed_database():
         print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
 
 
+def rebuild_database():
+    """
+    ✅ حذف جميع الجداول وإعادة بنائها بالكامل مع الزراعة التلقائية
+    هذه الدالة تستدعى تلقائياً عند كل رفع (Deploy)
+    """
+    print("=" * 60)
+    print("🔄 [إعادة البناء التلقائي]: جاري حذف وإعادة بناء قاعدة البيانات...")
+    print("=" * 60)
+    
+    try:
+        import_all_models()
+        
+        # 1. حذف جميع الجداول
+        db.session.execute(text("DROP SCHEMA public CASCADE;"))
+        db.session.execute(text("CREATE SCHEMA public;"))
+        db.session.commit()
+        print("✅ [إعادة البناء]: تم حذف جميع الجداول وإعادة تعيين الـ Schema")
+        
+        # 2. إعادة إنشاء الجداول
+        db.create_all()
+        print("✅ [إعادة البناء]: تم إنشاء جميع الجداول بنجاح")
+        
+        # 3. زراعة البيانات المبدئية
+        seed_database()
+        print("✅ [إعادة البناء]: تم زراعة البيانات المبدئية بنجاح")
+        
+        print("=" * 60)
+        print("🎉 [إعادة البناء التلقائي]: اكتملت عملية إعادة بناء قاعدة البيانات!")
+        print("=" * 60)
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ [خطأ في إعادة بناء قاعدة البيانات]: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 def create_app():
     print("=" * 60)
     print("🚀 [DEBUG] create_app() is being called!")
@@ -263,25 +300,10 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع
+    # ✅ إعادة بناء قاعدة البيانات تلقائياً عند الرفع
     # ============================================================
     with app.app_context():
-        import_all_models()
-        try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
-            print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
-
-            db.create_all()
-            print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
-            seed_database()
-            print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
-
-        except Exception as e:
-            db.session.rollback()
-            print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
+        rebuild_database()
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
@@ -290,22 +312,8 @@ def create_app():
     def rebuild_db_command():
         """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
         click.echo("🔄 [إعادة بناء القاعدة]: جاري حذف جميع الجداول...")
-        import_all_models()
-        try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
-            click.echo("✅ [إعادة تعيين الـ Schema]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
-        except Exception as e:
-            db.session.rollback()
-            click.echo(f"❌ [خطأ إعادة تعيين الـ Schema]: {e}")
-
-        click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
-        db.create_all()
-        click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
-        click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
-        seed_database()
+        with app.app_context():
+            rebuild_database()
         click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
 
     migrate.init_app(app, db)
@@ -537,7 +545,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # ✅ تسجيل بوابة الموردين - مباشرة وبدون تعقيد
     try:
         print("🔍 [DEBUG] Importing suppliers_auth_portal...")
         from apps.suppliers_auth_portal import suppliers_auth_bp
@@ -545,15 +552,17 @@ def create_app():
         
         print("🔍 [DEBUG] Registering blueprint...")
         app.register_blueprint(suppliers_auth_bp)
-        print("✅ [DEBUG] Blueprint registered successfully (without url_prefix)!")
+        print("✅ [DEBUG] Blueprint registered successfully!")
+        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
         
-        # ✅ طباعة جميع المسارات
-        print("📋 [جميع المسارات المسجلة]:")
+        # ✅ طباعة المسارات للتأكد
+        print("📋 [المسارات المسجلة للبوابة]:")
         for rule in app.url_map.iter_rules():
-            print(f"   📍 {rule}")
+            if 'suppliers' in str(rule):
+                print(f"   📍 {rule}")
                 
     except Exception as e:
-        print(f"❌ [خطأ بوابة الموردين]: {e}")
+        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
         import traceback
         traceback.print_exc()
 
