@@ -14,6 +14,7 @@ from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
+from apps.models.otp_db import OTP
 
 # ==================== دوال التشفير ====================
 class PasswordHasher:
@@ -42,6 +43,7 @@ class PasswordHasher:
         except Exception:
             return False
 
+
 # ==================== Blueprint ====================
 suppliers_auth_bp = Blueprint(
     'suppliers_auth_bp',
@@ -51,6 +53,7 @@ suppliers_auth_bp = Blueprint(
     static_folder='static'
 )
 
+
 # ==================== قبل كل طلب ====================
 @suppliers_auth_bp.before_request
 def before_request():
@@ -58,6 +61,7 @@ def before_request():
         session['csrf_token'] = secrets.token_hex(32)
         session['csrf_expiry'] = time.time() + 3600
     g.csrf_token = session['csrf_token']
+
 
 def validate_csrf_token(token):
     if not token:
@@ -67,6 +71,13 @@ def validate_csrf_token(token):
     if stored_token and token == stored_token and expiry > time.time():
         return True
     return len(token) >= 16
+
+
+# ==================== الصفحة الرئيسية ====================
+@suppliers_auth_bp.route('/')
+def index():
+    return redirect(url_for('suppliers_auth_bp.login'))
+
 
 # ==================== تسجيل الدخول ====================
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
@@ -95,7 +106,7 @@ def login():
     if not validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
 
-    # ========== تسجيل دخول الموظف ==========
+    # تسجيل دخول الموظف
     if user_type == "employee":
         staff = SupplierStaff.query.filter(
             (SupplierStaff.username == identifier) |
@@ -107,6 +118,10 @@ def login():
             wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
             staff.last_login = datetime.utcnow()
             db.session.commit()
+            
+            session['user_id'] = staff.id
+            session['user_type'] = 'employee'
+            session['supplier_id'] = supplier.id
             
             return jsonify({
                 "success": True,
@@ -129,9 +144,9 @@ def login():
                 "redirect_url": "/suppliers/dashboard"
             }), 200
         
-        return jsonify({"success": False, "message": "رقم الجوال أو البريد الإلكتروني أو كلمة المرور لموظف المورد غير صحيحة"}), 401
+        return jsonify({"success": False, "message": "بيانات الدخول غير صحيحة"}), 401
 
-    # ========== تسجيل دخول المورد ==========
+    # تسجيل دخول المورد
     supplier = Supplier.query.filter(
         (Supplier.username == identifier) |
         (Supplier.search_phone == str(identifier)[-9:])
@@ -143,6 +158,9 @@ def login():
         db.session.commit()
         
         employees = SupplierStaff.query.filter_by(supplier_id=supplier.id).all()
+        
+        session['user_id'] = supplier.id
+        session['user_type'] = 'supplier'
         
         return jsonify({
             "success": True,
@@ -167,7 +185,8 @@ def login():
             "redirect_url": "/suppliers/dashboard"
         }), 200
 
-    return jsonify({"success": False, "message": "رقم الجوال أو البريد الإلكتروني أو كلمة المرور غير صحيحة"}), 401
+    return jsonify({"success": False, "message": "بيانات الدخول غير صحيحة"}), 401
+
 
 # ==================== عرض صفحة التسجيل ====================
 @suppliers_auth_bp.route('/register-page', methods=['GET'])
@@ -176,6 +195,7 @@ def register_page():
         'suppliers_auth_portal/register.html',
         csrf_token=session.get('csrf_token', secrets.token_hex(32))
     )
+
 
 # ==================== تسجيل مورد جديد ====================
 @suppliers_auth_bp.route('/register', methods=['POST'])
@@ -193,7 +213,6 @@ def register():
     if not all([company_name, email, phone, password]):
         return jsonify({"success": False, "message": "جميع الحقول الإلزامية مطلوبة"}), 400
 
-    # التحقق من عدم التكرار
     if Supplier.query.filter_by(username=email).first():
         return jsonify({"success": False, "message": "البريد الإلكتروني مسجل مسبقاً"}), 400
     
@@ -205,6 +224,7 @@ def register():
         
         supplier = Supplier(
             username=email,
+            email=email,
             owner_name=data.get("owner_name", "المفوض الرسمي"),
             trade_name=company_name,
             store_name=company_name,
@@ -213,12 +233,12 @@ def register():
             created_at=datetime.utcnow()
         )
         supplier.phone = phone
+        supplier.search_phone = str(phone)[-9:]
         supplier.password_hash = password_hash
         
         db.session.add(supplier)
         db.session.flush()
 
-        # إنشاء المحفظة
         wallet_number = f"SA{secrets.randbelow(89)+10}990000{secrets.token_hex(6).upper()}"
         wallet = SupplierWallet(
             supplier_id=supplier.id,
@@ -231,7 +251,6 @@ def register():
         )
         db.session.add(wallet)
         
-        # إضافة الموظفين
         for emp in data.get("employees", []):
             if emp.get("full_name") and emp.get("email"):
                 staff = SupplierStaff(
@@ -240,10 +259,12 @@ def register():
                     full_name=emp["full_name"],
                     email=emp["email"].strip().lower(),
                     phone=emp.get("phone", "").strip(),
-                    role="sales",
+                    role=emp.get("role", "sales"),
                     status="active",
                     created_at=datetime.utcnow()
                 )
+                if emp.get("phone"):
+                    staff.search_phone = str(emp["phone"])[-9:]
                 staff.set_password(emp.get("password", "Staff@2025"))
                 db.session.add(staff)
         
@@ -259,6 +280,7 @@ def register():
         db.session.rollback()
         return jsonify({"success": False, "message": f"حدث خطأ أثناء التسجيل: {str(e)}"}), 400
 
+
 # ==================== صفحة استعادة كلمة المرور ====================
 @suppliers_auth_bp.route('/forgot-password-page', methods=['GET'])
 def forgot_password_page():
@@ -266,6 +288,7 @@ def forgot_password_page():
         'suppliers_auth_portal/forgot_password.html',
         csrf_token=session.get('csrf_token', secrets.token_hex(32))
     )
+
 
 # ==================== طلب OTP ====================
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
@@ -290,14 +313,18 @@ def request_otp():
     otp_code = f"{secrets.randbelow(900000) + 100000}"
     expiry = datetime.utcnow() + timedelta(seconds=300)
 
-    session['otp_data'] = {
-        'identifier': identifier,
-        'otp_code': otp_code,
-        'target_id': supplier.id,
-        'target_type': 'supplier',
-        'expiry': expiry.isoformat(),
-        'attempts': 0
-    }
+    # حفظ في قاعدة البيانات بدلاً من session
+    otp_record = OTP(
+        identifier=identifier,
+        otp_code=otp_code,
+        target_id=supplier.id,
+        target_type='supplier',
+        expiry=expiry,
+        attempts=0,
+        is_used=False
+    )
+    db.session.add(otp_record)
+    db.session.commit()
 
     return jsonify({
         "success": True,
@@ -309,6 +336,7 @@ def request_otp():
         }
     }), 200
 
+
 # ==================== إعادة تعيين كلمة المرور ====================
 @suppliers_auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
@@ -317,16 +345,21 @@ def reset_password():
     if not validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
-    otp_data = session.get('otp_data')
-    if not otp_data:
-        return jsonify({"success": False, "message": "انتهت صلاحية طلب إعادة التعيين"}), 400
-
     otp_code = data.get("otp_code", "")
     new_password = data.get("new_password", "")
     confirm_password = data.get("confirm_password", "")
 
-    if otp_data['otp_code'] != otp_code:
-        return jsonify({"success": False, "message": "رمز التحقق غير صحيح"}), 400
+    # البحث عن OTP في قاعدة البيانات
+    otp_record = OTP.query.filter_by(
+        otp_code=otp_code,
+        is_used=False
+    ).first()
+    
+    if not otp_record:
+        return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو منتهي الصلاحية"}), 400
+    
+    if not otp_record.is_valid():
+        return jsonify({"success": False, "message": "انتهت صلاحية رمز التحقق"}), 400
 
     if new_password != confirm_password:
         return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين"}), 400
@@ -334,18 +367,20 @@ def reset_password():
     if len(new_password) < 8:
         return jsonify({"success": False, "message": "يجب أن تتكون كلمة المرور من 8 خانات على الأقل"}), 400
 
-    supplier = Supplier.query.get(otp_data['target_id'])
+    supplier = Supplier.query.get(otp_record.target_id)
     if supplier:
         supplier.password_hash = PasswordHasher.set_password(new_password)
         db.session.commit()
 
-    session.pop('otp_data', None)
+    otp_record.is_used = True
+    db.session.commit()
 
     return jsonify({
         "success": True,
         "message": "تم تحديث كلمة المرور بنجاح",
         "redirect_url": "/suppliers/login"
     }), 200
+
 
 # ==================== صفحة التحقق ====================
 @suppliers_auth_bp.route('/verify-page', methods=['GET'])
@@ -354,6 +389,7 @@ def verify_page():
         'suppliers_auth_portal/verify.html',
         csrf_token=session.get('csrf_token', secrets.token_hex(32))
     )
+
 
 # ==================== التحقق من OTP ====================
 @suppliers_auth_bp.route('/verify', methods=['POST'])
@@ -365,25 +401,31 @@ def verify_otp():
     
     otp_code = data.get("otp_code", "").strip()
     
-    otp_data = session.get('otp_data')
-    if not otp_data:
-        return jsonify({"success": False, "message": "انتهت صلاحية رمز التحقق"}), 400
+    otp_record = OTP.query.filter_by(
+        otp_code=otp_code,
+        is_used=False
+    ).first()
     
-    if otp_data['otp_code'] != otp_code:
+    if not otp_record:
         return jsonify({"success": False, "message": "رمز التحقق غير صحيح"}), 400
     
-    supplier = Supplier.query.get(otp_data['target_id'])
+    if not otp_record.is_valid():
+        return jsonify({"success": False, "message": "انتهت صلاحية رمز التحقق"}), 400
+    
+    supplier = Supplier.query.get(otp_record.target_id)
     if supplier:
         supplier.status = 'verified'
         db.session.commit()
     
-    session.pop('otp_data', None)
+    otp_record.is_used = True
+    db.session.commit()
     
     return jsonify({
         "success": True,
         "message": "تم التحقق من الحساب بنجاح",
         "redirect_url": "/suppliers/login"
     }), 200
+
 
 # ==================== إعادة إرسال OTP ====================
 @suppliers_auth_bp.route('/resend-otp', methods=['POST'])
@@ -393,14 +435,20 @@ def resend_otp():
     if not validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
-    otp_data = session.get('otp_data')
-    if not otp_data:
+    # البحث عن آخر OTP غير مستخدم
+    last_otp = OTP.query.filter_by(
+        identifier=data.get('identifier', ''),
+        is_used=False
+    ).first()
+    
+    if not last_otp:
         return jsonify({"success": False, "message": "لا يوجد طلب نشط لإعادة التعيين"}), 400
     
     new_otp = f"{secrets.randbelow(900000) + 100000}"
-    otp_data['otp_code'] = new_otp
-    otp_data['expiry'] = (datetime.utcnow() + timedelta(seconds=300)).isoformat()
-    session['otp_data'] = otp_data
+    last_otp.otp_code = new_otp
+    last_otp.expiry = datetime.utcnow() + timedelta(seconds=300)
+    last_otp.attempts = 0
+    db.session.commit()
     
     return jsonify({
         "success": True,
@@ -410,6 +458,7 @@ def resend_otp():
         }
     }), 200
 
+
 # ==================== تسجيل الخروج ====================
 @suppliers_auth_bp.route('/logout', methods=['POST', 'GET'])
 def logout():
@@ -417,6 +466,7 @@ def logout():
     if request.method == 'GET' or 'text/html' in request.headers.get('Accept', ''):
         return redirect(url_for('suppliers_auth_bp.login'))
     return jsonify({"success": True, "message": "تم تسجيل الخروج بنجاح"}), 200
+
 
 # ==================== لوحة التحكم ====================
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
