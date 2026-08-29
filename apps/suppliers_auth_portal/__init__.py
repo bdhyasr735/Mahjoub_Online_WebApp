@@ -1,4 +1,10 @@
+# coding: utf-8
+# 📂 apps/suppliers_auth_portal/__init__.py
+
 from flask import Blueprint
+
+# ✅ استيراد أدوات الأمان
+from .security import PasswordHasher, CSRFProtector
 
 suppliers_auth_bp = Blueprint(
     'suppliers_auth_bp',
@@ -8,8 +14,11 @@ suppliers_auth_bp = Blueprint(
     static_folder='static'
 )
 
-# استيراد المسارات من routes.py فقط
+# استيراد المسارات
 from . import routes
-from . import registry_routes
 
-__all__ = ['suppliers_auth_bp']
+__all__ = [
+    'suppliers_auth_bp',
+    'PasswordHasher',
+    'CSRFProtector',
+]
