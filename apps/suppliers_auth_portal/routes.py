@@ -119,7 +119,6 @@ def forgot_password_request_otp():
     if not identifier:
         return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
 
-    # محاكاة إرسال رمز التحقق وإرجاع رمز تجريبي للتطوير
     mock_otp = "123456"
     session['reset_identifier'] = identifier
     
