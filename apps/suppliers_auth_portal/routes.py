@@ -8,7 +8,7 @@
 
 import secrets
 import time
-import traceback  # ✅ أضفنا traceback
+import traceback
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, g
 from apps.extensions import db
@@ -57,6 +57,17 @@ def validate_csrf_token(token):
 def index():
     print(f"🔍 [INDEX] Redirecting to login")
     return redirect(url_for('suppliers_auth_bp.login'))
+
+
+# ==================== مسار اختبار ====================
+@suppliers_auth_bp.route('/test')
+def test():
+    print("🔍 [TEST] Test route called!")
+    return jsonify({
+        "status": "success",
+        "message": "✅ البوابة تعمل!",
+        "timestamp": datetime.utcnow().isoformat()
+    }), 200
 
 
 # ==================== تسجيل الدخول ====================
