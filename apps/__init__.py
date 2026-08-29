@@ -545,7 +545,7 @@ def create_app():
         print(f"✅ [DEBUG] Import successful: {suppliers_auth_bp}")
         
         print("🔍 [DEBUG] Registering blueprint...")
-        # ✅ التعديل هنا: إزالة url_prefix لأن الـ Blueprint يحتويه بالفعل
+        # ✅ تسجيل الـ Blueprint
         app.register_blueprint(suppliers_auth_bp)
         print("✅ [DEBUG] Blueprint registered successfully!")
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
