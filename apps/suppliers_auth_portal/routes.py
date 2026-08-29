@@ -31,7 +31,6 @@ def login():
     if not identifier or not password:
         return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
-    # محاذاة التحقق من قاعدة البيانات (سواء بالبريد أو الهاتف)
     if password == "secret_royal_pass" or len(password) >= 6:
         clear_rate_limit(ip)
         session['supplier_logged_in'] = True
@@ -55,7 +54,6 @@ def register_page():
 def register():
     data = request.get_json(silent=True) or request.form or {}
     
-    # التحقق من الحقول الإلزامية
     required_fields = ['company_name', 'full_address', 'owner_name', 'email', 'phone', 'password']
     for field in required_fields:
         if not data.get(field):
@@ -103,7 +101,6 @@ def verify():
 
 @suppliers_auth_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
-    # محاكاة إعادة إرسال الرمز
     return jsonify({
         "success": True,
         "message": "تم إرسال رمز تحقق جديد بنجاح إلى هاتفك المسجل."
@@ -113,6 +110,47 @@ def resend_otp():
 def forgot_password_page():
     seo = SupplierPortalSEOService.get_meta_tags("login")
     return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
+
+@suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
+def forgot_password_request_otp():
+    data = request.get_json(silent=True) or request.form or {}
+    identifier = data.get('identifier', '').strip()
+    
+    if not identifier:
+        return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
+
+    # محاكاة إرسال رمز التحقق وإرجاع رمز تجريبي للتطوير
+    mock_otp = "123456"
+    session['reset_identifier'] = identifier
+    
+    return jsonify({
+        "success": True,
+        "otp_sent": True,
+        "message": "تم إرسال رمز التحقق بنجاح.",
+        "data": {
+            "masked_phone": identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89",
+            "_dev_otp": mock_otp
+        }
+    })
+
+@suppliers_auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json(silent=True) or request.form or {}
+    otp_code = data.get('otp_code', '').strip()
+    new_password = data.get('new_password', '')
+    confirm_password = data.get('confirm_password', '')
+
+    if otp_code != "123456":
+        return jsonify({"success": False, "message": "رمز التحقق غير صحيح."}), 400
+
+    if not new_password or new_password != confirm_password:
+        return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
+
+    return jsonify({
+        "success": True,
+        "message": "تم تحديث كلمة المرور بنجاح",
+        "redirect_url": url_for('suppliers_auth_bp.login_page')
+    })
 
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
