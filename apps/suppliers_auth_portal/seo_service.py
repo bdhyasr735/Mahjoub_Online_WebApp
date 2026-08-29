@@ -9,7 +9,8 @@ class SeoService:
     """خدمة مركزية لإدارة بيانات التحسين لمحركات البحث الخاصة ببوابة الموردين"""
 
     def __init__(self):
-        self.base_url = "https://mahjoob-online.com/supplier"
+        # ✅ تغيير: supplier → suppliers
+        self.base_url = "https://mahjoob-online.com/suppliers"
         self.pages_meta = {
             "login": {
                 "title": "تسجيل دخول الموردين والموظفين | محجوب أونلاين",
@@ -78,26 +79,29 @@ SEOService = SeoService
 
 def generate_robots_txt() -> str:
     """توليد محتوى ملف robots.txt مع حماية المسارات الحساسة وتوجيه عناكب البحث"""
+    # ✅ تغيير: supplier → suppliers
     return """# Robots.txt for محجوب أونلاين - Suppliers Portal
 User-agent: *
-Allow: /supplier/login
-Allow: /supplier/register
-Allow: /supplier/forgot-password
-Disallow: /supplier/verify
-Disallow: /supplier/dashboard
-Disallow: /supplier/wallet/
-Disallow: /supplier/employees
+Allow: /suppliers/login
+Allow: /suppliers/register-page
+Allow: /suppliers/forgot-password-page
+Allow: /suppliers/verify-page
+Disallow: /suppliers/dashboard
+Disallow: /suppliers/wallet/
+Disallow: /suppliers/employees
 
-Sitemap: https://mahjoob-online.com/supplier/sitemap.xml
+Sitemap: https://mahjoob-online.com/suppliers/sitemap.xml
 """
 
 
 def generate_sitemap_xml() -> str:
     """توليد خريطة الموقع (Sitemap.xml) الديناميكية لصفحات الموديول العامة"""
+    # ✅ تغيير: supplier → suppliers
     urls = [
-        {"loc": "https://mahjoob-online.com/supplier/login", "changefreq": "monthly", "priority": "1.0"},
-        {"loc": "https://mahjoob-online.com/supplier/register", "changefreq": "monthly", "priority": "0.9"},
-        {"loc": "https://mahjoob-online.com/supplier/forgot-password", "changefreq": "yearly", "priority": "0.3"}
+        {"loc": "https://mahjoob-online.com/suppliers/login", "changefreq": "monthly", "priority": "1.0"},
+        {"loc": "https://mahjoob-online.com/suppliers/register-page", "changefreq": "monthly", "priority": "0.9"},
+        {"loc": "https://mahjoob-online.com/suppliers/forgot-password-page", "changefreq": "yearly", "priority": "0.3"},
+        {"loc": "https://mahjoob-online.com/suppliers/verify-page", "changefreq": "yearly", "priority": "0.3"}
     ]
 
     xml_items = []
