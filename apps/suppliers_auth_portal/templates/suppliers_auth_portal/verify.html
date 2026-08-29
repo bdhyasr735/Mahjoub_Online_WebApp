@@ -52,7 +52,7 @@
             </button>
 
             <!-- رابط العودة لتسجيل الدخول -->
-            <a href="/suppliers/login" class="text-slate-400 hover:text-royalGold transition">
+            <a href="/supplier/login" class="text-slate-400 hover:text-royalGold transition">
                 &larr; العودة لتسجيل الدخول
             </a>
         </div>
@@ -92,7 +92,7 @@
         btnSpinner.classList.remove('hidden');
 
         try {
-            const res = await window.secureFetch('/suppliers/verify', {
+            const res = await window.secureFetch('/supplier/verify', {
                 method: 'POST',
                 body: JSON.stringify({ 
                     otp_code: code,
@@ -104,7 +104,7 @@
             if (res.ok && data.success) {
                 showAlert(data.message || 'تم التحقق بنجاح! جاري تحويلك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/suppliers/dashboard';
+                    window.location.href = data.redirect_url || '/supplier/dashboard';
                 }, 1500);
             } else {
                 showAlert(data.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته.');
@@ -125,7 +125,7 @@
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            const res = await window.secureFetch('/suppliers/resend-otp', {
+            const res = await window.secureFetch('/supplier/resend-otp', {
                 method: 'POST',
                 body: JSON.stringify({ csrf_token: csrfToken })
             });
