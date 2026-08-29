@@ -109,6 +109,11 @@ def resend_otp():
         "message": "تم إرسال رمز تحقق جديد بنجاح إلى هاتفك المسجل."
     })
 
+@suppliers_auth_bp.route('/forgot-password', methods=['GET'])
+def forgot_password_page():
+    seo = SupplierPortalSEOService.get_meta_tags("login")
+    return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
+
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
     if not session.get('supplier_logged_in') and not session.get('supplier_verified'):
