@@ -96,38 +96,46 @@ def login():
                 (SupplierStaff.search_phone == str(identifier)[-9:])
             ).first()
             
-            if staff and staff.status == "active" and staff.check_password(password):
-                supplier = Supplier.query.get(staff.supplier_id)
-                wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
-                staff.last_login = datetime.utcnow()
-                db.session.commit()
-                
-                session['user_id'] = staff.id
-                session['user_type'] = 'employee'
-                session['supplier_id'] = supplier.id
-                
-                return jsonify({
-                    "success": True,
-                    "message": "تم تسجيل دخول الموظف بنجاح",
-                    "data": {
-                        "user_type": "employee",
-                        "employee": staff.to_dict(),
-                        "supplier": {
-                            "id": supplier.id,
-                            "username": supplier.username,
-                            "phone": supplier.phone,
-                            "trade_name": supplier.trade_name,
-                        },
-                        "wallet": {
-                            "wallet_id": wallet.id,
-                            "account_number": wallet.wallet_code,
-                            "balance": wallet.balance_sar,
-                        } if wallet else None,
-                    },
-                    "redirect_url": "/suppliers/dashboard"
-                }), 200
+            # التحقق مما إذا كان الحساب غير موجود أصلاً
+            if not staff:
+                return jsonify({"success": False, "message": "عذراً، هذا الحساب غير مسجل لدينا"}), 404
             
-            return jsonify({"success": False, "message": "بيانات الدخول غير صحيحة"}), 401
+            # التحقق من صحة كلمة المرور
+            if not staff.check_password(password):
+                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
+
+            if staff.status != "active":
+                return jsonify({"success": False, "message": "الحساب غير مفعل، يرجى التواصل مع الإدارة"}), 403
+
+            supplier = Supplier.query.get(staff.supplier_id)
+            wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+            staff.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            session['user_id'] = staff.id
+            session['user_type'] = 'employee'
+            session['supplier_id'] = supplier.id
+            
+            return jsonify({
+                "success": True,
+                "message": "تم تسجيل دخول الموظف بنجاح",
+                "data": {
+                    "user_type": "employee",
+                    "employee": staff.to_dict(),
+                    "supplier": {
+                        "id": supplier.id,
+                        "username": supplier.username,
+                        "phone": supplier.phone,
+                        "trade_name": supplier.trade_name,
+                    },
+                    "wallet": {
+                        "wallet_id": wallet.id,
+                        "account_number": wallet.wallet_code,
+                        "balance": wallet.balance_sar,
+                    } if wallet else None,
+                },
+                "redirect_url": "/suppliers/dashboard"
+            }), 200
 
         # 🔹 تسجيل دخول المورد
         supplier = Supplier.query.filter(
@@ -135,40 +143,45 @@ def login():
             (Supplier.search_phone == str(identifier)[-9:])
         ).first()
         
-        if supplier and PasswordHasher.check_password(password, supplier.password_hash):
-            wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
-            supplier.last_login = datetime.utcnow()
-            db.session.commit()
-            
-            employees = SupplierStaff.query.filter_by(supplier_id=supplier.id).all()
-            
-            session['user_id'] = supplier.id
-            session['user_type'] = 'supplier'
-            
-            return jsonify({
-                "success": True,
-                "message": "تم تسجيل الدخول بنجاح",
-                "data": {
-                    "user_type": "supplier",
-                    "supplier": {
-                        "id": supplier.id,
-                        "username": supplier.username,
-                        "phone": supplier.phone,
-                        "trade_name": supplier.trade_name,
-                        "store_name": supplier.store_name,
-                        "status": supplier.status,
-                    },
-                    "wallet": {
-                        "wallet_id": wallet.id,
-                        "account_number": wallet.wallet_code,
-                        "balance": wallet.balance_sar,
-                    } if wallet else None,
-                    "employees_count": len(employees),
-                },
-                "redirect_url": "/suppliers/dashboard"
-            }), 200
+        # التحقق مما إذا كان المورد غير موجود أصلاً في قاعدة البيانات
+        if not supplier:
+            return jsonify({"success": False, "message": "عذراً، هذا الحساب غير مسجل لدينا"}), 404
+        
+        # التحقق من صحة كلمة المرور للمورد
+        if not PasswordHasher.check_password(password, supplier.password_hash):
+            return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
 
-        return jsonify({"success": False, "message": "بيانات الدخول غير صحيحة"}), 401
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+        supplier.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        employees = SupplierStaff.query.filter_by(supplier_id=supplier.id).all()
+        
+        session['user_id'] = supplier.id
+        session['user_type'] = 'supplier'
+        
+        return jsonify({
+            "success": True,
+            "message": "تم تسجيل الدخول بنجاح",
+            "data": {
+                "user_type": "supplier",
+                "supplier": {
+                    "id": supplier.id,
+                    "username": supplier.username,
+                    "phone": supplier.phone,
+                    "trade_name": supplier.trade_name,
+                    "store_name": supplier.store_name,
+                    "status": supplier.status,
+                },
+                "wallet": {
+                    "wallet_id": wallet.id,
+                    "account_number": wallet.wallet_code,
+                    "balance": wallet.balance_sar,
+                } if wallet else None,
+                "employees_count": len(employees),
+            },
+            "redirect_url": "/suppliers/dashboard"
+        }), 200
         
     except Exception as e:
         print(f"❌ [LOGIN] Exception: {e}")
