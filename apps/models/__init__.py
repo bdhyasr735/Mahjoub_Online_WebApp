@@ -1,10 +1,4 @@
 # coding: utf-8
-# 📂 apps/models/__init__.py
-
-"""
-مركز التحكم في الموديلات (Model Registry) - محدث ومدمج مع سجل الخزينة المركزية ونماذج الواتساب
-"""
-
 from apps.extensions import db
 
 from apps.models.supplier_db import Supplier
@@ -21,9 +15,11 @@ from apps.models.order_items_db import OrderItem
 from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.sync_log import SyncLog
-from apps.models.otp_db import OTP  # ← ✅ أضف هذا السطر
 
-# استيراد نماذج الواتساب بشكل صحيح ودون مشاكل في مسارات الاستيراد
+# ✅ إضافة OTP
+from apps.models.otp_db import OTP
+
+# استيراد نماذج الواتساب
 from apps.models.whatsapp_models import (
     WhatsAppMessageLog,
     WhatsAppWebhookEvent,
@@ -42,7 +38,7 @@ __all__ = [
     'Order',
     'OrderFinancial',
     'OrderItem',
-    'OTP',  # ← ✅ أضف هذا السطر
+    'OTP',  # ✅ إضافة
     'Product',
     'ProductSupplierMapping',
     'Supplier',
