@@ -49,7 +49,7 @@ class SupplierStaff(db.Model, UserMixin):
     _full_name_enc = db.Column(db.String(255), nullable=True)
     _email_enc = db.Column(db.String(255), nullable=True)
     _phone_enc = db.Column(db.String(255), nullable=True)
-    search_phone = db.Column(db.String(20), nullable=True) # ✅ لسرعة مطابقة أرقام الهواتف
+    search_phone = db.Column(db.String(20), nullable=True) # ✅ لسرعة مطابقة أرقام الهواتف (آخر 9 أرقام بدقة)
     _position_enc = db.Column(db.String(255), nullable=True)  # المسمى الوظيفي
     _address_enc = db.Column(db.String(500), nullable=True)
 
@@ -92,7 +92,7 @@ class SupplierStaff(db.Model, UserMixin):
             return None
 
     # ============================================================
-    # ✅ Properties المشفرة (getter / setter)
+    # ✅ Properties المشفرة (getter / setter) مع المعيار الموحد 9 أرقام للهاتف
     # ============================================================
 
     @property
@@ -118,8 +118,13 @@ class SupplierStaff(db.Model, UserMixin):
     @phone.setter
     def phone(self, value):
         if value:
-            self._phone_enc = self._encrypt(value)
-            self.search_phone = str(value)[-9:]
+            str_val = str(value)
+            digits_only = "".join(filter(str.isdigit, str_val))
+            # اعتماد معيار استخراج آخر 9 أرقام حصراً لضمان دقة البحث وعدم التكرار لجميع الشبكات (77, 78, 73, 71, 70)
+            clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+            
+            self._phone_enc = self._encrypt(str_val)
+            self.search_phone = clean_9
         else:
             self._phone_enc = None
             self.search_phone = None
@@ -168,6 +173,8 @@ class SupplierStaff(db.Model, UserMixin):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
+        if not self.password_hash:
+            return False
         return check_password_hash(self.password_hash, password)
 
     # ============================================================
@@ -184,6 +191,7 @@ class SupplierStaff(db.Model, UserMixin):
             'full_name': self.full_name,
             'email': self.email,
             'phone': self.phone,
+            'search_phone': self.search_phone,
             'position': self.position,
             'role': self.role,
             'status': self.status,
@@ -197,7 +205,7 @@ class SupplierStaff(db.Model, UserMixin):
         return f'<SupplierStaff {self.staff_code or self.id}: {self.username} | Role: {self.role} | Status: {self.status}>'
 
 
-# --- التحقق التلقائي من وجود العمود وإضافته عند بدء التشغيل إذا لزم الأمر، وتوليد الكود التنظيمي ---
+# --- توليد الكود التنظيمي الفريد للموظف فور الحفظ ---
 @event.listens_for(SupplierStaff, 'after_insert')
 def receive_staff_after_insert(mapper, connection, target):
     """توليد كود تنظيمي فريد للموظف مرتبط برقم المالك أو المورد الأساسي فور الحفظ"""
