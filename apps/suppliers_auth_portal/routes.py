@@ -63,7 +63,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": url_for('suppliers_bp.dashboard')
+                "redirect_url": url_for('suppliers_dashboard.dashboard')
             })
 
         elif user_type == 'employee':
@@ -88,7 +88,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": url_for('suppliers_bp.dashboard')
+                "redirect_url": url_for('suppliers_dashboard.dashboard')
             })
 
         else:
@@ -158,7 +158,7 @@ def verify():
             return jsonify({
                 "success": True,
                 "message": message,
-                "redirect_url": url_for('suppliers_bp.dashboard')
+                "redirect_url": url_for('suppliers_dashboard.dashboard')
             })
         else:
             return jsonify({"success": False, "message": message}), 400
@@ -243,7 +243,7 @@ def reset_password():
         session.pop('reset_identifier', None)
 
         return jsonify({
-            "success": True,
+            "success": "true",
             "message": "تم تحديث كلمة المرور بنجاح",
             "redirect_url": url_for('suppliers_bp.login')
         })
@@ -252,10 +252,3 @@ def reset_password():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
-
-
-@suppliers_bp.route('/dashboard', methods=['GET'])
-def dashboard():
-    if not current_user.is_authenticated or session.get('user_type') not in ['supplier', 'supplier_staff']:
-        return redirect(url_for("suppliers_bp.login"))
-    return "<h1>لوحة تحكم الموردين الملكية - قيد العرض والتطوير</h1>"
