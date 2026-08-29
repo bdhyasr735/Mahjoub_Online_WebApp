@@ -3,7 +3,6 @@
 
 from flask import render_template, request, jsonify, session, redirect
 from flask_login import login_user, current_user
-from flask_wtf.csrf import CSRFProtect
 from apps.suppliers_auth_portal import suppliers_auth_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.registry import SupplierPortalRegistry
@@ -12,12 +11,9 @@ from apps.suppliers_auth_portal.security import (
     check_rate_limit, record_failed_attempt, clear_rate_limit
 )
 from apps.models.supplier_db import Supplier
+from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.otp_db import OTP
 from apps.extensions import db
-
-# ✅ إضافة هذا السطر لحل مشكلة CSRF
-csrf = CSRFProtect()
-csrf.exempt(suppliers_auth_bp)
 
 @suppliers_auth_bp.route('/login', methods=['GET'])
 def login_page():
@@ -46,40 +42,63 @@ def login():
         # استخراج آخر 9 أرقام للبحث في حقل search_phone
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
-        # ✅ البحث باستخدام db.session.query (متوافق مع SQLAlchemy 2.0)
+        # ✅ البحث في جدول الموردين
         supplier_obj = db.session.query(Supplier).filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) |
             (Supplier.search_phone == clean_phone_suffix)
         ).first()
 
-        # ✅ الحالة 1: المستخدم غير مسجل
+        # ✅ البحث في جدول موظفي الموردين (إذا لم يوجد في جدول الموردين)
         if not supplier_obj:
+            staff_obj = db.session.query(SupplierStaff).filter(
+                (SupplierStaff.username == identifier) | 
+                (SupplierStaff.email == identifier) |
+                (SupplierStaff.search_phone == clean_phone_suffix)
+            ).first()
+        else:
+            staff_obj = None
+
+        # ✅ الحالة 1: المستخدم غير موجود في كلا الجدولين
+        if not supplier_obj and not staff_obj:
             return jsonify({
                 "success": False,
-                "message": "اسم المستخدم غير مسجل"
+                "message": "المستخدم غير مسجل"
             }), 404
 
-        # ✅ الحالة 2: كلمة المرور غير صحيحة
-        if not supplier_obj.check_password(password):
-            record_failed_attempt(ip)
+        # ✅ الحالة 2: تسجيل دخول المورد
+        if supplier_obj and supplier_obj.check_password(password):
+            clear_rate_limit(ip)
+            session['user_type'] = 'supplier'
+            login_user(supplier_obj)
+            session['supplier_logged_in'] = True
+            session['supplier_identifier'] = identifier
             return jsonify({
-                "success": False,
-                "message": "كلمة المرور غير صحيحة"
-            }), 401
+                "success": True,
+                "message": "تم تسجيل الدخول بنجاح",
+                "redirect_url": "/suppliers/dashboard"
+            })
 
-        # ✅ الحالة 3: تسجيل الدخول بنجاح
-        clear_rate_limit(ip)
-        session['user_type'] = 'supplier'
-        login_user(supplier_obj)
-        session['supplier_logged_in'] = True
-        session['supplier_identifier'] = identifier
+        # ✅ الحالة 3: تسجيل دخول موظف المورد
+        if staff_obj and staff_obj.check_password(password):
+            clear_rate_limit(ip)
+            session['user_type'] = 'supplier_staff'
+            login_user(staff_obj)
+            session['supplier_staff_logged_in'] = True
+            session['supplier_identifier'] = identifier
+            return jsonify({
+                "success": True,
+                "message": "تم تسجيل الدخول بنجاح",
+                "redirect_url": "/suppliers/dashboard"
+            })
+
+        # ✅ الحالة 4: كلمة المرور غير صحيحة
+        record_failed_attempt(ip)
         return jsonify({
-            "success": True,
-            "message": "تم تسجيل الدخول بنجاح",
-            "redirect_url": "/suppliers/dashboard"
-        })
-            
+            "success": False,
+            "message": "كلمة المرور غير صحيحة"
+        }), 401
+
     except Exception as e:
         import traceback
         traceback.print_exc()
