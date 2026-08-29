@@ -321,8 +321,8 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # ✅ تعيين login_view ديناميكياً
-    login_manager.login_view = 'suppliers_auth_bp.login'
+    # ✅ تعيين login_view ديناميكياً - تم التصحيح
+    login_manager.login_view = 'suppliers_auth_bp.login_page'  # ✅ الصحيح
     login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
     login_manager.login_message_category = "info"
 
@@ -370,7 +370,7 @@ def create_app():
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_auth_bp.login'))
+            return redirect(url_for('suppliers_auth_bp.login_page'))  # ✅ تم التصحيح
         return redirect(admin_login_path)
 
     @app.before_request
@@ -430,12 +430,12 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_auth_bp.login'))
+                return redirect(url_for('suppliers_auth_bp.login_page'))  # ✅ تم التصحيح
 
             return
 
         if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_auth_bp.login'))
+            return redirect(url_for('suppliers_auth_bp.login_page'))  # ✅ تم التصحيح
 
         return redirect(admin_login_path)
 
