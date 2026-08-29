@@ -144,7 +144,6 @@
             box-shadow: 0 0 20px rgba(206, 158, 73, 0.4);
             transform: translateY(-1px);
         }
-        /* تحسين الشريط العلوي */
         .nav-link {
             transition: all 0.3s ease;
             position: relative;
@@ -162,7 +161,6 @@
         .nav-link:hover::after {
             width: 100%;
         }
-        /* تحسينات البطاقات */
         .royal-card-hover {
             transition: all 0.3s ease;
         }
@@ -171,7 +169,6 @@
             border-color: #ce9e49;
             box-shadow: 0 8px 30px rgba(206, 158, 73, 0.15);
         }
-        /* تحسين الأزرار */
         .btn-gold-outline {
             background: transparent;
             border: 1px solid #ce9e49;
@@ -211,10 +208,10 @@
                 <a href="{{ url_for('suppliers_auth_bp.login') }}" class="nav-link px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
                     تسجيل الدخول
                 </a>
-                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="nav-link px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
+                <a href="{{ url_for('suppliers_auth_bp.register') }}" class="nav-link px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
                     اشتراك مورد جديد
                 </a>
-                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="nav-link px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
+                <a href="{{ url_for('suppliers_auth_bp.forgot_password') }}" class="nav-link px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
                     استعادة كلمة المرور
                 </a>
             </nav>
@@ -231,8 +228,8 @@
         <div id="mobileMenu" class="hidden md:hidden bg-royalDark/95 border-t border-royalGold/20 py-4 px-4">
             <div class="flex flex-col gap-3 text-sm">
                 <a href="{{ url_for('suppliers_auth_bp.login') }}" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">تسجيل الدخول</a>
-                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">اشتراك مورد جديد</a>
-                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition">استعادة كلمة المرور</a>
+                <a href="{{ url_for('suppliers_auth_bp.register') }}" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">اشتراك مورد جديد</a>
+                <a href="{{ url_for('suppliers_auth_bp.forgot_password') }}" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition">استعادة كلمة المرور</a>
             </div>
         </div>
     </header>
@@ -255,6 +252,19 @@
 
     <!-- ====== MAIN CONTENT ====== -->
     <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full">
+        <!-- Flash Messages Display -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="w-full max-w-xl mx-auto mb-6 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-xl border {% if category == 'danger' or category == 'error' %} bg-red-950/80 border-red-500/50 text-red-200 {% elif category == 'success' %} bg-emerald-950/80 border-emerald-500/50 text-emerald-200 {% else %} bg-royalSurface border-royalGold/40 text-royalGoldLight {% endif %} shadow-lg flex items-center justify-between">
+                            <span class="text-xs font-semibold">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
 
         <!-- قسم الأسئلة الشائعة (FAQ Section) -->
