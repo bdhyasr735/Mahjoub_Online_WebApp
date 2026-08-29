@@ -156,7 +156,7 @@
             <!-- زر تقديم طلب الاشتراك -->
             <div class="pt-4 border-t border-royalGold/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <!-- رابط العودة لتسجيل الدخول -->
-                <a href="/suppliers/login" class="text-xs text-slate-400 hover:text-royalGold transition">
+                <a href="/supplier/login" class="text-xs text-slate-400 hover:text-royalGold transition">
                     &larr; العودة لتسجيل الدخول
                 </a>
 
@@ -278,7 +278,7 @@
         btnSpinner.classList.remove('hidden');
 
         try {
-            const res = await window.secureFetch('/suppliers/register', {
+            const res = await window.secureFetch('/supplier/register', {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -288,7 +288,7 @@
                 const walletInfo = data.data?.wallet?.account_number ? `<br>تم إصدار رقم الحساب المالي: <code>${data.data.wallet.account_number}</code>` : '';
                 showAlert(`${data.message}${walletInfo} جاري نقلك لصفحة الدخول...`, true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/suppliers/login';
+                    window.location.href = data.redirect_url || '/supplier/login';
                 }, 2000);
             } else {
                 showAlert(data.message || 'حدث خطأ أثناء إتمام عملية الاشتراك.');
