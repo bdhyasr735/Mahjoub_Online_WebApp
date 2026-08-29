@@ -12,6 +12,7 @@ from apps.suppliers_auth_portal.security import (
     check_rate_limit, record_failed_attempt, clear_rate_limit
 )
 from apps.models.supplier_db import Supplier
+from apps.models.otp_db import OTP
 from apps.extensions import db
 
 # ✅ إضافة هذا السطر لحل مشكلة CSRF
@@ -108,6 +109,20 @@ def register():
         
         if success:
             session['pending_verification_phone'] = data.get('phone')
+            
+            # ✅ إنشاء OTP حقيقي
+            supplier_id = result['supplier']['id']
+            otp_record, otp_code = OTP.create_otp(
+                identifier=data.get('phone'),
+                target_id=supplier_id,
+                target_type='supplier',
+                ip_address=request.remote_addr,
+                user_agent=request.user_agent.string
+            )
+            
+            # ✅ إرسال SMS (في الإنتاج)
+            # SMSService.send_otp(data.get('phone'), otp_code)
+            
             return jsonify({
                 "success": True,
                 "message": "تم إنشاء طلب التسجيل والمحفظة المالية بنجاح.",
@@ -135,16 +150,22 @@ def verify():
         
         identifier = session.get('pending_verification_phone') or session.get('supplier_identifier')
 
-        success, message = SupplierPortalRegistry.verify_supplier_otp(identifier, otp_code)
-        if success:
+        # ✅ التحقق من OTP الحقيقي
+        otp_record = OTP.get_valid_otp(otp_code, identifier)
+        if not otp_record:
+            return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو منتهي الصلاحية."}), 400
+        
+        # تحقق من الرمز
+        result = otp_record.verify(otp_code)
+        if result['success']:
             session['supplier_verified'] = True
             return jsonify({
                 "success": True,
-                "message": message,
+                "message": "تم التحقق بنجاح",
                 "redirect_url": "/suppliers/dashboard"
             })
         else:
-            return jsonify({"success": False, "message": message}), 400
+            return jsonify({"success": False, "message": result['message']}), 400
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -152,10 +173,43 @@ def verify():
 
 @suppliers_auth_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
-    return jsonify({
-        "success": True,
-        "message": "تم إرسال رمز تحقق جديد بنجاح إلى هاتفك المسجل."
-    })
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        identifier = session.get('pending_verification_phone') or session.get('supplier_identifier')
+        
+        if not identifier:
+            return jsonify({"success": False, "message": "لا يوجد رقم هاتف للتحقق."}), 400
+        
+        # البحث عن المورد
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
+        supplier_obj = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix)
+        ).first()
+        
+        if not supplier_obj:
+            return jsonify({"success": False, "message": "المورد غير موجود."}), 404
+        
+        # ✅ إنشاء OTP جديد
+        otp_record, otp_code = OTP.create_otp(
+            identifier=supplier_obj.phone,
+            target_id=supplier_obj.id,
+            target_type='supplier',
+            ip_address=request.remote_addr
+        )
+        
+        # ✅ إرسال SMS (في الإنتاج)
+        # SMSService.send_otp(supplier_obj.phone, otp_code)
+        
+        return jsonify({
+            "success": True,
+            "message": "تم إرسال رمز تحقق جديد بنجاح."
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
@@ -170,17 +224,38 @@ def forgot_password_request_otp():
         
         if not identifier:
             return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
-
-        mock_otp = "123456"
+        
+        # البحث عن المورد
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
+        supplier_obj = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix)
+        ).first()
+        
+        if not supplier_obj:
+            return jsonify({"success": False, "message": "المورد غير موجود."}), 404
+        
         session['reset_identifier'] = identifier
+        
+        # ✅ إنشاء OTP حقيقي
+        otp_record, otp_code = OTP.create_otp(
+            identifier=supplier_obj.phone,
+            target_id=supplier_obj.id,
+            target_type='supplier',
+            ip_address=request.remote_addr
+        )
+        
+        # ✅ إرسال SMS (في الإنتاج)
+        # SMSService.send_otp(supplier_obj.phone, otp_code)
         
         return jsonify({
             "success": True,
             "otp_sent": True,
             "message": "تم إرسال رمز التحقق بنجاح.",
             "data": {
-                "masked_phone": identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89",
-                "_dev_otp": mock_otp
+                "masked_phone": f"{supplier_obj.phone[:3]}****{supplier_obj.phone[-2:]}" if supplier_obj.phone else "",
+                "masked_email": f"{supplier_obj.email[:2]}****{supplier_obj.email[-5:]}" if supplier_obj.email else ""
             }
         })
     except Exception as e:
@@ -195,32 +270,41 @@ def reset_password():
         otp_code = data.get('otp_code', '').strip()
         new_password = data.get('new_password', '')
         confirm_password = data.get('confirm_password', '')
-
-        if otp_code != "123456":
-            return jsonify({"success": False, "message": "رمز التحقق غير صحيح."}), 400
-
+        
+        if not otp_code:
+            return jsonify({"success": False, "message": "يرجى إدخال رمز التحقق."}), 400
+        
         if not new_password or new_password != confirm_password:
-            return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
-
+            return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين."}), 400
+        
         identifier = session.get('reset_identifier')
         if not identifier:
-            return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة محاولة استعادة كلمة المرور."}), 400
-
+            return jsonify({"success": False, "message": "انتهت صلاحية الجلسة."}), 400
+        
+        # ✅ التحقق من OTP الحقيقي
+        otp_record = OTP.get_valid_otp(otp_code, identifier)
+        if not otp_record:
+            return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو منتهي الصلاحية."}), 400
+        
+        result = otp_record.verify(otp_code)
+        if not result['success']:
+            return jsonify({"success": False, "message": result['message']}), 400
+        
+        # البحث عن المورد
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
         supplier_obj = Supplier.query.filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) |
-            (Supplier.search_phone == clean_phone_suffix) |
-            (Supplier.phone == identifier)
+            (Supplier.search_phone == clean_phone_suffix)
         ).first()
-
+        
         if not supplier_obj:
             return jsonify({"success": False, "message": "المورد غير موجود."}), 404
-
+        
         supplier_obj.set_password(new_password)
         db.session.commit()
         session.pop('reset_identifier', None)
-
+        
         return jsonify({
             "success": True,
             "message": "تم تحديث كلمة المرور بنجاح",
