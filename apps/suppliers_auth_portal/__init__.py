@@ -6,7 +6,7 @@ suppliers_auth_bp = Blueprint(
     __name__,
     template_folder='templates',
     static_folder='static'
-    # ✅ تم إزالة url_prefix من هنا
+    # ✅ بدون url_prefix هنا
 )
 
 from apps.suppliers_auth_portal import routes
