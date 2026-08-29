@@ -1,6 +1,11 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py
 
+"""
+🚪 مسارات بوابة المصادقة للموردين والموظفين
+تسجيل الدخول، التسجيل، استعادة كلمة المرور، التحقق
+"""
+
 import secrets
 import time
 from datetime import datetime, timedelta
