@@ -70,7 +70,6 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
-                    <!-- ✅ تغيير: suppliers_auth_portal.forgot_password_page → suppliers_auth_bp.forgot_password_page -->
                     <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
@@ -115,7 +114,6 @@
         <!-- رابط التسجيل للموردين الجدد -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <!-- ✅ تغيير: suppliers_auth_portal.register → suppliers_auth_bp.register_page -->
             <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب واشتراك مورد جديد</span>
                 <span aria-hidden="true">&larr;</span>
@@ -223,9 +221,13 @@
         };
 
         try {
-            // ✅ تغيير: suppliers_auth_portal.login → suppliers_auth_bp.login
-            const response = await window.secureFetch("{{ url_for('suppliers_auth_bp.login') }}", {
+            const response = await fetch("{{ url_for('suppliers_auth_bp.login') }}", {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRFToken': form.csrf_token.value
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -243,11 +245,12 @@
                     submitBtn.disabled = false;
                     showAlert(
                         'خطأ في بيانات الاعتماد', 
-                        'اسم المستخدم أو كلمة المرور غير صحيح. يرجى التحقق وإعادة المحاولة.'
+                        data.message || 'اسم المستخدم أو كلمة المرور غير صحيح. يرجى التحقق وإعادة المحاولة.'
                     );
                 }
             }
         } catch (err) {
+            console.error("Login error:", err);
             submitBtn.disabled = false;
             showAlert('خطأ في الاتصال', 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
         } finally {
