@@ -364,30 +364,23 @@ def create_app():
 
         path = request.path
 
+        # ✅ تجاهل الملفات الثابتة
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
+            return
+
+        # ✅ تجاهل جميع مسارات البوابة تماماً (الحل الجذري)
+        if path.startswith('/suppliers') or path.startswith('/supplier'):
             return
 
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        # ✅ جميع مسارات المصادقة مستثناة من الحماية
+        # ✅ المسارات العامة
         public_paths = [
             '/static',
             '/graphql',
             '/admin/graphql',
             '/favicon.ico',
             '/m7jb_test_connection',
-            '/supplier/login',
-            '/supplier/register',
-            '/supplier/forgot-password',
-            '/supplier/forgot-password-page',
-            '/supplier/verify-page',
-            '/supplier/reset-password',
-            '/suppliers/login',
-            '/suppliers/register',
-            '/suppliers/forgot-password',
-            '/suppliers/forgot-password-page',
-            '/suppliers/verify-page',
-            '/suppliers/reset-password',
             admin_login_path,
             '/auth',
             '/whatsapp'
@@ -408,21 +401,9 @@ def create_app():
                     return redirect('/supplier/dashboard')
                 return redirect(admin_login_path)
 
-            if path.startswith('/supplier') or path.startswith('/suppliers'):
-                if is_supplier_side:
-                    return
-                if is_admin_side:
-                    return redirect('/dashboard')
-                # ✅ إذا لم يكن المستخدم مسجلاً، أرسله لتسجيل الدخول
-                return redirect(url_for('suppliers_auth_bp.login'))
-
             return
 
-        # ✅ إذا لم يكن المستخدم مصادقاً وكان المسار يبدأ بـ /supplier أو /suppliers
-        # أرسله إلى صفحة تسجيل الدخول
-        if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect(url_for('suppliers_auth_bp.login'))
-
+        # ✅ إذا لم يكن المستخدم مصادقاً، أرسله إلى صفحة تسجيل الدخول الإدارية
         return redirect(admin_login_path)
 
     talisman = Talisman()
@@ -530,7 +511,7 @@ def create_app():
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
     try:
-        from apps.suppliers_auth_portal.routes import suppliers_auth_bp
+        from apps.suppliers_auth_portal import suppliers_auth_bp
         app.register_blueprint(suppliers_auth_bp, url_prefix='/suppliers')
         csrf.exempt(suppliers_auth_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
