@@ -368,19 +368,28 @@ def create_app():
         if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
             return
 
-        # ✅ تجاهل جميع مسارات البوابة تماماً (الحل الجذري)
-        if path.startswith('/suppliers') or path.startswith('/supplier'):
-            return
-
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        # ✅ المسارات العامة
+        # ✅ جميع مسارات المصادقة مستثناة من الحماية
         public_paths = [
             '/static',
             '/graphql',
             '/admin/graphql',
             '/favicon.ico',
             '/m7jb_test_connection',
+            '/supplier/login',
+            '/supplier/register',
+            '/supplier/forgot-password',
+            '/supplier/forgot-password-page',
+            '/supplier/verify-page',
+            '/supplier/reset-password',
+            '/suppliers/login',
+            '/suppliers/register',
+            '/suppliers/register-page',
+            '/suppliers/forgot-password',
+            '/suppliers/forgot-password-page',
+            '/suppliers/verify-page',
+            '/suppliers/reset-password',
             admin_login_path,
             '/auth',
             '/whatsapp'
@@ -401,9 +410,19 @@ def create_app():
                     return redirect('/supplier/dashboard')
                 return redirect(admin_login_path)
 
+            if path.startswith('/supplier') or path.startswith('/suppliers'):
+                if is_supplier_side:
+                    return
+                if is_admin_side:
+                    return redirect('/dashboard')
+                return redirect(url_for('suppliers_auth_bp.login'))
+
             return
 
-        # ✅ إذا لم يكن المستخدم مصادقاً، أرسله إلى صفحة تسجيل الدخول الإدارية
+        # ✅ إذا لم يكن المستخدم مصادقاً
+        if path.startswith('/supplier') or path.startswith('/suppliers'):
+            return redirect(url_for('suppliers_auth_bp.login'))
+
         return redirect(admin_login_path)
 
     talisman = Talisman()
@@ -423,16 +442,6 @@ def create_app():
     # ============================================================
     # ✅ التوجيهات
     # ============================================================
-    # ❌ تم حذف الـ Alias المسبب للمشكلة
-    # @app.route('/suppliers/login', methods=['GET', 'POST'])
-    # def suppliers_login_redirect_alias():
-    #     return redirect(url_for('suppliers_auth_bp.login', **request.args))
-
-    # ❌ تم حذف الـ Alias المسبب للمشكلة
-    # @app.route('/suppliers/register', methods=['GET', 'POST'])
-    # def suppliers_register_redirect_alias():
-    #     return redirect(url_for('suppliers_auth_bp.register_page', **request.args))
-
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
     @csrf.exempt
     def graphql_proxy():
@@ -519,9 +528,10 @@ def create_app():
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
         
         # ✅ طباعة المسارات للتأكد
+        print("📋 [المسارات المسجلة للبوابة]:")
         for rule in app.url_map.iter_rules():
             if 'suppliers' in str(rule):
-                print(f"   📍 المسار: {rule}")
+                print(f"   📍 {rule}")
                 
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
