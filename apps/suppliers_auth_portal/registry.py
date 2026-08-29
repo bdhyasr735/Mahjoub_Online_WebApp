@@ -119,12 +119,12 @@ def register_module(app):
         csrf.exempt(suppliers_auth_bp)
         
         print(f"✅ [Registry]: تم تسجيل موديول '{MODULE_INFO['name']}' بنجاح.")
-        print(f"   📍 المسار: {MODULE_INFO['url_prefix']}")
+        print(f"    📍 المسار: {MODULE_INFO['url_prefix']}")
         
         # طباعة المسارات المسجلة
         for rule in app.url_map.iter_rules():
             if 'suppliers' in str(rule):
-                print(f"   📍 {rule}")
+                print(f"    📍 {rule}")
         
         return True
         
