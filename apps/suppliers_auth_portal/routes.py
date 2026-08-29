@@ -317,7 +317,6 @@ def request_otp():
             user_agent=request.headers.get('User-Agent')
         )
         
-        # ✅ حفظ المعرف في الجلسة لضمان نجاح إعادة الإرسال لاحقاً
         session['otp_identifier'] = identifier
 
         return jsonify({
@@ -438,7 +437,6 @@ def resend_otp():
         if not validate_csrf_token(data.get("csrf_token")):
             return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
         
-        # محاولة جلب المعرف من الطلب، أو من الجلسة كخيار احتياطي لضمان عدم الفشل
         identifier = data.get("identifier") or session.get('otp_identifier')
         
         if not identifier:
@@ -488,15 +486,32 @@ def logout():
 def dashboard():
     try:
         print(f"🔍 [DASHBOARD] Session: {dict(session)}")
-        if 'user_id' not in session:
-            print(f"🔍 [DASHBOARD] No user_id, redirecting to login")
+        user_id = session.get('user_id')
+        user_type = session.get('user_type')
+        
+        if not user_id or user_type not in ['supplier', 'employee']:
+            print(f"🔍 [DASHBOARD] Unauthorized or missing session, redirecting to login")
+            session.clear()
+            return redirect(url_for('suppliers_auth_bp.login'))
+        
+        current_user = None
+        if user_type == 'supplier':
+            current_user = Supplier.query.get(user_id)
+        elif user_type == 'employee':
+            current_user = SupplierStaff.query.get(user_id)
+            
+        if not current_user or getattr(current_user, 'status', 'active') != 'active':
+            print(f"🔍 [DASHBOARD] User not found or inactive, clearing session")
+            session.clear()
             return redirect(url_for('suppliers_auth_bp.login'))
         
         return jsonify({
-            "message": "مرحباً بك في لوحة التحكم",
-            "user_id": session.get('user_id'),
-            "user_type": session.get('user_type')
-        })
+            "message": "مرحباً بك في لوحة تحكم الموردين والموظفين",
+            "user_id": current_user.id,
+            "user_type": user_type,
+            "name": getattr(current_user, 'trade_name', None) or getattr(current_user, 'full_name', None)
+        }), 200
+        
     except Exception as e:
         print(f"❌ [DASHBOARD] Error: {e}")
         traceback.print_exc()
