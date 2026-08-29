@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/models/supplier_db.py
 
 import os
@@ -31,11 +31,11 @@ class Supplier(db.Model, UserMixin):
     # المعرفات الأساسية
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)  # ✅ حقل البريد الإلكتروني المضاف لتوافق التسجيل
+    email = db.Column(db.String(120), unique=True, nullable=True)  # حقل البريد الإلكتروني للتسجيل
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
-    store_name = db.Column(db.String(150), nullable=True)  # ✅ حقل اسم المتجر الجديد
+    store_name = db.Column(db.String(150), nullable=True)  # حقل اسم المتجر الجديد
     
     # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
     _phone_enc = db.Column(db.String(255), nullable=False) 
@@ -52,7 +52,7 @@ class Supplier(db.Model, UserMixin):
     supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
     
-    # ✅ العلاقة المطلوبة مع الطلبات (Orders)
+    # العلاقة مع الطلبات (Orders)
     orders = db.relationship('Order', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
     financials = db.relationship('OrderFinancial', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
@@ -60,7 +60,7 @@ class Supplier(db.Model, UserMixin):
     # الربط مع الموظفين
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
-    # ✅ الربط مع منتجات قمرة (ProductSupplierMapping)
+    # الربط مع منتجات قمرة (ProductSupplierMapping)
     product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
 
     # --- نظام التشفير ---
@@ -86,6 +86,8 @@ class Supplier(db.Model, UserMixin):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
+        if not self.password_hash:
+            return False
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
