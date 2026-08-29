@@ -58,7 +58,7 @@ def dashboard():
         supplier = get_supplier_context()
         if not supplier:
             flash('❌ يرجى تسجيل الدخول أولاً', 'danger')
-            return redirect(url_for('suppliers_auth.login'))
+            return redirect(url_for('suppliers_bp.login'))
 
         # ✅ 2. جلب المحفظة أو إنشاؤها تلقائياً إن لم تكن موجودة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
@@ -236,7 +236,7 @@ def dashboard():
         error_details = traceback.format_exc()
         print(f"❌ خطأ في dashboard: {error_details}")
         flash('❌ حدث خطأ تقني في عرض لوحة التحكم', 'danger')
-        return redirect(url_for('suppliers_auth.login'))
+        return redirect(url_for('suppliers_bp.login'))
 
 
 # ============================================================
