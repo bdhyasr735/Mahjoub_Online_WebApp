@@ -425,7 +425,7 @@
                             </a>
                             <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ key }}">
                                 {% for endpoint, link_title in module.links.items() %}
-                                    {% set url = safe_url_for(endpoint) %}
+                                    {% set url = safe_url_for(endpoint) if safe_url_for is defined else '#' %}
                                     {% if url != '#' %}
                                         <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                             <i class="fas fa-circle text-[6px]"></i> <span>{{ link_title }}</span>
@@ -435,7 +435,7 @@
                             </div>
                         {% else %}
                             {% for endpoint, link_title in module.links.items() %}
-                                {% set url = safe_url_for(endpoint) %}
+                                {% set url = safe_url_for(endpoint) if safe_url_for is defined else '#' %}
                                 {% if url != '#' %}
                                     <a href="{{ url }}" 
                                        class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
@@ -450,7 +450,8 @@
             {% endif %}
             
             <hr class="nav-divider">
-            <a href="{{ url_for('suppliers_auth.logout') }}" id="logout-btn" class="nav-link text-danger">
+            {% set logout_url = safe_url_for('suppliers_auth.logout') if safe_url_for is defined else '#' %}
+            <a href="{{ logout_url if logout_url != '#' else url_for('logout') }}" id="logout-btn" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
             </a>
         </nav>
@@ -517,7 +518,7 @@
                 }
             });
 
-            // التحكم الديناميكي بفتح وإغلاق القوائم المنسدلة (تم التعديل للوصول المباشر للقائمة التالية)
+            // التحكم الديناميكي بفتح وإغلاق القوائم المنسدلة
             const dropdownToggles = document.querySelectorAll('.sidebar .nav-link.dropdown-toggle');
             dropdownToggles.forEach(toggle => {
                 toggle.addEventListener('click', function(e) {
