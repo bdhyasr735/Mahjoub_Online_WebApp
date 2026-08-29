@@ -144,14 +144,53 @@
             box-shadow: 0 0 20px rgba(206, 158, 73, 0.4);
             transform: translateY(-1px);
         }
+        /* تحسين الشريط العلوي */
+        .nav-link {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #ce9e49, #fae19c);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        /* تحسينات البطاقات */
+        .royal-card-hover {
+            transition: all 0.3s ease;
+        }
+        .royal-card-hover:hover {
+            transform: translateY(-2px);
+            border-color: #ce9e49;
+            box-shadow: 0 8px 30px rgba(206, 158, 73, 0.15);
+        }
+        /* تحسين الأزرار */
+        .btn-gold-outline {
+            background: transparent;
+            border: 1px solid #ce9e49;
+            color: #ce9e49;
+            transition: all 0.3s ease;
+        }
+        .btn-gold-outline:hover {
+            background: linear-gradient(135deg, #ce9e49, #ba8b38);
+            color: #05020a;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="flex flex-col justify-between min-h-screen text-slate-100 selection:bg-royalGold/30 selection:text-royalGold">
 
+    <!-- ====== HEADER ====== -->
     <header class="w-full border-b border-royalGold/20 bg-royalDark/90 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <!-- ✅ تغيير: suppliers_auth_portal.login → suppliers_auth_bp.login -->
+            <!-- الشعار -->
             <a href="{{ url_for('suppliers_auth_bp.login') }}" class="flex items-center gap-3 group">
                 <div class="w-12 h-12 rounded-xl bg-[#05020a] border border-royalGold/40 p-1 flex items-center justify-center shadow-lg group-hover:border-royalGold transition-all overflow-hidden">
                     <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp"
@@ -167,23 +206,38 @@
                 </div>
             </a>
 
+            <!-- التنقل -->
             <nav class="hidden md:flex items-center gap-4 text-sm font-medium">
-                <!-- ✅ تغيير: suppliers_auth_portal.login → suppliers_auth_bp.login -->
-                <a href="{{ url_for('suppliers_auth_bp.login') }}" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
+                <a href="{{ url_for('suppliers_auth_bp.login') }}" class="nav-link px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
                     تسجيل الدخول
                 </a>
-                <!-- ✅ تغيير: suppliers_auth_portal.register → suppliers_auth_bp.register -->
-                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
+                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="nav-link px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
                     اشتراك مورد جديد
                 </a>
-                <!-- ✅ تغيير: suppliers_auth_portal.forgot_password_page → suppliers_auth_bp.forgot_password_page -->
-                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
+                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="nav-link px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
                     استعادة كلمة المرور
                 </a>
             </nav>
+
+            <!-- القائمة المتنقلة للأجهزة الصغيرة -->
+            <button id="mobileMenuBtn" class="md:hidden text-royalGold p-2 hover:bg-royalSurface/60 rounded-lg transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- القائمة المتنقلة -->
+        <div id="mobileMenu" class="hidden md:hidden bg-royalDark/95 border-t border-royalGold/20 py-4 px-4">
+            <div class="flex flex-col gap-3 text-sm">
+                <a href="{{ url_for('suppliers_auth_bp.login') }}" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">تسجيل الدخول</a>
+                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">اشتراك مورد جديد</a>
+                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition">استعادة كلمة المرور</a>
+            </div>
         </div>
     </header>
 
+    <!-- ====== BANNER ====== -->
     <div class="w-full bg-gradient-to-r from-[#1d1003] via-[#331c03] to-[#1d1003] border-b border-royalGold/30 text-amber-100 py-3 px-4 text-xs">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
             <div class="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
@@ -199,6 +253,7 @@
         </div>
     </div>
 
+    <!-- ====== MAIN CONTENT ====== -->
     <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full">
         {% block content %}{% endblock %}
 
@@ -211,7 +266,7 @@
 
             <div class="space-y-3">
                 <!-- السؤال الأول -->
-                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60">
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60 royal-card-hover">
                     <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
                         <span>ما هي سياسة تسعير التكلفة واللوحة المجانية في محجوب أونلاين؟</span>
                         <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
@@ -222,7 +277,7 @@
                 </div>
 
                 <!-- السؤال الثاني -->
-                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60">
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60 royal-card-hover">
                     <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
                         <span>كيف يتم تسجيل مورد جديد في منصة محجوب أونلاين؟</span>
                         <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
@@ -233,7 +288,7 @@
                 </div>
 
                 <!-- السؤال الثالث -->
-                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60">
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60 royal-card-hover">
                     <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
                         <span>هل يمكن للمورد إضافة موظفين وصلاحيات داخل لوحة التحكم؟</span>
                         <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
@@ -246,6 +301,7 @@
         </section>
     </main>
 
+    <!-- ====== FOOTER ====== -->
     <footer class="w-full border-t border-royalGold/15 bg-[#030107] py-6">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
             <div class="flex items-center gap-2">
@@ -258,7 +314,9 @@
         </div>
     </footer>
 
+    <!-- ====== SCRIPTS ====== -->
     <script>
+        // Toggle FAQ
         function toggleFaq(button) {
             const content = button.nextElementSibling;
             const arrow = button.querySelector('span:last-child');
@@ -266,11 +324,25 @@
             arrow.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
         }
 
+        // Mobile Menu Toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            if (menuBtn && mobileMenu) {
+                menuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+
+        // CSRF Token
         window.getCsrfToken = function() {
             const meta = document.querySelector('meta[name="csrf-token"]');
             return meta ? meta.getAttribute('content') : '';
         };
 
+        // Secure Fetch
         window.secureFetch = async function(url, options = {}) {
             const token = window.getCsrfToken();
             const headers = {
