@@ -103,3 +103,31 @@ SEO_CONFIG = {
     "robots_endpoint": "/suppliers/robots.txt",
     "schema_org_types": ["WebSite", "Organization", "WebApplication", "BreadcrumbList", "FAQPage"],
 }
+
+
+# ==================== دالة تسجيل الموديول في المصنع ====================
+def register_module(app):
+    """
+    تسجيل موديول بوابة الموردين في تطبيق Flask
+    هذه الدالة تستدعى من المصنع (Factory) لتسجيل الموديول ديناميكياً
+    """
+    try:
+        from apps.suppliers_auth_portal import suppliers_auth_bp
+        from apps.extensions import csrf
+        
+        app.register_blueprint(suppliers_auth_bp, url_prefix='/suppliers')
+        csrf.exempt(suppliers_auth_bp)
+        
+        print(f"✅ [Registry]: تم تسجيل موديول '{MODULE_INFO['name']}' بنجاح.")
+        print(f"   📍 المسار: {MODULE_INFO['url_prefix']}")
+        
+        # طباعة المسارات المسجلة
+        for rule in app.url_map.iter_rules():
+            if 'suppliers' in str(rule):
+                print(f"   📍 {rule}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ [خطأ تسجيل الموديول]: {e}")
+        return False
