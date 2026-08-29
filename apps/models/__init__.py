@@ -3,7 +3,6 @@ from apps.extensions import db
 
 from apps.models.supplier_db import Supplier
 from apps.models.admin_db import AdminUser
-from apps.models.marketer_db import Marketer
 from apps.models.admin_staff_db import AdminStaff
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.models.supplier_staff_db import SupplierStaff
@@ -34,7 +33,6 @@ __all__ = [
     'db',
     'AdminStaff',
     'AdminUser',
-    'Marketer',
     'Order',
     'OrderFinancial',
     'OrderItem',
