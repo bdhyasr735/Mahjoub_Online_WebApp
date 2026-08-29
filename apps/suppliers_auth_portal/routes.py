@@ -57,6 +57,7 @@ suppliers_auth_bp = Blueprint(
 # ==================== قبل كل طلب ====================
 @suppliers_auth_bp.before_request
 def before_request():
+    """تهيئة CSRF - بدون إعادة توجيه"""
     if 'csrf_token' not in session:
         session['csrf_token'] = secrets.token_hex(32)
         session['csrf_expiry'] = time.time() + 3600
@@ -310,21 +311,14 @@ def request_otp():
     if not supplier:
         return jsonify({"success": False, "message": "لم يتم العثور على حساب مرتبط بالبيانات المدخلة"}), 404
 
-    otp_code = f"{secrets.randbelow(900000) + 100000}"
-    expiry = datetime.utcnow() + timedelta(seconds=300)
-
-    # حفظ في قاعدة البيانات بدلاً من session
-    otp_record = OTP(
+    # ✅ استخدام النسخة المحسّنة من OTP
+    otp, otp_code = OTP.create_otp(
         identifier=identifier,
-        otp_code=otp_code,
         target_id=supplier.id,
         target_type='supplier',
-        expiry=expiry,
-        attempts=0,
-        is_used=False
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
     )
-    db.session.add(otp_record)
-    db.session.commit()
 
     return jsonify({
         "success": True,
@@ -349,17 +343,16 @@ def reset_password():
     new_password = data.get("new_password", "")
     confirm_password = data.get("confirm_password", "")
 
-    # البحث عن OTP في قاعدة البيانات
-    otp_record = OTP.query.filter_by(
-        otp_code=otp_code,
-        is_used=False
-    ).first()
+    # ✅ استخدام النسخة المحسّنة من OTP
+    otp_record = OTP.get_valid_otp(otp_code)
     
     if not otp_record:
         return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو منتهي الصلاحية"}), 400
-    
-    if not otp_record.is_valid():
-        return jsonify({"success": False, "message": "انتهت صلاحية رمز التحقق"}), 400
+
+    # ✅ التحقق من الرمز
+    result = otp_record.verify(otp_code)
+    if not result['success']:
+        return jsonify({"success": False, "message": result['message']}), 400
 
     if new_password != confirm_password:
         return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين"}), 400
@@ -371,9 +364,6 @@ def reset_password():
     if supplier:
         supplier.password_hash = PasswordHasher.set_password(new_password)
         db.session.commit()
-
-    otp_record.is_used = True
-    db.session.commit()
 
     return jsonify({
         "success": True,
@@ -401,24 +391,21 @@ def verify_otp():
     
     otp_code = data.get("otp_code", "").strip()
     
-    otp_record = OTP.query.filter_by(
-        otp_code=otp_code,
-        is_used=False
-    ).first()
+    # ✅ استخدام النسخة المحسّنة من OTP
+    otp_record = OTP.get_valid_otp(otp_code)
     
     if not otp_record:
-        return jsonify({"success": False, "message": "رمز التحقق غير صحيح"}), 400
+        return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو منتهي الصلاحية"}), 400
     
-    if not otp_record.is_valid():
-        return jsonify({"success": False, "message": "انتهت صلاحية رمز التحقق"}), 400
+    # ✅ التحقق من الرمز
+    result = otp_record.verify(otp_code)
+    if not result['success']:
+        return jsonify({"success": False, "message": result['message']}), 400
     
     supplier = Supplier.query.get(otp_record.target_id)
     if supplier:
         supplier.status = 'verified'
         db.session.commit()
-    
-    otp_record.is_used = True
-    db.session.commit()
     
     return jsonify({
         "success": True,
@@ -435,26 +422,38 @@ def resend_otp():
     if not validate_csrf_token(data.get("csrf_token")):
         return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
     
+    identifier = data.get("identifier", "")
+    
+    if not identifier:
+        return jsonify({"success": False, "message": "المعرف مطلوب"}), 400
+    
     # البحث عن آخر OTP غير مستخدم
     last_otp = OTP.query.filter_by(
-        identifier=data.get('identifier', ''),
+        identifier=identifier,
         is_used=False
     ).first()
     
     if not last_otp:
         return jsonify({"success": False, "message": "لا يوجد طلب نشط لإعادة التعيين"}), 400
     
-    new_otp = f"{secrets.randbelow(900000) + 100000}"
-    last_otp.otp_code = new_otp
-    last_otp.expiry = datetime.utcnow() + timedelta(seconds=300)
-    last_otp.attempts = 0
+    # ✅ إنشاء OTP جديد
+    otp, otp_code = OTP.create_otp(
+        identifier=identifier,
+        target_id=last_otp.target_id,
+        target_type=last_otp.target_type,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+    
+    # ✅ تعطيل الرمز القديم
+    last_otp.is_used = True
     db.session.commit()
     
     return jsonify({
         "success": True,
         "message": "تم إرسال رمز تحقق جديد",
         "data": {
-            "_dev_otp": new_otp
+            "_dev_otp": otp_code
         }
     }), 200
 
