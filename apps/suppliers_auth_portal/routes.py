@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 # apps/suppliers_auth_portal/routes.py
+
 from flask import render_template, request, jsonify, session, redirect, url_for
 from apps.suppliers_auth_portal import suppliers_auth_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
