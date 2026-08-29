@@ -11,6 +11,7 @@ from apps.suppliers_auth_portal.security import (
     check_rate_limit, record_failed_attempt, clear_rate_limit
 )
 from apps.models.supplier_db import Supplier
+from apps.extensions import db
 
 @suppliers_auth_bp.route('/login', methods=['GET'])
 def login_page():
@@ -98,7 +99,8 @@ def register():
                 "redirect_url": url_for('suppliers_auth_bp.verify_page')
             })
         else:
-            return jsonify({"success": False, "message": "حدث خطأ أثناء حفظ بيانات المنشأة."}), 500
+            error_msg = result.get("error") if isinstance(result, dict) else "حدث خطأ أثناء حفظ بيانات المنشأة."
+            return jsonify({"success": False, "message": error_msg}), 400
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -114,8 +116,11 @@ def verify():
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
         otp_code = data.get('otp_code', '').strip()
+        
+        # جلب المعرف أو رقم الهاتف المخزن مؤقتاً في الجلسة للتحقق الفعلي من قاعدة البيانات
+        identifier = session.get('pending_verification_phone') or session.get('supplier_identifier')
 
-        success, message = SupplierPortalRegistry.verify_supplier_otp(otp_code)
+        success, message = SupplierPortalRegistry.verify_supplier_otp(identifier, otp_code)
         if success:
             session['supplier_verified'] = True
             return jsonify({
@@ -182,12 +187,33 @@ def reset_password():
         if not new_password or new_password != confirm_password:
             return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
 
+        identifier = session.get('reset_identifier')
+        if not identifier:
+            return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة محاولة استعادة كلمة المرور."}), 400
+
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
+        supplier_obj = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix) |
+            (Supplier.phone == identifier)
+        ).first()
+
+        if not supplier_obj:
+            return jsonify({"success": False, "message": "المورد غير موجود."}), 404
+
+        # تحديث كلمة المرور الفعليّة في قاعدة البيانات وتشفيرها
+        supplier_obj.set_password(new_password)
+        db.session.commit()
+        session.pop('reset_identifier', None)
+
         return jsonify({
             "success": True,
             "message": "تم تحديث كلمة المرور بنجاح",
             "redirect_url": url_for('suppliers_auth_bp.login_page')
         })
     except Exception as e:
+        db.session.rollback()
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
