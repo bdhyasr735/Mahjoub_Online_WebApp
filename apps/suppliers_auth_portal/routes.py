@@ -1,6 +1,6 @@
-from flask import render_template, request, jsonify, session, redirect
+from flask import render_template, request, jsonify, session, redirect, url_for
 from flask_login import login_user, current_user
-from apps.suppliers_auth_portal import suppliers_bp  # ✅ تم التصحيح
+from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.suppliers_auth_portal.security import (
     validate_phone_number, validate_email,
@@ -13,13 +13,15 @@ from apps.extensions import db
 # ✅ استيراد Registry
 from apps.suppliers_auth_portal.registry import SupplierPortalRegistry
 
-@suppliers_bp.route('/login', methods=['GET'])
-def login_page():
-    seo = SupplierPortalSEOService.get_meta_tags("login")
-    return render_template('suppliers_auth_portal/login.html', seo=seo)
 
-@suppliers_bp.route('/login', methods=['POST'])
+@suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # 🟢 معالجة طلب GET (عرض الصفحة)
+    if request.method == 'GET':
+        seo = SupplierPortalSEOService.get_meta_tags("login")
+        return render_template('suppliers_auth_portal/login.html', seo=seo)
+
+    # 🔴 معالجة طلب POST (تسجيل الدخول)
     try:
         ip = request.remote_addr
         allowed, wait_time = check_rate_limit(ip)
@@ -57,10 +59,11 @@ def login():
             login_user(supplier_obj)
             session['supplier_logged_in'] = True
             session['supplier_identifier'] = identifier
+            
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/supplier/dashboard"
+                "redirect_url": url_for('suppliers_bp.dashboard')
             })
 
         elif user_type == 'employee':
@@ -81,10 +84,11 @@ def login():
             login_user(staff_obj)
             session['supplier_staff_logged_in'] = True
             session['supplier_identifier'] = identifier
+            
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/supplier/dashboard"
+                "redirect_url": url_for('suppliers_bp.dashboard')
             })
 
         else:
@@ -95,13 +99,13 @@ def login():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_bp.route('/register', methods=['GET'])
-def register_page():
-    seo = SupplierPortalSEOService.get_meta_tags("register")
-    return render_template('suppliers_auth_portal/register.html', seo=seo)
 
-@suppliers_bp.route('/register', methods=['POST'])
+@suppliers_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    if request.method == 'GET':
+        seo = SupplierPortalSEOService.get_meta_tags("register")
+        return render_template('suppliers_auth_portal/register.html', seo=seo)
+
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
         
@@ -124,23 +128,24 @@ def register():
                 "success": True,
                 "message": "تم إنشاء طلب التسجيل والمحفظة المالية بنجاح.",
                 "data": result,
-                "redirect_url": "/supplier/verify"
+                "redirect_url": url_for('suppliers_bp.verify')
             })
         else:
             error_msg = result.get("error") if isinstance(result, dict) else "حدث خطأ أثناء حفظ بيانات المنشأة."
             return jsonify({"success": False, "message": error_msg}), 400
+            
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-@suppliers_bp.route('/verify', methods=['GET'])
-def verify_page():
-    seo = SupplierPortalSEOService.get_meta_tags("verify")
-    return render_template('suppliers_auth_portal/verify.html', seo=seo)
 
-@suppliers_bp.route('/verify', methods=['POST'])
+@suppliers_bp.route('/verify', methods=['GET', 'POST'])
 def verify():
+    if request.method == 'GET':
+        seo = SupplierPortalSEOService.get_meta_tags("verify")
+        return render_template('suppliers_auth_portal/verify.html', seo=seo)
+
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
         otp_code = data.get('otp_code', '').strip()
@@ -153,7 +158,7 @@ def verify():
             return jsonify({
                 "success": True,
                 "message": message,
-                "redirect_url": "/supplier/dashboard"
+                "redirect_url": url_for('suppliers_bp.dashboard')
             })
         else:
             return jsonify({"success": False, "message": message}), 400
@@ -162,6 +167,7 @@ def verify():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
+
 @suppliers_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
     return jsonify({
@@ -169,10 +175,12 @@ def resend_otp():
         "message": "تم إرسال رمز تحقق جديد بنجاح إلى هاتفك المسجل."
     })
 
+
 @suppliers_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
     seo = SupplierPortalSEOService.get_meta_tags("forgot_password")
     return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
+
 
 @suppliers_bp.route('/forgot-password/request-otp', methods=['POST'])
 def forgot_password_request_otp():
@@ -199,6 +207,7 @@ def forgot_password_request_otp():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
+
 
 @suppliers_bp.route('/reset-password', methods=['POST'])
 def reset_password():
@@ -236,7 +245,7 @@ def reset_password():
         return jsonify({
             "success": True,
             "message": "تم تحديث كلمة المرور بنجاح",
-            "redirect_url": "/supplier/login"
+            "redirect_url": url_for('suppliers_bp.login')
         })
     except Exception as e:
         db.session.rollback()
@@ -244,8 +253,9 @@ def reset_password():
         traceback.print_exc()
         return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
+
 @suppliers_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    if not current_user.is_authenticated or session.get('user_type') != 'supplier':
-        return redirect("/supplier/login")
+    if not current_user.is_authenticated or session.get('user_type') not in ['supplier', 'supplier_staff']:
+        return redirect(url_for("suppliers_bp.login"))
     return "<h1>لوحة تحكم الموردين الملكية - قيد العرض والتطوير</h1>"
