@@ -26,7 +26,7 @@ def login():
         if not allowed:
             return jsonify({
                 "success": False,
-                "message": f"تم حظر المحاولات مؤقتاً بسبب تجاوز الحد المسموح. يرجى الانتظار {wait_time} ثانية."
+                "message": f"تم حظر المحاولات مؤقتاً. يرجى الانتظار {wait_time} ثانية."
             }), 429
 
         data = request.get_json(force=True, silent=True) or request.form or {}
@@ -35,9 +35,9 @@ def login():
         user_type = data.get('user_type', 'supplier')
 
         if not identifier or not password:
-            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
+            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم وكلمة المرور."}), 400
 
-        # استخراج آخر 9 أرقام للبحث في حقل search_phone لتفادي خطأ التشفير
+        # استخراج آخر 9 أرقام للبحث في حقل search_phone
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
         supplier_obj = Supplier.query.filter(
@@ -46,21 +46,32 @@ def login():
             (Supplier.search_phone == clean_phone_suffix)
         ).first()
 
-        # التحقق من وجود الحساب ووجود كلمة مرور مشفرة وتطابقها
-        if supplier_obj and supplier_obj.password_hash and supplier_obj.check_password(password):
-            clear_rate_limit(ip)
-            session['user_type'] = 'supplier'
-            login_user(supplier_obj)
-            session['supplier_logged_in'] = True
-            session['supplier_identifier'] = identifier
+        # ✅ الحالة 1: المستخدم غير مسجل
+        if not supplier_obj:
             return jsonify({
-                "success": True,
-                "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/suppliers/dashboard"
-            })
-        else:
+                "success": False,
+                "message": "اسم المستخدم غير مسجل"
+            }), 404
+
+        # ✅ الحالة 2: كلمة المرور غير صحيحة
+        if not supplier_obj.check_password(password):
             record_failed_attempt(ip)
-            return jsonify({"success": False, "message": "بيانات الاعتماد غير صحيحة. يرجى التحقق."}), 401
+            return jsonify({
+                "success": False,
+                "message": "كلمة المرور غير صحيحة"
+            }), 401
+
+        # ✅ الحالة 3: تسجيل الدخول بنجاح
+        clear_rate_limit(ip)
+        session['user_type'] = 'supplier'
+        login_user(supplier_obj)
+        session['supplier_logged_in'] = True
+        session['supplier_identifier'] = identifier
+        return jsonify({
+            "success": True,
+            "message": "تم تسجيل الدخول بنجاح",
+            "redirect_url": "/suppliers/dashboard"
+        })
             
     except Exception as e:
         import traceback
@@ -117,7 +128,6 @@ def verify():
         data = request.get_json(force=True, silent=True) or request.form or {}
         otp_code = data.get('otp_code', '').strip()
         
-        # جلب المعرف أو رقم الهاتف المخزن مؤقتاً في الجلسة للتحقق الفعلي من قاعدة البيانات
         identifier = session.get('pending_verification_phone') or session.get('supplier_identifier')
 
         success, message = SupplierPortalRegistry.verify_supplier_otp(identifier, otp_code)
@@ -202,7 +212,6 @@ def reset_password():
         if not supplier_obj:
             return jsonify({"success": False, "message": "المورد غير موجود."}), 404
 
-        # تحديث كلمة المرور الفعليّة في قاعدة البيانات وتشفيرها
         supplier_obj.set_password(new_password)
         db.session.commit()
         session.pop('reset_identifier', None)
