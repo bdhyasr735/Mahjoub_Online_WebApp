@@ -28,7 +28,7 @@ def login():
                 "message": f"تم حظر المحاولات مؤقتاً بسبب تجاوز الحد المسموح. يرجى الانتظار {wait_time} ثانية."
             }), 429
 
-        data = request.get_json(silent=True) or request.form or {}
+        data = request.get_json(force=True, silent=True) or request.form or {}
         identifier = data.get('identifier', '').strip()
         password = data.get('password', '')
         user_type = data.get('user_type', 'supplier')
@@ -69,31 +69,36 @@ def register_page():
 
 @suppliers_auth_bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json(silent=True) or request.form or {}
-    
-    required_fields = ['company_name', 'full_address', 'owner_name', 'email', 'phone', 'password']
-    for field in required_fields:
-        if not data.get(field):
-            return jsonify({"success": False, "message": f"يرجى استكمال الحقل الإلزامي: {field}"}), 400
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        
+        required_fields = ['company_name', 'full_address', 'owner_name', 'email', 'phone', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"success": False, "message": f"يرجى استكمال الحقل الإلزامي: {field}"}), 400
 
-    if not validate_email(data.get('email')):
-        return jsonify({"success": False, "message": "صيغة البريد الإلكتروني غير صالحة."}), 400
+        if not validate_email(data.get('email')):
+            return jsonify({"success": False, "message": "صيغة البريد الإلكتروني غير صالحة."}), 400
 
-    if not validate_phone_number(data.get('phone')):
-        return jsonify({"success": False, "message": "صيغة رقم الجوال غير صحيحة."}), 400
+        if not validate_phone_number(data.get('phone')):
+            return jsonify({"success": False, "message": "صيغة رقم الجوال غير صحيحة."}), 400
 
-    success, result = SupplierPortalRegistry.register_new_supplier(data)
-    
-    if success:
-        session['pending_verification_phone'] = data.get('phone')
-        return jsonify({
-            "success": True,
-            "message": "تم إنشاء طلب التسجيل والمحفظة المالية بنجاح.",
-            "data": result,
-            "redirect_url": url_for('suppliers_auth_bp.verify_page')
-        })
-    else:
-        return jsonify({"success": False, "message": "حدث خطأ أثناء حفظ بيانات المنشأة."}), 500
+        success, result = SupplierPortalRegistry.register_new_supplier(data)
+        
+        if success:
+            session['pending_verification_phone'] = data.get('phone')
+            return jsonify({
+                "success": True,
+                "message": "تم إنشاء طلب التسجيل والمحفظة المالية بنجاح.",
+                "data": result,
+                "redirect_url": url_for('suppliers_auth_bp.verify_page')
+            })
+        else:
+            return jsonify({"success": False, "message": "حدث خطأ أثناء حفظ بيانات المنشأة."}), 500
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/verify', methods=['GET'])
 def verify_page():
@@ -102,19 +107,24 @@ def verify_page():
 
 @suppliers_auth_bp.route('/verify', methods=['POST'])
 def verify():
-    data = request.get_json(silent=True) or request.form or {}
-    otp_code = data.get('otp_code', '').strip()
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        otp_code = data.get('otp_code', '').strip()
 
-    success, message = SupplierPortalRegistry.verify_supplier_otp(otp_code)
-    if success:
-        session['supplier_verified'] = True
-        return jsonify({
-            "success": True,
-            "message": message,
-            "redirect_url": url_for('suppliers_auth_bp.dashboard')
-        })
-    else:
-        return jsonify({"success": False, "message": message}), 400
+        success, message = SupplierPortalRegistry.verify_supplier_otp(otp_code)
+        if success:
+            session['supplier_verified'] = True
+            return jsonify({
+                "success": True,
+                "message": message,
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+        else:
+            return jsonify({"success": False, "message": message}), 400
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/resend-otp', methods=['POST'])
 def resend_otp():
@@ -130,43 +140,53 @@ def forgot_password_page():
 
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 def forgot_password_request_otp():
-    data = request.get_json(silent=True) or request.form or {}
-    identifier = data.get('identifier', '').strip()
-    
-    if not identifier:
-        return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        identifier = data.get('identifier', '').strip()
+        
+        if not identifier:
+            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
 
-    mock_otp = "123456"
-    session['reset_identifier'] = identifier
-    
-    return jsonify({
-        "success": True,
-        "otp_sent": True,
-        "message": "تم إرسال رمز التحقق بنجاح.",
-        "data": {
-            "masked_phone": identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89",
-            "_dev_otp": mock_otp
-        }
-    })
+        mock_otp = "123456"
+        session['reset_identifier'] = identifier
+        
+        return jsonify({
+            "success": True,
+            "otp_sent": True,
+            "message": "تم إرسال رمز التحقق بنجاح.",
+            "data": {
+                "masked_phone": identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89",
+                "_dev_otp": mock_otp
+            }
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    data = request.get_json(silent=True) or request.form or {}
-    otp_code = data.get('otp_code', '').strip()
-    new_password = data.get('new_password', '')
-    confirm_password = data.get('confirm_password', '')
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        otp_code = data.get('otp_code', '').strip()
+        new_password = data.get('new_password', '')
+        confirm_password = data.get('confirm_password', '')
 
-    if otp_code != "123456":
-        return jsonify({"success": False, "message": "رمز التحقق غير صحيح."}), 400
+        if otp_code != "123456":
+            return jsonify({"success": False, "message": "رمز التحقق غير صحيح."}), 400
 
-    if not new_password or new_password != confirm_password:
-        return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
+        if not new_password or new_password != confirm_password:
+            return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
 
-    return jsonify({
-        "success": True,
-        "message": "تم تحديث كلمة المرور بنجاح",
-        "redirect_url": url_for('suppliers_auth_bp.login_page')
-    })
+        return jsonify({
+            "success": True,
+            "message": "تم تحديث كلمة المرور بنجاح",
+            "redirect_url": url_for('suppliers_auth_bp.login_page')
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
