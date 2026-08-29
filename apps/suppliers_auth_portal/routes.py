@@ -14,28 +14,18 @@ import secrets
 import time
 import traceback
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, g
+from flask import render_template, request, jsonify, session, redirect, url_for, g
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
 from apps.models.otp_db import OTP
 
-# ✅ استيراد أدوات الأمان من نفس المجلد
+# ✅ استيراد الكائن المشترك من الحزمة لتجنب التكرار والتضارب
+from . import suppliers_auth_bp
 from .security import PasswordHasher, CSRFProtector
 
-print("✅ [DEBUG] All imports completed in routes.py")
-
-# ==================== Blueprint ====================
-suppliers_auth_bp = Blueprint(
-    'suppliers_auth_bp',
-    __name__,
-    url_prefix='/suppliers',
-    template_folder='templates',
-    static_folder='static'
-)
-
-print(f"✅ [DEBUG] Blueprint created: {suppliers_auth_bp.name}")
+print(f"✅ [DEBUG] Blueprint imported successfully: {suppliers_auth_bp.name}")
 
 # ==================== قبل كل طلب ====================
 @suppliers_auth_bp.before_request
