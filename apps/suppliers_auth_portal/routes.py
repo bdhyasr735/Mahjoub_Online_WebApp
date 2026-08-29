@@ -46,7 +46,8 @@ def login():
         # استخراج آخر 9 أرقام للبحث في حقل search_phone
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
-        supplier_obj = Supplier.query.filter(
+        # ✅ البحث باستخدام db.session.query
+        supplier_obj = db.session.query(Supplier).filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) |
             (Supplier.search_phone == clean_phone_suffix)
@@ -208,7 +209,7 @@ def reset_password():
             return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة محاولة استعادة كلمة المرور."}), 400
 
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
-        supplier_obj = Supplier.query.filter(
+        supplier_obj = db.session.query(Supplier).filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) |
             (Supplier.search_phone == clean_phone_suffix) |
