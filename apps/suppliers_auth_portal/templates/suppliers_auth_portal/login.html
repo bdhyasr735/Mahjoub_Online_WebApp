@@ -70,7 +70,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-medium text-slate-300">كلمة المرور</label>
-                    <a href="/suppliers/forgot-password" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <a href="/supplier/forgot-password" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -114,7 +114,7 @@
         <!-- رابط التسجيل للموردين الجدد -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="/suppliers/register" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="/supplier/register" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب واشتراك مورد جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -221,7 +221,7 @@
         };
 
         try {
-            const response = await fetch("/suppliers/login", {
+            const response = await fetch("/supplier/login", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -243,7 +243,7 @@
             if (response.ok && data.success) {
                 showAlert('تمت المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/suppliers/dashboard';
+                    window.location.href = data.redirect_url || '/supplier/dashboard';
                 }, 1000);
             } else {
                 failedAttempts++;
