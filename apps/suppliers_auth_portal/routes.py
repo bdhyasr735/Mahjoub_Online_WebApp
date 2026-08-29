@@ -34,9 +34,16 @@ suppliers_auth_bp = Blueprint(
 @suppliers_auth_bp.before_request
 def before_request():
     """تهيئة CSRF - بدون إعادة توجيه"""
+    # ✅ Debug
+    print(f"🔍 [BEFORE_REQUEST] Path: {request.path}")
+    print(f"🔍 [BEFORE_REQUEST] Session: {dict(session)}")
+    
     if 'csrf_token' not in session:
         CSRFProtector.generate_token()
+        print(f"🔍 [BEFORE_REQUEST] تم إنشاء CSRF Token جديد")
+    
     g.csrf_token = session.get('csrf_token')
+    print(f"🔍 [BEFORE_REQUEST] g.csrf_token: {g.csrf_token}")
 
 
 def validate_csrf_token(token):
@@ -47,19 +54,27 @@ def validate_csrf_token(token):
 # ==================== الصفحة الرئيسية ====================
 @suppliers_auth_bp.route('/')
 def index():
+    print(f"🔍 [INDEX] Redirecting to login")
     return redirect(url_for('suppliers_auth_bp.login'))
 
 
 # ==================== تسجيل الدخول ====================
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # ✅ Debug
+    print(f"🔍 [LOGIN] Called with method: {request.method}")
+    print(f"🔍 [LOGIN] Session: {dict(session)}")
+    print(f"🔍 [LOGIN] Headers Accept: {request.headers.get('Accept', '')}")
+    
     if request.method == 'GET':
+        print(f"🔍 [LOGIN] Rendering login.html")
         return render_template(
             'suppliers_auth_portal/login.html',
             csrf_token=CSRFProtector.get_token()
         )
 
     data = request.get_json() if request.is_json else request.form
+    print(f"🔍 [LOGIN] POST data: {data}")
     
     identifier = (data.get("identifier") or data.get("username") or data.get("email") or data.get("phone", "")).strip()
     password = data.get("password", "")
@@ -156,6 +171,7 @@ def login():
 # ==================== عرض صفحة التسجيل ====================
 @suppliers_auth_bp.route('/register-page', methods=['GET'])
 def register_page():
+    print(f"🔍 [REGISTER_PAGE] Rendering register.html")
     return render_template(
         'suppliers_auth_portal/register.html',
         csrf_token=CSRFProtector.get_token()
@@ -249,6 +265,7 @@ def register():
 # ==================== صفحة استعادة كلمة المرور ====================
 @suppliers_auth_bp.route('/forgot-password-page', methods=['GET'])
 def forgot_password_page():
+    print(f"🔍 [FORGOT_PASSWORD_PAGE] Rendering forgot_password.html")
     return render_template(
         'suppliers_auth_portal/forgot_password.html',
         csrf_token=CSRFProtector.get_token()
@@ -336,6 +353,7 @@ def reset_password():
 # ==================== صفحة التحقق ====================
 @suppliers_auth_bp.route('/verify-page', methods=['GET'])
 def verify_page():
+    print(f"🔍 [VERIFY_PAGE] Rendering verify.html")
     return render_template(
         'suppliers_auth_portal/verify.html',
         csrf_token=CSRFProtector.get_token()
@@ -417,6 +435,7 @@ def resend_otp():
 # ==================== تسجيل الخروج ====================
 @suppliers_auth_bp.route('/logout', methods=['POST', 'GET'])
 def logout():
+    print(f"🔍 [LOGOUT] Clearing session")
     session.clear()
     return redirect(url_for('suppliers_auth_bp.login'))
 
@@ -424,8 +443,11 @@ def logout():
 # ==================== لوحة التحكم ====================
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
+    print(f"🔍 [DASHBOARD] Session: {dict(session)}")
     if 'user_id' not in session:
+        print(f"🔍 [DASHBOARD] No user_id, redirecting to login")
         return redirect(url_for('suppliers_auth_bp.login'))
+    
     return jsonify({
         "message": "مرحباً بك في لوحة التحكم",
         "user_id": session.get('user_id'),
