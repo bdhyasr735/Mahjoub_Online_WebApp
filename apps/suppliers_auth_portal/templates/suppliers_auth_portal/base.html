@@ -188,7 +188,7 @@
     <header class="w-full border-b border-royalGold/20 bg-royalDark/90 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <!-- الشعار -->
-            <a href="{{ url_for('suppliers_auth_bp.login_page') }}" class="flex items-center gap-3 group">
+            <a href="/supplier/login" class="flex items-center gap-3 group">
                 <div class="w-12 h-12 rounded-xl bg-[#05020a] border border-royalGold/40 p-1 flex items-center justify-center shadow-lg group-hover:border-royalGold transition-all overflow-hidden">
                     <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp"
                          alt="محجوب أونلاين - سوقك الذكي"
@@ -205,13 +205,13 @@
 
             <!-- التنقل -->
             <nav class="hidden md:flex items-center gap-4 text-sm font-medium">
-                <a href="{{ url_for('suppliers_auth_bp.login_page') }}" class="nav-link px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
+                <a href="/supplier/login" class="nav-link px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
                     تسجيل الدخول
                 </a>
-                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="nav-link px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
+                <a href="/supplier/register" class="nav-link px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
                     اشتراك مورد جديد
                 </a>
-                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="nav-link px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
+                <a href="/supplier/forgot-password" class="nav-link px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
                     استعادة كلمة المرور
                 </a>
             </nav>
@@ -227,9 +227,9 @@
         <!-- القائمة المتنقلة -->
         <div id="mobileMenu" class="hidden md:hidden bg-royalDark/95 border-t border-royalGold/20 py-4 px-4">
             <div class="flex flex-col gap-3 text-sm">
-                <a href="{{ url_for('suppliers_auth_bp.login_page') }}" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">تسجيل الدخول</a>
-                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">اشتراك مورد جديد</a>
-                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition">استعادة كلمة المرور</a>
+                <a href="/supplier/login" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">تسجيل الدخول</a>
+                <a href="/supplier/register" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">اشتراك مورد جديد</a>
+                <a href="/supplier/forgot-password" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition">استعادة كلمة المرور</a>
             </div>
         </div>
     </header>
