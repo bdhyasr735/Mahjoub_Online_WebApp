@@ -17,6 +17,7 @@ class Supplier(db.Model, UserMixin):
     # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
     __table_args__ = (
         db.Index('idx_sup_username', 'username'),
+        db.Index('idx_sup_email', 'email'),
         db.Index('idx_sup_code', 'supplier_code'),
         db.Index('idx_sup_trade', 'trade_name'),
         db.Index('idx_sup_store', 'store_name'),
@@ -30,10 +31,11 @@ class Supplier(db.Model, UserMixin):
     # المعرفات الأساسية
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)  # ✅ حقل البريد الإلكتروني المضاف لتوافق التسجيل
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
-    store_name = db.Column(db.String(150), nullable=True)  # ✅ حقل اسم المتجر الجديد مضافاً مع الفهرسة
+    store_name = db.Column(db.String(150), nullable=True)  # ✅ حقل اسم المتجر الجديد
     
     # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
     _phone_enc = db.Column(db.String(255), nullable=False) 
@@ -55,7 +57,7 @@ class Supplier(db.Model, UserMixin):
     
     financials = db.relationship('OrderFinancial', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
-    # الربط مع الموظفين (يستخدم الاسم النصي لتجنب التكرار والتضارب)
+    # الربط مع الموظفين
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
     # ✅ الربط مع منتجات قمرة (ProductSupplierMapping)
@@ -91,6 +93,7 @@ class Supplier(db.Model, UserMixin):
         return {
             'id': self.id,
             'username': self.username,
+            'email': self.email,
             'supplier_code': self.supplier_code,
             'owner_name': self.owner_name,
             'trade_name': self.trade_name,
@@ -106,21 +109,19 @@ class Supplier(db.Model, UserMixin):
         return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
 
 
-# --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) بمعرف ديناميكي دقيق ---
+# --- المحرك التلقائي لضبط الأكواد النمطية المتطابقة (SUP-963X و WEL-963X) ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً بناءً على الـ id الديناميكي."""
+    """توليد الكود البصري للمورد (SUP-963X) وتحديث محفظته المقابلة بنفس الرقم (WEL-963X) تلقائياً."""
     from apps.models.wallet_db import SupplierWallet
     
     new_supplier_code = f"SUP-963{target.id}"
     new_wallet_code = f"WEL-963{target.id}"
     
-    # 1. تحديث كود المورد بالمعرف الديناميكي
     connection.execute(
         update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_supplier_code)
     )
     
-    # 2. تحديث كود المحفظة المرتبطة به ليكون مطابقاً تماماً في الرقم ومتبيناً في البادئة
     connection.execute(
         update(SupplierWallet).where(SupplierWallet.supplier_id == target.id).values(wallet_code=new_wallet_code)
     )
