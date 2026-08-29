@@ -221,7 +221,7 @@
         };
 
         try {
-            const response = await fetch("/supplier/login", {
+            const response = await fetch("{{ url_for('suppliers_auth_portal.login') if 'suppliers_auth_portal.login' in config.get('SERVER_NAME', '') else '/supplier/login' }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
