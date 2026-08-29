@@ -6,6 +6,7 @@ import string
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
+from apps.models.otp_db import OTP
 
 class SupplierPortalRegistry:
     @staticmethod
@@ -65,12 +66,21 @@ class SupplierPortalRegistry:
     @staticmethod
     def verify_supplier_otp(identifier, otp_code):
         """
-        التحقق من رمز OTP وتفعيل حساب المورد.
+        التحقق من رمز OTP الحقيقي عبر نموذج قاعدة البيانات OTP وتفعيل حساب المورد.
         """
-        if otp_code != "123456":
-            return False, "رمز التحقق غير صحيح."
-
         try:
+            # التحقق باستخدام جدول قاعدة البيانات OTP الفعلي
+            otp_obj = OTP.get_valid_otp(otp_code, identifier)
+            if not otp_obj:
+                otp_obj = OTP.get_valid_otp(otp_code)
+
+            if not otp_obj:
+                return False, "رمز التحقق غير صحيح أو انتهت صلاحيته."
+
+            verification_result = otp_obj.verify(otp_code)
+            if not verification_result.get("success"):
+                return False, verification_result.get("message", "رمز التحقق غير صالح.")
+
             clean_phone = identifier[-9:] if identifier and identifier.isdigit() else identifier
             supplier = Supplier.query.filter(
                 (Supplier.phone == identifier) | 
@@ -80,7 +90,7 @@ class SupplierPortalRegistry:
             ).first()
 
             if not supplier:
-                return False, "لم يتم العثور على حساب مرتبط بهذا البيانات."
+                return False, "لم يتم العثور على حساب مرتبط بهذه البيانات."
 
             supplier.status = 'active'
             db.session.commit()
