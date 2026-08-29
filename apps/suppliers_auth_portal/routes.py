@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # apps/suppliers_auth_portal/routes.py
 
-from flask import render_template, request, jsonify, session, redirect, url_for
+from flask import render_template, request, jsonify, session, redirect
 from flask_login import login_user, current_user
 from apps.suppliers_auth_portal import suppliers_auth_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
@@ -56,8 +56,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                # توجيه المورد مباشرة إلى لوحة التحكم (Dashboard) بعد تسجيل الدخول بنجاح
-                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+                "redirect_url": "/suppliers/dashboard"
             })
         else:
             record_failed_attempt(ip)
@@ -97,7 +96,7 @@ def register():
                 "success": True,
                 "message": "تم إنشاء طلب التسجيل والمحفظة المالية بنجاح.",
                 "data": result,
-                "redirect_url": url_for('suppliers_auth_bp.verify_page')
+                "redirect_url": "/suppliers/verify"
             })
         else:
             error_msg = result.get("error") if isinstance(result, dict) else "حدث خطأ أثناء حفظ بيانات المنشأة."
@@ -127,8 +126,7 @@ def verify():
             return jsonify({
                 "success": True,
                 "message": message,
-                # توجيه المورد إلى لوحة التحكم (Dashboard) مباشرةً بعد إتمام التحقق بنجاح
-                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+                "redirect_url": "/suppliers/dashboard"
             })
         else:
             return jsonify({"success": False, "message": message}), 400
@@ -212,7 +210,7 @@ def reset_password():
         return jsonify({
             "success": True,
             "message": "تم تحديث كلمة المرور بنجاح",
-            "redirect_url": url_for('suppliers_auth_bp.login_page')
+            "redirect_url": "/suppliers/login"
         })
     except Exception as e:
         db.session.rollback()
@@ -223,5 +221,5 @@ def reset_password():
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 def dashboard():
     if not current_user.is_authenticated or session.get('user_type') != 'supplier':
-        return redirect(url_for('suppliers_auth_bp.login_page'))
+        return redirect("/suppliers/login")
     return "<h1>لوحة تحكم الموردين الملكية - قيد العرض والتطوير</h1>"
