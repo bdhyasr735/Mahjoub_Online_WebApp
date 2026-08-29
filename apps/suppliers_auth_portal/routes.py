@@ -96,11 +96,9 @@ def login():
                 (SupplierStaff.search_phone == str(identifier)[-9:])
             ).first()
             
-            # التحقق مما إذا كان الحساب غير موجود أصلاً
             if not staff:
                 return jsonify({"success": False, "message": "عذراً، هذا الحساب غير مسجل لدينا"}), 404
             
-            # التحقق من صحة كلمة المرور
             if not staff.check_password(password):
                 return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
 
@@ -143,11 +141,9 @@ def login():
             (Supplier.search_phone == str(identifier)[-9:])
         ).first()
         
-        # التحقق مما إذا كان المورد غير موجود أصلاً في قاعدة البيانات
         if not supplier:
             return jsonify({"success": False, "message": "عذراً، هذا الحساب غير مسجل لدينا"}), 404
         
-        # التحقق من صحة كلمة المرور للمورد
         if not PasswordHasher.check_password(password, supplier.password_hash):
             return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
 
@@ -493,42 +489,6 @@ def logout():
     print(f"🔍 [LOGOUT] Clearing session")
     session.clear()
     return redirect(url_for('suppliers_auth_bp.login'))
-
-# ==================== لوحة التحكم ====================
-@suppliers_auth_bp.route('/dashboard', methods=['GET'])
-def dashboard():
-    try:
-        print(f"🔍 [DASHBOARD] Session: {dict(session)}")
-        user_id = session.get('user_id')
-        user_type = session.get('user_type')
-        
-        if not user_id or user_type not in ['supplier', 'employee']:
-            print(f"🔍 [DASHBOARD] Unauthorized or missing session, redirecting to login")
-            session.clear()
-            return redirect(url_for('suppliers_auth_bp.login'))
-        
-        current_user = None
-        if user_type == 'supplier':
-            current_user = Supplier.query.get(user_id)
-        elif user_type == 'employee':
-            current_user = SupplierStaff.query.get(user_id)
-            
-        if not current_user or getattr(current_user, 'status', 'active') != 'active':
-            print(f"🔍 [DASHBOARD] User not found or inactive, clearing session")
-            session.clear()
-            return redirect(url_for('suppliers_auth_bp.login'))
-        
-        return jsonify({
-            "message": "مرحباً بك في لوحة تحكم الموردين والموظفين",
-            "user_id": current_user.id,
-            "user_type": user_type,
-            "name": getattr(current_user, 'trade_name', None) or getattr(current_user, 'full_name', None)
-        }), 200
-        
-    except Exception as e:
-        print(f"❌ [DASHBOARD] Error: {e}")
-        traceback.print_exc()
-        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 # ==================== طباعة رسالة التأكيد ====================
 print("=" * 60)
