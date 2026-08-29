@@ -1,10 +1,9 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/__init__.py
 
-"""
-📦 تطبيق بوابة الموردين وموظفيهم
-مسؤول عن تسجيل الدخول، التسجيل، استعادة كلمة المرور، والتحقق
-"""
+print("=" * 50)
+print("🚀 [DEBUG] suppliers_auth_portal/__init__.py is being loaded!")
+print("=" * 50)
 
 from flask import Blueprint
 
@@ -20,8 +19,12 @@ suppliers_auth_bp = Blueprint(
     static_folder='static'
 )
 
+print(f"✅ [DEBUG] Blueprint created: {suppliers_auth_bp.name}")
+
 # ==================== استيراد المسارات ====================
 from . import routes
+
+print(f"✅ [DEBUG] Routes imported successfully")
 
 # ==================== التصدير ====================
 __all__ = [
