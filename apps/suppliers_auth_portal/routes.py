@@ -316,6 +316,9 @@ def request_otp():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
+        
+        # ✅ حفظ المعرف في الجلسة لضمان نجاح إعادة الإرسال لاحقاً
+        session['otp_identifier'] = identifier
 
         return jsonify({
             "success": True,
@@ -435,15 +438,16 @@ def resend_otp():
         if not validate_csrf_token(data.get("csrf_token")):
             return jsonify({"success": False, "message": "طلب غير مصرح به (CSRF)"}), 403
         
-        identifier = data.get("identifier", "")
+        # محاولة جلب المعرف من الطلب، أو من الجلسة كخيار احتياطي لضمان عدم الفشل
+        identifier = data.get("identifier") or session.get('otp_identifier')
         
         if not identifier:
-            return jsonify({"success": False, "message": "المعرف مطلوب"}), 400
+            return jsonify({"success": False, "message": "المعرف مطلوب، يرجى إعادة محاولة تسجيل الدخول أو الاستعادة"}), 400
         
         last_otp = OTP.query.filter_by(
             identifier=identifier,
             is_used=False
-        ).first()
+        ).order_by(OTP.created_at.desc()).first()
         
         if not last_otp:
             return jsonify({"success": False, "message": "لا يوجد طلب نشط لإعادة التعيين"}), 400
@@ -461,7 +465,7 @@ def resend_otp():
         
         return jsonify({
             "success": True,
-            "message": "تم إرسال رمز تحقق جديد",
+            "message": "تم إرسال رمز تحقق جديد بنجاح",
             "data": {
                 "_dev_otp": otp_code
             }
