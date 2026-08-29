@@ -1,305 +1,227 @@
-{% extends "suppliers_auth_portal/base.html" %}
+# -*- coding: utf-8 -*-
+# apps/suppliers_auth_portal/routes.py
 
-{% block title %}اشتراك مورد جديد وإنشاء المحفظة المالية | المنظومة الملكية{% endblock %}
+from flask import render_template, request, jsonify, session, redirect, url_for
+from flask_login import login_user, current_user
+from apps.suppliers_auth_portal import suppliers_auth_bp
+from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
+from apps.suppliers_auth_portal.registry import SupplierPortalRegistry
+from apps.suppliers_auth_portal.security import (
+    validate_phone_number, validate_email, 
+    check_rate_limit, record_failed_attempt, clear_rate_limit
+)
+from apps.models.supplier_db import Supplier
+from apps.extensions import db
 
-{% block content %}
-<div class="w-full max-w-3xl mx-auto my-4">
-    <!-- بطاقة اشتراك مورد جديد -->
-    <div class="bg-royalSurface/95 border border-royalGold/30 rounded-2xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl royal-border relative">
-        <div class="absolute -top-24 right-1/4 w-80 h-32 bg-royalGold/15 blur-3xl rounded-full pointer-events-none"></div>
+@suppliers_auth_bp.route('/login', methods=['GET'])
+def login_page():
+    seo = SupplierPortalSEOService.get_meta_tags("login")
+    return render_template('suppliers_auth_portal/login.html', seo=seo)
 
-        <!-- ترويسة النموذج مع الشعار الرسمي وتنويه الحوكمة -->
-        <div class="text-center mb-6 pb-6 border-b border-royalGold/20 relative z-10">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#05020a] border-2 border-royalGold/50 p-2 mb-3 shadow-xl overflow-hidden">
-                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
-                     alt="محجوب أونلاين - سوقك الذكي"
-                     class="w-full h-full object-contain">
-            </div>
-            <h2 class="text-2xl sm:text-3xl font-black gold-gradient-text">
-                محجوب أونلاين
-                <span class="text-xs px-2.5 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30 align-middle mr-1.5 font-normal">سوقك الذكي</span>
-            </h2>
-            <p class="text-xs sm:text-sm text-royalGold/80 font-semibold mt-1">منصة اللامركزية لحوكمة التجارة اليمنية</p>
-            <p class="text-xs text-slate-400 mt-1">طلب اشتراك مورد جديد • توثيق العنوان الكامل • لوحة تحكم مجانية بالكامل</p>
+@suppliers_auth_bp.route('/login', methods=['POST'])
+def login():
+    try:
+        ip = request.remote_addr
+        allowed, wait_time = check_rate_limit(ip)
+        if not allowed:
+            return jsonify({
+                "success": False,
+                "message": f"تم حظر المحاولات مؤقتاً بسبب تجاوز الحد المسموح. يرجى الانتظار {wait_time} ثانية."
+            }), 429
 
-            <!-- تنويه الحوكمة والتسعير -->
-            <div class="mt-4 p-3.5 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-xs text-amber-200 text-right leading-relaxed">
-                <strong class="text-royalGoldLight block font-bold mb-0.5">ميثاق حوكمة الأسعار وسعر التكلفة:</strong>
-                للعلّم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
-            </div>
-        </div>
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        identifier = data.get('identifier', '').strip()
+        password = data.get('password', '')
+        user_type = data.get('user_type', 'supplier')
 
-        <!-- رسالة التنبيه -->
-        <div id="alertBox" class="hidden mb-6 p-4 rounded-xl text-xs flex items-center gap-3"></div>
+        if not identifier or not password:
+            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
-        <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-8 relative z-10">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
+        # استخراج آخر 9 أرقام للبحث في حقل search_phone لتفادي خطأ التشفير
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
-            <!-- القسم 1: بيانات المنشأة والسجل التجاري -->
-            <div class="space-y-4">
-                <div class="flex items-center gap-2 text-royalGold text-sm font-bold border-b border-royalGold/20 pb-2">
-                    <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">١</span>
-                    <span>بيانات المنشأة والتراخيص الرسمية</span>
-                </div>
+        supplier_obj = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix)
+        ).first()
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المنشأة أو الشركة الرسمي *</label>
-                        <input type="text" name="company_name" required placeholder="مثال: شركة الركائز المتطورة للتوريد"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
-                    </div>
+        # التحقق من وجود الحساب ووجود كلمة مرور مشفرة وتطابقها
+        if supplier_obj and supplier_obj.password_hash and supplier_obj.check_password(password):
+            clear_rate_limit(ip)
+            session['user_type'] = 'supplier'
+            login_user(supplier_obj)
+            session['supplier_logged_in'] = True
+            session['supplier_identifier'] = identifier
+            return jsonify({
+                "success": True,
+                "message": "تم تسجيل الدخول بنجاح",
+                # توجيه المورد مباشرة إلى لوحة التحكم (Dashboard) بعد تسجيل الدخول بنجاح
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+        else:
+            record_failed_attempt(ip)
+            return jsonify({"success": False, "message": "بيانات الاعتماد غير صحيحة. يرجى التحقق."}), 401
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">مجال ونشاط التوريد</label>
-                        <select name="category" class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
-                            <option value="تجهيزات صناعية وتقنية">تجهيزات صناعية وتقنية</option>
-                            <option value="مواد بناء ومقاولات">مواد بناء ومقاولات</option>
-                            <option value="أجهزة ومعدات طبية">أجهزة ومعدات طبية</option>
-                            <option value="أغذية وسلع استهلاكية">أغذية وسلع استهلاكية</option>
-                            <option value="خدمات لوجستية وشحن">خدمات لوجستية وشحن</option>
-                            <option value="تقنية معلومات وبرمجيات">تقنية معلومات وبرمجيات</option>
-                        </select>
-                    </div>
+@suppliers_auth_bp.route('/register', methods=['GET'])
+def register_page():
+    seo = SupplierPortalSEOService.get_meta_tags("register")
+    return render_template('suppliers_auth_portal/register.html', seo=seo)
 
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">العنوان الكامل *</label>
-                        <input type="text" name="full_address" required placeholder="مثال: الحديدة، الخوخة، الشارع العام"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
-                    </div>
-                </div>
-            </div>
+@suppliers_auth_bp.route('/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        
+        required_fields = ['company_name', 'full_address', 'owner_name', 'email', 'phone', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"success": False, "message": f"يرجى استكمال الحقل الإلزامي: {field}"}), 400
 
-            <!-- القسم 2: بيانات المالك والمفوض الإداري -->
-            <div class="space-y-4">
-                <div class="flex items-center gap-2 text-royalGold text-sm font-bold border-b border-royalGold/20 pb-2">
-                    <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">٢</span>
-                    <span>بيانات المالك والمفوض الإداري</span>
-                </div>
+        if not validate_email(data.get('email')):
+            return jsonify({"success": False, "message": "صيغة البريد الإلكتروني غير صالحة."}), 400
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المفوض الرسمي الكامل *</label>
-                        <input type="text" name="owner_name" required placeholder="الاسم الثلاثي أو الرباعي"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
-                    </div>
+        if not validate_phone_number(data.get('phone')):
+            return jsonify({"success": False, "message": "صيغة رقم الجوال غير صحيحة."}), 400
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">البريد الإلكتروني المعتمد *</label>
-                        <input type="email" name="email" required placeholder="contact@company.ye"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold dir-ltr text-right">
-                    </div>
+        success, result = SupplierPortalRegistry.register_new_supplier(data)
+        
+        if success:
+            session['pending_verification_phone'] = data.get('phone')
+            return jsonify({
+                "success": True,
+                "message": "تم إنشاء طلب التسجيل والمحفظة المالية بنجاح.",
+                "data": result,
+                "redirect_url": url_for('suppliers_auth_bp.verify_page')
+            })
+        else:
+            error_msg = result.get("error") if isinstance(result, dict) else "حدث خطأ أثناء حفظ بيانات المنشأة."
+            return jsonify({"success": False, "message": error_msg}), 400
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">رقم جوال المفوض (لرمز التحقق) *</label>
-                        <input type="tel" name="phone" required placeholder="+9677xxxxxxxx"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold dir-ltr text-right font-mono">
-                    </div>
-                </div>
-            </div>
+@suppliers_auth_bp.route('/verify', methods=['GET'])
+def verify_page():
+    seo = SupplierPortalSEOService.get_meta_tags("verify")
+    return render_template('suppliers_auth_portal/verify.html', seo=seo)
 
-            <!-- القسم 3: كلمة المرور والأمان -->
-            <div class="space-y-4">
-                <div class="flex items-center gap-2 text-royalGold text-sm font-bold border-b border-royalGold/20 pb-2">
-                    <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">٣</span>
-                    <span>كلمة المرور وحماية الحساب</span>
-                </div>
+@suppliers_auth_bp.route('/verify', methods=['POST'])
+def verify():
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        otp_code = data.get('otp_code', '').strip()
+        
+        # جلب المعرف أو رقم الهاتف المخزن مؤقتاً في الجلسة للتحقق الفعلي من قاعدة البيانات
+        identifier = session.get('pending_verification_phone') or session.get('supplier_identifier')
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">كلمة المرور *</label>
-                        <input type="password" name="password" id="regPassword" required minlength="8" placeholder="••••••••"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
-                    </div>
+        success, message = SupplierPortalRegistry.verify_supplier_otp(identifier, otp_code)
+        if success:
+            session['supplier_verified'] = True
+            return jsonify({
+                "success": True,
+                "message": message,
+                # توجيه المورد إلى لوحة التحكم (Dashboard) مباشرةً بعد إتمام التحقق بنجاح
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+        else:
+            return jsonify({"success": False, "message": message}), 400
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">تأكيد كلمة المرور *</label>
-                        <input type="password" name="confirm_password" id="regConfirmPassword" required minlength="8" placeholder="••••••••"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
-                    </div>
-                </div>
-            </div>
+@suppliers_auth_bp.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    return jsonify({
+        "success": True,
+        "message": "تم إرسال رمز تحقق جديد بنجاح إلى هاتفك المسجل."
+    })
 
-            <!-- إشعار المحفظة المالية الذكية التلقائية -->
-            <div class="p-4 rounded-xl bg-gradient-to-r from-royalDark via-royalSurface to-royalDark border border-royalGold/40 flex items-start gap-4">
-                <div class="p-2.5 rounded-lg bg-royalGold/10 border border-royalGold/30 text-royalGold shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="text-sm font-bold text-royalGold">إنشاء المحفظة المالية الذكية تلقائياً</h4>
-                    <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                        بمجرد اكتمال تسجيل المنشأة، سيقوم النظام تلقائياً بإنشاء وتفعيل محفظة رقمية معتمدة برقم حساب بنكي مخصص لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
-                    </p>
-                </div>
-            </div>
+@suppliers_auth_bp.route('/forgot-password', methods=['GET'])
+def forgot_password_page():
+    seo = SupplierPortalSEOService.get_meta_tags("login")
+    return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
 
-            <!-- القسم 4: إدارة موظفي المورد الأوليين (اختياري) -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between border-b border-royalGold/20 pb-2">
-                    <div class="flex items-center gap-2 text-royalGold text-sm font-bold">
-                        <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">٤</span>
-                        <span>فريق عمل وموظفي المورد (اختياري)</span>
-                    </div>
-                    <button type="button" onclick="addEmployeeRow()" class="text-xs px-3 py-1.5 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition flex items-center gap-1">
-                        <span>+ إضافة موظف</span>
-                    </button>
-                </div>
+@suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
+def forgot_password_request_otp():
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        identifier = data.get('identifier', '').strip()
+        
+        if not identifier:
+            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."}), 400
 
-                <div id="employeesContainer" class="space-y-3">
-                    <p id="emptyEmployeesNotice" class="text-xs text-slate-400 italic">
-                        يمكنك إضافة موظفين تابعين للمنشأة الآن أو إدارتهم لاحقاً من لوحة تحكم المورد (مدير مشتريات، محاسب، منسق لوجستي).
-                    </p>
-                </div>
-            </div>
-
-            <!-- زر تقديم طلب الاشتراك -->
-            <div class="pt-4 border-t border-royalGold/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <!-- ✅ تغيير: /suppliers/login → url_for -->
-                <a href="{{ url_for('suppliers_auth_bp.login') }}" class="text-xs text-slate-400 hover:text-royalGold transition">
-                    &larr; العودة لتسجيل الدخول
-                </a>
-
-                <button type="submit" id="submitBtn" class="w-full sm:w-auto px-8 py-3.5 gold-btn rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-xl">
-                    <span id="btnText">إتمام الاشتراك وتفعيل المحفظة المالية</span>
-                    <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-black" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    let employeeCount = 0;
-
-    function addEmployeeRow() {
-        const container = document.getElementById('employeesContainer');
-        const emptyNotice = document.getElementById('emptyEmployeesNotice');
-        if (emptyNotice) emptyNotice.classList.add('hidden');
-
-        employeeCount++;
-        const row = document.createElement('div');
-        row.id = `emp-row-${employeeCount}`;
-        row.className = 'p-3.5 rounded-xl bg-royalDark/80 border border-royalGold/20 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
-        row.innerHTML = `
-            <div>
-                <input type="text" placeholder="اسم الموظف" class="emp-name w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
-            </div>
-            <div>
-                <input type="email" placeholder="البريد الإلكتروني" class="emp-email w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
-            </div>
-            <div>
-                <select class="emp-role w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
-                    <option value="manager">مدير العمليات والتوريد</option>
-                    <option value="accountant">المحاسب المالي</option>
-                    <option value="logistics">مسؤول لوجستي</option>
-                    <option value="sales" selected>ممثل مبيعات</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="tel" placeholder="رقم الجوال" class="emp-phone w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
-                <button type="button" onclick="removeEmployeeRow(${employeeCount})" class="text-rose-400 hover:text-rose-300 p-1 text-sm">&times;</button>
-            </div>
-        `;
-        container.appendChild(row);
-    }
-
-    function removeEmployeeRow(idx) {
-        const row = document.getElementById(`emp-row-${idx}`);
-        if (row) row.remove();
-
-        const container = document.getElementById('employeesContainer');
-        const rows = container.querySelectorAll('[id^="emp-row-"]');
-        if (rows.length === 0) {
-            const emptyNotice = document.getElementById('emptyEmployeesNotice');
-            if (emptyNotice) emptyNotice.classList.remove('hidden');
-        }
-    }
-
-    function showAlert(msg, isSuccess = false) {
-        const box = document.getElementById('alertBox');
-        box.classList.remove('hidden');
-        if (isSuccess) {
-            box.className = 'mb-6 p-4 rounded-xl text-xs flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300';
-            box.innerHTML = `<span>✓</span> <div><strong>تم بنجاح!</strong> ${msg}</div>`;
-        } else {
-            box.className = 'mb-6 p-4 rounded-xl text-xs flex items-center gap-2 bg-rose-950/80 border border-rose-500/50 text-rose-300';
-            box.innerHTML = `<span>⚠</span> <div><strong>تنبيه:</strong> ${msg}</div>`;
-        }
-    }
-
-    async function handleRegisterSubmit(e) {
-        e.preventDefault();
-        const form = e.target;
-        const pass = document.getElementById('regPassword').value;
-        const confirm = document.getElementById('regConfirmPassword').value;
-
-        if (pass !== confirm) {
-            showAlert('كلمتا المرور غير متطابقتين');
-            return;
-        }
-
-        // جمع الموظفين
-        const employees = [];
-        const rows = document.querySelectorAll('#employeesContainer > [id^="emp-row-"]');
-        rows.forEach(r => {
-            const name = r.querySelector('.emp-name')?.value;
-            const email = r.querySelector('.emp-email')?.value;
-            const role = r.querySelector('.emp-role')?.value;
-            const phone = r.querySelector('.emp-phone')?.value;
-            if (name && email) {
-                employees.push({ full_name: name, email, role, phone });
+        mock_otp = "123456"
+        session['reset_identifier'] = identifier
+        
+        return jsonify({
+            "success": True,
+            "otp_sent": True,
+            "message": "تم إرسال رمز التحقق بنجاح.",
+            "data": {
+                "masked_phone": identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89",
+                "_dev_otp": mock_otp
             }
-        });
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
 
-        const payload = {
-            company_name: form.company_name.value,
-            category: form.category.value,
-            full_address: form.full_address.value,
-            owner_name: form.owner_name.value,
-            email: form.email.value,
-            phone: form.phone.value,
-            password: pass,
-            employees: employees,
-            csrf_token: form.csrf_token.value
-        };
+@suppliers_auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.get_json(force=True, silent=True) or request.form or {}
+        otp_code = data.get('otp_code', '').strip()
+        new_password = data.get('new_password', '')
+        confirm_password = data.get('confirm_password', '')
 
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
-        const btnSpinner = document.getElementById('btnSpinner');
+        if otp_code != "123456":
+            return jsonify({"success": False, "message": "رمز التحقق غير صحيح."}), 400
 
-        submitBtn.disabled = true;
-        btnText.textContent = 'جاري تسجيل المنشأة وإنشاء المحفظة...';
-        btnSpinner.classList.remove('hidden');
+        if not new_password or new_password != confirm_password:
+            return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين أو غير صالحتين."}), 400
 
-        try {
-            const res = await window.secureFetch('/suppliers/register', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
+        identifier = session.get('reset_identifier')
+        if not identifier:
+            return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة محاولة استعادة كلمة المرور."}), 400
 
-            const data = await res.json();
-            if (res.ok && data.success) {
-                const walletInfo = data.data?.wallet?.account_number ? `<br>تم إصدار رقم الحساب المالي: <code>${data.data.wallet.account_number}</code>` : '';
-                showAlert(`${data.message}${walletInfo} جاري نقلك لصفحة الدخول...`, true);
-                setTimeout(() => {
-                    window.location.href = data.redirect_url || '/suppliers/login';
-                }, 2000);
-            } else {
-                showAlert(data.message || 'حدث خطأ أثناء إتمام عملية الاشتراك.');
-            }
-        } catch (err) {
-            showAlert('تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
-        } finally {
-            submitBtn.disabled = false;
-            btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
-            btnSpinner.classList.add('hidden');
-        }
-    }
-</script>
-{% endblock %}
+        clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
+        supplier_obj = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == clean_phone_suffix) |
+            (Supplier.phone == identifier)
+        ).first()
+
+        if not supplier_obj:
+            return jsonify({"success": False, "message": "المورد غير موجود."}), 404
+
+        # تحديث كلمة المرور الفعليّة في قاعدة البيانات وتشفيرها
+        supplier_obj.set_password(new_password)
+        db.session.commit()
+        session.pop('reset_identifier', None)
+
+        return jsonify({
+            "success": True,
+            "message": "تم تحديث كلمة المرور بنجاح",
+            "redirect_url": url_for('suppliers_auth_bp.login_page')
+        })
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
+
+@suppliers_auth_bp.route('/dashboard', methods=['GET'])
+def dashboard():
+    if not current_user.is_authenticated or session.get('user_type') != 'supplier':
+        return redirect(url_for('suppliers_auth_bp.login_page'))
+    return "<h1>لوحة تحكم الموردين الملكية - قيد العرض والتطوير</h1>"
