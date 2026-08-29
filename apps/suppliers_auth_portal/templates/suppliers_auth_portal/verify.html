@@ -15,9 +15,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
             </div>
-            <h2 class="text-xl sm:text-2xl font-black gold-gradient-text">التحقق من رقم الهاتف</h2>
+            <h2 class="text-xl sm:text-2xl font-black gold-gradient-text">التحقق من الحساب</h2>
             <p class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
-                أدخل رمز التحقق (OTP) المرسل إلى رقم هاتفك لإتمام المصادقة وتفعيل لوحة التحكم.
+                أدخل رمز التحقق (OTP) المرسل إليك لإتمام المصادقة وتفعيل لوحة التحكم.
             </p>
         </div>
 
@@ -45,16 +45,28 @@
             </button>
         </form>
 
-        <!-- خيارات إضافية وإعادة الإرسال -->
-        <div class="mt-6 pt-4 border-t border-royalGold/20 flex items-center justify-between text-xs relative z-10">
-            <button type="button" onclick="resendOtp()" id="resendBtn" class="text-royalGoldLight hover:text-royalGold transition underline">
-                إعادة إرسال الرمز؟
-            </button>
+        <!-- خيارات إعادة الإرسال واختيار القناة (واتساب / بريد إلكتروني كبديل) -->
+        <div class="mt-6 pt-4 border-t border-royalGold/20 space-y-3 relative z-10">
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400">لم يصلك الرمز؟ أرسل عبر:</span>
+                <div class="flex gap-2">
+                    <button type="button" onclick="resendOtp('whatsapp')" id="resendWaBtn" class="text-royalGold hover:underline font-bold transition">
+                        📱 واتساب
+                    </button>
+                    <span class="text-slate-600">|</span>
+                    <button type="button" onclick="resendOtp('email')" id="resendEmailBtn" class="text-royalGoldLight hover:underline font-bold transition">
+                        ✉️ البريد الإلكتروني
+                    </button>
+                </div>
+            </div>
 
-            <!-- رابط العودة لتسجيل الدخول -->
-            <a href="/supplier/login" class="text-slate-400 hover:text-royalGold transition">
-                &larr; العودة لتسجيل الدخول
-            </a>
+            <div class="flex items-center justify-between text-xs pt-1">
+                <span id="resendStatusText" class="text-slate-400 font-medium"></span>
+                <!-- رابط العودة لتسجيل الدخول -->
+                <a href="/supplier/login" class="text-slate-400 hover:text-royalGold transition">
+                    &larr; العودة لتسجيل الدخول
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -118,28 +130,39 @@
         }
     }
 
-    async function resendOtp() {
-        const resendBtn = document.getElementById('resendBtn');
-        resendBtn.disabled = true;
-        resendBtn.textContent = 'جاري إرسال رمز جديد...';
+    async function resendOtp(channel = 'whatsapp') {
+        const waBtn = document.getElementById('resendWaBtn');
+        const emailBtn = document.getElementById('resendEmailBtn');
+        const statusText = document.getElementById('resendStatusText');
+        
+        waBtn.disabled = true;
+        emailBtn.disabled = true;
+        statusText.textContent = `جاري الإرسال عبر ${channel === 'whatsapp' ? 'الواتساب' : 'البريد'}...`;
 
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
             const res = await window.secureFetch('/supplier/resend-otp', {
                 method: 'POST',
-                body: JSON.stringify({ csrf_token: csrfToken })
+                body: JSON.stringify({ 
+                    channel: channel,
+                    csrf_token: csrfToken 
+                })
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                showAlert(data.message || 'تم إرسال رمز تحقق جديد إلى هاتفك.', true);
+                showAlert(data.message || 'تم إرسال رمز تحقق جديد بنجاح.', true);
+                statusText.textContent = 'تم الإرسال بنجاح.';
             } else {
                 showAlert(data.message || 'تعذر إعادة إرسال الرمز حالياً.');
+                statusText.textContent = 'فشل الإرسال، جرب القناة الأخرى.';
             }
         } catch (err) {
             showAlert('حدث خطأ أثناء الاتصال.');
+            statusText.textContent = '';
         } finally {
-            resendBtn.disabled = false;
-            resendBtn.textContent = 'إعادة إرسال الرمز؟';
+            waBtn.disabled = false;
+            emailBtn.disabled = false;
+            setTimeout(() => { statusText.textContent = ''; }, 4000);
         }
     }
 </script>
