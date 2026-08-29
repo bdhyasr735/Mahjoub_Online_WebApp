@@ -537,25 +537,23 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
+    # ✅ تسجيل بوابة الموردين - مباشرة وبدون تعقيد
     try:
         print("🔍 [DEBUG] Importing suppliers_auth_portal...")
         from apps.suppliers_auth_portal import suppliers_auth_bp
         print(f"✅ [DEBUG] Import successful: {suppliers_auth_bp}")
         
         print("🔍 [DEBUG] Registering blueprint...")
-        app.register_blueprint(suppliers_auth_bp, url_prefix='/suppliers')
-        csrf.exempt(suppliers_auth_bp)
-        print("✅ [DEBUG] Blueprint registered successfully!")
-        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+        app.register_blueprint(suppliers_auth_bp)
+        print("✅ [DEBUG] Blueprint registered successfully (without url_prefix)!")
         
-        # ✅ طباعة المسارات للتأكد
-        print("📋 [المسارات المسجلة للبوابة]:")
+        # ✅ طباعة جميع المسارات
+        print("📋 [جميع المسارات المسجلة]:")
         for rule in app.url_map.iter_rules():
-            if 'suppliers' in str(rule):
-                print(f"   📍 {rule}")
+            print(f"   📍 {rule}")
                 
     except Exception as e:
-        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+        print(f"❌ [خطأ بوابة الموردين]: {e}")
         import traceback
         traceback.print_exc()
 
