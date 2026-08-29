@@ -46,7 +46,7 @@ def login():
         # استخراج آخر 9 أرقام للبحث في حقل search_phone
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
-        # ✅ البحث باستخدام db.session.query
+        # ✅ البحث باستخدام db.session.query (متوافق مع SQLAlchemy 2.0)
         supplier_obj = db.session.query(Supplier).filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) |
