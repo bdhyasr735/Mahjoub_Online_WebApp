@@ -508,10 +508,7 @@ def dashboard():
         traceback.print_exc()
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
-# ==================== طباعة المسارات للتأكد ====================
-print("=" * 6, "6")
+# ==================== طباعة رسالة التأكيد ====================
+print("=" * 60)
 print("✅ [DEBUG] routes.py loaded successfully!")
-print("📋 [DEBUG] Routes defined in this blueprint:")
-for rule in suppliers_auth_bp.url_map.iter_rules():
-    print(f"    📍 {rule}")
 print("=" * 60)
