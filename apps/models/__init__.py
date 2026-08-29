@@ -38,7 +38,7 @@ __all__ = [
     'Order',
     'OrderFinancial',
     'OrderItem',
-    'OTP',  # ✅ إضافة
+    'OTP',
     'Product',
     'ProductSupplierMapping',
     'Supplier',
