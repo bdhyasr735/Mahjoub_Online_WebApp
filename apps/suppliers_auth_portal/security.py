@@ -22,5 +22,5 @@ class CSRFProtector:
     
     @staticmethod
     def validate_token(token: str) -> bool:
-        # يمكن إضافة التحقق المخصص هنا أو الاعتماد على Flask-WTF
+        # التحقق من توفر الرمز
         return bool(token)
