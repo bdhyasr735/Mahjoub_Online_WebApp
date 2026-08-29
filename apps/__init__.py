@@ -346,7 +346,7 @@ def create_app():
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier'):
-            return redirect(url_for('suppliers_auth.login'))
+            return redirect(url_for('suppliers_bp.login'))
         return redirect(admin_login_path)
 
     @app.before_request
@@ -396,12 +396,12 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_auth.login'))
+                return redirect(url_for('suppliers_bp.login'))
 
             return
 
         if path.startswith('/supplier'):
-            return redirect(url_for('suppliers_auth.login'))
+            return redirect(url_for('suppliers_bp.login'))
 
         return redirect(admin_login_path)
 
