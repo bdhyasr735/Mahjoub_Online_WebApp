@@ -35,11 +35,11 @@ class Supplier(db.Model, UserMixin):
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
-    store_name = db.Column(db.String(150), nullable=True)  # حقل اسم المتجر الجديد
+    store_name = db.Column(db.String(150), nullable=True)  # حقل اسم المتجر
     
     # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
     _phone_enc = db.Column(db.String(255), nullable=False) 
-    search_phone = db.Column(db.String(20))
+    search_phone = db.Column(db.String(20), unique=True, nullable=True) # تم إضافة unique لضمان عدم تكرار الرقم على مستوى قاعدة البيانات
     
     # الأمن وإدارة الحساب
     password_hash = db.Column(db.String(255), nullable=True)
@@ -64,7 +64,15 @@ class Supplier(db.Model, UserMixin):
     product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
 
     def __init__(self, **kwargs):
-        """مُنشئ الكائن مع التشفير التلقائي لرقم الهاتف وتحديث حقل البحث السريع عند الإنشاء."""
+        """مُنشئ الكائن مع تنظيف ومعالجة الكلمات المفتاحية الزائدة (مثل store_address) وتشفير الهاتف وتوليد search_phone الموحد بـ 9 أرقام."""
+        # تنظيف وتجاهل أو مطابقة الكلمات المفتاحية الغير موجودة كأعمدة لمنع خطأ invalid keyword argument
+        kwargs.pop('store_address', None)
+        
+        # إذا تم تمرير full_address ولم يكن store_name موجوداً، نجعله يطابقه لتجنب الضياع
+        if 'full_address' in kwargs and not kwargs.get('store_name'):
+            kwargs['store_name'] = kwargs.get('full_address')
+        kwargs.pop('full_address', None)
+
         phone_val = kwargs.pop('phone', None)
         super().__init__(**kwargs)
 
@@ -94,7 +102,7 @@ class Supplier(db.Model, UserMixin):
         except Exception:
             return None
 
-    # --- Properties الذكية للتعامل مع رقم الهاتف ---
+    # --- Properties الذكية للتعامل مع رقم الهاتف (استخلاص آخر 9 أرقام حصراً) ---
     @property
     def phone(self):
         return self._decrypt(self._phone_enc)
@@ -103,8 +111,12 @@ class Supplier(db.Model, UserMixin):
     def phone(self, value):
         if value:
             str_val = str(value)
+            digits_only = "".join(filter(str.isdigit, str_val))
+            # اعتماد المعيار الموحد: آخر 9 أرقام بدون مفاتيح أو أصفار دولية زائدة
+            clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+            
             self._phone_enc = self._encrypt(str_val)
-            self.search_phone = str_val[-9:]
+            self.search_phone = clean_9
         else:
             self._phone_enc = self._encrypt("")
             self.search_phone = None
@@ -128,6 +140,7 @@ class Supplier(db.Model, UserMixin):
             'trade_name': self.trade_name,
             'store_name': self.store_name,
             'phone': self.phone,
+            'search_phone': self.search_phone,
             'status': self.status,
             'rank': self.rank,
             'created_at': self.created_at.isoformat() if self.created_at else None,
