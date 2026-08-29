@@ -68,10 +68,14 @@ def login():
     
     if request.method == 'GET':
         print(f"🔍 [LOGIN] Rendering login.html")
-        return render_template(
-            'suppliers_auth_portal/login.html',
-            csrf_token=CSRFProtector.get_token()
-        )
+        try:
+            return render_template(
+                'suppliers_auth_portal/login.html',
+                csrf_token=CSRFProtector.get_token()
+            )
+        except Exception as e:
+            print(f"❌ [LOGIN] Error rendering template: {e}")
+            return jsonify({"error": str(e), "message": "خطأ في عرض القالب"}), 500
 
     data = request.get_json() if request.is_json else request.form
     print(f"🔍 [LOGIN] POST data: {data}")
@@ -172,10 +176,14 @@ def login():
 @suppliers_auth_bp.route('/register-page', methods=['GET'])
 def register_page():
     print(f"🔍 [REGISTER_PAGE] Rendering register.html")
-    return render_template(
-        'suppliers_auth_portal/register.html',
-        csrf_token=CSRFProtector.get_token()
-    )
+    try:
+        return render_template(
+            'suppliers_auth_portal/register.html',
+            csrf_token=CSRFProtector.get_token()
+        )
+    except Exception as e:
+        print(f"❌ [REGISTER_PAGE] Error: {e}")
+        return jsonify({"error": str(e), "message": "خطأ في عرض القالب"}), 500
 
 
 # ==================== تسجيل مورد جديد ====================
@@ -266,10 +274,14 @@ def register():
 @suppliers_auth_bp.route('/forgot-password-page', methods=['GET'])
 def forgot_password_page():
     print(f"🔍 [FORGOT_PASSWORD_PAGE] Rendering forgot_password.html")
-    return render_template(
-        'suppliers_auth_portal/forgot_password.html',
-        csrf_token=CSRFProtector.get_token()
-    )
+    try:
+        return render_template(
+            'suppliers_auth_portal/forgot_password.html',
+            csrf_token=CSRFProtector.get_token()
+        )
+    except Exception as e:
+        print(f"❌ [FORGOT_PASSWORD_PAGE] Error: {e}")
+        return jsonify({"error": str(e), "message": "خطأ في عرض القالب"}), 500
 
 
 # ==================== طلب OTP ====================
@@ -354,10 +366,14 @@ def reset_password():
 @suppliers_auth_bp.route('/verify-page', methods=['GET'])
 def verify_page():
     print(f"🔍 [VERIFY_PAGE] Rendering verify.html")
-    return render_template(
-        'suppliers_auth_portal/verify.html',
-        csrf_token=CSRFProtector.get_token()
-    )
+    try:
+        return render_template(
+            'suppliers_auth_portal/verify.html',
+            csrf_token=CSRFProtector.get_token()
+        )
+    except Exception as e:
+        print(f"❌ [VERIFY_PAGE] Error: {e}")
+        return jsonify({"error": str(e), "message": "خطأ في عرض القالب"}), 500
 
 
 # ==================== التحقق من OTP ====================
