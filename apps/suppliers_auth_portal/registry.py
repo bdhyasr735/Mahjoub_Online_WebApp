@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_auth_portal/registry.py
 
-# تعريف القائمة الجانبية وعناصر التنقل الخاصة بالموردين ضمن لوحة التحكم
-NAV_ITEMS = [
-    {"endpoint": "suppliers_bp.dashboard", "title": "لوحة تحكم المورد"},
-    {"endpoint": "suppliers_bp.profile", "title": "إعدادات المتجر والحساب"},
-    {"endpoint": "suppliers_bp.wallet", "title": "المحفظة والمعاملات المالیة"},
-    {"endpoint": "suppliers_bp.products", "title": "إدارة المنتجات والطلبات"}
-]
+# بوابة المصادقة والتسجيل المستقلة (لا تتطلب قوائم جانبية)
+NAV_ITEMS = []
 
-MODULE_NAME = "بوابة الموردين"
-MODULE_ICON = "fa-store"
-SHOW_IN_SUPPLIER = True
+MODULE_NAME = "بوابة المصادقة والتسجيل للموردين"
+MODULE_ICON = "fa-sign-in-alt"
+SHOW_IN_SUPPLIER = False
