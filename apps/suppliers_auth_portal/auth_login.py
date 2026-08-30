@@ -24,7 +24,8 @@ def login():
     """
     # إذا كان المستخدم مسجل دخول بالفعل
     if current_user.is_authenticated:
-        return redirect(url_for('supplier.dashboard'))
+        # ✅ التصحيح: استخدام endpoint الصحيح للوحة تحكم الموردين
+        return redirect(url_for('suppliers_dashboard.dashboard'))
     
     if request.method == 'GET':
         return render_template('suppliers_auth_portal/login.html')
@@ -112,10 +113,11 @@ def login():
         
         current_app.logger.info(f'✅ تسجيل دخول ناجح: {user.username}')
         
+        # ✅ التصحيح: استخدام endpoint الصحيح للوحة تحكم الموردين
         return jsonify({
             'success': True,
             'message': 'تم تسجيل الدخول بنجاح',
-            'redirect_url': request.args.get('next') or url_for('supplier.dashboard'),
+            'redirect_url': request.args.get('next') or url_for('suppliers_dashboard.dashboard'),
             'user': {
                 'id': user.id,
                 'username': user.username,
@@ -191,4 +193,4 @@ def forbidden_error(error):
     if request.is_json:
         return jsonify({'success': False, 'message': 'لا تملك صلاحية للوصول'}), 403
     flash('لا تملك صلاحية للوصول إلى هذه الصفحة', 'danger')
-    return redirect(url_for('auth_login.dashboard'))
+    return redirect(url_for('auth_login.login'))
