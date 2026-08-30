@@ -1,15 +1,16 @@
-# apps/suppliers_dashboard/routes.py
+# -*- coding: utf-8 -*-
+# 📂 apps/suppliers_dashboard/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
-from apps.models.supplier_db import Supplier
+from apps.models.supplier import Supplier
 from apps.models.wallet_db import SupplierWallet
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.extensions import db
 
-# إنشاء Blueprint
+# إنشاء Blueprint متوافق مع هيكلة المسارات والجداول
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
@@ -21,12 +22,12 @@ suppliers_dashboard_bp = Blueprint(
 @suppliers_dashboard_bp.route('/')
 @login_required
 def index():
-    """الصفحة الرئيسية للوحة تحكم المورد"""
+    """الصفحة الرئيسية للوحة تحكم المورد متوافقة تماماً مع الجداول ونموذج المحفظة."""
     
-    # التحقق من أن المستخدم هو مورد
+    # التحقق من أن المستخدم يمتلك معرف صحيح
     if not hasattr(current_user, 'id'):
         flash("يرجى تسجيل الدخول كمورد.", "warning")
-        return redirect(url_for('suppliers_auth_bp.login_page'))
+        return redirect(url_for('suppliers_auth_portal.login_page'))
     
     supplier_id = current_user.id
     
@@ -34,30 +35,61 @@ def index():
     supplier = Supplier.query.get(supplier_id)
     if not supplier:
         flash("لم يتم العثور على بيانات المورد.", "danger")
-        return redirect(url_for('suppliers_auth_bp.login_page'))
+        return redirect(url_for('suppliers_auth_portal.login_page'))
     
-    # جلب المحفظة
+    # جلب المحفظة المالية المرتبطة بالمورد بالريال السعودي (SAR)
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
-    # جلب عدد المنتجات
-    products_count = ProductSupplierMapping.query.filter_by(
-        supplier_id=supplier_id,
-        is_active=True
-    ).count()
-    
-    # جلب عدد الموظفين
-    staff_count = SupplierStaff.query.filter_by(
-        supplier_id=supplier_id,
-        is_active=True
-    ).count()
-    
-    # جلب الملف الشخصي
+    # إذا لم تكن المحفظة موجودة، يتم إنشاؤها تلقائياً بالرمز والخصائص المعيارية
+    if not wallet:
+        import string, secrets
+        wallet_code = f"WLT-{supplier_id}-{ ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(4)) }"
+        wallet = SupplierWallet(
+            wallet_code=wallet_code,
+            supplier_id=supplier_id,
+            status='active',
+            balance_sar=0.00
+        )
+        db.session.add(wallet)
+        db.session.commit()
+
+    # جلب عدد المنتجات المرتبطة (مع التعامل الآمن في حال اختلاف اسم الجدول)
+    products_count = 0
+    try:
+        products_count = ProductSupplierMapping.query.filter_by(
+            supplier_id=supplier_id,
+            is_active=True
+        ).count()
+    except Exception:
+        products_table = db.metadata.tables.get('products')
+        if products_table is not None:
+            products_count = db.session.execute(
+                db.select(db.func.count(products_table.c.id))
+                .where(products_table.c.supplier_id == supplier_id)
+            ).scalar() or 0
+
+    # جلب عدد الموظفين المرتبطين بالمورد
+    staff_count = 0
+    try:
+        staff_count = SupplierStaff.query.filter_by(
+            supplier_id=supplier_id,
+            is_active=True
+        ).count()
+    except Exception:
+        staff_table = db.metadata.tables.get('supplier_staff')
+        if staff_table is not None:
+            staff_count = db.session.execute(
+                db.select(db.func.count(staff_table.c.id))
+                .where(staff_table.c.supplier_id == supplier_id)
+            ).scalar() or 0
+
+    # جلب الملف الشخصي المرتبط
     profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
     
-    # إحصائيات سريعة
-    balance = wallet.balance if wallet else 0.0
+    # الاعتماد الحصري على balance_sar عبر الخاصية المتوافقة في نموذج المحفظة
+    balance = float(wallet.balance_sar or 0.0) if wallet else 0.0
     
-    # قائمة الوحدات الجانبية (sidebar)
+    # قائمة الوحدات الجانبية (sidebar) بتصميم المنصة
     supplier_modules = [
         {
             'name': 'الرئيسية',
@@ -101,8 +133,8 @@ def index():
     ]
     
     return render_template(
-        'dashboard.html',
-        page_title='لوحة تحكم المورد',
+        'suppliers/dashboard.html',
+        page_title='لوحة تحكم المورد | محجوب أونلاين',
         supplier=supplier,
         profile=profile,
         wallet=wallet,
@@ -116,7 +148,7 @@ def index():
 @suppliers_dashboard_bp.route('/api/ask-ai', methods=['POST'])
 @login_required
 def ask_ai():
-    """مسار استقبال أسئلة المورد ومعالجتها بواسطة المساعد الذكي"""
+    """مسار استقبال أسئلة المورد ومعالجتها بواسطة المساعد الذكي الخاص بمنصة محجوب أونلاين."""
     data = request.get_json() or {}
     question = data.get('question', '').strip()
 
@@ -124,7 +156,8 @@ def ask_ai():
         return jsonify({'success': False, 'message': 'الرجاء إدخال سؤال صحيح.'}), 400
 
     try:
-        answer = f"شكراً لاستفسارك! بناءً على تحليل متجرك الداخلي، أنصحك بـ: التركيز على تحسين تفاصيل المنتجات وإدارة المخزون بفعالية لتطوير استراتيجية '{question}'."
+        answer = f"شكراً لاستفسارك! بناءً على تحليل متجرك الداخلي في منصة محجوب أونلاين، أنصحك بـ: التركيز على تحسين تفاصيل المنتجات وإدارة المخزون بفعالية لتطوير استراتيجية '{question}'."
         return jsonify({'success': True, 'answer': answer})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
