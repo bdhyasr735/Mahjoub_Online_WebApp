@@ -30,12 +30,17 @@ def register():
 
         clean_phone_suffix = phone[-9:] if phone.isdigit() else phone
 
-        existing_supplier = db.session.query(Supplier).filter(
-            (Supplier.username == username) |
-            (Supplier.phone == phone) |
-            (Supplier.search_phone == clean_phone_suffix) |
-            (Supplier.email == email if email else False)
-        ).first()
+        filters = [
+            Supplier.username == username,
+            Supplier.phone == phone,
+            Supplier.phone == clean_phone_suffix
+        ]
+        if hasattr(Supplier, 'search_phone'):
+            filters.append(Supplier.search_phone == clean_phone_suffix)
+        if email:
+            filters.append(Supplier.email == email)
+
+        existing_supplier = db.session.query(Supplier).filter(db.or_(*filters)).first()
 
         if existing_supplier:
             return jsonify({"success": False, "message": "اسم المستخدم، البريد الإلكتروني، أو رقم الهاتف مسجل مسبقاً."}), 400
@@ -45,10 +50,11 @@ def register():
             username=username,
             email=email if email else None,
             phone=phone,
-            search_phone=clean_phone_suffix,
             password_hash=generate_password_hash(password),
             status='active'
         )
+        if hasattr(new_supplier, 'search_phone'):
+            new_supplier.search_phone = clean_phone_suffix
 
         db.session.add(new_supplier)
         db.session.commit()
