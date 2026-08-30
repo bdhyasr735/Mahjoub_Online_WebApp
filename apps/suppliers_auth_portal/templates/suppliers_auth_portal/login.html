@@ -44,8 +44,8 @@
 
         <!-- Login Form -->
         <form id="loginForm" method="POST" action="{{ url_for('suppliers_auth_portal.login') }}" class="space-y-5 relative z-10">
-            {{ form.csrf_token }}
-            
+            <!-- CSRF Token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <input type="hidden" id="userTypeInput" name="user_type" value="supplier">
 
             <!-- Identifier Field -->
@@ -57,11 +57,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                         </svg>
                     </div>
-                    {{ form.identifier(class="form-input pr-11", placeholder="مثال: 77xxxxxxx أو البريد الإلكتروني", id="identifierInput", required=True) }}
+                    <input type="text" name="identifier" id="identifierInput" required
+                           placeholder="مثال: 77xxxxxxx أو البريد الإلكتروني"
+                           class="form-input pr-11">
                 </div>
-                {% if form.identifier.errors %}
-                    <div class="form-error">{{ form.identifier.errors[0] }}</div>
-                {% endif %}
             </div>
 
             <!-- Password Field -->
@@ -78,7 +77,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                         </svg>
                     </div>
-                    {{ form.password(class="form-input pr-11 pl-11", placeholder="••••••••", id="passwordInput", required=True) }}
+                    <input type="password" name="password" id="passwordInput" required
+                           placeholder="••••••••"
+                           class="form-input pr-11 pl-11">
                     <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-royalGold">
                         <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -86,15 +87,12 @@
                         </svg>
                     </button>
                 </div>
-                {% if form.password.errors %}
-                    <div class="form-error">{{ form.password.errors[0] }}</div>
-                {% endif %}
             </div>
 
             <!-- Remember Me -->
             <div class="flex items-center justify-between text-xs">
                 <label class="flex items-center gap-2 cursor-pointer select-none text-slate-300">
-                    {{ form.remember_me(class="rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold") }}
+                    <input type="checkbox" name="remember_me" class="rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold">
                     <span>تذكر بيانات الدخول</span>
                 </label>
                 <span class="text-slate-400 text-[11px]">🔒 مشفر وآمن</span>
@@ -285,7 +283,7 @@
         }
     });
 
-    // Enter key support for OTP-like flow
+    // Enter key support
     document.addEventListener('DOMContentLoaded', function() {
         const passwordInput = document.getElementById('passwordInput');
         if (passwordInput) {
