@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_auth_portal/registry.py
 
-# تم إزالة تسجيل البوابة من هنا لأنها مسجلة يدوياً في apps/__init__.py لتجنب التكرار.
-
 # تعريف القائمة الجانبية وعناصر التنقل الخاصة بالموردين ضمن لوحة التحكم
 NAV_ITEMS = [
     {"endpoint": "suppliers_bp.dashboard", "title": "لوحة تحكم المورد"},
