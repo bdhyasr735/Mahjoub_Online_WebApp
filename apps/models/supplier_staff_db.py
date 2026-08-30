@@ -2,12 +2,21 @@
 # 📂 apps/models/supplier_staff_db.py
 
 import os
+import enum
 from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, update, inspect
 from apps.extensions import db
+
+
+class SupplierStaffRole(str, enum.Enum):
+    """أدوار موظفي وملاك الموردين المعتمدة في النظام"""
+    ADMIN = 'admin'
+    MANAGER = 'manager'
+    STAFF = 'staff'
+    VIEWER = 'viewer'
 
 
 class SupplierStaff(db.Model, UserMixin):
