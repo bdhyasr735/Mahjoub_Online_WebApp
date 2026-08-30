@@ -270,6 +270,42 @@ def register_page():
         return f"Internal Server Error: {str(e)}", 500
 
 
+@suppliers_auth_bp.route('/check-availability', methods=['POST'])
+def check_availability():
+    """التحقق اللحظي من قاعدة البيانات لتوفر (اسم المستخدم، البريد، أو الهاتف)"""
+    try:
+        data = request.get_json(silent=True) or {}
+        field = data.get('field')
+        value = str(data.get('value', '')).strip()
+
+        if not field or not value:
+            return jsonify({'available': True})
+
+        if field == 'username':
+            valid_val = validate_username(value)
+            if not valid_val:
+                return jsonify({'available': False, 'message': 'اسم المستخدم غير صالح'})
+            exists = Supplier.query.filter_by(username=valid_val).first() or SupplierStaff.query.filter_by(username=valid_val).first()
+        elif field == 'email':
+            valid_val = validate_email(value)
+            if not valid_val:
+                return jsonify({'available': False, 'message': 'البريد الإلكتروني غير صالح'})
+            exists = Supplier.query.filter_by(email=valid_val).first() or SupplierStaff.query.filter_by(email=valid_val).first()
+        elif field == 'phone':
+            valid_val = validate_phone(value)
+            if not valid_val:
+                return jsonify({'available': False, 'message': 'رقم الهاتف غير صالح'})
+            exists = Supplier.query.filter((Supplier.phone == valid_val) | (Supplier.search_phone == valid_val)).first() or \
+                     SupplierStaff.query.filter_by(phone=valid_val).first()
+        else:
+            return jsonify({'available': True})
+
+        return jsonify({'available': exists is None})
+    except Exception as e:
+        logger.error(f"❌ خطأ في التحقق اللحظي: {str(e)}", exc_info=True)
+        return jsonify({'available': True}), 500
+
+
 @suppliers_auth_bp.route('/register', methods=['POST'])
 def register():
     """معالجة تسجيل مورد جديد"""
