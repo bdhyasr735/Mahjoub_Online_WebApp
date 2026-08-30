@@ -28,7 +28,7 @@ class Config:
     WTF_CSRF_TIME_LIMIT = None
 
     # ============================================================
-    # 📧 إعدادات البريد الإلكتروني (Flask-Mail)
+    # 📧 إعدادات البريد الإلكتروني (Flask-Mail) - مع دعم البيئة
     # ============================================================
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
@@ -37,6 +37,8 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@mahjoub.online')
+    # ✅ إضافة MAIL_SUPPRESS_SEND لتحديد ما إذا كان سيتم إرسال البريد فعلياً
+    MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', 'true').lower() == 'true'
 
     # ============================================================
     # 💬 إعدادات API الخاصة بـ Meta WhatsApp
@@ -58,29 +60,47 @@ class Config:
     def validate_config():
         """التحقق من صحة المتغيرات الأساسية عند التشغيل لضمان عدم وجود نقص حرج"""
         missing = []
+        warnings = []
+        
+        # ✅ متغيرات إلزامية
         if not Config.SECRET_KEY or Config.SECRET_KEY == 'default_secret_key_mahjoub_online':
             missing.append('SECRET_KEY')
+        
+        # ⚠️ متغيرات اختيارية (تحذير فقط)
         if not Config.WHATSAPP_ACCESS_TOKEN:
-            missing.append('WHATSAPP_ACCESS_TOKEN')
+            warnings.append('WHATSAPP_ACCESS_TOKEN (WhatsApp معطل)')
         if not Config.WHATSAPP_PHONE_NUMBER_ID:
-            missing.append('WHATSAPP_PHONE_NUMBER_ID')
-        if not Config.MAIL_USERNAME:
-            missing.append('MAIL_USERNAME')
-        if not Config.MAIL_PASSWORD:
-            missing.append('MAIL_PASSWORD')
+            warnings.append('WHATSAPP_PHONE_NUMBER_ID (WhatsApp معطل)')
+        
+        # 📧 البريد الإلكتروني اختياري في التطوير
+        if not Config.MAIL_USERNAME or not Config.MAIL_PASSWORD:
+            if Config.MAIL_SUPPRESS_SEND:
+                warnings.append('MAIL_USERNAME/MAIL_PASSWORD (البريد معطل في وضع التطوير)')
+            else:
+                warnings.append('MAIL_USERNAME/MAIL_PASSWORD (البريد غير مهيأ للإنتاج)')
         
         if missing:
-            print(f"⚠️ [Config Warning]: متغيرات البيئة التالية مفقودة أو غير آمنة: {', '.join(missing)}")
+            print(f"❌ [Config Error]: متغيرات إلزامية مفقودة: {', '.join(missing)}")
+            return False
+        
+        if warnings:
+            print(f"⚠️ [Config Warning]: {', '.join(warnings)}")
         else:
             print("✅ [Config]: تم التحقق من سلامة إعدادات التكوين بنجاح.")
+        
+        return True
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    # في بيئة التطوير، يمكن استخدام بريد وهمي
+    # ✅ في بيئة التطوير، نمنع إرسال البريد الفعلي
     MAIL_SUPPRESS_SEND = True
+    # ✅ نطبع OTP في السجلات بدلاً من الإرسال
+    PRINT_OTP_TO_CONSOLE = True
 
 class ProductionConfig(Config):
     DEBUG = False
+    # ✅ في بيئة الإنتاج، يتم إرسال البريد فعلياً
     MAIL_SUPPRESS_SEND = False
+    PRINT_OTP_TO_CONSOLE = False
 
 # ⚠️ لا يوجد أي استيراد لـ create_app أو لموديول apps هنا إطلاقاً لقطع الـ Circular Import
