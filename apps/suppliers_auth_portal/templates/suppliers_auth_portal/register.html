@@ -34,7 +34,7 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Registration Form - بدون WTForms -->
-        <form id="registerForm" method="POST" action="{{ url_for('suppliers_auth_portal.register') }}" class="space-y-5 relative z-10">
+        <form id="registerForm" method="POST" action="{{ url_for('auth.register') }}" class="space-y-5 relative z-10">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
@@ -165,7 +165,7 @@
         <!-- Login Link -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">لديك حساب مسجل مسبقاً؟</span>
-            <a href="{{ url_for('suppliers_auth_portal.login') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="{{ url_for('auth.login') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>تسجيل الدخول إلى لوحة التحكم</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -274,7 +274,7 @@
         }
         
         try {
-            const response = await fetch("{{ url_for('auth_register.check_username') }}", {
+            const response = await fetch("{{ url_for('auth.register_check_username') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username })
@@ -374,7 +374,7 @@
             if (response.ok && data.success) {
                 showAlert('تم التسجيل بنجاح', 'جاري إعداد لوحة التحكم المجانية الخاصة بك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || "{{ url_for('supplier.dashboard') }}";
+                    window.location.href = data.redirect_url || "/suppliers/dashboard";
                 }, 1500);
             } else {
                 submitBtn.disabled = false;
