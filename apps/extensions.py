@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/extensions.py - إعداد الإضافات المركزية
 
 from flask_sqlalchemy import SQLAlchemy
@@ -63,6 +63,6 @@ def load_user(user_id):
         return None
 
 # ✅ إعدادات تسجيل الدخول
-login_manager.login_view = 'suppliers_auth_portal.login'
+login_manager.login_view = 'suppliers_bp.login'
 login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
 login_manager.login_message_category = "info"
