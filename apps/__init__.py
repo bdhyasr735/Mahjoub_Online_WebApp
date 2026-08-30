@@ -250,25 +250,34 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع
+    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع (محسّن)
     # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            # ✅ إفراغ الجلسة أولاً للتأكد من عدم وجود تعارض
+            db.session.remove()
+            
+            # ✅ حذف الـ Schema بالكامل
+            db.session.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
             print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
 
+            # ✅ إنشاء الجداول
             db.create_all()
             print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
+            # ✅ زراعة البيانات المبدئية
             seed_database()
             print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
 
         except Exception as e:
             db.session.rollback()
+            db.session.remove()
             print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
+            import traceback
+            traceback.print_exc()
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
@@ -279,7 +288,7 @@ def create_app():
         click.echo("🔄 [إعادة بناء القاعدة]: جاري حذف جميع الجداول...")
         import_all_models()
         try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            db.session.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
             click.echo("✅ [إعادة تعيين الـ Schema]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
