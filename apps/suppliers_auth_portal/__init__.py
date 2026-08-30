@@ -3,7 +3,7 @@
 
 from flask import Blueprint
 
-# ✅ إنشاء البلوبرنت
+# ✅ إنشاء البلوبرنت الرئيسي
 bp = Blueprint(
     'suppliers_auth_portal',
     __name__,
@@ -11,7 +11,7 @@ bp = Blueprint(
     url_prefix='/suppliers'
 )
 
-# ✅ استيراد مباشر من auth_routes
+# ✅ استيراد البلوبرنت الفرعي من auth_routes
 from .auth_routes import bp as auth_bp
 
 # ✅ تسجيل البلوبرنت الفرعي
