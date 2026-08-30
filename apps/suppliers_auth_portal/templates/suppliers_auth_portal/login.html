@@ -43,14 +43,14 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Login Form -->
-        <form id="loginForm" method="POST" action="/suppliers/login" class="space-y-5 relative z-10">
+        <form id="loginForm" method="POST" action="{{ url_for('suppliers_auth.login') }}" class="space-y-5 relative z-10">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <input type="hidden" id="userTypeInput" name="user_type" value="supplier">
 
             <!-- Identifier Field -->
             <div>
-                <label id="identifierLabel" class="form-label">رقم الهاتف أو البريد الإلكتروني</label>
+                <label id="identifierLabel" class="form-label">رقم الهاتف أو البريد الإلكتروني أو اسم المستخدم</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-royalGold/60">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,8 +58,8 @@
                         </svg>
                     </div>
                     <input type="text" name="identifier" id="identifierInput" required
-                           placeholder="مثال: 77xxxxxxx أو البريد الإلكتروني"
-                           class="form-input pr-11" value="test_supplier">
+                           placeholder="مثال: 77xxxxxxx أو اسم المستخدم أو البريد"
+                           class="form-input pr-11">
                 </div>
             </div>
 
@@ -67,7 +67,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="form-label mb-0">كلمة المرور</label>
-                    <a href="/suppliers/forgot-password" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <a href="{{ url_for('suppliers_auth.forgot_password') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -79,7 +79,7 @@
                     </div>
                     <input type="password" name="password" id="passwordInput" required
                            placeholder="••••••••"
-                           class="form-input pr-11 pl-11" value="12345678">
+                           class="form-input pr-11 pl-11">
                     <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-royalGold">
                         <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -111,7 +111,7 @@
         <!-- Register Link -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="/suppliers/register" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="{{ url_for('suppliers_auth.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -138,13 +138,13 @@
         if (type === 'supplier') {
             tabSup.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
             tabEmp.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
-            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
-            input.placeholder = 'مثال: 77xxxxxxx أو البريد الإلكتروني';
+            label.textContent = 'رقم الهاتف أو البريد الإلكتروني أو اسم المستخدم';
+            input.placeholder = 'مثال: 77xxxxxxx أو اسم المستخدم أو البريد';
         } else {
             tabEmp.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
             tabSup.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
-            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
-            input.placeholder = 'مثال: employee@company.com أو 05xxxxxxxx';
+            label.textContent = 'اسم المستخدم، الهاتف أو البريد الإلكتروني';
+            input.placeholder = 'مثال: employee_user أو 77xxxxxxx';
         }
     }
 
@@ -208,8 +208,6 @@
         updateTimer();
     }
 
-    // ==================== FORM HANDLING ====================
-    
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -218,17 +216,16 @@
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
 
-        // Validate inputs
         const identifier = document.getElementById('identifierInput').value.trim();
         const password = document.getElementById('passwordInput').value;
 
         if (!identifier) {
-            showAlert('تنبيه', 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني');
+            showAlert('تنبيه', 'يرجى إدخال اسم المستخدم، الهاتف أو البريد الإلكتروني');
             return;
         }
 
-        if (!password || password.length < 8) {
-            showAlert('تنبيه', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+        if (!password) {
+            showAlert('تنبيه', 'يرجى إدخال كلمة المرور');
             return;
         }
 
@@ -266,7 +263,7 @@
                     btnSpinner.classList.add('hidden');
                     
                     const remaining = 5 - failedAttempts;
-                    showAlert('خطأ في بيانات الاعتماد', (data.message || 'اسم المستخدم أو كلمة المرور غير صحيح') + ` (تبقى ${remaining} محاولات)`);
+                    showAlert('خطأ في بيانات الاعتماد', (data.message || 'بيانات الدخول غير صحيحة') + ` (تبقى ${remaining} محاولات)`);
                 }
             }
         } catch (err) {
@@ -275,15 +272,9 @@
             btnText.textContent = 'دخول المنظومة';
             btnSpinner.classList.add('hidden');
             showAlert('خطأ في الاتصال', 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة');
-        } finally {
-            if (failedAttempts < 5 && !submitBtn.disabled) {
-                btnText.textContent = 'دخول المنظومة';
-                btnSpinner.classList.add('hidden');
-            }
         }
     });
 
-    // Enter key support
     document.addEventListener('DOMContentLoaded', function() {
         const passwordInput = document.getElementById('passwordInput');
         if (passwordInput) {
