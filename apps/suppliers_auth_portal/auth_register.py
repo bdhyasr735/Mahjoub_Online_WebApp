@@ -10,7 +10,7 @@ import string
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.models.supplier_db import Supplier
-from apps.models.supplier_wallet_db import SupplierWallet  # Assuming wallet model exists or standard import
+from apps.models.supplier_wallet_db import SupplierWallet
 from apps.extensions import db
 
 @suppliers_bp.route('/register', methods=['GET', 'POST'])
@@ -33,7 +33,6 @@ def register():
 
         clean_phone_suffix = phone[-9:] if phone.isdigit() else phone
 
-        # التحقق من عدم تكرار الحساب
         existing_supplier = db.session.query(Supplier).filter(
             (Supplier.username == username) |
             (Supplier.phone == phone) |
@@ -44,7 +43,6 @@ def register():
         if existing_supplier:
             return jsonify({"success": False, "message": "اسم المستخدم، البريد الإلكتروني، أو رقم الهاتف مسجل مسبقاً."}), 400
 
-        # إنشاء كائن المورد الجديد
         new_supplier = Supplier(
             company_name=company_name,
             username=username,
@@ -56,9 +54,8 @@ def register():
         )
 
         db.session.add(new_supplier)
-        db.session.flush() # لحفظ المورد وجلب الـ ID الخاص به لإنشاء المحفظة
+        db.session.flush()
 
-        # إنشاء محفظة مالية افتراضية للمورد الجديد
         wallet_code = ''.join(random.choices(string.digits, k=10))
         new_wallet = SupplierWallet(
             supplier_id=new_supplier.id,
@@ -69,7 +66,6 @@ def register():
         
         db.session.commit()
 
-        # تسجيل الدخول تلقائياً بعد التسجيل الناجح
         session['user_type'] = 'supplier'
         login_user(new_supplier)
         session['supplier_logged_in'] = True
