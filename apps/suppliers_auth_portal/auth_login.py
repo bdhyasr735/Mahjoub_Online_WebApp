@@ -16,18 +16,21 @@ def login():
         return render_template('suppliers_auth_portal/login.html', seo=seo)
 
     try:
-        data = request.get_json(force=True, silent=True) or request.form or {}
+        # التقاط البيانات سواء كانت JSON أو Form Data لضمان عدم حدوث فراغ
+        data = request.get_json(silent=True) or request.form or {}
+        
         identifier = data.get('identifier', '').strip()
         password = data.get('password', '')
-        user_type = data.get('user_type', 'supplier')
+        user_type = data.get('user_type', 'supplier').strip()
+
+        print(f"DEBUG LOGIN ATTEMPT -> Type: {user_type}, Identifier: {identifier}") # للفحص في الـ Terminal
 
         if not identifier or not password:
-            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم وكلمة المرور."}), 400
+            return jsonify({"success": False, "message": "يرجى إدخال اسم المستخدم/الهاتف وكلمة المرور."}), 400
 
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
         if user_type == 'supplier':
-            # مطابقة صحيحة مع الأعمدة الحقيقية للجدول (username, email, search_phone)
             supplier_obj = db.session.query(Supplier).filter(
                 db.or_(
                     Supplier.username == identifier,
@@ -37,13 +40,13 @@ def login():
             ).first()
 
             if not supplier_obj:
-                return jsonify({"success": False, "message": "المورد غير مسجل"}), 404
+                return jsonify({"success": False, "message": "عذراً، المورد غير مسجل في النظام."}), 404
 
             if not supplier_obj.check_password(password):
-                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
+                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
 
             session['user_type'] = 'supplier'
-            login_user(supplier_obj)
+            login_user(supplier_obj, remember=True)
             session['supplier_logged_in'] = True
             session['supplier_identifier'] = identifier
             
@@ -66,13 +69,13 @@ def login():
             staff_obj = db.session.query(SupplierStaff).filter(db.or_(*staff_filters)).first()
 
             if not staff_obj:
-                return jsonify({"success": False, "message": "موظف المورد غير مسجل"}), 404
+                return jsonify({"success": False, "message": "عذراً، موظف المورد غير مسجل."}), 404
 
             if not staff_obj.check_password(password):
-                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
+                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة للموظف."}), 401
 
             session['user_type'] = 'supplier_staff'
-            login_user(staff_obj)
+            login_user(staff_obj, remember=True)
             session['supplier_staff_logged_in'] = True
             session['supplier_identifier'] = identifier
             
@@ -83,7 +86,7 @@ def login():
             })
 
         else:
-            return jsonify({"success": False, "message": "نوع المستخدم غير صحيح"}), 400
+            return jsonify({"success": False, "message": "نوع المستخدم غير صالح."}), 400
 
     except Exception as e:
         import traceback
