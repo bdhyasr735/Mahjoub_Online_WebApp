@@ -179,11 +179,13 @@
         btnText.textContent = 'جاري معالجة طلب التسجيل...';
         btnSpinner.classList.remove('hidden');
 
+        const emailVal = form.email.value.trim();
+
         const payload = {
             company_name: form.company_name.value.trim(),
             contact_person: form.contact_person.value.trim(),
             phone: form.phone.value.trim(),
-            email: form.email.value.trim(),
+            email: emailVal !== "" ? emailVal : null,
             password: password,
             category: form.category.value,
             agree_pricing_policy: form.agree_pricing_policy.checked,
@@ -196,7 +198,8 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRFToken': form.csrf_token.value
+                    'X-CSRFToken': form.csrf_token.value,
+                    'X-CSRF-Token': form.csrf_token.value
                 },
                 body: JSON.stringify(payload)
             });
@@ -219,6 +222,8 @@
                 submitBtn.disabled = false;
                 showAlert('خطأ في التسجيل', data.message || 'تعذر إتمام التسجيل. يرجى التحقق من المدخلات وإعادة المحاولة.');
             }
+        } كلا {
+            // catch block
         } catch (err) {
             console.error("Register error:", err);
             submitBtn.disabled = false;
