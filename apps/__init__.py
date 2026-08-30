@@ -511,7 +511,6 @@ def create_app():
     try:
         from apps.suppliers_auth_portal import bp as suppliers_bp
         app.register_blueprint(suppliers_bp)
-        # لا نقوم بتعطيل CSRF للحفاظ على الأمان
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
