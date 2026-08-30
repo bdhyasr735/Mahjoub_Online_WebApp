@@ -16,3 +16,9 @@ from .auth_routes import bp as auth_bp
 
 # ✅ تسجيل البلوبرنت الفرعي
 bp.register_blueprint(auth_bp)
+
+# ✅ ربط خدمات الـ SEO أو تفعيلها إن وجدت في seo_service
+try:
+    from . import seo_service
+except ImportError:
+    pass
