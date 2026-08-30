@@ -18,19 +18,17 @@ def register():
         data = request.get_json(force=True, silent=True) or request.form or {}
         
         company_name = data.get('company_name', '').strip()
-        contact_person = data.get('contact_person', '').strip()
+        contact_person = data.get('contact_person', '').strip() or data.get('owner_name', '').strip()
         phone = data.get('phone', '').strip()
         email = data.get('email', '').strip()
         password = data.get('password', '')
-        category = data.get('category', '').strip()
 
-        if not company_name or not contact_person or not phone or not password or not category:
-            return jsonify({"success": False, "message": "يرجى استكمال جميع الحقول الإلزامية."}), 400
+        if not company_name or not phone or not password:
+            return jsonify({"success": False, "message": "يرجى استكمال الحقول الإلزامية الأساسية (اسم المنشأة، الهاتف، كلمة المرور)."}), 400
 
-        # التحقق من عدم تكرار رقم الهاتـف أو البريد
+        # التحقق من عدم تكرار رقم الهاتف
         clean_phone_suffix = phone[-9:] if phone.isdigit() else phone
         existing_supplier = db.session.query(Supplier).filter(
-            (Supplier.phone == phone) | 
             (Supplier.search_phone == clean_phone_suffix) | 
             (Supplier.email == email if email else False)
         ).first()
@@ -38,14 +36,23 @@ def register():
         if existing_supplier:
             return jsonify({"success": False, "message": "رقم الهاتف أو البريد الإلكتروني مسجل مسبقاً."}), 400
 
-        # إنشاء المورد الجديد مباشرة بشكل صريح
+        # توليد اسم مستخدم فريد وصريح يعتمد على رقم الهاتف أو الأجزاء المتاحة
+        base_username = f"sup_{clean_phone_suffix}"
+        username = base_username
+        counter = 1
+        while db.session.query(Supplier).filter_by(username=username).first():
+            username = f"{base_username}_{counter}"
+            counter += 1
+
+        # إنشاء المورد الجديد مع مطابقة الحقول الفعليه للنموذج
         new_supplier = Supplier(
-            company_name=company_name,
-            owner_name=contact_person,
+            username=username,
+            store_name=company_name,
+            trade_name=company_name,
+            owner_name=contact_person if contact_person else None,
             phone=phone,
-            search_phone=clean_phone_suffix,
             email=email if email else None,
-            category=category
+            status='active'
         )
         new_supplier.set_password(password)
 
