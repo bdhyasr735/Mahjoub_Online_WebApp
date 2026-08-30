@@ -1,114 +1,142 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}الرئيسية | لوحة المورد{% endblock %}
+{% block title %}لوحة التحكم | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- الترحيب -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    
+    <!-- رسالة الترحيب ومعلومات المورد -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
         <div>
-            <h1 class="h3 fw-bold text-dark">مرحباً بك، المورد المتميز</h1>
-            <p class="text-muted small mb-0">إليك ملخص العمليات والنشاط التجاري لمتجرك</p>
+            <h1 class="h3 fw-bold text-dark mb-1">
+                أهلاً بك، <span class="text-primary">{{ supplier.store_name or supplier.trade_name or supplier.username }}</span> 👋
+            </h1>
+            <p class="text-muted mb-0">
+                اسم المستخدم: <span class="font-monospace fw-semibold text-secondary">@{{ supplier.username }}</span> 
+                {% if supplier.supplier_code %} | الكود التعريفي: <span class="badge bg-secondary font-monospace">{{ supplier.supplier_code }}</span>{% endif %}
+            </p>
         </div>
-        <span class="badge badge-completed">الحالة: نشط</span>
+        <div class="mt-3 mt-md-0">
+            <span class="badge bg-success px-3 py-2 fs-6">الحالة: نشط</span>
+        </div>
     </div>
 
-    <!-- البطاقات الإحصائية (KPIs) -->
+    <!-- البطاقات الإحصائية الرئيسية (KPIs) -->
     <div class="row g-3 mb-4">
-        <!-- المحفظة -->
+        
+        <!-- بطاقة المحفظة المالية (المميزة) -->
         <div class="col-xl-3 col-md-6">
-            <div class="kpi-card kpi-card-featured">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="d-block text-white-50 small mb-1">رصيد المحفظة</span>
-                        <h4 class="fw-bold mb-0">{{ "%.2f"|format(balance or 0) }} ر.س</h4>
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden text-white" style="background: linear-gradient(135deg, #632C8F 0%, #1a0b2e 100%);">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-white-50 small mb-1">رصيد المحفظة</span>
+                            <h3 class="fw-bold mb-0">{{ "%.2f"|format(balance or 0) }} <small class="fs-6 fw-normal">ر.س</small></h3>
+                        </div>
+                        <div class="bg-white bg-opacity-10 p-3 rounded-circle">
+                            <i class="fas fa-wallet fa-2x text-warning"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-wallet fa-2x text-white-50"></i>
+                    <div class="mt-3 pt-2 border-top border-light border-opacity-10 small text-white-50">
+                        كود المحفظة: <span class="font-monospace text-white">{{ wallet.wallet_code if wallet else 'N/A' }}</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- المنتجات -->
+        <!-- المنتجات النشطة -->
         <div class="col-xl-3 col-md-6">
-            <div class="kpi-card">
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block text-muted small mb-1">المنتجات النشطة</span>
-                        <h4 class="fw-bold mb-0 text-dark">{{ products_count or 0 }}</h4>
+                        <span class="d-block text-muted small mb-1">المنتجات المرتبطة</span>
+                        <h3 class="fw-bold mb-0 text-dark">{{ products_count or 0 }}</h3>
                     </div>
-                    <i class="fas fa-box-open fa-2x text-primary"></i>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                        <i class="fas fa-box-open fa-2x"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- الموظفين -->
+        <!-- فريق العمل / الموظفين -->
         <div class="col-xl-3 col-md-6">
-            <div class="kpi-card">
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block text-muted small mb-1">فريق العمل</span>
-                        <h4 class="fw-bold mb-0 text-dark">{{ staff_count or 0 }}</h4>
+                        <span class="d-block text-muted small mb-1">الموظفين النشطين</span>
+                        <h3 class="fw-bold mb-0 text-dark">{{ staff_count or 0 }}</h3>
                     </div>
-                    <i class="fas fa-users fa-2x text-success"></i>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- كود المورد -->
+        <!-- رتبة الحساب -->
         <div class="col-xl-3 col-md-6">
-            <div class="kpi-card">
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block text-muted small mb-1">كود المورد</span>
-                        <h5 class="fw-bold mb-0 text-dark font-monospace">{{ supplier.supplier_code or 'N/A' }}</h5>
+                        <span class="d-block text-muted small mb-1">رتبة المورد</span>
+                        <h3 class="fw-bold mb-0 text-uppercase text-warning">{{ supplier.rank or 'bronze' }}</h3>
                     </div>
-                    <i class="fas fa-id-badge fa-2x text-warning"></i>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
+                        <i class="fas fa-award fa-2x"></i>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 
-    <!-- معلومات المتجر والملف الشخصي -->
+    <!-- تفاصيل الحساب والمتجر -->
     <div class="row g-3">
         <div class="col-lg-6">
-            <div class="kpi-card h-100">
-                <h5 class="fw-bold text-dark mb-3"><i class="fas fa-store me-2 text-primary"></i> بيانات المتجر والمنشأة</h5>
-                <ul class="list-unstyled small mb-0">
-                    <li class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted">اسم المتجر:</span>
-                        <span class="fw-bold text-dark">{{ supplier.store_name or 'غير محدد' }}</span>
-                    </li>
-                    <li class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted">الاسم التجاري:</span>
-                        <span class="fw-bold text-dark">{{ supplier.trade_name or 'غير محدد' }}</span>
-                    </li>
-                    <li class="d-flex justify-content-between py-2">
-                        <span class="text-muted">البريد الإلكتروني:</span>
-                        <span class="fw-bold text-dark">{{ supplier.email or 'غير محدد' }}</span>
-                    </li>
-                </ul>
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-store me-2 text-primary"></i> بيانات المتجر</h5>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">اسم المتجر:</span>
+                            <span class="fw-bold text-dark">{{ supplier.store_name or 'غير محدد' }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">الاسم التجاري:</span>
+                            <span class="fw-bold text-dark">{{ supplier.trade_name or 'غير محدد' }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between py-2">
+                            <span class="text-muted">مالك المتجر:</span>
+                            <span class="fw-bold text-dark">{{ supplier.owner_name or 'غير محدد' }}</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
 
         <div class="col-lg-6">
-            <div class="kpi-card h-100">
-                <h5 class="fw-bold text-dark mb-3"><i class="fas fa-map-marker-alt me-2 text-danger"></i> معلومات الموقع والعنوان</h5>
-                <ul class="list-unstyled small mb-0">
-                    <li class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted">المدينة:</span>
-                        <span class="fw-bold text-dark">{{ profile.city if profile else 'غير محدد' }}</span>
-                    </li>
-                    <li class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted">الحي:</span>
-                        <span class="fw-bold text-dark">{{ profile.district if profile else 'غير محدد' }}</span>
-                    </li>
-                    <li class="d-flex justify-content-between py-2">
-                        <span class="text-muted">رقم الهاتف:</span>
-                        <span class="fw-bold text-dark">{{ supplier.phone or 'غير محدد' }}</span>
-                    </li>
-                </ul>
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-address-card me-2 text-success"></i> معلومات التواصل</h5>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">البريد الإلكتروني:</span>
+                            <span class="fw-bold text-dark">{{ supplier.email or 'غير محدد' }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">رقم الهاتف:</span>
+                            <span class="fw-bold text-dark font-monospace">{{ supplier.phone or 'غير محدد' }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between py-2">
+                            <span class="text-muted">تاريخ الانضمام:</span>
+                            <span class="fw-bold text-dark">{{ supplier.created_at.strftime('%Y-%m-%d') if supplier.created_at else 'غير محدد' }}</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
+
 </div>
 {% endblock %}
