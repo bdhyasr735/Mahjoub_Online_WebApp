@@ -1,1009 +1,298 @@
-# -*- coding: utf-8 -*-
-# 📂 apps/suppliers_auth_portal/auth_routes.py
-# باك اند واحد للبوابة - مع HTML مدمج (بدون قوالب)
+{% extends "suppliers_auth_portal/base.html" %}
 
-import secrets
-from datetime import datetime, timedelta
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash, current_app
-from flask_login import login_user, logout_user, login_required, current_user
-from sqlalchemy import or_
+{% block title %}تسجيل الدخول | بوابة الموردين وموظفيهم{% endblock %}
 
-from apps.extensions import db
-from apps.models.supplier_db import Supplier
-from apps.models.supplier_staff_db import SupplierStaff
-from apps.models.wallet_db import SupplierWallet
+{% block content %}
+<div class="w-full max-w-md mx-auto">
+    <div class="bg-royalSurface/95 border border-royalGold/30 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl royal-border relative overflow-hidden">
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-royalGold/15 blur-3xl rounded-full pointer-events-none"></div>
 
-# ✅ إنشاء البلوبرنت
-bp = Blueprint('auth', __name__)
+        <!-- Header -->
+        <div class="text-center mb-6 relative z-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-royalDark border-2 border-royalGold/50 p-2 mb-3 shadow-xl overflow-hidden">
+                <img src="{{ url_for('static', filename='images/logo.webp') }}" 
+                     alt="محجوب أونلاين"
+                     class="w-full h-full object-contain brightness-0 invert"
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🛒%3C/text%3E%3C/svg%3E'">
+            </div>
+            <h2 class="text-2xl font-black gold-gradient-text tracking-wide mb-1">
+                محجوب أونلاين
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30 align-middle mr-1.5 font-normal">سوقك الذكي</span>
+            </h2>
+            <p class="text-xs text-royalGold/80 font-medium">بوابة الموردين وموظفيهم</p>
 
+            <!-- Governance Notice -->
+            <div class="mt-4 p-3 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-[11px] text-amber-200 text-right leading-relaxed">
+                <strong class="text-royalGoldLight block font-bold mb-0.5">تنويه حوكمة الأسعار:</strong>
+                التعامل <span class="text-royalGold font-bold">بسعر التكلفة</span> ولوحة تحكم <span class="text-emerald-400 font-bold">مجانية بالكامل</span>.
+                في حال رؤية أسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف الحساب</span>.
+            </div>
+        </div>
 
-# ============================================================
-# تخزين OTP مؤقت
-# ============================================================
-otp_storage = {}
+        <!-- User Type Tabs -->
+        <div class="grid grid-cols-2 p-1 bg-royalDark/80 rounded-xl border border-royalGold/20 mb-6">
+            <button type="button" id="tabSupplier" onclick="switchUserType('supplier')" class="py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md">
+                حساب المورد
+            </button>
+            <button type="button" id="tabEmployee" onclick="switchUserType('employee')" class="py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                موظف المورد
+            </button>
+        </div>
 
+        <!-- Alert Box -->
+        <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
-def extract_phone_digits(value):
-    if not value:
-        return None
-    digits = ''.join(filter(str.isdigit, str(value)))
-    return digits[-9:] if len(digits) >= 9 else digits
+        <!-- Login Form -->
+        <form id="loginForm" method="POST" action="{{ url_for('suppliers_auth.login') }}" class="space-y-5 relative z-10">
+            <!-- CSRF Token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <input type="hidden" id="userTypeInput" name="user_type" value="supplier">
 
+            <!-- Identifier Field -->
+            <div>
+                <label id="identifierLabel" class="form-label">رقم الهاتف أو البريد الإلكتروني</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-royalGold/60">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <input type="text" name="identifier" id="identifierInput" required
+                           placeholder="مثال: 77xxxxxxx أو البريد الإلكتروني"
+                           class="form-input pr-11" value="test_supplier">
+                </div>
+            </div>
 
-def generate_otp():
-    return ''.join(secrets.choice('0123456789') for _ in range(6))
+            <!-- Password Field -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="form-label mb-0">كلمة المرور</label>
+                    <a href="{{ url_for('suppliers_auth.forgot_password') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                        نسيت كلمة المرور؟
+                    </a>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-royalGold/60">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                    </div>
+                    <input type="password" name="password" id="passwordInput" required
+                           placeholder="••••••••"
+                           class="form-input pr-11 pl-11" value="123">
+                    <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-royalGold">
+                        <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
 
+            <!-- Remember Me -->
+            <div class="flex items-center justify-between text-xs">
+                <label class="flex items-center gap-2 cursor-pointer select-none text-slate-300">
+                    <input type="checkbox" name="remember_me" class="rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold">
+                    <span>تذكر بيانات الدخول</span>
+                </label>
+                <span class="text-slate-400 text-[11px]">🔒 مشفر وآمن</span>
+            </div>
 
-def get_user_by_identifier(identifier):
-    supplier = Supplier.query.filter(
-        or_(
-            Supplier.username == identifier,
-            Supplier.email == identifier,
-            Supplier.search_phone == extract_phone_digits(identifier)
-        )
-    ).first()
-    if supplier:
-        return {'user': supplier, 'type': 'supplier'}
-    
-    staff = SupplierStaff.query.filter(
-        or_(
-            SupplierStaff.username == identifier,
-            SupplierStaff.search_phone == extract_phone_digits(identifier)
-        )
-    ).first()
-    if staff:
-        return {'user': staff, 'type': 'employee'}
-    
-    if '@' in identifier:
-        all_staff = SupplierStaff.query.all()
-        for staff in all_staff:
-            if staff.email and staff.email == identifier:
-                return {'user': staff, 'type': 'employee'}
-    
-    return None
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 gold-btn rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
+                <span id="btnText">دخول المنظومة</span>
+                <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-black" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </form>
 
+        <!-- Register Link -->
+        <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
+            <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
+            <a href="{{ url_for('suppliers_auth.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+                <span>فتح حساب جديد</span>
+                <span aria-hidden="true">&larr;</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-def store_otp(identifier, otp_code):
-    otp_storage[identifier] = {
-        'code': otp_code,
-        'created_at': datetime.utcnow(),
-        'attempts': 0,
-        'max_attempts': 5
+{% block scripts %}
+<script>
+    let currentUserType = 'supplier';
+    let failedAttempts = 0;
+    let lockoutTimer = null;
+
+    function switchUserType(type) {
+        currentUserType = type;
+        document.getElementById('userTypeInput').value = type;
+        
+        const tabSup = document.getElementById('tabSupplier');
+        const tabEmp = document.getElementById('tabEmployee');
+        const label = document.getElementById('identifierLabel');
+        const input = document.getElementById('identifierInput');
+
+        if (type === 'supplier') {
+            tabSup.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
+            tabEmp.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
+            input.placeholder = 'مثال: 77xxxxxxx أو البريد الإلكتروني';
+        } else {
+            tabEmp.className = 'py-2.5 text-xs font-bold rounded-lg transition-all text-royalGold bg-royalSurface border border-royalGold/40 shadow-md';
+            tabSup.className = 'py-2.5 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200';
+            label.textContent = 'رقم الهاتف أو البريد الإلكتروني';
+            input.placeholder = 'مثال: employee@company.com أو 05xxxxxxxx';
+        }
     }
 
-
-def verify_otp(identifier, otp_code):
-    if identifier not in otp_storage:
-        return False
-    stored = otp_storage[identifier]
-    if stored['attempts'] >= stored['max_attempts']:
-        return False
-    if datetime.utcnow() - stored['created_at'] > timedelta(minutes=10):
-        return False
-    if stored['code'] != otp_code:
-        stored['attempts'] += 1
-        return False
-    return True
-
-
-def clear_otp(identifier):
-    if identifier in otp_storage:
-        del otp_storage[identifier]
-
-
-# ============================================================
-# 🟣 تسجيل الدخول - HTML مدمج
-# ============================================================
-
-@bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('suppliers_dashboard.dashboard'))
-    
-    if request.method == 'GET':
-        return """
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>تسجيل الدخول - محجوب أونلاين</title>
-            <style>
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #05020a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-                .card { background: #0f071c; border: 1px solid #ce9e49; border-radius: 20px; padding: 40px; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
-                .logo { text-align: center; margin-bottom: 30px; }
-                .logo h1 { font-size: 26px; background: linear-gradient(135deg, #ce9e49, #fae19c, #ce9e49); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                .logo span { display: inline-block; background: rgba(206,158,73,0.2); color: #fae19c; padding: 2px 12px; border-radius: 20px; font-size: 10px; border: 1px solid rgba(206,158,73,0.3); }
-                .logo p { color: #ce9e49; font-size: 14px; margin-top: 5px; }
-                .tabs { display: flex; gap: 6px; background: rgba(15,7,28,0.6); padding: 4px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(206,158,73,0.1); }
-                .tab { flex: 1; padding: 10px; text-align: center; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; color: #666; background: transparent; border: none; }
-                .tab.active { background: #ce9e49; color: #05020a; }
-                .tab:hover:not(.active) { color: #ce9e49; }
-                .input-group { margin-bottom: 18px; }
-                label { display: block; margin-bottom: 6px; color: #ce9e49; font-size: 13px; font-weight: 600; }
-                input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(206,158,73,0.25); background: rgba(15,7,28,0.9); color: #fff; font-size: 15px; transition: all 0.3s; }
-                input:focus { border-color: #ce9e49; outline: none; box-shadow: 0 0 20px rgba(206,158,73,0.15); }
-                input::placeholder { color: rgba(255,255,255,0.3); }
-                .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #ce9e49, #ba8b38); color: #05020a; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; }
-                .btn:hover { background: linear-gradient(135deg, #fae19c, #ce9e49); box-shadow: 0 0 30px rgba(206,158,73,0.3); }
-                .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-                .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 14px; }
-                .alert-error { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
-                .alert-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-                .links { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(206,158,73,0.1); font-size: 13px; }
-                .links a { color: #ce9e49; text-decoration: none; margin: 0 8px; }
-                .links a:hover { text-decoration: underline; }
-                .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #444; }
-                .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #05020a; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
-                @keyframes spin { to { transform: rotate(360deg); } }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <div class="logo">
-                    <div style="font-size:48px;">🛒</div>
-                    <h1>محجوب أونلاين <span>سوقك الذكي</span></h1>
-                    <p>بوابة الموردين وموظفيهم</p>
-                </div>
-                
-                <div class="tabs">
-                    <button class="tab active" onclick="setType('supplier', this)">حساب المورد</button>
-                    <button class="tab" onclick="setType('employee', this)">موظف المورد</button>
-                </div>
-                
-                <div id="alertBox" class="alert"></div>
-                
-                <form id="loginForm">
-                    <input type="hidden" id="userType" value="supplier">
-                    <div class="input-group">
-                        <label>رقم الهاتف أو البريد الإلكتروني</label>
-                        <input type="text" id="identifier" placeholder="مثال: 77xxxxxxx أو البريد" value="test_supplier">
-                    </div>
-                    <div class="input-group">
-                        <label>كلمة المرور</label>
-                        <input type="password" id="password" placeholder="••••••••" value="123">
-                    </div>
-                    <button type="submit" class="btn" id="submitBtn">دخول المنظومة</button>
-                </form>
-                
-                <div class="links">
-                    <a href="/suppliers/register">اشتراك مورد جديد</a>
-                    <span style="color:#444;">|</span>
-                    <a href="/suppliers/forgot-password">نسيت كلمة المرور؟</a>
-                </div>
-                
-                <div class="footer">🔒 مشفر 256-bit SSL | CSRF Protected</div>
-            </div>
-            
-            <script>
-                function setType(type, btn) {
-                    document.getElementById('userType').value = type;
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    btn.classList.add('active');
-                }
-                
-                document.getElementById('loginForm').addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    const identifier = document.getElementById('identifier').value.trim();
-                    const password = document.getElementById('password').value;
-                    const userType = document.getElementById('userType').value;
-                    const alertBox = document.getElementById('alertBox');
-                    const submitBtn = document.getElementById('submitBtn');
-                    
-                    alertBox.style.display = 'none';
-                    alertBox.className = 'alert';
-                    
-                    if (!identifier || !password) {
-                        alertBox.textContent = '⚠️ يرجى إدخال جميع البيانات';
-                        alertBox.className = 'alert alert-error';
-                        alertBox.style.display = 'block';
-                        return;
-                    }
-                    
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner"></span> جاري التحقق...';
-                    
-                    try {
-                        const response = await fetch('/suppliers/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ identifier, password, user_type: userType, remember_me: true })
-                        });
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            alertBox.textContent = '✅ ' + data.message;
-                            alertBox.className = 'alert alert-success';
-                            alertBox.style.display = 'block';
-                            setTimeout(() => { window.location.href = data.redirect_url; }, 1000);
-                        } else {
-                            alertBox.textContent = '❌ ' + data.message;
-                            alertBox.className = 'alert alert-error';
-                            alertBox.style.display = 'block';
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = 'دخول المنظومة';
-                        }
-                    } catch(err) {
-                        alertBox.textContent = '❌ خطأ في الاتصال بالخادم';
-                        alertBox.className = 'alert alert-error';
-                        alertBox.style.display = 'block';
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'دخول المنظومة';
-                    }
-                });
-            </script>
-        </body>
-        </html>
-        """
-    
-    # POST: معالجة تسجيل الدخول
-    try:
-        data = request.get_json() or request.form
-        identifier = data.get('identifier', '').strip()
-        password = data.get('password', '')
-        user_type = data.get('user_type', 'supplier')
-        remember_me = data.get('remember_me', False)
+    function togglePasswordVisibility() {
+        const input = document.getElementById('passwordInput');
+        const icon = document.getElementById('eyeIcon');
         
-        if not identifier or not password:
-            return jsonify({'success': False, 'message': 'يرجى إدخال جميع البيانات'}), 400
-        
-        search_phone = extract_phone_digits(identifier)
-        user = None
-        
-        if user_type == 'supplier':
-            user = Supplier.query.filter(
-                or_(
-                    Supplier.username == identifier,
-                    Supplier.email == identifier,
-                    Supplier.search_phone == search_phone
-                )
-            ).first()
-        elif user_type == 'employee':
-            user = SupplierStaff.query.filter(
-                or_(
-                    SupplierStaff.username == identifier,
-                    SupplierStaff.search_phone == search_phone
-                )
-            ).first()
-            if not user and '@' in identifier:
-                all_staff = SupplierStaff.query.all()
-                for staff in all_staff:
-                    if staff.email and staff.email == identifier:
-                        user = staff
-                        break
-        else:
-            return jsonify({'success': False, 'message': 'نوع المستخدم غير مدعوم'}), 400
-        
-        if not user:
-            return jsonify({'success': False, 'message': 'بيانات الدخول غير صحيحة'}), 401
-        
-        if user.status != 'active':
-            return jsonify({'success': False, 'message': f'الحساب {user.status}'}), 403
-        
-        if not user.check_password(password):
-            return jsonify({'success': False, 'message': 'بيانات الدخول غير صحيحة'}), 401
-        
-        login_user(user, remember=remember_me)
-        user.last_login = datetime.utcnow()
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'تم تسجيل الدخول بنجاح',
-            'redirect_url': url_for('suppliers_dashboard.dashboard'),
-            'user': {'id': user.id, 'username': user.username, 'user_type': user_type, 'status': user.status}
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f'❌ خطأ في تسجيل الدخول: {str(e)}')
-        db.session.rollback()
-        return jsonify({'success': False, 'message': 'حدث خطأ في الخادم'}), 500
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+            `;
+        } else {
+            input.type = 'password';
+            icon.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            `;
+        }
+    }
 
-
-# ============================================================
-# 🟣 تسجيل الخروج
-# ============================================================
-
-@bp.route('/logout', methods=['GET', 'POST'])
-@login_required
-def logout():
-    username = current_user.username
-    logout_user()
-    session.clear()
-    flash('تم تسجيل الخروج بنجاح', 'success')
-    return redirect(url_for('auth.login'))
-
-
-# ============================================================
-# 🟣 التسجيل - HTML مدمج (مبسط)
-# ============================================================
-
-@bp.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('suppliers_dashboard.dashboard'))
-    
-    if request.method == 'GET':
-        return """
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>تسجيل مورد جديد - محجوب أونلاين</title>
-        <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #05020a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-            .card { background: #0f071c; border: 1px solid #ce9e49; border-radius: 20px; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
-            .logo { text-align: center; margin-bottom: 30px; }
-            .logo h1 { font-size: 26px; background: linear-gradient(135deg, #ce9e49, #fae19c, #ce9e49); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-            .logo span { display: inline-block; background: rgba(206,158,73,0.2); color: #fae19c; padding: 2px 12px; border-radius: 20px; font-size: 10px; border: 1px solid rgba(206,158,73,0.3); }
-            .logo p { color: #ce9e49; font-size: 14px; margin-top: 5px; }
-            .input-group { margin-bottom: 16px; }
-            label { display: block; margin-bottom: 6px; color: #ce9e49; font-size: 13px; font-weight: 600; }
-            input, select { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(206,158,73,0.25); background: rgba(15,7,28,0.9); color: #fff; font-size: 14px; transition: all 0.3s; }
-            input:focus, select:focus { border-color: #ce9e49; outline: none; box-shadow: 0 0 20px rgba(206,158,73,0.15); }
-            input::placeholder { color: rgba(255,255,255,0.3); }
-            select option { background: #0f071c; }
-            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-            .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #ce9e49, #ba8b38); color: #05020a; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; margin-top: 8px; }
-            .btn:hover { background: linear-gradient(135deg, #fae19c, #ce9e49); box-shadow: 0 0 30px rgba(206,158,73,0.3); }
-            .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-            .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 14px; }
-            .alert-error { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
-            .alert-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-            .links { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(206,158,73,0.1); font-size: 13px; }
-            .links a { color: #ce9e49; text-decoration: none; }
-            .links a:hover { text-decoration: underline; }
-            .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #444; }
-            .checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0; }
-            .checkbox-group input { width: 18px; height: 18px; margin-top: 2px; accent-color: #ce9e49; }
-            .checkbox-group label { font-size: 12px; color: #94a3b8; cursor: pointer; }
-            .checkbox-group label strong { color: #ce9e49; }
-            .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #05020a; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
-            @keyframes spin { to { transform: rotate(360deg); } }
-        </style>
-        </head>
-        <body>
-        <div class="card">
-            <div class="logo"><div style="font-size:48px;">📝</div><h1>فتح حساب <span>مورد جديد</span></h1><p>انضم إلى منصة محجوب أونلاين</p></div>
-            <div id="alertBox" class="alert"></div>
-            <form id="registerForm">
-                <div class="grid-2">
-                    <div class="input-group"><label>اسم المنشأة *</label><input type="text" id="trade_name" placeholder="شركة النور للتجارة" required></div>
-                    <div class="input-group"><label>اسم المالك *</label><input type="text" id="owner_name" placeholder="الاسم الثلاثي" required></div>
-                </div>
-                <div class="grid-2">
-                    <div class="input-group"><label>رقم الهاتف *</label><input type="tel" id="phone" placeholder="77xxxxxxx" required></div>
-                    <div class="input-group"><label>البريد الإلكتروني</label><input type="email" id="email" placeholder="supplier@domain.com"></div>
-                </div>
-                <div class="grid-2">
-                    <div class="input-group"><label>اسم المستخدم *</label><input type="text" id="username" placeholder="اختر اسم مستخدم" required></div>
-                    <div class="input-group"><label>اسم المتجر</label><input type="text" id="store_name" placeholder="اسم المتجر للعرض"></div>
-                </div>
-                <div class="grid-2">
-                    <div class="input-group"><label>كلمة المرور *</label><input type="password" id="password" placeholder="•••••••• (8 أحرف)" required minlength="8"></div>
-                    <div class="input-group"><label>تأكيد كلمة المرور *</label><input type="password" id="confirm_password" placeholder="••••••••" required minlength="8"></div>
-                </div>
-                <div class="input-group"><label>فئة النشاط *</label>
-                    <select id="category" required>
-                        <option value="">اختر فئة التوريد...</option>
-                        <option value="food">المواد الغذائية</option>
-                        <option value="electronics">الأجهزة الإلكترونية</option>
-                        <option value="clothing">الملابس والمنسوجات</option>
-                        <option value="wholesale">تجارة الجملة</option>
-                        <option value="other">أخرى</option>
-                    </select>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="agree_pricing_policy" required>
-                    <label for="agree_pricing_policy">أوافق على التزام <strong>سعر التكلفة</strong> وأقر بحق المنصة في إيقاف الحساب في حال مخالفة ذلك.</label>
-                </div>
-                <button type="submit" class="btn" id="submitBtn">إرسال طلب التسجيل</button>
-            </form>
-            <div class="links"><a href="/suppliers/login">← تسجيل الدخول</a></div>
-            <div class="footer">🔒 مشفر 256-bit SSL</div>
-        </div>
-        <script>
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const alertBox = document.getElementById('alertBox');
-            const submitBtn = document.getElementById('submitBtn');
-            alertBox.style.display = 'none';
-            alertBox.className = 'alert';
-            
-            const password = document.getElementById('password').value;
-            const confirm = document.getElementById('confirm_password').value;
-            if (password !== confirm) {
-                alertBox.textContent = '⚠️ كلمتا المرور غير متطابقتين';
-                alertBox.className = 'alert alert-error';
-                alertBox.style.display = 'block';
-                return;
+    function showAlert(title, msg, isSuccess = false) {
+        const box = document.getElementById('alertBox');
+        box.classList.remove('hidden');
+        
+        if (isSuccess) {
+            box.className = 'flash-message flash-success flex items-center justify-between';
+            box.innerHTML = `<span>✓ ${title}: ${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">&times;</button>`;
+        } else {
+            box.className = 'flash-message flash-danger flex items-center justify-between';
+            box.innerHTML = `<span>⚠ ${title}: ${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">&times;</button>`;
+        }
+        
+        setTimeout(() => {
+            if (box) {
+                box.style.transition = 'opacity 0.5s ease';
+                box.style.opacity = '0';
+                setTimeout(() => { box.remove(); }, 500);
             }
-            if (password.length < 8) {
-                alertBox.textContent = '⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل';
-                alertBox.className = 'alert alert-error';
-                alertBox.style.display = 'block';
-                return;
-            }
-            const phone = document.getElementById('phone').value.replace(/\D/g, '');
-            if (phone.length < 9) {
-                alertBox.textContent = '⚠️ رقم الهاتف يجب أن يحتوي على 9 أرقام';
-                alertBox.className = 'alert alert-error';
-                alertBox.style.display = 'block';
-                return;
-            }
-            if (!document.getElementById('agree_pricing_policy').checked) {
-                alertBox.textContent = '⚠️ يجب الموافقة على شروط حوكمة الأسعار';
-                alertBox.className = 'alert alert-error';
-                alertBox.style.display = 'block';
-                return;
-            }
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner"></span> جاري المعالجة...';
-            
-            try {
-                const data = {
-                    trade_name: document.getElementById('trade_name').value.trim(),
-                    owner_name: document.getElementById('owner_name').value.trim(),
-                    username: document.getElementById('username').value.trim(),
-                    phone: document.getElementById('phone').value.trim(),
-                    email: document.getElementById('email').value.trim(),
-                    store_name: document.getElementById('store_name').value.trim(),
-                    password: password,
-                    category: document.getElementById('category').value,
-                    agree_pricing_policy: document.getElementById('agree_pricing_policy').checked
-                };
-                
-                const response = await fetch('/suppliers/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    alertBox.textContent = '✅ ' + result.message;
-                    alertBox.className = 'alert alert-success';
-                    alertBox.style.display = 'block';
-                    setTimeout(() => { window.location.href = result.redirect_url; }, 1500);
-                } else {
-                    alertBox.textContent = '❌ ' + result.message;
-                    alertBox.className = 'alert alert-error';
-                    alertBox.style.display = 'block';
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'إرسال طلب التسجيل';
-                }
-            } catch(err) {
-                alertBox.textContent = '❌ خطأ في الاتصال بالخادم';
-                alertBox.className = 'alert alert-error';
-                alertBox.style.display = 'block';
+        }, 6000);
+    }
+
+    function startLockoutCountdown(seconds) {
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        submitBtn.disabled = true;
+        let remaining = seconds;
+
+        const updateTimer = () => {
+            if (remaining > 0) {
+                btnText.textContent = `ممنوع (${remaining} ث)`;
+                remaining--;
+                lockoutTimer = setTimeout(updateTimer, 1000);
+            } else {
+                document.getElementById('alertBox')?.classList.add('hidden');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = 'إرسال طلب التسجيل';
+                btnText.textContent = 'دخول المنظومة';
+                failedAttempts = 0;
             }
-        });
-        </script>
-        </body>
-        </html>
-        """
+        };
+        updateTimer();
+    }
+
+    // ==================== FORM HANDLING ====================
     
-    # POST: معالجة التسجيل
-    try:
-        data = request.get_json() or request.form
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        trade_name = data.get('trade_name', '').strip()
-        owner_name = data.get('owner_name', '').strip()
-        username = data.get('username', '').strip()
-        phone = data.get('phone', '').strip()
-        email = data.get('email', '').strip() or None
-        store_name = data.get('store_name', '').strip() or trade_name
-        password = data.get('password', '')
-        agree = data.get('agree_pricing_policy', False)
-        
-        if not all([trade_name, owner_name, username, phone, password]):
-            return jsonify({'success': False, 'message': 'يرجى ملء جميع الحقول المطلوبة'}), 400
-        
-        if not agree:
-            return jsonify({'success': False, 'message': 'يجب الموافقة على شروط حوكمة الأسعار'}), 400
-        
-        if Supplier.query.filter_by(username=username).first():
-            return jsonify({'success': False, 'message': 'اسم المستخدم موجود مسبقاً'}), 400
-        
-        digits = ''.join(filter(str.isdigit, phone))
-        if len(digits) < 9:
-            return jsonify({'success': False, 'message': 'رقم الهاتف يجب أن يحتوي على 9 أرقام'}), 400
-        
-        search_phone = digits[-9:]
-        if Supplier.query.filter_by(search_phone=search_phone).first():
-            return jsonify({'success': False, 'message': 'رقم الهاتف مسجل مسبقاً'}), 400
-        
-        if email and Supplier.query.filter_by(email=email).first():
-            return jsonify({'success': False, 'message': 'البريد الإلكتروني مسجل مسبقاً'}), 400
-        
-        supplier = Supplier(
-            username=username,
-            email=email,
-            owner_name=owner_name,
-            trade_name=trade_name,
-            store_name=store_name,
-            status='pending'
-        )
-        supplier.phone = phone
-        supplier.set_password(password)
-        
-        db.session.add(supplier)
-        db.session.flush()
-        
-        wallet = SupplierWallet(
-            supplier_id=supplier.id,
-            wallet_code=f"WEL-963{supplier.id}",
-            balance=0.0,
-            status='active'
-        )
-        db.session.add(wallet)
-        
-        otp_code = generate_otp()
-        session['verify_supplier_id'] = supplier.id
-        session['verify_otp'] = otp_code
-        
-        db.session.commit()
-        
-        login_user(supplier)
-        
-        return jsonify({
-            'success': True,
-            'message': 'تم التسجيل بنجاح',
-            'redirect_url': url_for('auth.verify', identifier=username),
-            'data': {'_dev_otp': otp_code}
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f'خطأ في التسجيل: {str(e)}')
-        return jsonify({'success': False, 'message': 'حدث خطأ في الخادم'}), 500
+        const form = this;
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
 
+        // Validate inputs
+        const identifier = document.getElementById('identifierInput').value.trim();
+        const password = document.getElementById('passwordInput').value;
 
-# ============================================================
-# 🟣 استعادة كلمة المرور - HTML مدمج
-# ============================================================
-
-@bp.route('/forgot-password', methods=['GET'])
-def forgot_password():
-    if current_user.is_authenticated:
-        return redirect(url_for('suppliers_dashboard.dashboard'))
-    
-    return """
-    <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
-    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استعادة كلمة المرور - محجوب أونلاين</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #05020a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-        .card { background: #0f071c; border: 1px solid #ce9e49; border-radius: 20px; padding: 40px; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
-        .logo { text-align: center; margin-bottom: 30px; }
-        .logo h1 { font-size: 26px; background: linear-gradient(135deg, #ce9e49, #fae19c, #ce9e49); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .logo p { color: #ce9e49; font-size: 14px; margin-top: 5px; }
-        .input-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 6px; color: #ce9e49; font-size: 13px; font-weight: 600; }
-        input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(206,158,73,0.25); background: rgba(15,7,28,0.9); color: #fff; font-size: 15px; transition: all 0.3s; }
-        input:focus { border-color: #ce9e49; outline: none; box-shadow: 0 0 20px rgba(206,158,73,0.15); }
-        input::placeholder { color: rgba(255,255,255,0.3); }
-        .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #ce9e49, #ba8b38); color: #05020a; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; }
-        .btn:hover { background: linear-gradient(135deg, #fae19c, #ce9e49); box-shadow: 0 0 30px rgba(206,158,73,0.3); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 14px; }
-        .alert-error { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
-        .alert-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-        .links { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(206,158,73,0.1); font-size: 13px; }
-        .links a { color: #ce9e49; text-decoration: none; }
-        .links a:hover { text-decoration: underline; }
-        .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #444; }
-        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #05020a; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .hidden { display: none; }
-        .otp-container { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-        .otp-container input { width: 50px; height: 56px; text-align: center; font-size: 24px; font-weight: 700; }
-    </style>
-    </head>
-    <body>
-    <div class="card">
-        <div class="logo"><div style="font-size:48px;">🔑</div><h1>استعادة <span>كلمة المرور</span></h1><p>أدخل بياناتك لإرسال رمز التحقق</p></div>
-        <div id="alertBox" class="alert"></div>
-        
-        <!-- المرحلة 1: طلب OTP -->
-        <div id="stage1">
-            <form id="requestOtpForm">
-                <div class="input-group">
-                    <label>اسم المستخدم أو رقم الهاتف أو البريد</label>
-                    <input type="text" id="identifier" placeholder="مثال: test_supplier" required>
-                </div>
-                <button type="submit" class="btn" id="btnRequestOtp">إرسال رمز التحقق</button>
-            </form>
-        </div>
-        
-        <!-- المرحلة 2: إعادة تعيين كلمة المرور -->
-        <div id="stage2" class="hidden">
-            <p style="font-size:13px; color:#94a3b8; text-align:center; margin-bottom:12px;">تم إرسال الرمز إلى: <strong id="maskedTarget" style="color:#ce9e49;"></strong></p>
-            <form id="resetPasswordForm">
-                <div class="input-group">
-                    <label>رمز التحقق (6 أرقام)</label>
-                    <div class="otp-container">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                    </div>
-                    <input type="hidden" id="otpCode" name="otp_code">
-                </div>
-                <div class="input-group">
-                    <label>كلمة المرور الجديدة</label>
-                    <input type="password" id="newPassword" placeholder="•••••••• (8 أحرف)" minlength="8" required>
-                </div>
-                <div class="input-group">
-                    <label>تأكيد كلمة المرور</label>
-                    <input type="password" id="confirmPassword" placeholder="••••••••" minlength="8" required>
-                </div>
-                <button type="submit" class="btn" id="btnReset">تحديث كلمة المرور</button>
-            </form>
-        </div>
-        
-        <div class="links"><a href="/suppliers/login">← العودة لتسجيل الدخول</a></div>
-        <div class="footer">🔒 مشفر 256-bit SSL</div>
-    </div>
-    <script>
-        let activeIdentifier = '';
-        let otpDigits = document.querySelectorAll('.otp-digit');
-        
-        otpDigits.forEach((input, index) => {
-            input.addEventListener('input', function(e) {
-                if (this.value && !/^\d$/.test(this.value)) { this.value = ''; return; }
-                if (this.value && index < otpDigits.length - 1) { otpDigits[index + 1].focus(); }
-                updateOtpCode();
-            });
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Backspace' && !this.value && index > 0) { otpDigits[index - 1].focus(); }
-            });
-            input.addEventListener('paste', function(e) {
-                e.preventDefault();
-                const paste = e.clipboardData.getData('text').trim();
-                if (/^\d{6}$/.test(paste)) {
-                    otpDigits.forEach((inp, i) => { inp.value = paste[i]; });
-                    updateOtpCode();
-                    otpDigits[otpDigits.length - 1].focus();
-                }
-            });
-        });
-        
-        function updateOtpCode() {
-            let code = '';
-            otpDigits.forEach(inp => code += inp.value);
-            document.getElementById('otpCode').value = code;
+        if (!identifier) {
+            showAlert('تنبيه', 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني');
+            return;
         }
-        
-        function showAlert(msg, isSuccess = false) {
-            const box = document.getElementById('alertBox');
-            box.style.display = 'block';
-            box.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-error');
-            box.textContent = (isSuccess ? '✅ ' : '⚠️ ') + msg;
+
+        if (!password || password.length < 8) {
+            showAlert('تنبيه', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+            return;
         }
-        
-        // طلب OTP
-        document.getElementById('requestOtpForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const identifier = document.getElementById('identifier').value.trim();
-            if (!identifier) { showAlert('يرجى إدخال المعرف'); return; }
-            
-            const btn = document.getElementById('btnRequestOtp');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> جاري...';
-            
-            try {
-                const response = await fetch('/suppliers/forgot-password/request-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    activeIdentifier = identifier;
-                    document.getElementById('maskedTarget').textContent = data.data?.masked_identifier || identifier;
-                    document.getElementById('stage1').classList.add('hidden');
-                    document.getElementById('stage2').classList.remove('hidden');
-                    showAlert('تم إرسال رمز التحقق', true);
-                } else {
-                    showAlert(data.message || 'لم يتم العثور على الحساب');
-                }
-            } catch(err) { showAlert('خطأ في الاتصال'); }
-            finally {
-                btn.disabled = false;
-                btn.innerHTML = 'إرسال رمز التحقق';
-            }
-        });
-        
-        // إعادة تعيين كلمة المرور
-        document.getElementById('resetPasswordForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            updateOtpCode();
-            const otp = document.getElementById('otpCode').value;
-            const newPwd = document.getElementById('newPassword').value;
-            const confirmPwd = document.getElementById('confirmPassword').value;
-            
-            if (otp.length !== 6) { showAlert('يرجى إدخال رمز التحقق كاملاً (6 أرقام)'); return; }
-            if (newPwd !== confirmPwd) { showAlert('كلمتا المرور غير متطابقتين'); return; }
-            if (newPwd.length < 8) { showAlert('كلمة المرور يجب أن تكون 8 أحرف على الأقل'); return; }
-            
-            const btn = document.getElementById('btnReset');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> جاري التحديث...';
-            
-            try {
-                const response = await fetch('/suppliers/reset-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier: activeIdentifier, otp_code: otp, new_password: newPwd, confirm_password: confirmPwd })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert('تم تحديث كلمة المرور بنجاح', true);
-                    setTimeout(() => { window.location.href = data.redirect_url || '/suppliers/login'; }, 1500);
-                } else {
-                    showAlert(data.message || 'فشل التحديث');
-                }
-            } catch(err) { showAlert('خطأ في الاتصال'); }
-            finally {
-                btn.disabled = false;
-                btn.innerHTML = 'تحديث كلمة المرور';
-            }
-        });
-    </script>
-    </body>
-    </html>
-    """
 
+        submitBtn.disabled = true;
+        btnText.textContent = 'جاري التحقق...';
+        btnSpinner.classList.remove('hidden');
 
-@bp.route('/forgot-password/request-otp', methods=['POST'])
-def request_otp():
-    try:
-        data = request.get_json() or request.form
-        identifier = data.get('identifier', '').strip()
-        
-        if not identifier:
-            return jsonify({'success': False, 'message': 'يرجى إدخال المعرف'}), 400
-        
-        user_data = get_user_by_identifier(identifier)
-        if not user_data:
-            return jsonify({'success': False, 'message': 'لم يتم العثور على الحساب'}), 404
-        
-        otp_code = generate_otp()
-        store_otp(identifier, otp_code)
-        session['recovery_identifier'] = identifier
-        
-        return jsonify({
-            'success': True,
-            'message': 'تم إرسال رمز التحقق',
-            'data': {'masked_identifier': identifier[:3] + '***' + identifier[-2:] if len(identifier) > 5 else identifier, '_dev_otp': otp_code}
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@bp.route('/reset-password', methods=['POST'])
-def reset_password():
-    try:
-        data = request.get_json() or request.form
-        identifier = data.get('identifier', '').strip()
-        otp_code = data.get('otp_code', '').strip()
-        new_password = data.get('new_password', '')
-        confirm_password = data.get('confirm_password', '')
-        
-        if not identifier or not otp_code or not new_password:
-            return jsonify({'success': False, 'message': 'يرجى إدخال جميع البيانات'}), 400
-        
-        if len(otp_code) != 6:
-            return jsonify({'success': False, 'message': 'رمز التحقق يجب أن يكون 6 أرقام'}), 400
-        
-        if len(new_password) < 8:
-            return jsonify({'success': False, 'message': 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'}), 400
-        
-        if new_password != confirm_password:
-            return jsonify({'success': False, 'message': 'كلمتا المرور غير متطابقتين'}), 400
-        
-        if not verify_otp(identifier, otp_code):
-            return jsonify({'success': False, 'message': 'رمز التحقق غير صحيح'}), 401
-        
-        user_data = get_user_by_identifier(identifier)
-        if not user_data:
-            return jsonify({'success': False, 'message': 'لم يتم العثور على الحساب'}), 404
-        
-        user = user_data['user']
-        user.set_password(new_password)
-        if user.status == 'pending':
-            user.status = 'active'
-        
-        db.session.commit()
-        clear_otp(identifier)
-        session.pop('recovery_identifier', None)
-        
-        return jsonify({
-            'success': True,
-            'message': 'تم تحديث كلمة المرور بنجاح',
-            'redirect_url': url_for('auth.login')
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-# ============================================================
-# 🟣 التحقق
-# ============================================================
-
-@bp.route('/verify', methods=['GET', 'POST'])
-def verify():
-    if request.method == 'GET':
-        identifier = request.args.get('identifier', '')
-        return """
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>التحقق من الحساب - محجوب أونلاين</title>
-        <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #05020a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-            .card { background: #0f071c; border: 1px solid #ce9e49; border-radius: 20px; padding: 40px; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
-            .logo { text-align: center; margin-bottom: 30px; }
-            .logo h1 { font-size: 26px; background: linear-gradient(135deg, #ce9e49, #fae19c, #ce9e49); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-            .logo p { color: #ce9e49; font-size: 14px; margin-top: 5px; }
-            .input-group { margin-bottom: 18px; }
-            label { display: block; margin-bottom: 6px; color: #ce9e49; font-size: 13px; font-weight: 600; }
-            .otp-container { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-            .otp-container input { width: 50px; height: 56px; text-align: center; font-size: 24px; font-weight: 700; border: 1px solid rgba(206,158,73,0.25); border-radius: 12px; background: rgba(15,7,28,0.9); color: #fff; transition: all 0.3s; }
-            .otp-container input:focus { border-color: #ce9e49; outline: none; box-shadow: 0 0 20px rgba(206,158,73,0.15); }
-            .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #ce9e49, #ba8b38); color: #05020a; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; }
-            .btn:hover { background: linear-gradient(135deg, #fae19c, #ce9e49); box-shadow: 0 0 30px rgba(206,158,73,0.3); }
-            .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-            .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 14px; }
-            .alert-error { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
-            .alert-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-            .links { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(206,158,73,0.1); font-size: 13px; }
-            .links a { color: #ce9e49; text-decoration: none; }
-            .links a:hover { text-decoration: underline; }
-            .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #444; }
-            .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #05020a; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
-            @keyframes spin { to { transform: rotate(360deg); } }
-        </style>
-        </head>
-        <body>
-        <div class="card">
-            <div class="logo"><div style="font-size:48px;">✅</div><h1>التحقق <span>من الحساب</span></h1><p>أدخل رمز التحقق المرسل إليك</p></div>
-            <div id="alertBox" class="alert"></div>
-            <form id="verifyForm">
-                <input type="hidden" name="identifier" value="''' + (identifier or '') + '''">
-                <div class="input-group">
-                    <label class="text-center block">رمز التحقق (6 أرقام)</label>
-                    <div class="otp-container">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
-                    </div>
-                    <input type="hidden" id="otpCode" name="otp_code">
-                </div>
-                <button type="submit" class="btn" id="submitBtn">تأكيد الرمز</button>
-            </form>
-            <div class="links"><a href="/suppliers/login">← العودة لتسجيل الدخول</a></div>
-            <div class="footer">🔒 مشفر 256-bit SSL</div>
-        </div>
-        <script>
-            let otpDigits = document.querySelectorAll('.otp-digit');
-            otpDigits.forEach((input, index) => {
-                input.addEventListener('input', function(e) {
-                    if (this.value && !/^\d$/.test(this.value)) { this.value = ''; return; }
-                    if (this.value && index < otpDigits.length - 1) { otpDigits[index + 1].focus(); }
-                    updateOtpCode();
-                });
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Backspace' && !this.value && index > 0) { otpDigits[index - 1].focus(); }
-                });
-                input.addEventListener('paste', function(e) {
-                    e.preventDefault();
-                    const paste = e.clipboardData.getData('text').trim();
-                    if (/^\d{6}$/.test(paste)) {
-                        otpDigits.forEach((inp, i) => { inp.value = paste[i]; });
-                        updateOtpCode();
-                        otpDigits[otpDigits.length - 1].focus();
-                    }
-                });
-            });
+        try {
+            const formData = new FormData(form);
             
-            function updateOtpCode() {
-                let code = '';
-                otpDigits.forEach(inp => code += inp.value);
-                document.getElementById('otpCode').value = code;
-            }
-            
-            function showAlert(msg, isSuccess = false) {
-                const box = document.getElementById('alertBox');
-                box.style.display = 'block';
-                box.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-error');
-                box.textContent = (isSuccess ? '✅ ' : '⚠️ ') + msg;
-            }
-            
-            document.getElementById('verifyForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                updateOtpCode();
-                const otp = document.getElementById('otpCode').value;
-                if (otp.length !== 6) { showAlert('يرجى إدخال رمز التحقق كاملاً (6 أرقام)'); return; }
-                
-                const btn = document.getElementById('submitBtn');
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner"></span> جاري التحقق...';
-                
-                try {
-                    const response = await fetch('/suppliers/verify', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ otp_code: otp })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showAlert('تم التحقق بنجاح', true);
-                        setTimeout(() => { window.location.href = data.redirect_url || '/suppliers/dashboard'; }, 1500);
-                    } else {
-                        showAlert(data.message || 'رمز التحقق غير صحيح');
-                        otpDigits.forEach(inp => inp.value = '');
-                        document.getElementById('otpCode').value = '';
-                        otpDigits[0].focus();
-                    }
-                } catch(err) { showAlert('خطأ في الاتصال'); }
-                finally {
-                    btn.disabled = false;
-                    btn.innerHTML = 'تأكيد الرمز';
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             });
-        </script>
-        </body>
-        </html>
-        """
-    
-    try:
-        data = request.get_json() or request.form
-        otp_code = data.get('otp_code', '').strip()
-        
-        if not otp_code or len(otp_code) != 6:
-            return jsonify({'success': False, 'message': 'يرجى إدخال رمز التحقق'}), 400
-        
-        stored_otp = session.get('verify_otp')
-        supplier_id = session.get('verify_supplier_id')
-        
-        if not stored_otp or not supplier_id:
-            return jsonify({'success': False, 'message': 'انتهت صلاحية الجلسة'}), 401
-        
-        if stored_otp != otp_code:
-            return jsonify({'success': False, 'message': 'رمز التحقق غير صحيح'}), 401
-        
-        supplier = Supplier.query.get(supplier_id)
-        if supplier:
-            supplier.status = 'active'
-            db.session.commit()
-            session.pop('verify_otp', None)
-            session.pop('verify_supplier_id', None)
-            
-            return jsonify({
-                'success': True,
-                'message': 'تم التحقق من الحساب بنجاح',
-                'redirect_url': url_for('suppliers_dashboard.dashboard')
-            })
-        
-        return jsonify({'success': False, 'message': 'لم يتم العثور على الحساب'}), 404
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showAlert('تمت المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم...', true);
+                setTimeout(() => {
+                    window.location.href = data.redirect_url || "/suppliers/dashboard";
+                }, 1000);
+            } else {
+                failedAttempts++;
+                
+                if (failedAttempts >= 5) {
+                    startLockoutCountdown(60);
+                    showAlert('حظر مؤقت', 'تم تجاوز الحد الأقصى للمحاولات الخاطئة. انتظر 60 ثانية');
+                } else {
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'دخول المنظومة';
+                    btnSpinner.classList.add('hidden');
+                    
+                    const remaining = 5 - failedAttempts;
+                    showAlert('خطأ في بيانات الاعتماد', (data.message || 'اسم المستخدم أو كلمة المرور غير صحيح') + ` (تبقى ${remaining} محاولات)`);
+                }
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            submitBtn.disabled = false;
+            btnText.textContent = 'دخول المنظومة';
+            btnSpinner.classList.add('hidden');
+            showAlert('خطأ في الاتصال', 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة');
+        } finally {
+            if (failedAttempts < 5 && !submitBtn.disabled) {
+                btnText.textContent = 'دخول المنظومة';
+                btnSpinner.classList.add('hidden');
+            }
+        }
+    });
+
+    // Enter key support
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordInput = document.getElementById('passwordInput');
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
