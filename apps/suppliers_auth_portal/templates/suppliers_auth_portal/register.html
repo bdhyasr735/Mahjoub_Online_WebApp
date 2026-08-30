@@ -35,41 +35,47 @@
         <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-8 relative z-10">
             <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
 
-            <!-- القسم 1: بيانات المنشأة والسجل التجاري -->
+            <!-- القسم 1: بيانات المنشأة (Supplier) -->
             <div class="space-y-4">
                 <div class="flex items-center gap-2 text-royalGold text-sm font-bold border-b border-royalGold/20 pb-2">
                     <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">١</span>
-                    <span>بيانات المنشأة والتراخيص الرسمية</span>
+                    <span>بيانات المنشأة (Supplier)</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المنشأة أو الشركة الرسمي *</label>
-                        <input type="text" name="company_name" required placeholder="مثال: شركة الركائز المتطورة للتوريد"
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">الاسم التجاري (trade_name) *</label>
+                        <input type="text" id="tradeName" name="trade_name" required placeholder="مثال: شركة الركائز المتطورة للتوريد"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">مجال ونشاط التوريد</label>
-                        <select name="category" class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
-                            <option value="تجهيزات صناعية وتقنية">تجهيزات صناعية وتقنية</option>
-                            <option value="مواد بناء ومقاولات">مواد بناء ومقاولات</option>
-                            <option value="أجهزة ومعدات طبية">أجهزة ومعدات طبية</option>
-                            <option value="أغذية وسلع استهلاكية">أغذية وسلع استهلاكية</option>
-                            <option value="خدمات لوجستية وشحن">خدمات لوجستية وشحن</option>
-                            <option value="تقنية معلومات وبرمجيات">تقنية معلومات وبرمجيات</option>
-                        </select>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المتجر (store_name) *</label>
+                        <input type="text" id="storeName" name="store_name" required placeholder="مثال: متجر الركائز"
+                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">العنوان الكامل *</label>
-                        <input type="text" name="full_address" required placeholder="مثال: الحديدة، الخوخة، الشارع العام"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">العنوان الكامل (full_address) *</label>
+                        <input type="text" id="fullAddress" name="full_address" required placeholder="مثال: الحديدة، الخوخة، الشارع العام"
+                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">المدينة (city)</label>
+                        <input type="text" id="city" name="city" placeholder="مثال: صنعاء"
+                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">الحي (district)</label>
+                        <input type="text" id="district" name="district" placeholder="مثال: شارع الحديدة"
+                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
                     </div>
                 </div>
             </div>
 
-            <!-- القسم 2: بيانات المالك والمفوض الإداري -->
+            <!-- القسم 2: بيانات المالك (Supplier) -->
             <div class="space-y-4">
                 <div class="flex items-center gap-2 text-royalGold text-sm font-bold border-b border-royalGold/20 pb-2">
                     <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">٢</span>
@@ -78,21 +84,29 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المفوض الرسمي الكامل *</label>
-                        <input type="text" name="owner_name" required placeholder="الاسم الثلاثي أو الرباعي"
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المالك (owner_name) *</label>
+                        <input type="text" id="ownerName" name="owner_name" required placeholder="الاسم الثلاثي أو الرباعي"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">البريد الإلكتروني المعتمد *</label>
-                        <input type="email" name="email" required placeholder="contact@company.ye"
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المستخدم (username) *</label>
+                        <input type="text" id="username" name="username" required placeholder="أدخل اسم مستخدم فريد"
+                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                        <p class="text-[10px] text-slate-500 mt-1">3-30 حرفاً (حروف، أرقام، _)</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">البريد الإلكتروني (email) *</label>
+                        <input type="email" id="email" name="email" required placeholder="contact@company.ye"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold dir-ltr text-right">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">رقم جوال المفوض (لرمز التحقق) *</label>
-                        <input type="tel" name="phone" required placeholder="+9677xxxxxxxx"
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">رقم الهاتف (phone) *</label>
+                        <input type="tel" id="phone" name="phone" required placeholder="77xxxxxxx"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold dir-ltr text-right font-mono">
+                        <p class="text-[10px] text-slate-500 mt-1">أدخل رقم الهاتف بدون رمز الدولة (آخر 9 أرقام)</p>
                     </div>
                 </div>
             </div>
@@ -107,19 +121,20 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">كلمة المرور *</label>
-                        <input type="password" name="password" id="regPassword" required minlength="8" placeholder="••••••••"
+                        <input type="password" id="regPassword" name="password" required minlength="8" placeholder="••••••••"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
+                        <p class="text-[10px] text-slate-500 mt-1">يجب أن تحتوي على 8 أحرف على الأقل</p>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">تأكيد كلمة المرور *</label>
-                        <input type="password" name="confirm_password" id="regConfirmPassword" required minlength="8" placeholder="••••••••"
+                        <input type="password" id="regConfirmPassword" name="confirm_password" required minlength="8" placeholder="••••••••"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
                     </div>
                 </div>
             </div>
 
-            <!-- إشعار المحفظة المالية الذكية التلقائية -->
+            <!-- إشعار المحفظة المالية الذكية التلقائية (SupplierWallet) -->
             <div class="p-4 rounded-xl bg-gradient-to-r from-royalDark via-royalSurface to-royalDark border border-royalGold/40 flex items-start gap-4">
                 <div class="p-2.5 rounded-lg bg-royalGold/10 border border-royalGold/30 text-royalGold shrink-0">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,17 +144,18 @@
                 <div>
                     <h4 class="text-sm font-bold text-royalGold">إنشاء المحفظة المالية الذكية تلقائياً</h4>
                     <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                        بمجرد اكتمال تسجيل المنشأة، سيقوم النظام تلقائياً بإنشاء وتفعيل محفظة رقمية معتمدة برقم حساب بنكي مخصص لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
+                        بمجرد اكتمال تسجيل المنشأة، سيقوم النظام تلقائياً بإنشاء وتفعيل محفظة رقمية معتمدة (SupplierWallet) 
+                        برقم حساب بنكي مخصص (WEL-963X) لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
                     </p>
                 </div>
             </div>
 
-            <!-- القسم 4: إدارة موظفي المورد الأوليين (اختياري) -->
+            <!-- القسم 4: إدارة موظفي المورد الأوليين (SupplierStaff) -->
             <div class="space-y-4">
                 <div class="flex items-center justify-between border-b border-royalGold/20 pb-2">
                     <div class="flex items-center gap-2 text-royalGold text-sm font-bold">
                         <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">٤</span>
-                        <span>فريق عمل وموظفي المورد (اختياري)</span>
+                        <span>فريق عمل وموظفي المورد (SupplierStaff) - اختياري</span>
                     </div>
                     <button type="button" onclick="addEmployeeRow()" class="text-xs px-3 py-1.5 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition flex items-center gap-1">
                         <span>+ إضافة موظف</span>
@@ -157,7 +173,7 @@
             <div class="pt-4 border-t border-royalGold/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <!-- رابط العودة لتسجيل الدخول -->
                 <a href="{{ url_for('suppliers_auth_bp.login') }}" class="text-xs text-slate-400 hover:text-royalGold transition">
-                    &larr; العودة لتسجيل الدخول
+                    ← العودة لتسجيل الدخول
                 </a>
 
                 <button type="submit" id="submitBtn" class="w-full sm:w-auto px-8 py-3.5 gold-btn rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-xl">
@@ -171,140 +187,193 @@
         </form>
     </div>
 </div>
+
+<!-- دعم بدون JavaScript -->
+<noscript>
+    <div class="w-full max-w-3xl mx-auto mt-4 p-4 bg-amber-950/80 border border-amber-500/50 rounded-xl text-amber-200 text-center text-sm">
+        ⚠️ يرجى تفعيل JavaScript لتتمكن من التسجيل بشكل آمن.
+    </div>
+</noscript>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    let employeeCount = 0;
+    (function() {
+        'use strict';
 
-    function addEmployeeRow() {
-        const container = document.getElementById('employeesContainer');
-        const emptyNotice = document.getElementById('emptyEmployeesNotice');
-        if (emptyNotice) emptyNotice.classList.add('hidden');
+        let employeeCount = 0;
 
-        employeeCount++;
-        const row = document.createElement('div');
-        row.id = `emp-row-${employeeCount}`;
-        row.className = 'p-3.5 rounded-xl bg-royalDark/80 border border-royalGold/20 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
-        row.innerHTML = `
-            <div>
-                <input type="text" placeholder="اسم الموظف" class="emp-name w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
-            </div>
-            <div>
-                <input type="email" placeholder="البريد الإلكتروني" class="emp-email w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
-            </div>
-            <div>
-                <select class="emp-role w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
-                    <option value="manager">مدير العمليات والتوريد</option>
-                    <option value="accountant">المحاسب المالي</option>
-                    <option value="logistics">مسؤول لوجستي</option>
-                    <option value="sales" selected>ممثل مبيعات</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="tel" placeholder="رقم الجوال" class="emp-phone w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
-                <button type="button" onclick="removeEmployeeRow(${employeeCount})" class="text-rose-400 hover:text-rose-300 p-1 text-sm">&times;</button>
-            </div>
-        `;
-        container.appendChild(row);
-    }
-
-    function removeEmployeeRow(idx) {
-        const row = document.getElementById(`emp-row-${idx}`);
-        if (row) row.remove();
-
-        const container = document.getElementById('employeesContainer');
-        const rows = container.querySelectorAll('[id^="emp-row-"]');
-        if (rows.length === 0) {
+        // ====== إضافة موظف ======
+        window.addEmployeeRow = function() {
+            const container = document.getElementById('employeesContainer');
             const emptyNotice = document.getElementById('emptyEmployeesNotice');
-            if (emptyNotice) emptyNotice.classList.remove('hidden');
-        }
-    }
+            if (emptyNotice) emptyNotice.classList.add('hidden');
 
-    function showAlert(msg, isSuccess = false) {
-        const box = document.getElementById('alertBox');
-        box.classList.remove('hidden');
-        if (isSuccess) {
-            box.className = 'mb-6 p-4 rounded-xl text-xs flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300';
-            box.innerHTML = `<span>✓</span> <div><strong>تم بنجاح!</strong> ${msg}</div>`;
-        } else {
-            box.className = 'mb-6 p-4 rounded-xl text-xs flex items-center gap-2 bg-rose-950/80 border border-rose-500/50 text-rose-300';
-            box.innerHTML = `<span>⚠</span> <div><strong>تنبيه:</strong> ${msg}</div>`;
-        }
-    }
-
-    async function handleRegisterSubmit(e) {
-        e.preventDefault();
-        const form = e.target;
-        const pass = document.getElementById('regPassword').value;
-        const confirm = document.getElementById('regConfirmPassword').value;
-
-        if (pass !== confirm) {
-            showAlert('كلمتا المرور غير متطابقتين');
-            return;
-        }
-
-        // جمع الموظفين
-        const employees = [];
-        const rows = document.querySelectorAll('#employeesContainer > [id^="emp-row-"]');
-        rows.forEach(r => {
-            const name = r.querySelector('.emp-name')?.value;
-            const email = r.querySelector('.emp-email')?.value;
-            const role = r.querySelector('.emp-role')?.value;
-            const phone = r.querySelector('.emp-phone')?.value;
-            if (name && email) {
-                employees.push({ full_name: name, email, role, phone });
-            }
-        });
-
-        const payload = {
-            company_name: form.company_name.value,
-            category: form.category.value,
-            full_address: form.full_address.value,
-            owner_name: form.owner_name.value,
-            email: form.email.value,
-            phone: form.phone.value,
-            password: pass,
-            employees: employees,
-            csrf_token: form.csrf_token.value
+            employeeCount++;
+            const row = document.createElement('div');
+            row.id = `emp-row-${employeeCount}`;
+            row.className = 'p-3.5 rounded-xl bg-royalDark/80 border border-royalGold/20 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center';
+            row.innerHTML = `
+                <div>
+                    <input type="text" placeholder="الاسم الكامل" class="emp-fullname w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
+                </div>
+                <div>
+                    <input type="email" placeholder="البريد الإلكتروني" class="emp-email w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
+                </div>
+                <div>
+                    <input type="tel" placeholder="رقم الهاتف" class="emp-phone w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
+                </div>
+                <div class="flex items-center gap-2">
+                    <select class="emp-role w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
+                        <option value="manager">مدير العمليات والتوريد</option>
+                        <option value="accountant">المحاسب المالي</option>
+                        <option value="logistics">مسؤول لوجستي</option>
+                        <option value="sales" selected>ممثل مبيعات</option>
+                        <option value="purchasing">مسؤول مشتريات</option>
+                    </select>
+                    <button type="button" onclick="removeEmployeeRow(${employeeCount})" class="text-rose-400 hover:text-rose-300 p-1 text-lg">&times;</button>
+                </div>
+            `;
+            container.appendChild(row);
         };
 
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
-        const btnSpinner = document.getElementById('btnSpinner');
+        // ====== حذف موظف ======
+        window.removeEmployeeRow = function(idx) {
+            const row = document.getElementById(`emp-row-${idx}`);
+            if (row) row.remove();
 
-        submitBtn.disabled = true;
-        btnText.textContent = 'جاري تسجيل المنشأة وإنشاء المحفظة...';
-        btnSpinner.classList.remove('hidden');
+            const container = document.getElementById('employeesContainer');
+            const rows = container.querySelectorAll('[id^="emp-row-"]');
+            if (rows.length === 0) {
+                const emptyNotice = document.getElementById('emptyEmployeesNotice');
+                if (emptyNotice) emptyNotice.classList.remove('hidden');
+            }
+        };
 
-        try {
-            const res = await fetch("{{ url_for('suppliers_auth_bp.register') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRFToken': form.csrf_token.value
-                },
-                body: JSON.stringify(payload)
+        // ====== عرض التنبيهات ======
+        function showAlert(msg, isSuccess = false) {
+            const box = document.getElementById('alertBox');
+            box.classList.remove('hidden');
+            if (isSuccess) {
+                box.className = 'mb-6 p-4 rounded-xl text-xs flex items-center gap-3 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 shadow-xl';
+                box.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-500/40 flex items-center justify-center shrink-0 text-emerald-400 font-bold text-lg">✓</div>
+                    <div><strong>تم بنجاح!</strong> ${msg}</div>
+                `;
+            } else {
+                box.className = 'mb-6 p-4 rounded-xl text-xs flex items-center gap-3 bg-rose-950/80 border border-rose-500/50 text-rose-300 shadow-xl';
+                box.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-rose-900/50 border border-rose-500/40 flex items-center justify-center shrink-0 text-rose-400 font-bold text-lg">⚠</div>
+                    <div><strong>تنبيه:</strong> ${msg}</div>
+                `;
+            }
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBox').classList.add('hidden');
+        }
+
+        // ====== معالجة التسجيل ======
+        window.handleRegisterSubmit = async function(e) {
+            e.preventDefault();
+            hideAlert();
+
+            const form = e.target;
+
+            // التحقق من تطابق كلمة المرور
+            const pass = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirmPassword').value;
+
+            if (pass !== confirm) {
+                showAlert('كلمتا المرور غير متطابقتين');
+                return;
+            }
+
+            if (pass.length < 8) {
+                showAlert('كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل');
+                return;
+            }
+
+            // جمع بيانات الموظفين
+            const employees = [];
+            const rows = document.querySelectorAll('#employeesContainer > [id^="emp-row-"]');
+            rows.forEach(r => {
+                const full_name = r.querySelector('.emp-fullname')?.value.trim();
+                const email = r.querySelector('.emp-email')?.value.trim();
+                const phone = r.querySelector('.emp-phone')?.value.trim();
+                const role = r.querySelector('.emp-role')?.value;
+                if (full_name && email) {
+                    employees.push({ full_name, email, phone, role });
+                }
             });
 
-            const data = await res.json();
-            if (res.ok && data.success) {
-                const walletInfo = data.data?.wallet?.account_number ? `<br>تم إصدار رقم الحساب المالي: <code>${data.data.wallet.account_number}</code>` : '';
-                showAlert(`${data.message}${walletInfo} جاري نقلك لصفحة الدخول...`, true);
-                setTimeout(() => {
-                    window.location.href = data.redirect_url || '{{ url_for("suppliers_auth_bp.login") }}';
-                }, 2000);
-            } else {
-                showAlert(data.message || 'حدث خطأ أثناء إتمام عملية الاشتراك.');
+            // بناء الـ payload المتوافق مع Supplier و SupplierProfile و SupplierWallet
+            const payload = {
+                // Supplier
+                username: document.getElementById('username').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                password: pass,
+                owner_name: document.getElementById('ownerName').value.trim(),
+                trade_name: document.getElementById('tradeName').value.trim(),
+                store_name: document.getElementById('storeName').value.trim(),
+                
+                // SupplierProfile
+                full_address: document.getElementById('fullAddress').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                
+                // SupplierStaff
+                employees: employees,
+                
+                // CSRF
+                csrf_token: form.csrf_token.value
+            };
+
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            submitBtn.disabled = true;
+            btnText.textContent = 'جاري تسجيل المنشأة وإنشاء المحفظة...';
+            btnSpinner.classList.remove('hidden');
+
+            try {
+                const response = await fetch("{{ url_for('suppliers_auth_bp.register') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRFToken': form.csrf_token.value
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showAlert(`${data.message} جاري نقلك لصفحة الدخول...`, true);
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || '{{ url_for("suppliers_auth_bp.login") }}';
+                    }, 2000);
+                } else {
+                    showAlert(data.message || 'حدث خطأ أثناء إتمام عملية الاشتراك.');
+                }
+            } catch (err) {
+                console.error('Registration error:', err);
+                showAlert('تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
+            } finally {
+                submitBtn.disabled = false;
+                btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
+                btnSpinner.classList.add('hidden');
             }
-        } catch (err) {
-            showAlert('تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
-        } finally {
-            submitBtn.disabled = false;
-            btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
-            btnSpinner.classList.add('hidden');
-        }
-    }
+        };
+
+        // ====== التركيز التلقائي ======
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('tradeName').focus();
+        });
+
+    })();
 </script>
 {% endblock %}
