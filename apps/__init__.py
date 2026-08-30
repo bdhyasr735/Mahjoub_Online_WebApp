@@ -507,13 +507,27 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # ✅ تسجيل بوابة الموردين (من __init__.py وليس routes.py)
+    # ✅ تسجيل بوابة الموردين
     try:
         from apps.suppliers_auth_portal import bp as suppliers_bp
         app.register_blueprint(suppliers_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+        print("   📍 المسار: /suppliers")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+        import traceback
+        traceback.print_exc()
+
+    # ✅ تسجيل لوحة تحكم الموردين
+    try:
+        from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
+        app.register_blueprint(suppliers_dashboard_bp, url_prefix='/suppliers')
+        print("✅ [لوحة تحكم الموردين]: تم تسجيل لوحة التحكم بنجاح.")
+        print("   📍 المسار: /suppliers/dashboard")
+    except Exception as e:
+        print(f"❌ [خطأ لوحة تحكم الموردين]: {e}")
+        import traceback
+        traceback.print_exc()
 
     # ✅ تسجيل مسارات GraphQL الإدارية
     try:
