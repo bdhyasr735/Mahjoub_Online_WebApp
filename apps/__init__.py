@@ -345,7 +345,7 @@ def create_app():
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if request.path.startswith('/supplier'):
+        if request.path.startswith('/suppliers') or request.path.startswith('/supplier'):
             return redirect(url_for('suppliers_bp.login'))
         return redirect(admin_login_path)
 
@@ -369,6 +369,9 @@ def create_app():
             '/admin/graphql',
             '/favicon.ico',
             '/m7jb_test_connection',
+            '/suppliers/login',
+            '/suppliers/register',
+            '/suppliers/forgot-password',
             '/supplier/login',
             '/supplier/register',
             '/supplier/forgot-password',
@@ -388,10 +391,10 @@ def create_app():
                 if is_admin_side:
                     return
                 if is_supplier_side:
-                    return redirect('/supplier/dashboard')
+                    return redirect('/suppliers/dashboard')
                 return redirect(admin_login_path)
 
-            if path.startswith('/supplier'):
+            if path.startswith('/suppliers') or path.startswith('/supplier'):
                 if is_supplier_side:
                     return
                 if is_admin_side:
@@ -400,7 +403,7 @@ def create_app():
 
             return
 
-        if path.startswith('/supplier'):
+        if path.startswith('/suppliers') or path.startswith('/supplier'):
             return redirect(url_for('suppliers_bp.login'))
 
         return redirect(admin_login_path)
@@ -485,7 +488,7 @@ def create_app():
 
         if current_user.is_authenticated:
             if isinstance(current_user, (Supplier, SupplierStaff)):
-                return redirect('/supplier/dashboard')
+                return redirect('/suppliers/dashboard')
             elif isinstance(current_user, (AdminUser, AdminStaff)):
                 return redirect('/dashboard')
             return redirect(admin_login_path)
@@ -504,7 +507,7 @@ def create_app():
 
     try:
         from apps.suppliers_auth_portal.routes import suppliers_bp
-        app.register_blueprint(suppliers_bp, url_prefix='/supplier')
+        app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
         csrf.exempt(suppliers_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين يدوياً بنجاح.")
     except Exception as e:
