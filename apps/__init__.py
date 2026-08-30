@@ -37,6 +37,17 @@ def import_all_models():
 def reset_database_safe():
     """إعادة تعيين قاعدة البيانات بشكل آمن مع تجاوز أخطاء الأنواع المكررة"""
     try:
+        # حذف جميع التسلسلات (sequences) أولاً
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT sequencename FROM pg_sequences WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.sequencename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
+        
         # حذف جميع الجداول
         db.session.execute(text("""
             DO $$ DECLARE
@@ -567,6 +578,7 @@ def create_app():
         app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_auth_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+        print(f"   📍 المسار: /supplier")
     except ImportError:
         try:
             from apps.suppliers_auth_portal.registry import suppliers_auth_bp
