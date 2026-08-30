@@ -24,7 +24,7 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Verify Form -->
-        <form id="verifyForm" method="POST" action="/suppliers/verify" class="space-y-6 relative z-10">
+        <form id="verifyForm" method="POST" action="{{ url_for('suppliers_auth.verify') }}" class="space-y-6 relative z-10">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             
@@ -69,7 +69,7 @@
             </div>
             <div class="flex items-center justify-between text-xs pt-1">
                 <span id="resendStatusText" class="text-slate-400 font-medium"></span>
-                <a href="/suppliers/login" class="text-slate-400 hover:text-royalGold transition">
+                <a href="{{ url_for('suppliers_auth.login') }}" class="text-slate-400 hover:text-royalGold transition">
                     &larr; العودة لتسجيل الدخول
                 </a>
             </div>
@@ -197,7 +197,7 @@
             if (response.ok && data.success) {
                 showAlert(data.message || 'تم التحقق بنجاح! جاري تحويلك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || "/suppliers/dashboard";
+                    window.location.href = data.redirect_url || "{{ url_for('suppliers_auth.dashboard') }}";
                 }, 1500);
             } else {
                 submitBtn.disabled = false;
@@ -235,7 +235,7 @@
             const formData = new FormData(form);
             formData.append('channel', channel);
             
-            const response = await fetch("/suppliers/resend-otp", {
+            const response = await fetch("{{ url_for('suppliers_auth.resend_otp') }}", {
                 method: 'POST',
                 body: formData,
                 headers: {
