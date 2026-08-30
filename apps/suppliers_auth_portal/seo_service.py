@@ -1,4 +1,6 @@
-# apps/suppliers_auth_portal/seo_service.py
+# -*- coding: utf-8 -*-
+# 📂 apps/suppliers_auth_portal/seo_service.py
+
 class SupplierPortalSEOService:
     @staticmethod
     def get_meta_tags(page_name):
@@ -19,6 +21,14 @@ class SupplierPortalSEOService:
             "verify": {
                 "title": "التحقق من الحساب والمصادقة | محجوب أونلاين",
                 "description": "أدخل رمز التحقق (OTP) لإتمام المصادقة وتفعيل لوحة التحكم والمحفظة الرقمية الخاصة بالمنشأة."
+            },
+            "forgot_password": {
+                "title": "استعادة كلمة المرور | البوابة الملكية للموردين",
+                "description": "استعد بيانات حسابك أو كلمة مرور منشأتك بأمان تام عبر رمز التحقق المعتمد (OTP) في منصة محجوب أونلاين."
+            },
+            "reset_password": {
+                "title": "إعادة تعيين كلمة المرور | البوابة الملكية",
+                "description": "قم بإنشاء كلمة مرور جديدة وآمنة لحسابك لاستعادة الصلاحيات الكاملة في لوحة تحكم محجوب أونلاين."
             }
         }
         
