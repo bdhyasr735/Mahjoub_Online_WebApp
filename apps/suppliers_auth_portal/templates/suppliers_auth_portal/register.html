@@ -33,27 +33,26 @@
         <!-- Alert Box -->
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
-        <!-- Registration Form -->
+        <!-- Registration Form - بدون WTForms -->
         <form id="registerForm" method="POST" action="{{ url_for('suppliers_auth_portal.register') }}" class="space-y-5 relative z-10">
-            {{ form.csrf_token }}
+            <!-- CSRF Token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- Trade Name -->
                 <div>
                     <label class="form-label">اسم المنشأة التجاري <span class="text-rose-400">*</span></label>
-                    {{ form.trade_name(class="form-input", placeholder="مثال: شركة النور للتجارة", required=True) }}
-                    {% if form.trade_name.errors %}
-                        <div class="form-error">{{ form.trade_name.errors[0] }}</div>
-                    {% endif %}
+                    <input type="text" name="trade_name" id="trade_name" required
+                           placeholder="مثال: شركة النور للتجارة"
+                           class="form-input">
                 </div>
 
                 <!-- Owner Name -->
                 <div>
                     <label class="form-label">اسم المالك / المسؤول <span class="text-rose-400">*</span></label>
-                    {{ form.owner_name(class="form-input", placeholder="الاسم الثلاثي للمالك", required=True) }}
-                    {% if form.owner_name.errors %}
-                        <div class="form-error">{{ form.owner_name.errors[0] }}</div>
-                    {% endif %}
+                    <input type="text" name="owner_name" id="owner_name" required
+                           placeholder="الاسم الثلاثي للمالك"
+                           class="form-input">
                 </div>
             </div>
 
@@ -61,19 +60,17 @@
                 <!-- Phone -->
                 <div>
                     <label class="form-label">رقم الهاتف (واتساب / اتصال) <span class="text-rose-400">*</span></label>
-                    {{ form.phone(class="form-input text-right", placeholder="مثال: 77xxxxxxx أو 73xxxxxxx", required=True, dir="ltr") }}
-                    {% if form.phone.errors %}
-                        <div class="form-error">{{ form.phone.errors[0] }}</div>
-                    {% endif %}
+                    <input type="tel" name="phone" id="phone" required
+                           placeholder="مثال: 77xxxxxxx أو 73xxxxxxx"
+                           class="form-input text-right" dir="ltr">
                 </div>
 
                 <!-- Email -->
                 <div>
                     <label class="form-label">البريد الإلكتروني <span class="text-slate-500 text-[10px]">(اختياري)</span></label>
-                    {{ form.email(class="form-input text-right", placeholder="supplier@domain.com", dir="ltr") }}
-                    {% if form.email.errors %}
-                        <div class="form-error">{{ form.email.errors[0] }}</div>
-                    {% endif %}
+                    <input type="email" name="email" id="email"
+                           placeholder="supplier@domain.com"
+                           class="form-input text-right" dir="ltr">
                 </div>
             </div>
 
@@ -81,19 +78,18 @@
                 <!-- Username -->
                 <div>
                     <label class="form-label">اسم المستخدم <span class="text-rose-400">*</span></label>
-                    {{ form.username(class="form-input", placeholder="اختر اسم مستخدم فريد", required=True) }}
-                    {% if form.username.errors %}
-                        <div class="form-error">{{ form.username.errors[0] }}</div>
-                    {% endif %}
+                    <input type="text" name="username" id="username" required
+                           placeholder="اختر اسم مستخدم فريد"
+                           class="form-input">
+                    <div id="usernameStatus" class="text-[10px] mt-1 hidden"></div>
                 </div>
 
                 <!-- Store Name -->
                 <div>
                     <label class="form-label">اسم المتجر <span class="text-slate-500 text-[10px]">(اختياري)</span></label>
-                    {{ form.store_name(class="form-input", placeholder="اسم المتجر للعرض") }}
-                    {% if form.store_name.errors %}
-                        <div class="form-error">{{ form.store_name.errors[0] }}</div>
-                    {% endif %}
+                    <input type="text" name="store_name" id="store_name"
+                           placeholder="اسم المتجر للعرض"
+                           class="form-input">
                 </div>
             </div>
 
@@ -102,12 +98,12 @@
                 <div>
                     <label class="form-label">كلمة المرور <span class="text-rose-400">*</span></label>
                     <div class="relative">
-                        {{ form.password(class="form-input", placeholder="•••••••• (8 أحرف على الأقل)", id="password", required=True, minlength=8) }}
-                        <button type="button" onclick="togglePasswordVisibility('password', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold text-xs">إظهار</button>
+                        <input type="password" name="password" id="password" required minlength="8"
+                               placeholder="•••••••• (8 أحرف على الأقل)"
+                               class="form-input">
+                        <button type="button" onclick="togglePasswordVisibility('password', this)" 
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold text-xs">إظهار</button>
                     </div>
-                    {% if form.password.errors %}
-                        <div class="form-error">{{ form.password.errors[0] }}</div>
-                    {% endif %}
                     <!-- Password Strength -->
                     <div class="mt-2 space-y-1">
                         <div class="flex gap-1 h-1 w-full bg-royalDark rounded-full overflow-hidden">
@@ -124,12 +120,12 @@
                 <div>
                     <label class="form-label">تأكيد كلمة المرور <span class="text-rose-400">*</span></label>
                     <div class="relative">
-                        {{ form.confirm_password(class="form-input", placeholder="••••••••", id="confirm_password", required=True, minlength=8) }}
-                        <button type="button" onclick="togglePasswordVisibility('confirm_password', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold text-xs">إظهار</button>
+                        <input type="password" name="confirm_password" id="confirm_password" required minlength="8"
+                               placeholder="••••••••"
+                               class="form-input">
+                        <button type="button" onclick="togglePasswordVisibility('confirm_password', this)" 
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold text-xs">إظهار</button>
                     </div>
-                    {% if form.confirm_password.errors %}
-                        <div class="form-error">{{ form.confirm_password.errors[0] }}</div>
-                    {% endif %}
                     <p id="matchErrorText" class="form-error hidden">كلمتا المرور غير متطابقتين</p>
                 </div>
             </div>
@@ -137,21 +133,23 @@
             <!-- Category -->
             <div>
                 <label class="form-label">فئة المنتجات أو النشاط التجاري الأساسي <span class="text-rose-400">*</span></label>
-                {{ form.category(class="form-input", required=True) }}
-                {% if form.category.errors %}
-                    <div class="form-error">{{ form.category.errors[0] }}</div>
-                {% endif %}
+                <select name="category" id="category" required class="form-input">
+                    <option value="">اختر فئة التوريد الرئيسية...</option>
+                    <option value="food">المواد الغذائية والتموينية الأساسية</option>
+                    <option value="electronics">الأجهزة الإلكترونية والتقنية</option>
+                    <option value="clothing">الملابس والمنسوجات</option>
+                    <option value="wholesale">تجارة الجملة العامة والمستلزمات</option>
+                    <option value="other">أخرى / منتجات متخصصة</option>
+                </select>
             </div>
 
             <!-- Agree to Pricing Policy -->
             <div class="p-4 rounded-xl bg-royalDark/60 border border-royalGold/20 space-y-2">
                 <label class="flex items-start gap-3 cursor-pointer select-none text-xs text-slate-300">
-                    {{ form.agree_pricing_policy(class="mt-0.5 rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold", required=True) }}
+                    <input type="checkbox" name="agree_pricing_policy" id="agree_pricing_policy" required
+                           class="mt-0.5 rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold">
                     <span>أتعهد وأوافق التزاماً تاماً بأن تكون كافة أسعار التوريد المقدمة من طرفنا هي <strong class="text-royalGold">بسعر التكلفة وبأسعار تنافسية عادلة</strong>، وأقر بحق المنصة في إيقاف الحساب فوراً في حال ثبوت خلاف ذلك.</span>
                 </label>
-                {% if form.agree_pricing_policy.errors %}
-                    <div class="form-error">{{ form.agree_pricing_policy.errors[0] }}</div>
-                {% endif %}
             </div>
 
             <!-- Submit Button -->
@@ -178,6 +176,10 @@
 
 {% block scripts %}
 <script>
+    // ============================================================
+    // دوال مساعدة
+    // ============================================================
+
     function showAlert(title, msg, isSuccess = false) {
         const box = document.getElementById('alertBox');
         box.classList.remove('hidden');
@@ -256,7 +258,46 @@
         }
     }
 
-    // Real-time validation listeners
+    // ============================================================
+    // التحقق الفوري من اسم المستخدم (AJAX)
+    // ============================================================
+
+    document.getElementById('username').addEventListener('blur', async function() {
+        const username = this.value.trim();
+        const statusEl = document.getElementById('usernameStatus');
+        
+        if (username.length < 3) {
+            statusEl.className = 'text-[10px] mt-1 text-amber-400';
+            statusEl.textContent = '⚠️ اسم المستخدم يجب أن يكون 3 أحرف على الأقل';
+            statusEl.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const response = await fetch("{{ url_for('auth_register.check_username') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            const data = await response.json();
+            
+            if (data.available) {
+                statusEl.className = 'text-[10px] mt-1 text-emerald-400';
+                statusEl.textContent = '✅ ' + data.message;
+            } else {
+                statusEl.className = 'text-[10px] mt-1 text-rose-400';
+                statusEl.textContent = '❌ ' + data.message;
+            }
+            statusEl.classList.remove('hidden');
+        } catch (err) {
+            console.error('خطأ في التحقق من اسم المستخدم:', err);
+        }
+    });
+
+    // ============================================================
+    // مستمعات الأحداث
+    // ============================================================
+
     document.addEventListener('DOMContentLoaded', function() {
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirm_password');
@@ -272,7 +313,9 @@
         }
     });
 
-    // ==================== FORM HANDLING ====================
+    // ============================================================
+    // معالجة النموذج (AJAX)
+    // ============================================================
     
     document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -282,7 +325,7 @@
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
 
-        // Validate password match
+        // التحقق من تطابق كلمة المرور
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm_password').value;
 
@@ -296,11 +339,18 @@
             return;
         }
 
-        // Validate phone (at least 9 digits)
+        // التحقق من رقم الهاتف
         const phone = form.querySelector('[name="phone"]').value.trim();
         const phoneDigits = phone.replace(/\D/g, '');
         if (phoneDigits.length < 9) {
             showAlert('خطأ', 'رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل');
+            return;
+        }
+
+        // التحقق من الموافقة على السياسة
+        const agree = document.getElementById('agree_pricing_policy');
+        if (!agree.checked) {
+            showAlert('خطأ', 'يجب الموافقة على شروط حوكمة الأسعار');
             return;
         }
 
