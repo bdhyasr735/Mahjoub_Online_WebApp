@@ -34,6 +34,41 @@ def import_all_models():
                     print(f"⚠️ [خطأ في استيراد النموذج] فشل استيراد النموذج '{module_name}': {e}")
 
 
+def reset_database_safe():
+    """إعادة تعيين قاعدة البيانات بشكل آمن مع تجاوز أخطاء الأنواع المكررة"""
+    try:
+        # حذف جميع الجداول
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
+        
+        # حذف جميع الأنواع المخصصة (لتجنب خطأ UniqueViolation)
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT typname FROM pg_type 
+                          WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) LOOP
+                    EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(r.typname) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
+        
+        db.session.commit()
+        print("✅ [إعادة تعيين قاعدة البيانات]: تم الحذف بنجاح.")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ [خطأ إعادة تعيين قاعدة البيانات]: {e}")
+        return False
+
+
 def seed_database():
     """زراعة البيانات المبدئية بشكل آمن وديناميكي"""
     try:
@@ -251,21 +286,32 @@ def create_app():
     # ============================================================
     with app.app_context():
         import_all_models()
+        
         try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
-            print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
+            # 🔍 التحقق من الاتصال بقاعدة البيانات
+            db.session.execute(text("SELECT 1"))
+            print("✅ [اتصال قاعدة البيانات]: تم التحقق من الاتصال بنجاح.")
+            
+            # 📋 إعادة تعيين قاعدة البيانات بشكل آمن
+            print("🔄 [إعادة البناء]: جاري إعادة تعيين قاعدة البيانات...")
+            
+            if reset_database_safe():
+                # ✨ إنشاء الجداول الجديدة
+                print("🔄 [إعادة البناء]: جاري إنشاء الجداول بالهيكل الجديد...")
+                db.create_all()
+                print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
-            db.create_all()
-            print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
-            seed_database()
-            print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
+                # 🌱 زراعة البيانات المبدئية
+                seed_database()
+                print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
+            else:
+                print("❌ [إعادة البناء]: فشلت عملية إعادة تعيين قاعدة البيانات.")
 
         except Exception as e:
             db.session.rollback()
             print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
+            import traceback
+            traceback.print_exc()
 
     # ============================================================
     # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
@@ -273,24 +319,19 @@ def create_app():
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
         """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
-        click.echo("🔄 [إعادة بناء القاعدة]: جاري حذف جميع الجداول...")
+        click.echo("🔄 [إعادة بناء القاعدة]: جاري إعادة تعيين قاعدة البيانات...")
         import_all_models()
-        try:
-            db.session.execute(text("DROP SCHEMA public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
-            click.echo("✅ [إعادة تعيين الـ Schema]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
-        except Exception as e:
-            db.session.rollback()
-            click.echo(f"❌ [خطأ إعادة تعيين الـ Schema]: {e}")
+        
+        if reset_database_safe():
+            click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
+            db.create_all()
+            click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
-        click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
-        db.create_all()
-        click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
-        click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
-        seed_database()
-        click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
+            click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
+            seed_database()
+            click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
+        else:
+            click.echo("❌ [إعادة بناء القاعدة]: فشلت عملية إعادة تعيين قاعدة البيانات.")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -343,7 +384,6 @@ def create_app():
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier'):
-            # ✅ التصحيح: استخدام suppliers_auth_bp بدلاً من suppliers_bp
             return redirect(url_for('suppliers_auth_bp.login_page'))
         return redirect(admin_login_path)
 
@@ -394,13 +434,11 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                # ✅ التصحيح: استخدام suppliers_auth_bp.login_page
                 return redirect(url_for('suppliers_auth_bp.login_page'))
 
             return
 
         if path.startswith('/supplier'):
-            # ✅ التصحيح: استخدام suppliers_auth_bp.login_page
             return redirect(url_for('suppliers_auth_bp.login_page'))
 
         return redirect(admin_login_path)
@@ -496,14 +534,13 @@ def create_app():
     # 🗂️ تسجيل البوابات والموديولات
     # ============================================================
 
-    # ✅ التصحيح: استيراد auth_portal بشكل صحيح
+    # ✅ تسجيل بوابة المصادقة الإدارية
     try:
-        from apps.auth_portal.routes import auth_bp  # تغيير الاسم إلى auth_bp
+        from apps.auth_portal.routes import auth_bp
         app.register_blueprint(auth_bp)
         print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
     except ImportError:
         try:
-            # محاولة بديلة
             from apps.auth_portal.routes import auth_portal_bp
             app.register_blueprint(auth_portal_bp)
             print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح (auth_portal_bp).")
@@ -512,7 +549,7 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # ✅ التصحيح: استيراد suppliers_auth_bp بشكل صحيح
+    # ✅ تسجيل بوابة الموردين
     try:
         from apps.suppliers_auth_portal.routes import suppliers_auth_bp
         app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
@@ -520,7 +557,6 @@ def create_app():
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
     except ImportError:
         try:
-            # محاولة بديلة
             from apps.suppliers_auth_portal.registry import suppliers_auth_bp
             app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
             csrf.exempt(suppliers_auth_bp)
@@ -529,6 +565,17 @@ def create_app():
             print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e2}")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+
+    # ✅ تسجيل مسارات GraphQL
+    try:
+        from apps.admin.graphql_routes import graphql_bp
+        app.register_blueprint(graphql_bp)
+        csrf.exempt(graphql_bp)
+        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
     # 📱 تسجيل مسار الواتساب العام
@@ -554,7 +601,9 @@ def create_app():
     # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
+                    'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                    'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
