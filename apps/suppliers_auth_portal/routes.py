@@ -192,7 +192,7 @@ def login_page():
     """صفحة تسجيل الدخول"""
     try:
         if current_user.is_authenticated:
-            return redirect(url_for('suppliers_dashboard.index'))
+            return redirect(url_for('suppliers_auth_bp.dashboard'))
         return render_template('suppliers_auth_portal/login.html', page_title='تسجيل الدخول')
     except Exception as e:
         logger.error(f"❌ خطأ فادح أثناء عرض صفحة تسجيل الدخول: {str(e)}", exc_info=True)
@@ -250,7 +250,7 @@ def login():
         return jsonify({
             'success': True,
             'message': 'تم تسجيل الدخول بنجاح',
-            'redirect_url': url_for('suppliers_dashboard.index')
+            'redirect_url': url_for('suppliers_auth_bp.dashboard')
         })
 
     except Exception as e:
@@ -264,7 +264,7 @@ def register_page():
     """صفحة تسجيل مورد جديد"""
     try:
         if current_user.is_authenticated:
-            return redirect(url_for('suppliers_dashboard.index'))
+            return redirect(url_for('suppliers_auth_bp.dashboard'))
         return render_template('suppliers_auth_portal/register.html', page_title='اشتراك مورد جديد')
     except Exception as e:
         logger.error(f"❌ خطأ في عرض صفحة التسجيل: {str(e)}", exc_info=True)
@@ -534,8 +534,12 @@ def logout():
 @suppliers_auth_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """التوجيه المباشر للوحة التحكم الجديدة لتجنب أخطاء القوالب القديمة"""
-    return redirect(url_for('suppliers_dashboard.index'))
+    """عرض لوحة التحكم الخاصة بالمورد مباشرة"""
+    try:
+        return render_template('suppliers_auth_portal/dashboard/supplier_dashboard.html', page_title='لوحة تحكم المورد')
+    except Exception as e:
+        logger.error(f"❌ خطأ أثناء عرض لوحة التحكم: {str(e)}", exc_info=True)
+        return f"Internal Server Error: {str(e)}", 500
 
 
 # ============================================================
@@ -559,7 +563,7 @@ def init_app(app):
     @app.route('/')
     def index():
         if current_user.is_authenticated:
-            return redirect(url_for('suppliers_dashboard.index'))
+            return redirect(url_for('suppliers_auth_bp.dashboard'))
         return redirect(url_for('suppliers_auth_bp.login_page'))
     
     logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح مع تفعيل نظام التقاط الأخطاء ومسارات الاستعادة")
