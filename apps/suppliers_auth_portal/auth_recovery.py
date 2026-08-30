@@ -2,7 +2,6 @@
 # 📂 apps/suppliers_auth_portal/auth_recovery.py
 
 from flask import render_template, request, jsonify, url_for
-from werkzeug.security import generate_password_hash
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.models.supplier_db import Supplier
@@ -10,9 +9,8 @@ from apps.extensions import db
 
 @suppliers_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
-    if request.method == 'GET':
-        seo = SupplierPortalSEOService.get_meta_tags("forgot_password")
-        return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
+    seo = SupplierPortalSEOService.get_meta_tags("forgot_password")
+    return render_template('suppliers_auth_portal/forgot_password.html', seo=seo)
 
 
 @suppliers_bp.route('/forgot-password/request-otp', methods=['POST'])
@@ -27,9 +25,11 @@ def request_otp():
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
         supplier_obj = db.session.query(Supplier).filter(
-            (Supplier.username == identifier) |
-            (Supplier.email == identifier) |
-            (Supplier.search_phone == clean_phone_suffix)
+            db.or_(
+                Supplier.username == identifier,
+                Supplier.email == identifier,
+                Supplier.search_phone == clean_phone_suffix
+            )
         ).first()
 
         if not supplier_obj:
@@ -73,15 +73,17 @@ def reset_password():
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
         supplier_obj = db.session.query(Supplier).filter(
-            (Supplier.username == identifier) |
-            (Supplier.email == identifier) |
-            (Supplier.search_phone == clean_phone_suffix)
+            db.or_(
+                Supplier.username == identifier,
+                Supplier.email == identifier,
+                Supplier.search_phone == clean_phone_suffix
+            )
         ).first()
 
         if not supplier_obj:
             return jsonify({"success": False, "message": "الحساب غير موجود."}), 404
 
-        supplier_obj.password_hash = generate_password_hash(new_password)
+        supplier_obj.set_password(new_password)
         db.session.commit()
 
         return jsonify({
