@@ -22,7 +22,7 @@ SUPPLIER_MODULES = {}
 
 
 def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول والأنواع."""
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
     models_dir = os.path.join(os.path.dirname(__file__), 'models')
     if os.path.exists(models_dir):
         for file in os.listdir(models_dir):
@@ -35,10 +35,7 @@ def import_all_models():
 
 
 def seed_database():
-    """
-    زراعة البيانات المبدئية بشكل آمن وديناميكي.
-    يتم التحقق من وجود البيانات قبل إضافتها لتجنب التكرار.
-    """
+    """زراعة البيانات المبدئية"""
     try:
         from apps.models.admin_db import AdminUser
         from apps.models.admin_staff_db import AdminStaff
@@ -49,9 +46,7 @@ def seed_database():
         print(f"⚠️ [تحذير استيراد الزراعة]: تعذر استيراد بعض النماذج: {ie}")
         return
 
-    # ============================================================
-    # 1. زراعة حساب المالك (Owner)
-    # ============================================================
+    # 1. زراعة حساب المالك
     try:
         if not AdminUser.query.filter_by(username='ali_mahjoub').first():
             admin = AdminUser(username='ali_mahjoub', role='Owner')
@@ -59,15 +54,11 @@ def seed_database():
             db.session.add(admin)
             db.session.commit()
             print("✅ [الزراعة]: تم زرع حساب المالك (ali_mahjoub) بنجاح.")
-        else:
-            print("ℹ️ [الزراعة]: حساب المالك موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المالك]: {e}")
 
-    # ============================================================
-    # 2. زراعة موظف إدارة (Admin Staff)
-    # ============================================================
+    # 2. زراعة موظف إدارة
     try:
         if not AdminStaff.query.filter_by(username='admin_staff_test').first():
             staff = AdminStaff(
@@ -88,15 +79,11 @@ def seed_database():
             db.session.add(staff)
             db.session.commit()
             print("✅ [الزراعة]: تم زرع موظف الإدارة التجريبي (admin_staff_test) بنجاح.")
-        else:
-            print("ℹ️ [الزراعة]: موظف الإدارة موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة موظف الإدارة]: {e}")
 
-    # ============================================================
     # 3. زراعة مورد تجريبي مع محفظة ورصيد افتتاحي
-    # ============================================================
     try:
         supplier = Supplier.query.filter_by(username='test_supplier').first()
         if not supplier:
@@ -182,8 +169,6 @@ def seed_database():
             print(f"    📌 كود المورد: SUP-963{supplier.id}")
             print(f"    📌 كود المحفظة: WEL-963{supplier.id}")
             print(f"    📌 رقم السند: {seed_voucher_number}")
-        else:
-            print("ℹ️ [الزراعة]: المورد التجريبي والمحفظة ومعاملة الرصيد الافتتاحي موجودة مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
@@ -200,9 +185,6 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
 
-    # ============================================================
-    # 🔌 إعدادات الاتصال بقاعدة البيانات
-    # ============================================================
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
@@ -235,9 +217,6 @@ def create_app():
         }
     })
 
-    # ============================================================
-    # ⚙️ تنظيف وتفريغ الجلسات عند انتهاء الطلب أو وقوع خطأ
-    # ============================================================
     @app.teardown_request
     def shutdown_session(exception=None):
         if exception:
@@ -250,25 +229,20 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع (محسّن)
+    # ⚙️ إعادة بناء قاعدة البيانات
     # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            # ✅ إفراغ الجلسة أولاً للتأكد من عدم وجود تعارض
             db.session.remove()
-            
-            # ✅ حذف الـ Schema بالكامل
             db.session.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
             print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
 
-            # ✅ إنشاء الجداول
             db.create_all()
             print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
-            # ✅ زراعة البيانات المبدئية
             seed_database()
             print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
 
@@ -279,9 +253,6 @@ def create_app():
             import traceback
             traceback.print_exc()
 
-    # ============================================================
-    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
-    # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
         """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
@@ -351,13 +322,19 @@ def create_app():
             print(f"❌ [خطأ تحميل المستخدم load_user]: {e}")
             return None
 
+    # ============================================================
+    # ✅ معالج المصادقة - استخدام مسار مباشر
+    # ============================================================
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if request.path.startswith('/supplier'):
-            return redirect(url_for('suppliers_auth.login'))
+        if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
+            return redirect('/suppliers/login')  # ✅ مسار مباشر
         return redirect(admin_login_path)
 
+    # ============================================================
+    # ✅ حماية المسارات - استخدام مسار مباشر
+    # ============================================================
     @app.before_request
     def protect_routes():
         from apps.models.admin_db import AdminUser
@@ -373,20 +350,13 @@ def create_app():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
         exempt_prefixes = [
-            '/static',
-            '/graphql',
-            '/admin/graphql',
-            '/favicon.ico',
+            '/static', '/graphql', '/admin/graphql', '/favicon.ico',
             '/m7jb_test_connection',
-            '/supplier/login',
-            '/supplier/register',
-            '/supplier/forgot-password',
-            '/supplier/verify',
-            '/supplier/resend-otp',
-            '/supplier/reset-password',
-            admin_login_path,
-            '/auth',
-            '/whatsapp'
+            '/supplier/login', '/supplier/register', '/supplier/forgot-password',
+            '/supplier/verify', '/supplier/resend-otp', '/supplier/reset-password',
+            '/suppliers/login', '/suppliers/register', '/suppliers/forgot-password',
+            '/suppliers/verify',
+            admin_login_path, '/auth', '/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -400,20 +370,20 @@ def create_app():
                 if is_admin_side:
                     return
                 if is_supplier_side:
-                    return redirect('/supplier/dashboard')
+                    return redirect('/suppliers/dashboard')
                 return redirect(admin_login_path)
 
-            if path.startswith('/supplier'):
+            if path.startswith('/supplier') or path.startswith('/suppliers'):
                 if is_supplier_side:
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_auth.login'))
+                return redirect('/suppliers/login')  # ✅ مسار مباشر
 
             return
 
-        if path.startswith('/supplier'):
-            return redirect(url_for('suppliers_auth.login'))
+        if path.startswith('/supplier') or path.startswith('/suppliers'):
+            return redirect('/suppliers/login')  # ✅ مسار مباشر
 
         return redirect(admin_login_path)
 
@@ -475,11 +445,10 @@ def create_app():
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
     # ============================================================
-    # 🎭 المسار الخادع (لتمويه المتسللين والآدمن الوهميين)
+    # 🎭 المسار الخادع (لتمويه المتسللين)
     # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
-        """مسار خادع لتسجيل الدخول الوهمي يتم توجيه الفضوليين والأنظمة الآلية إليه."""
         from flask import render_template
         try:
             return render_template('auth/deceptive_login.html')
@@ -497,7 +466,7 @@ def create_app():
 
         if current_user.is_authenticated:
             if isinstance(current_user, (Supplier, SupplierStaff)):
-                return redirect('/supplier/dashboard')
+                return redirect('/suppliers/dashboard')
             elif isinstance(current_user, (AdminUser, AdminStaff)):
                 return redirect('/dashboard')
             return redirect(admin_login_path)
@@ -505,29 +474,29 @@ def create_app():
         return redirect(admin_login_path)
 
     # ============================================================
-    # 🗂️ تسجيل البوابات والموديولات
+    # ✅ تسجيل البوابات يدوياً فقط
     # ============================================================
     
-    # ✅ تسجيل بوابة المصادقة الإدارية
+    # 1️⃣ بوابة المصادقة الإدارية (يدوي)
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
         print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
     except Exception as e:
-        print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
+        print(f"❌ [خطأ بوابة المصادقة]: {e}")
 
-    # ✅ تسجيل بوابة الموردين
+    # 2️⃣ بوابة الموردين (يدوي)
     try:
         from apps.suppliers_auth_portal import bp as suppliers_bp
         app.register_blueprint(suppliers_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
         print("   📍 المسار: /suppliers")
     except Exception as e:
-        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+        print(f"❌ [خطأ بوابة الموردين]: {e}")
         import traceback
         traceback.print_exc()
 
-    # ✅ تسجيل لوحة تحكم الموردين
+    # 3️⃣ لوحة تحكم الموردين (يدوي)
     try:
         from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
         app.register_blueprint(suppliers_dashboard_bp, url_prefix='/suppliers')
@@ -538,7 +507,7 @@ def create_app():
         import traceback
         traceback.print_exc()
 
-    # ✅ تسجيل مسارات GraphQL الإدارية
+    # 4️⃣ مسارات GraphQL (يدوي)
     try:
         from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
@@ -549,9 +518,7 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
-    # ============================================================
-    # 📱 تسجيل مسار الواتساب العام
-    # ============================================================
+    # 5️⃣ واتساب (يدوي)
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
 
@@ -567,13 +534,13 @@ def create_app():
         csrf.exempt(webhook_public_bp)
 
     except Exception as e:
-        print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
+        print(f"❌ [خطأ واتساب]: {e}")
 
     # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لباقي الموديولات
+    # 🔄 باقي الموديولات - تسجيل ديناميكي
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -635,7 +602,7 @@ def create_app():
                         else:
                             ADMIN_MODULES[item] = mod_data
                 except Exception as e:
-                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
+                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - {e}")
 
     @app.context_processor
     def inject_vars():
