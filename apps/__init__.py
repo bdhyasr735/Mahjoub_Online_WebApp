@@ -22,7 +22,7 @@ SUPPLIER_MODULES = {}
 
 
 def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول والأنواع."""
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
     models_dir = os.path.join(os.path.dirname(__file__), 'models')
     if os.path.exists(models_dir):
         for file in os.listdir(models_dir):
@@ -35,10 +35,7 @@ def import_all_models():
 
 
 def seed_database():
-    """
-    زراعة البيانات المبدئية بشكل آمن وديناميكي.
-    يتم التحقق من وجود البيانات قبل إضافتها لتجنب التكرار.
-    """
+    """زراعة البيانات المبدئية بشكل آمن وديناميكي"""
     try:
         from apps.models.admin_db import AdminUser
         from apps.models.admin_staff_db import AdminStaff
@@ -346,7 +343,8 @@ def create_app():
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier'):
-            return redirect(url_for('suppliers_bp.login'))
+            # ✅ التصحيح: استخدام suppliers_auth_bp بدلاً من suppliers_bp
+            return redirect(url_for('suppliers_auth_bp.login_page'))
         return redirect(admin_login_path)
 
     @app.before_request
@@ -396,12 +394,14 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect(url_for('suppliers_bp.login'))
+                # ✅ التصحيح: استخدام suppliers_auth_bp.login_page
+                return redirect(url_for('suppliers_auth_bp.login_page'))
 
             return
 
         if path.startswith('/supplier'):
-            return redirect(url_for('suppliers_bp.login'))
+            # ✅ التصحيح: استخدام suppliers_auth_bp.login_page
+            return redirect(url_for('suppliers_auth_bp.login_page'))
 
         return redirect(admin_login_path)
 
@@ -463,11 +463,11 @@ def create_app():
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
     # ============================================================
-    # 🎭 المسار الخادع (لتمويه المتسللين والآدمن الوهميين)
+    # 🎭 المسار الخادع (لتمويه المتسللين)
     # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
-        """مسار خادع لتسجيل الدخول الوهمي يتم توجيه الفضوليين والأنظمة الآلية إليه."""
+        """مسار خادع لتسجيل الدخول الوهمي"""
         from flask import render_template
         try:
             return render_template('auth/deceptive_login.html')
@@ -495,30 +495,40 @@ def create_app():
     # ============================================================
     # 🗂️ تسجيل البوابات والموديولات
     # ============================================================
+
+    # ✅ التصحيح: استيراد auth_portal بشكل صحيح
     try:
-        from apps.auth_portal.routes import auth_portal
-        app.register_blueprint(auth_portal)
+        from apps.auth_portal.routes import auth_bp  # تغيير الاسم إلى auth_bp
+        app.register_blueprint(auth_bp)
         print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
+    except ImportError:
+        try:
+            # محاولة بديلة
+            from apps.auth_portal.routes import auth_portal_bp
+            app.register_blueprint(auth_portal_bp)
+            print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح (auth_portal_bp).")
+        except Exception as e2:
+            print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e2}")
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
+    # ✅ التصحيح: استيراد suppliers_auth_bp بشكل صحيح
     try:
-        from apps.suppliers_auth_portal.routes import suppliers_bp
-        app.register_blueprint(suppliers_bp, url_prefix='/supplier')
-        csrf.exempt(suppliers_bp)
+        from apps.suppliers_auth_portal.routes import suppliers_auth_bp
+        app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
+        csrf.exempt(suppliers_auth_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+    except ImportError:
+        try:
+            # محاولة بديلة
+            from apps.suppliers_auth_portal.registry import suppliers_auth_bp
+            app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
+            csrf.exempt(suppliers_auth_bp)
+            print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (من registry).")
+        except Exception as e2:
+            print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e2}")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
-
-    try:
-        from apps.admin.graphql_routes import graphql_bp
-        app.register_blueprint(graphql_bp)
-        csrf.exempt(graphql_bp)
-        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
-    except ImportError:
-        pass
-    except Exception as e:
-        print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
     # ============================================================
     # 📱 تسجيل مسار الواتساب العام
@@ -559,12 +569,6 @@ def create_app():
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
                         print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
-                        
-                        if item == 'whatsapp_service' or 'whatsapp' in item:
-                            try:
-                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
-                            except Exception as ex_csrf:
-                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
                     else:
                         print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
 
@@ -617,9 +621,10 @@ def create_app():
                 return '#'
 
         supplier_context = {
-            'current_supplier': None, 'owner_full_name': '', 'supplier_bank_name': '',
-            'supplier_bank_account': '', 'supplier_wallet': None,
-            'pending_financials_count': 0, 'total_pending_payouts': 0.00
+            'current_supplier': None, 'owner_full_name': '',
+            'supplier_bank_name': '', 'supplier_bank_account': '',
+            'supplier_wallet': None, 'pending_financials_count': 0,
+            'total_pending_payouts': 0.00
         }
         if current_user.is_authenticated:
             try:
