@@ -395,7 +395,7 @@
             <span class="sidebar-sub">بوابة الموردين</span>
         </div>
         <nav class="nav-menu">
-            {% set dashboard_url = safe_url_for('suppliers_auth_bp.dashboard') if safe_url_for is defined else (safe_url_for('suppliers_dashboard.dashboard') if safe_url_for is defined else url_for('suppliers_auth_bp.dashboard')) %}
+            {% set dashboard_url = safe_url_for('suppliers_auth_bp.dashboard') if safe_url_for is defined else url_for('suppliers_auth_bp.dashboard') %}
             <a href="{{ dashboard_url }}" 
                class="nav-link {% if request.endpoint in ['suppliers_auth_bp.dashboard', 'suppliers_dashboard.dashboard'] %}active{% endif %}">
                 <i class="fas fa-chart-pie"></i> <span>الرئيسية</span>
@@ -502,7 +502,6 @@
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
 
-            // تبديل القائمة الجانبية للشاشات الصغيرة
             if (toggleBtn && sidebar) {
                 toggleBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -510,7 +509,6 @@
                 });
             }
 
-            // إغلاق الشريط الجانبي عند النقر خارجه
             document.addEventListener('click', function(e) {
                 if (window.innerWidth < 992 && sidebar && sidebar.classList.contains('active')) {
                     if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
@@ -519,7 +517,6 @@
                 }
             });
 
-            // التحكم الديناميكي بفتح وإغلاق القوائم المنسدلة
             const dropdownToggles = document.querySelectorAll('.sidebar .nav-link.dropdown-toggle');
             dropdownToggles.forEach(toggle => {
                 toggle.addEventListener('click', function(e) {
@@ -530,7 +527,6 @@
                     if (targetSubmenu && targetSubmenu.classList.contains('submenu')) {
                         const isOpen = targetSubmenu.classList.contains('show');
                         
-                        // إغلاق بقية القوائم المفتوحة لحفظ المساحة
                         document.querySelectorAll('.sidebar .submenu.show').forEach(sub => {
                             if (sub !== targetSubmenu) {
                                 sub.classList.remove('show');
@@ -539,7 +535,6 @@
                             }
                         });
 
-                        // تبديل القائمة الحالية
                         if (isOpen) {
                             targetSubmenu.classList.remove('show');
                             this.setAttribute('aria-expanded', 'false');
@@ -551,7 +546,6 @@
                 });
             });
 
-            // إخفاء تنبيهات الفلاش تلقائيًا بعد 5 ثوانٍ
             const flashAlerts = document.querySelectorAll('.flash-messages .alert');
             flashAlerts.forEach(alert => {
                 setTimeout(() => {
@@ -560,7 +554,6 @@
                 }, 5000);
             });
 
-            // تنظيف التخزين المحلي عند تسجيل الخروج
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function(e) {
