@@ -6,6 +6,7 @@ import importlib
 import secrets
 import string
 import click
+import traceback
 from datetime import datetime
 from flask import Flask, redirect, session, url_for, request, jsonify, make_response
 from flask_login import current_user
@@ -166,9 +167,6 @@ def seed_database():
 
             db.session.commit()
             print("✅ [الزراعة]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
-            print(f"    📌 كود المورد: SUP-963{supplier.id}")
-            print(f"    📌 كود المحفظة: WEL-963{supplier.id}")
-            print(f"    📌 رقم السند: {seed_voucher_number}")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
@@ -195,7 +193,6 @@ def create_app():
 
     db.init_app(app)
     
-    # ✅ إعداد الدوال العامة لـ Jinja وتجنب خطأ UndefinedError لـ get_seo_data
     app.jinja_env.globals.update(getattr=getattr)
 
     def get_seo_data(page_name='default', custom_seo=None):
@@ -237,14 +234,16 @@ def create_app():
             db.session.rollback()
         db.session.remove()
 
+    # 🛑 تعديل معالج 500 لإظهار الخطأ البرمجي الحقيقي في المتصفح والكونسول لتسهيل التصحيح
     @app.errorhandler(500)
     def handle_500_error(e):
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
+        tb = traceback.format_exc()
+        print(f"❌ [خطأ 500 مفصل]:\n{tb}")
+        if request.path.startswith('/suppliers') or request.path.startswith('/supplier'):
+            return f"<h1>Internal Server Error (500)</h1><pre>{tb}</pre>", 500
+        return jsonify({"error": "Internal Server Error", "details": str(e), "traceback": tb}), 500
 
-    # ============================================================
-    # ⚙️ إعادة بناء قاعدة البيانات (تم تعطيل الحذف التلقائي عند بدء التشغيل لمنع فقدان البيانات أو مشاكل الـ Drop)
-    # ============================================================
     with app.app_context():
         import_all_models()
         try:
@@ -255,7 +254,6 @@ def create_app():
 
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
-        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
         click.echo("🔄 [إعادة بناء القاعدة]: جاري حذف جميع الجداول...")
         import_all_models()
         try:
@@ -322,19 +320,13 @@ def create_app():
             print(f"❌ [خطأ تحميل المستخدم load_user]: {e}")
             return None
 
-    # ============================================================
-    # ✅ معالج المصادقة - استخدام مسار مباشر
-    # ============================================================
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
-            return redirect('/suppliers/login')  # ✅ مسار مباشر
+            return redirect('/suppliers/login')
         return redirect(admin_login_path)
 
-    # ============================================================
-    # ✅ حماية المسارات - استخدام مسار مباشر
-    # ============================================================
     @app.before_request
     def protect_routes():
         from apps.models.admin_db import AdminUser
@@ -378,12 +370,12 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect('/suppliers/login')  # ✅ مسار مباشر
+                return redirect('/suppliers/login')
 
             return
 
         if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect('/suppliers/login')  # ✅ مسار مباشر
+            return redirect('/suppliers/login')
 
         return redirect(admin_login_path)
 
@@ -444,9 +436,6 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
-    # ============================================================
-    # 🎭 المسار الخادع (لتمويه المتسللين)
-    # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
         from flask import render_template
@@ -473,136 +462,42 @@ def create_app():
 
         return redirect(admin_login_path)
 
-    # ============================================================
-    # ✅ تسجيل البوابات يدوياً فقط
-    # ============================================================
-    
-    # 1️⃣ بوابة المصادقة الإدارية (يدوي)
+    # تسجيل البوابات
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
-        print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: {e}")
 
-    # 2️⃣ بوابة الموردين (يدوي)
     try:
         from apps.suppliers_auth_portal import bp as suppliers_bp
         app.register_blueprint(suppliers_bp)
-        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
-        print("    📍 المسار: /suppliers")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: {e}")
-        import traceback
-        traceback.print_exc()
 
-    # 3️⃣ لوحة تحكم الموردين (يدوي)
     try:
         from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
         app.register_blueprint(suppliers_dashboard_bp, url_prefix='/suppliers')
-        print("✅ [لوحة تحكم الموردين]: تم تسجيل لوحة التحكم بنجاح.")
-        print("    📍 المسار: /suppliers/dashboard")
     except Exception as e:
         print(f"❌ [خطأ لوحة تحكم الموردين]: {e}")
-        import traceback
-        traceback.print_exc()
 
-    # 4️⃣ مسارات GraphQL (يدوي)
     try:
         from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
         csrf.exempt(graphql_bp)
-        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
-    except ImportError:
+    except Exception:
         pass
-    except Exception as e:
-        print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
-    # 5️⃣ واتساب (يدوي)
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
-
         if webhook_public_bp.name not in app.blueprints:
             app.register_blueprint(webhook_public_bp)
-            print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
-
         if whatsapp_bp.name not in app.blueprints:
             app.register_blueprint(whatsapp_bp)
-            print("✅ [واتساب]: تم تسجيل مسارات لوحة التحكم '/admin/whatsapp' بنجاح.")
-
         csrf.exempt(whatsapp_bp)
         csrf.exempt(webhook_public_bp)
-
     except Exception as e:
         print(f"❌ [خطأ واتساب]: {e}")
-
-    # ============================================================
-    # 🔄 باقي الموديولات - تسجيل ديناميكي
-    # ============================================================
-    apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine', 'whatsapp_service']
-
-    if os.path.exists(apps_dir):
-        for item in os.listdir(apps_dir):
-            item_path = os.path.join(apps_dir, item)
-            if not os.path.isdir(item_path) or item in ignored_dirs:
-                continue
-            registry_file = os.path.join(item_path, 'registry.py')
-            if os.path.exists(registry_file):
-                try:
-                    module = importlib.import_module(f"apps.{item}.registry")
-                    
-                    if hasattr(module, 'register_module'):
-                        module.register_module(app)
-                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
-                        
-                        if item == 'whatsapp_service' or 'whatsapp' in item:
-                            try:
-                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
-                            except Exception as ex_csrf:
-                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
-                    else:
-                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
-
-                    try:
-                        app_module = importlib.import_module(f"apps.{item}")
-                        if hasattr(app_module, 'init_app'):
-                            app_module.init_app(app)
-                    except ImportError:
-                        pass
-
-                    links_data = {}
-                    if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
-                        for nav in module.NAV_ITEMS:
-                            ep = nav.get('endpoint')
-                            title = nav.get('title')
-                            if ep and title:
-                                links_data[ep] = title
-                    if not links_data and hasattr(module, 'LINKS'):
-                        raw_links = getattr(module, 'LINKS')
-                        if isinstance(raw_links, dict):
-                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
-                        elif isinstance(raw_links, list):
-                            links_data = {ep: lbl for ep, lbl in raw_links}
-                    menu_items_func = getattr(module, 'get_menu_items', None)
-                    if not links_data and menu_items_func:
-                        res = menu_items_func()
-                        if isinstance(res, dict):
-                            links_data = res
-                        elif isinstance(res, list):
-                            links_data = {ep: lbl for ep, lbl in res}
-                    if links_data:
-                        mod_data = {
-                            "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
-                            "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
-                            "links": links_data,
-                        }
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
-                            SUPPLIER_MODULES[item] = mod_data
-                        else:
-                            ADMIN_MODULES[item] = mod_data
-                except Exception as e:
-                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - {e}")
 
     @app.context_processor
     def inject_vars():
