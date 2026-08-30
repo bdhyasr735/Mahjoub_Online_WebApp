@@ -24,8 +24,9 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Verify Form -->
-        <form id="verifyForm" method="POST" action="{{ url_for('suppliers_auth_portal.verify') }}" class="space-y-6 relative z-10">
-            {{ form.csrf_token }}
+        <form id="verifyForm" method="POST" action="{{ url_for('auth.verify') }}" class="space-y-6 relative z-10">
+            <!-- CSRF Token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             
             <input type="hidden" name="identifier" value="{{ identifier or '' }}">
             <input type="hidden" name="user_type" value="{{ user_type or 'supplier' }}">
@@ -40,10 +41,7 @@
                     <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
                     <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
                 </div>
-                {{ form.otp_code(class="hidden", id="otpCodeInput", required=True) }}
-                {% if form.otp_code.errors %}
-                    <div class="form-error text-center">{{ form.otp_code.errors[0] }}</div>
-                {% endif %}
+                <input type="hidden" id="otpCodeInput" name="otp_code" required>
             </div>
 
             <button type="submit" id="submitBtn" class="w-full py-3.5 gold-btn rounded-xl text-sm font-bold shadow-xl flex items-center justify-center gap-2">
@@ -71,7 +69,7 @@
             </div>
             <div class="flex items-center justify-between text-xs pt-1">
                 <span id="resendStatusText" class="text-slate-400 font-medium"></span>
-                <a href="{{ url_for('suppliers_auth_portal.login') }}" class="text-slate-400 hover:text-royalGold transition">
+                <a href="{{ url_for('auth.login') }}" class="text-slate-400 hover:text-royalGold transition">
                     &larr; العودة لتسجيل الدخول
                 </a>
             </div>
@@ -199,7 +197,7 @@
             if (response.ok && data.success) {
                 showAlert(data.message || 'تم التحقق بنجاح! جاري تحويلك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || "{{ url_for('supplier.dashboard') }}";
+                    window.location.href = data.redirect_url || "/suppliers/dashboard";
                 }, 1500);
             } else {
                 submitBtn.disabled = false;
@@ -237,7 +235,7 @@
             const formData = new FormData(form);
             formData.append('channel', channel);
             
-            const response = await fetch("{{ url_for('suppliers_auth_portal.resend_otp') }}", {
+            const response = await fetch("{{ url_for('auth.resend_otp') }}", {
                 method: 'POST',
                 body: formData,
                 headers: {
