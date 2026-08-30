@@ -172,7 +172,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': window.getCsrfToken()
+                'X-CSRFToken': window.getCsrfToken ? window.getCsrfToken() : ''
             },
             body: JSON.stringify({ question: question })
         })
