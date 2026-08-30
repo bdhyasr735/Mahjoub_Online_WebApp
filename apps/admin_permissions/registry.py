@@ -1,34 +1,26 @@
-# -*- coding: utf-8 -*-
-# 📂 apps/admin_permissions/registry.py
+# apps/admin_permissions/registry.py
 
+from flask import Blueprint
+import logging
+
+logger = logging.getLogger(__name__)
+
+# تعريف الموديول
 MODULE_NAME = "إدارة الصلاحيات"
-MODULE_ICON = "bi-shield-lock"
-SHOW_IN_ADMIN = True
+MODULE_ICON = "fa-shield-alt"
+SHOW_IN_SUPPLIER = False
 
-# 💡 أضف هذا المتغير ليتمكن القالب من العثور على الروابط
-LINKS = {
-    'admin_permissions.index': 'صلاحيات الموظفين والمتاجر'
-}
-
-# قواميس الصلاحيات
-ADMIN_PERMISSIONS_REGISTRY = {
-    'manage_products': 'إدارة المنتجات وتعديلها',
-    'manage_orders': 'إدارة ومتابعة الطلبات',
-    'manage_suppliers': 'إدارة الموردين والمتاجر',
-    'manage_treasury': 'الرقابة المالية والخزينة',
-    'manage_staff': 'إدارة الموظفين والصلاحيات',
-    'view_reports': 'عرض التقارير والإحصائيات'
-}
-
-SUPPLIER_PERMISSIONS_REGISTRY = {
-    'supplier_manage_products': 'إدارة منتجات المتجر',
-    'supplier_manage_orders': 'إدارة طلبات الزبائن',
-    'supplier_manage_wallet': 'إدارة محفظة المورد',
-    'supplier_manage_staff': 'إدارة موظفي المتجر'
-}
+NAV_ITEMS = [
+    {'title': 'إدارة الصلاحيات', 'endpoint': 'admin_permissions.index', 'icon': 'fa-shield-alt'},
+]
 
 def register_module(app):
-    from apps.admin_permissions.routes import admin_permissions_bp
-    
-    if 'admin_permissions_bp' not in app.blueprints:
-        app.register_blueprint(admin_permissions_bp, url_prefix='/admin/permissions')
+    """تسجيل الموديول في التطبيق"""
+    try:
+        from .routes import admin_permissions_bp
+        app.register_blueprint(admin_permissions_bp)
+        logger.info(f"✅ تم تسجيل موديول '{MODULE_NAME}' بنجاح.")
+        return True
+    except Exception as e:
+        logger.error(f"❌ فشل تسجيل موديول '{MODULE_NAME}': {e}")
+        return False
