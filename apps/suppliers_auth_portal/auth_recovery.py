@@ -177,7 +177,7 @@ def request_otp():
         session['recovery_identifier'] = identifier
         session['recovery_user_type'] = user_type
         
-        # طباعة OTP في السجلات (للتطوير)
+        # ✅ طباعة OTP في السجلات (بدلاً من إرسال بريد)
         current_app.logger.info(f'🔐 OTP لاستعادة كلمة المرور لـ {identifier}: {otp_code}')
         print(f'🔐 OTP لاستعادة كلمة المرور لـ {identifier}: {otp_code}')
         
@@ -278,6 +278,7 @@ def resend_otp():
         otp_code = generate_otp()
         store_otp(identifier, otp_code)
         
+        # ✅ طباعة OTP في السجلات (بدلاً من إرسال بريد)
         current_app.logger.info(f'🔐 إعادة إرسال OTP لـ {identifier}: {otp_code}')
         print(f'🔐 إعادة إرسال OTP لـ {identifier}: {otp_code}')
         
