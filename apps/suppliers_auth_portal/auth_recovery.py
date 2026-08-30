@@ -4,7 +4,6 @@
 from flask import render_template, request, jsonify, session, url_for
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
-from apps.suppliers_auth_portal.security import SupplierAuthSecurity
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
 
@@ -34,20 +33,13 @@ def forgot_password_request_otp():
         if not supplier_obj:
             return jsonify({"success": False, "message": "المورد غير مسجل في النظام."}), 404
 
-        res = SupplierAuthSecurity.generate_and_send_otp(supplier_obj, channel='whatsapp')
-        if not res.get("success"):
-            res = SupplierAuthSecurity.generate_and_send_otp(supplier_obj, channel='email')
-
-        if not res.get("success"):
-            return jsonify({"success": False, "message": res.get("message", "فشل إرسال رمز التحقق.")}), 500
-
         session['reset_identifier'] = identifier
         
         masked_id = identifier[:3] + "****" + identifier[-2:] if len(identifier) > 5 else "77***89"
         return jsonify({
             "success": True,
             "otp_sent": True,
-            "message": "تم إرسال رمز التحقق بنجاح إلى هاتفك أو بريدك المسجل.",
+            "message": "تم التحقق من الحساب بنجاح. يرجى إدخال كلمة المرور الجديدة.",
             "data": {
                 "masked_phone": masked_id
             }
@@ -62,7 +54,6 @@ def forgot_password_request_otp():
 def reset_password():
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
-        otp_code = data.get('otp_code', '').strip()
         new_password = data.get('new_password', '')
         confirm_password = data.get('confirm_password', '')
 
@@ -72,10 +63,6 @@ def reset_password():
         identifier = session.get('reset_identifier')
         if not identifier:
             return jsonify({"success": False, "message": "انتهت صلاحية الجلسة، يرجى إعادة محاولة استعادة كلمة المرور."}), 400
-
-        verification_res = SupplierAuthSecurity.verify_supplier_otp(identifier, otp_code)
-        if not verification_res.get("success"):
-            return jsonify({"success": False, "message": verification_res.get("message", "رمز التحقق غير صحيح أو انتهت صلاحيته.")}), 400
 
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
         supplier_obj = db.session.query(Supplier).filter(
