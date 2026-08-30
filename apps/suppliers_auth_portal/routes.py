@@ -536,7 +536,24 @@ def logout():
 def dashboard():
     """عرض لوحة التحكم الخاصة بالمورد مباشرة"""
     try:
-        return render_template('suppliers_auth_portal/dashboard/supplier_dashboard.html', page_title='لوحة تحكم المورد')
+        # جلب البيانات الأساسية للمورد لعرضها في لوحة التحكم
+        supplier = current_user if session.get('user_type') == 'supplier' else getattr(current_user, 'supplier', None)
+        profile = SupplierProfile.query.filter_by(supplier_id=supplier.id).first() if supplier else None
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first() if supplier else None
+        balance = wallet.balance if wallet else 0.0
+        products_count = ProductSupplierMapping.query.filter_by(supplier_id=supplier.id).count() if supplier else 0
+        staff_count = SupplierStaff.query.filter_by(supplier_id=supplier.id).count() if supplier else 0
+
+        return render_template(
+            'suppliers/dashboard.html',
+            page_title='لوحة تحكم المورد | محجوب أونلاين',
+            supplier=supplier,
+            profile=profile,
+            wallet=wallet,
+            balance=balance,
+            products_count=products_count,
+            staff_count=staff_count
+        )
     except Exception as e:
         logger.error(f"❌ خطأ أثناء عرض لوحة التحكم: {str(e)}", exc_info=True)
         return f"Internal Server Error: {str(e)}", 500
