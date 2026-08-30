@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_auth_portal/__init__.py
 
-from flask import Blueprint  # ✅ تأكد من وجود هذا السطر
+from flask import Blueprint
 
 bp = Blueprint(
     'suppliers_auth_portal',
     __name__,
     template_folder='templates/suppliers_auth_portal',
-    url_prefix='/supplier'
+    url_prefix='/suppliers'  # ✅ تأكد: /suppliers وليس /supplier
 )
 
 from . import auth_login, auth_register, auth_recovery, seo_service
