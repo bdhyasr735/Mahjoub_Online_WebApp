@@ -24,7 +24,7 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Verify Form -->
-        <form id="verifyForm" method="POST" action="{{ url_for('auth.verify') }}" class="space-y-6 relative z-10">
+        <form id="verifyForm" method="POST" action="/suppliers/verify" class="space-y-6 relative z-10">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             
@@ -69,7 +69,7 @@
             </div>
             <div class="flex items-center justify-between text-xs pt-1">
                 <span id="resendStatusText" class="text-slate-400 font-medium"></span>
-                <a href="{{ url_for('auth.login') }}" class="text-slate-400 hover:text-royalGold transition">
+                <a href="/suppliers/login" class="text-slate-400 hover:text-royalGold transition">
                     &larr; العودة لتسجيل الدخول
                 </a>
             </div>
@@ -235,7 +235,7 @@
             const formData = new FormData(form);
             formData.append('channel', channel);
             
-            const response = await fetch("{{ url_for('auth.resend_otp') }}", {
+            const response = await fetch("/suppliers/resend-otp", {
                 method: 'POST',
                 body: formData,
                 headers: {
