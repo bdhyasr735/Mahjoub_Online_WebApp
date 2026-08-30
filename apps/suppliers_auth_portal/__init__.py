@@ -3,11 +3,11 @@
 
 from flask import Blueprint
 
-# ✅ إنشاء البلوبرنت الرئيسي
+# ✅ تعديل مسار المجلد الأساسي للقوالب ليطابق بنية المشروع الصحيحة
 bp = Blueprint(
     'suppliers_auth_portal',
     __name__,
-    template_folder='templates/suppliers_auth_portal',
+    template_folder='templates',
     url_prefix='/suppliers'
 )
 
@@ -17,7 +17,6 @@ from .auth_routes import bp as auth_bp
 # ✅ تسجيل البلوبرنت الفرعي
 bp.register_blueprint(auth_bp)
 
-# ✅ ربط خدمات الـ SEO أو تفعيلها إن وجدت في seo_service
 try:
     from . import seo_service
 except ImportError:
