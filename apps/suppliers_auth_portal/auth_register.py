@@ -4,13 +4,10 @@
 from flask import render_template, request, jsonify, session, url_for
 from flask_login import login_user
 from werkzeug.security import generate_password_hash
-import random
-import string
 
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.models.supplier_db import Supplier
-from apps.models.supplier_wallet_db import SupplierWallet
 from apps.extensions import db
 
 @suppliers_bp.route('/register', methods=['GET', 'POST'])
@@ -54,16 +51,6 @@ def register():
         )
 
         db.session.add(new_supplier)
-        db.session.flush()
-
-        wallet_code = ''.join(random.choices(string.digits, k=10))
-        new_wallet = SupplierWallet(
-            supplier_id=new_supplier.id,
-            wallet_code=wallet_code,
-            balance=0.00
-        )
-        db.session.add(new_wallet)
-        
         db.session.commit()
 
         session['user_type'] = 'supplier'
@@ -73,7 +60,7 @@ def register():
 
         return jsonify({
             "success": True,
-            "message": "تم إنشاء الحساب والمحفظة المالية بنجاح",
+            "message": "تم إنشاء الحساب بنجاح",
             "redirect_url": url_for('suppliers_dashboard.dashboard')
         }), 201
 
