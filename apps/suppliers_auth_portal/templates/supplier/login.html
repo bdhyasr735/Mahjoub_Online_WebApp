@@ -1,84 +1,369 @@
-<!-- apps/suppliers_auth_portal/templates/supplier/register.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طلب انضمام مورد - محجوب أونلاين</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #1a0b2e; }
-        .royal-gradient { background: linear-gradient(135deg, #1a0b2e 0%, #3b145b 50%, #570575 100%); }
-        .gold-border { border-color: #D4AF37; }
-        .gold-text { color: #D4AF37; }
-        .gold-bg { background-color: #D4AF37; }
-        .gold-bg:hover { background-color: #c19b2e; }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center royal-gradient p-4">
+    
+    <title>{% block title %}{{ seo.title if seo and seo.title else (page_title ~ ' | محجوب أونلاين - سوقك الذكي' if page_title else 'محجوب أونلاين | سوقك الذكي - منصة اللامركزية لحوكمة التجارة اليمنية') }}{% endblock %}</title>
+    
+    <meta name="description" content="{% block meta_description %}{{ seo.description if seo and seo.description else 'محجوب أونلاين - منصة اللامركزية لحوكمة التجارة اليمنية. بوابة الموردين وموظفيهم بسعر التكلفة وبأسعار تنافسية مع لوحة تحكم مجانية وعزز مبيعاتك مع شبكة واسعة من المسوقين والشركاء.' }}{% endblock %}">
+    
+    <meta name="keywords" content="{% block meta_keywords %}{{ seo.keywords if seo and seo.keywords else 'محجوب أونلاين, سوقك الذكي, حوكمة التجارة اليمنية, بوابة الموردين, شبكة المسوقين, سعر التكلفة, لوحة تحكم مجانية, المحفظة الرقمية, توريد اليمن' }}{% endblock %}">
+    
+    <meta name="robots" content="{% block meta_robots %}{{ seo.robots if seo and seo.robots else 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' }}{% endblock %}">
+    
+    <link rel="canonical" href="{% block canonical_url %}{{ seo.canonical_url if seo and seo.canonical_url else request.base_url }}{% endblock %}">
+    
+    <meta property="og:site_name" content="محجوب أونلاين - سوقك الذكي">
+    <meta property="og:locale" content="ar_AR">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ seo.og.title if seo and seo.og and seo.og.title else (page_title or 'محجوب أونلاين | سوقك الذكي - منصة اللامركزية لحوكمة التجارة اليمنية') }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ seo.og.description if seo and seo.og and seo.og.description else 'منصة اللامركزية لحوكمة التجارة اليمنية - عزز مبيعاتك مع شبكة من المسوقين، أسعار تكلفة تنافسية، ولوحة تحكم مجانية.' }}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ seo.og.url if seo and seo.og and seo.og.url else request.url }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ seo.og.image if seo and seo.og and seo.og.image else 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp' }}{% endblock %}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
-    <div class="w-full max-w-lg bg-[#24103f] border-2 gold-border rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden">
-        
-        <div class="text-center mb-6">
-            <h1 class="text-2xl font-black gold-text">طلب انضمام مورد جديد</h1>
-            <p class="text-xs text-purple-300 mt-1">انضم إلى شبكة موردي منصة محجوب أونلاين</p>
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ seo.twitter.title if seo and seo.twitter and seo.twitter.title else (page_title or 'محجوب أونلاين | سوقك الذكي') }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ seo.twitter.description if seo and seo.twitter and seo.twitter.description else 'منصة اللامركزية لحوكمة التجارة اليمنية - عزز مبيعاتك مع شبكة واسعة من المسوقين والشركاء.' }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ seo.twitter.image if seo and seo.twitter and seo.twitter.image else 'https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp' }}{% endblock %}">
+
+    {% if seo and seo.jsonld %}
+    <script type="application/ld+json">
+        {{ seo.jsonld|tojson|safe }}
+    </script>
+    {% else %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "محجوب أونلاين",
+      "alternateName": "Mahgoub Online",
+      "url": "{{ request.url_root }}",
+      "description": "منصة اللامركزية لحوكمة التجارة اليمنية وبوابة الموردين وموظفيهم المعتمدة.",
+      "inLanguage": "ar"
+    }
+    </script>
+    {% endif %}
+
+    <!-- البيانات المنظمة FAQPage Schema.org للظهور الغني في نتائج بحث Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "ما هي سياسة تسعير التكلفة واللوحة المجانية في محجوب أونلاين؟",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "لوحة التحكم في منصة محجوب أونلاين مجانية بالكامل لجميع الموردين، والشرط الأساسي لاستمرار تفعيلها هو الالتزام بالبيع والتوريد بسعر التكلفة وبأسعار تنافسية عادلة. في حال تبين وجود أسعار غير مناسبة، يتم توقيف لوحة التحكم فوراً."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "كيف يتم تسجيل مورد جديد في منصة محجوب أونلاين؟",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "من خلال الضغط على زر اشتراك مورد جديد، إدخال بيانات المنشأة، وتوثيق الحساب للحصول على لوحة التحكم المجانية والربط مع شبكة المسوقين."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "هل يمكن للمورد إضافة موظفين وصلاحيات داخل لوحة التحكم؟",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "نعم، تتيح المنصة نظام دخول موظف المورد مع صلاحيات دقيقة ومحددة لإدارة العمليات والمبيعات."
+          }
+        }
+      ]
+    }
+    </script>
+    {% block schema_jsonld %}{% endblock %}
+
+    <meta name="csrf-token" content="{{ csrf_token|default('') }}">
+    <meta name="csrf-param" content="csrf_token">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        royalDark: '#05020a',
+                        royalSurface: '#0f071c',
+                        royalCard: '#150a29',
+                        royalGold: '#ce9e49',
+                        royalGoldLight: '#fae19c',
+                        royalGoldDark: '#9f7329',
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #05020a;
+            color: #f8fafc;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(206, 158, 73, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 100% 100%, rgba(15, 7, 28, 0.9) 0%, transparent 50%);
+        }
+        .royal-border {
+            border: 1px solid rgba(206, 158, 73, 0.3);
+            box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(206, 158, 73, 0.08);
+        }
+        .royal-border:focus-within {
+            border-color: #ce9e49;
+            box-shadow: 0 0 20px rgba(206, 158, 73, 0.25);
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #ce9e49 0%, #fae19c 50%, #ce9e49 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-btn {
+            background: linear-gradient(135deg, #ce9e49 0%, #ba8b38 100%);
+            color: #05020a;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .gold-btn:hover {
+            background: linear-gradient(135deg, #fae19c 0%, #ce9e49 100%);
+            box-shadow: 0 0 20px rgba(206, 158, 73, 0.4);
+            transform: translateY(-1px);
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #ce9e49, #fae19c);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .royal-card-hover {
+            transition: all 0.3s ease;
+        }
+        .royal-card-hover:hover {
+            transform: translateY(-2px);
+            border-color: #ce9e49;
+            box-shadow: 0 8px 30px rgba(206, 158, 73, 0.15);
+        }
+        .btn-gold-outline {
+            background: transparent;
+            border: 1px solid #ce9e49;
+            color: #ce9e49;
+            transition: all 0.3s ease;
+        }
+        .btn-gold-outline:hover {
+            background: linear-gradient(135deg, #ce9e49, #ba8b38);
+            color: #05020a;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="flex flex-col justify-between min-h-screen text-slate-100 selection:bg-royalGold/30 selection:text-royalGold">
+
+    <!-- ====== HEADER ====== -->
+    <header class="w-full border-b border-royalGold/20 bg-royalDark/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- الشعار -->
+            <a href="{{ url_for('suppliers_auth_bp.login_page') }}" class="flex items-center gap-3 group">
+                <div class="w-12 h-12 rounded-xl bg-[#05020a] border border-royalGold/40 p-1 flex items-center justify-center shadow-lg group-hover:border-royalGold transition-all overflow-hidden">
+                    <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp"
+                         alt="محجوب أونلاين - سوقك الذكي"
+                         class="w-full h-full object-contain brightness-0 invert">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl font-black gold-gradient-text tracking-wide">محجوب أونلاين</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30">سوقك الذكي</span>
+                    </div>
+                    <p class="text-xs text-royalGold/70">منصة اللامركزية لحوكمة التجارة اليمنية</p>
+                </div>
+            </a>
+
+            <!-- التنقل -->
+            <nav class="hidden md:flex items-center gap-4 text-sm font-medium">
+                <a href="{{ url_for('suppliers_auth_bp.login_page') }}" class="nav-link px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">
+                    تسجيل الدخول
+                </a>
+                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="nav-link px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">
+                    اشتراك مورد جديد
+                </a>
+                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="nav-link px-3 py-2 text-slate-400 hover:text-slate-200 transition text-xs">
+                    استعادة كلمة المرور
+                </a>
+            </nav>
+
+            <!-- القائمة المتنقلة للأجهزة الصغيرة -->
+            <button id="mobileMenuBtn" class="md:hidden text-royalGold p-2 hover:bg-royalSurface/60 rounded-lg transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
         </div>
 
+        <!-- القائمة المتنقلة -->
+        <div id="mobileMenu" class="hidden md:hidden bg-royalDark/95 border-t border-royalGold/20 py-4 px-4">
+            <div class="flex flex-col gap-3 text-sm">
+                <a href="{{ url_for('suppliers_auth_bp.login_page') }}" class="px-4 py-2 rounded-lg text-slate-300 hover:text-royalGold hover:bg-royalSurface/60 transition">تسجيل الدخول</a>
+                <a href="{{ url_for('suppliers_auth_bp.register_page') }}" class="px-4 py-2 rounded-lg border border-royalGold/40 text-royalGold hover:bg-royalGold/10 transition">اشتراك مورد جديد</a>
+                <a href="{{ url_for('suppliers_auth_bp.forgot_password_page') }}" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition">استعادة كلمة المرور</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ====== BANNER ====== -->
+    <div class="w-full bg-gradient-to-r from-[#1d1003] via-[#331c03] to-[#1d1003] border-b border-royalGold/30 text-amber-100 py-3 px-4 text-xs">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+            <div class="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+                <span class="px-2 py-0.5 rounded bg-royalGold text-royalDark font-black text-[10px]">نمو وتجارة</span>
+                <p class="leading-relaxed">
+                    <strong class="text-royalGold">عزز مبيعاتك وضاعف أرباحك</strong> بالانضمام إلى شبكة واسعة من المسوقين والشركاء. التعامل <strong class="text-royalGold">بسعر التكلفة وبأسعار تنافسية</strong> ومع لوحة تحكم مجانية بالكامل.
+                </p>
+            </div>
+            <div class="hidden lg:flex items-center gap-2 shrink-0">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span class="text-emerald-400 text-[11px] font-semibold">شبكة المسوقين نشطة</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== MAIN CONTENT ====== -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 w-full">
+        <!-- Flash Messages Display -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="mb-5 space-y-2">
+                <div class="w-full max-w-xl mx-auto mb-6 space-y-2">
                     {% for category, message in messages %}
-                        <div class="p-3 rounded-lg text-sm {% if category == 'error' %}bg-red-900/50 border border-red-500 text-red-200{% else %}bg-emerald-900/50 border border-emerald-500 text-emerald-200{% endif %}">
-                            {{ message }}
+                        <div class="p-4 rounded-xl border {% if category == 'danger' or category == 'error' %} bg-red-950/80 border-red-500/50 text-red-200 {% elif category == 'success' %} bg-emerald-950/80 border-emerald-500/50 text-emerald-200 {% else %} bg-royalSurface border-royalGold/40 text-royalGoldLight {% endif %} shadow-lg flex items-center justify-between">
+                            <span class="text-xs font-semibold">{{ message }}</span>
                         </div>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('suppliers_bp.register') }}" class="space-y-4">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold gold-text mb-1" for="trade_name">اسم المتجر / النشاط التجاري</label>
-                    <input class="w-full bg-[#1a0b2e] border border-purple-800 rounded-lg py-2 px-3 text-sm text-white placeholder-purple-500 focus:outline-none focus:border-[#D4AF37]" 
-                           id="trade_name" name="trade_name" type="text" required placeholder="مثال: متجر السعادة">
+        {% block content %}{% endblock %}
+
+        <!-- قسم الأسئلة الشائعة (FAQ Section) -->
+        <section class="w-full max-w-3xl mx-auto mt-16 mb-8 px-4">
+            <div class="text-center mb-6">
+                <h3 class="text-lg font-bold gold-gradient-text mb-1">الأسئلة الشائعة ومعلومات الحوكمة</h3>
+                <p class="text-[11px] text-royalGold/70">إجابات استباقية لمعايير حوكمة التجارة اليمنية وسعر التكلفة</p>
+            </div>
+
+            <div class="space-y-3">
+                <!-- السؤال الأول -->
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60 royal-card-hover">
+                    <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
+                        <span>ما هي سياسة تسعير التكلفة واللوحة المجانية في محجوب أونلاين؟</span>
+                        <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="faq-content hidden mt-3 pt-3 border-t border-royalGold/20 text-[11px] text-slate-300 leading-relaxed">
+                        لوحة التحكم في منصة محجوب أونلاين مجانية بالكامل لجميع الموردين، والشرط الأساسي لاستمرار تفعيلها هو الالتزام بالبيع والتوريد بسعر التكلفة وبأسعار تنافسية عادلة. في حال تبين وجود أسعار غير مناسبة، يتم توقيف لوحة التحكم فوراً.
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold gold-text mb-1" for="owner_name">اسم المالك الثلاثي</label>
-                    <input class="w-full bg-[#1a0b2e] border border-purple-800 rounded-lg py-2 px-3 text-sm text-white placeholder-purple-500 focus:outline-none focus:border-[#D4AF37]" 
-                           id="owner_name" name="owner_name" type="text" required placeholder="الاسم الكامل">
+
+                <!-- السؤال الثاني -->
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60 royal-card-hover">
+                    <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
+                        <span>كيف يتم تسجيل مورد جديد في منصة محجوب أونلاين؟</span>
+                        <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="faq-content hidden mt-3 pt-3 border-t border-royalGold/20 text-[11px] text-slate-300 leading-relaxed">
+                        من خلال الضغط على زر اشتراك مورد جديد، إدخال بيانات المنشأة، وتوثيق الحساب للحصول على لوحة التحكم المجانية والربط مع شبكة المسوقين.
+                    </div>
+                </div>
+
+                <!-- السؤال الثالث -->
+                <div class="bg-royalSurface border border-royalGold/30 rounded-xl p-4 shadow-lg transition-all hover:border-royalGold/60 royal-card-hover">
+                    <button onclick="toggleFaq(this)" class="w-full flex justify-between items-center text-right font-bold text-xs text-slate-200 focus:outline-none">
+                        <span>هل يمكن للمورد إضافة موظفين وصلاحيات داخل لوحة التحكم؟</span>
+                        <span class="text-royalGold text-sm transition-transform duration-300">▼</span>
+                    </button>
+                    <div class="faq-content hidden mt-3 pt-3 border-t border-royalGold/20 text-[11px] text-slate-300 leading-relaxed">
+                        نعم، تتيح المنصة نظام دخول موظف المورد مع صلاحيات دقيقة ومحددة لإدارة العمليات والمبيعات.
+                    </div>
                 </div>
             </div>
+        </section>
+    </main>
 
-            <div>
-                <label class="block text-xs font-semibold gold-text mb-1" for="phone">رقم الهاتف (يُستخدم لتسجيل الدخول)</label>
-                <input class="w-full bg-[#1a0b2e] border border-purple-800 rounded-lg py-2 px-3 text-sm text-white placeholder-purple-500 focus:outline-none focus:border-[#D4AF37]" 
-                       id="phone" name="phone" type="text" required placeholder="770000000">
+    <!-- ====== FOOTER ====== -->
+    <footer class="w-full border-t border-royalGold/15 bg-[#030107] py-6">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>نظام الحماية والمصادقة المشفر نشط (256-bit SSL / CSRF Protected)</span>
             </div>
-
-            <div>
-                <label class="block text-xs font-semibold gold-text mb-1" for="password">كلمة المرور</label>
-                <input class="w-full bg-[#1a0b2e] border border-purple-800 rounded-lg py-2 px-3 text-sm text-white placeholder-purple-500 focus:outline-none focus:border-[#D4AF37]" 
-                       id="password" name="password" type="password" required placeholder="••••••••">
+            <div class="text-center sm:text-left text-slate-500">
+                جميع الحقوق محفوظة &copy; 2026 بوابة الموردين وموظفيهم | محجوب أونلاين
             </div>
-
-            <div class="pt-2">
-                <button type="submit" class="w-full py-3 px-4 gold-bg text-[#1a0b2e] font-bold rounded-lg shadow-lg transition-all transform hover:scale-[1.01]">
-                    تقديم الطلب الآن
-                </button>
-            </div>
-        </form>
-
-        <div class="mt-6 text-center text-xs text-purple-400 border-t border-purple-900/50 pt-4">
-            <span>لديك حساب بالفعل؟</span> 
-            <a href="{{ url_for('suppliers_bp.login') }}" class="gold-text font-bold hover:underline mr-1">تسجيل الدخول</a>
         </div>
+    </footer>
 
-    </div>
+    <!-- ====== SCRIPTS ====== -->
+    <script>
+        // Toggle FAQ
+        function toggleFaq(button) {
+            const content = button.nextElementSibling;
+            const arrow = button.querySelector('span:last-child');
+            content.classList.toggle('hidden');
+            arrow.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
 
+        // Mobile Menu Toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            if (menuBtn && mobileMenu) {
+                menuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+
+        // CSRF Token
+        window.getCsrfToken = function() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        };
+
+        // Secure Fetch
+        window.secureFetch = async function(url, options = {}) {
+            const token = window.getCsrfToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': token,
+                'X-CSRF-Token': token,
+                ...(options.headers || {})
+            };
+            return fetch(url, { ...options, headers });
+        };
+    </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
