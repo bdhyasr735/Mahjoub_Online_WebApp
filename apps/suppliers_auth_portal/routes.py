@@ -84,7 +84,7 @@ def mask_email(email):
     return f"{local[0]}***{local[-1]}@{domain}"
 
 def find_user(identifier):
-    """البحث عن مستخدم (مورد أو موظف) حسب المعرف"""
+    """البحث عن مستخدم (مورد أو موظف) حسب المعرف (البريد، الهاتف، أو اسم المستخدم)"""
     supplier = None
     
     email = validate_email(identifier)
@@ -101,6 +101,14 @@ def find_user(identifier):
     if not supplier and username:
         supplier = Supplier.query.filter_by(username=username).first()
     
+    # دعم مطابقة مباشرة كاحتياط إضافي للبريد أو الهاتف أو اسم المستخدم
+    if not supplier:
+        supplier = Supplier.query.filter(
+            (Supplier.username == identifier) | 
+            (Supplier.email == identifier) | 
+            (Supplier.phone == identifier)
+        ).first()
+    
     if supplier:
         return supplier, 'supplier'
     
@@ -112,6 +120,13 @@ def find_user(identifier):
         employee = SupplierStaff.query.filter_by(phone=phone).first()
     if not employee and username:
         employee = SupplierStaff.query.filter_by(username=username).first()
+        
+    if not employee:
+        employee = SupplierStaff.query.filter(
+            (SupplierStaff.username == identifier) | 
+            (SupplierStaff.email == identifier) | 
+            (SupplierStaff.phone == identifier)
+        ).first()
     
     if employee:
         return employee, 'employee'
@@ -155,7 +170,7 @@ def login():
         if not identifier or not password:
             return jsonify({
                 'success': False,
-                'message': 'يرجى إدخال اسم المستخدم وكلمة المرور'
+                'message': 'يرجى إدخال اسم المستخدم أو البريد أو الهاتف وكلمة المرور'
             }), 400
 
         user, found_type = find_user(identifier)
@@ -164,7 +179,7 @@ def login():
             logger.warning(f"⚠️ محاولة دخول فاشلة لمعرف غير موجود: {identifier}")
             return jsonify({
                 'success': False,
-                'message': 'اسم المستخدم أو كلمة المرور غير صحيحة'
+                'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'
             }), 401
 
         if user_type == 'supplier' and found_type != 'supplier':
@@ -191,7 +206,7 @@ def login():
             logger.warning(f"⚠️ كلمة مرور خاطئة للمستخدم: {getattr(user, 'username', identifier)}")
             return jsonify({
                 'success': False,
-                'message': 'اسم المستخدم أو كلمة المرور غير صحيحة'
+                'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'
             }), 401
 
         if hasattr(user, 'is_active') and not user.is_active:
