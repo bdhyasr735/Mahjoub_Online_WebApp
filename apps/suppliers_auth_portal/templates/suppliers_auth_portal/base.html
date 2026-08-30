@@ -4,38 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- SEO Data from seo_service.py -->
+    <!-- SEO Data from get_seo_data -->
     {% set seo_data = get_seo_data(page_name|default('login'), custom_seo) %}
     
-    <title>{% block title %}{{ seo_data.title }}{% endblock %}</title>
+    <title>{% block title %}{{ seo_data.get('title', 'محجوب أونلاين | بوابة الموردين') }}{% endblock %}</title>
     
-    <meta name="description" content="{% block meta_description %}{{ seo_data.description }}{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}{{ seo_data.keywords }}{% endblock %}">
-    <meta name="robots" content="{% block meta_robots %}{% if seo_data.noindex %}noindex, nofollow{% else %}index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1{% endif %}{% endblock %}">
+    <meta name="description" content="{% block meta_description %}{{ seo_data.get('description', '') }}{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}{{ seo_data.get('keywords', '') }}{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}{% if seo_data.get('noindex') %}noindex, nofollow{% else %}index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1{% endif %}{% endblock %}">
     
-    <link rel="canonical" href="{% block canonical_url %}{{ seo_data.canonical_url }}{% endblock %}">
+    <link rel="canonical" href="{% block canonical_url %}{{ seo_data.get('canonical_url', '') }}{% endblock %}">
     
-    <!-- Open Graph -->
-    <meta property="og:site_name" content="{{ seo_data.og.site_name }}">
-    <meta property="og:locale" content="{{ seo_data.og.locale }}">
-    <meta property="og:type" content="{% block og_type %}{{ seo_data.og.type }}{% endblock %}">
-    <meta property="og:title" content="{% block og_title %}{{ seo_data.og.title }}{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}{{ seo_data.og.description }}{% endblock %}">
-    <meta property="og:url" content="{% block og_url %}{{ seo_data.og.url }}{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{{ seo_data.og.image }}{% endblock %}">
+    <!-- Open Graph (Secure Access) -->
+    <meta property="og:site_name" content="{{ seo_data.get('og', {}).get('site_name', 'محجوب أونلاين') }}">
+    <meta property="og:locale" content="{{ seo_data.get('og', {}).get('locale', 'ar_AR') }}">
+    <meta property="og:type" content="{% block og_type %}{{ seo_data.get('og', {}).get('type', 'website') }}{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ seo_data.get('og', {}).get('title', seo_data.get('title', '')) }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ seo_data.get('og', {}).get('description', seo_data.get('description', '')) }}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ seo_data.get('og', {}).get('url', '') }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ seo_data.get('og', {}).get('image', '') }}{% endblock %}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="{% block twitter_card %}{{ seo_data.twitter.card }}{% endblock %}">
-    <meta name="twitter:title" content="{% block twitter_title %}{{ seo_data.twitter.title }}{% endblock %}">
-    <meta name="twitter:description" content="{% block twitter_description %}{{ seo_data.twitter.description }}{% endblock %}">
-    <meta name="twitter:image" content="{% block twitter_image %}{{ seo_data.twitter.image }}{% endblock %}">
+    <!-- Twitter Card (Secure Access) -->
+    <meta name="twitter:card" content="{% block twitter_card %}{{ seo_data.get('twitter', {}).get('card', 'summary_large_image') }}{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ seo_data.get('twitter', {}).get('title', seo_data.get('title', '')) }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ seo_data.get('twitter', {}).get('description', seo_data.get('description', '')) }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ seo_data.get('twitter', {}).get('image', '') }}{% endblock %}">
 
     <!-- Schema.org JSON-LD -->
+    {% if seo_data.get('jsonld') %}
     <script type="application/ld+json">
-    {{ seo_data.jsonld|tojson|safe }}
+    {{ seo_data.get('jsonld')|tojson|safe }}
     </script>
+    {% endif %}
     {% block schema_jsonld %}{% endblock %}
 
     <!-- CSRF -->
@@ -257,7 +259,7 @@
             <a href="/suppliers/login" class="flex items-center gap-3 group">
                 <div class="w-12 h-12 rounded-xl bg-royalDark border border-royalGold/40 p-1.5 flex items-center justify-center shadow-lg group-hover:border-royalGold transition-all">
                     <img src="{{ url_for('static', filename='images/logo.webp') }}"
-                         alt="{{ seo_data.site_name }}"
+                         alt="محجوب أونلاين"
                          class="w-full h-full object-contain brightness-0 invert"
                          onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🛒%3C/text%3E%3C/svg%3E'">
                 </div>
@@ -390,7 +392,7 @@
                 <span>مشفر 256-bit SSL | CSRF Protected</span>
             </div>
             <div class="text-center sm:text-left text-slate-500">
-                جميع الحقوق محفوظة &copy; {{ current_year() }} | {{ seo_data.site_name }}
+                جميع الحقوق محفوظة &copy; {{ datetime.utcnow().year if datetime is defined else '2026' }} | محجوب أونلاين
             </div>
         </div>
     </footer>
