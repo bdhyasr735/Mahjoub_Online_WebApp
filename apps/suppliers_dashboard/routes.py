@@ -14,7 +14,7 @@ from apps.extensions import db
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
-    template_folder='templates/suppliers_dashboard',
+    template_folder='templates',
     url_prefix='/supplier/dashboard'
 )
 
@@ -32,7 +32,6 @@ def index():
         # التعامل الآمن مع معرف المورد سواء كان دخله كمورد رئيسي أو موظف تابع
         supplier_id = getattr(current_user, 'supplier_id', None)
         if not supplier_id and hasattr(current_user, 'id'):
-            # إذا كان المستخدم الحالي هو نفس جدول الموردين
             if isinstance(current_user, Supplier):
                 supplier_id = current_user.id
             else:
@@ -60,7 +59,7 @@ def index():
             db.session.add(wallet)
             db.session.commit()
 
-        # جلب عدد المنتجات المرتبطة (مع التعامل الآمن في حال اختلاف اسم الجدول)
+        # جلب عدد المنتجات المرتبطة
         products_count = 0
         try:
             products_count = ProductSupplierMapping.query.filter_by(
@@ -93,7 +92,7 @@ def index():
         # جلب الملف الشخصي المرتبط
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
         
-        # الاعتماد الحصري على balance_sar عبر الخاصية المتوافقة في نموذج المحفظة
+        # الاعتماد الحصري على balance_sar
         balance = float(wallet.balance_sar or 0.0) if wallet else 0.0
         
         # قائمة الوحدات الجانبية (sidebar) بتصميم المنصة
@@ -139,8 +138,9 @@ def index():
             }
         ]
         
+        # الاستدعاء الصريح المباشر للقالب بالمسار الواضح
         return render_template(
-            'suppliers/dashboard.html',
+            'suppliers_auth_portal/dashboard/supplier_dashboard.html',
             page_title='لوحة تحكم المورد | محجوب أونلاين',
             supplier=supplier,
             profile=profile,
