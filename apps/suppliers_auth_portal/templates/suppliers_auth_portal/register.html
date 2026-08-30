@@ -520,15 +520,15 @@
                 username: DOM.username.value.trim(),
                 email: DOM.email.value.trim(),
                 phone: DOM.phone.value.trim(),
-                password: pass,
-                owner_name: DOM.ownerName.value.trim(),
                 trade_name: DOM.tradeName.value.trim(),
                 store_name: DOM.storeName.value.trim(),
                 full_address: DOM.fullAddress.value.trim(),
                 city: document.getElementById('city').value.trim(),
                 district: document.getElementById('district').value.trim(),
-                employees: employees,
-                csrf_token: form.csrf_token.value
+                owner_name: DOM.ownerName.value.trim(),
+                password: pass,
+                confirm_password: confirm,
+                employees: employees
             };
 
             const submitBtn = document.getElementById('submitBtn');
@@ -536,44 +536,42 @@
             const btnSpinner = document.getElementById('btnSpinner');
 
             submitBtn.disabled = true;
-            btnText.textContent = 'جاري تسجيل المنشأة وإنشاء المحفظة...';
+            btnText.textContent = 'جاري المعالجة وتفعيل المحفظة...';
             btnSpinner.classList.remove('hidden');
 
             try {
-                const response = await fetch("{{ url_for('suppliers_auth_bp.register') }}", {
+                const csrfToken = form.querySelector('[name="csrf_token"]')?.value || '';
+                const response = await fetch(window.location.href, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRFToken': form.csrf_token.value
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok && data.success) {
-                    showAlert(`${data.message} جاري نقلك لصفحة الدخول...`, true);
+                if (response.ok && result.success) {
+                    showAlert(result.message || 'تم إنشاء الحساب والمحفظة المالية بنجاح. جاري تحويلك...', true);
                     setTimeout(() => {
-                        window.location.href = data.redirect_url || '{{ url_for("suppliers_auth_bp.login") }}';
-                    }, 2000);
+                        window.location.href = result.redirect_url || "{{ url_for('suppliers_auth_bp.login') }}";
+                    }, 1500);
                 } else {
-                    showAlert(data.message || 'حدث خطأ أثناء إتمام عملية الاشتراك.');
+                    showAlert(result.message || 'حدث خطأ أثناء معالجة الطلب، يرجى التحقق من المدخلات.');
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
+                    btnSpinner.classList.add('hidden');
                 }
-            } catch (err) {
-                console.error('Registration error:', err);
-                showAlert('تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
-            } finally {
+            } catch (error) {
+                console.error('Registration Error:', error);
+                showAlert('حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقاً.');
                 submitBtn.disabled = false;
                 btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
                 btnSpinner.classList.add('hidden');
             }
         };
-
-        // ====== التركيز التلقائي ======
-        document.addEventListener('DOMContentLoaded', function() {
-            if (DOM.tradeName) DOM.tradeName.focus();
-        });
 
     })();
 </script>
