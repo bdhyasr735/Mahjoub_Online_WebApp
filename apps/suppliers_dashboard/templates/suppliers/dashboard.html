@@ -1,582 +1,199 @@
-{% extends "suppliers/base.html" %}
+{% extends "suppliers_auth_portal/base.html" %}
 
-{% block title %}لوحة تحكم المورد | {{ supplier.trade_name if supplier else 'غير متاح' }}{% endblock %}
+{% block title %}لوحة تحكم المورد | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<style>
-    /* تحسينات التصميم الملكي للمتجر واللوحة */
-    .dynamic-card { transition: all 0.3s ease; border-radius: 20px !important; overflow: hidden; border: 1px solid rgba(212, 175, 55, 0.15); background: #0f071c; color: #f8fafc; }
-    .dynamic-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(206, 158, 73, 0.15) !important; border-color: #ce9e49; }
-    .gradient-wallet { background: linear-gradient(135deg, #0f071c 0%, #150a29 100%); border: 1px solid rgba(206, 158, 73, 0.3); }
-    .balance-val { font-size: 1.8rem; font-weight: 800; color: #ce9e49; letter-spacing: -0.5px; }
-    .balance-label { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-card-icon { color: #ce9e49; background: rgba(206, 158, 73, 0.1); width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
-    .text-slate-400 { color: #94a3b8; }
-    .text-slate-800 { color: #f1f5f9; }
-    .text-slate-500 { color: #64748b; }
-    .text-slate-900 { color: #f8fafc; }
-    .bg-white { background: #0f071c; }
-    .border-slate-100 { border-color: rgba(206, 158, 73, 0.1); }
-    .border-slate-200 { border-color: rgba(206, 158, 73, 0.15); }
-    .bg-slate-50 { background: rgba(15, 7, 28, 0.6); }
+<div class="w-full max-w-7xl mx-auto">
     
-    .ai-chat-container {
-        border-radius: 20px;
-        border: 1px solid rgba(206, 158, 73, 0.2);
-        overflow: hidden;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #0f071c;
-        position: relative;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-    .ai-chat-container:hover {
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    
-    .ai-toggle-btn {
-        background: linear-gradient(135deg, #0f071c 0%, #150a29 100%);
-        color: #f8fafc;
-        border: 1px solid rgba(206, 158, 73, 0.3);
-        padding: 14px 24px;
-        border-radius: 16px;
-        font-weight: 700;
-        font-size: 0.95rem;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-        width: 100%;
-    }
-    .ai-toggle-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.25);
-        border-color: #ce9e49;
-    }
-    .ai-toggle-btn .badge-ai {
-        background: #ce9e49;
-        color: #05020a;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 0.65rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-    }
-    .ai-toggle-btn .icon-arrow {
-        transition: transform 0.4s ease;
-        font-size: 0.8rem;
-        margin-right: auto;
-        color: #ce9e49;
-    }
-    .ai-toggle-btn .icon-arrow.open {
-        transform: rotate(180deg);
-    }
-    
-    .ai-content {
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        visibility: hidden;
-    }
-    .ai-content.open {
-        max-height: 650px;
-        opacity: 1;
-        visibility: visible;
-        padding-top: 10px;
-    }
-    
-    .ai-header {
-        background: linear-gradient(135deg, #0f071c 0%, #150a29 100%);
-        color: #f8fafc;
-        padding: 14px 20px;
-        border-bottom: 2px solid #ce9e49;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .ai-header h5 {
-        margin: 0;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.95rem;
-        color: #f8fafc;
-    }
-    .ai-header .ai-badge {
-        background: rgba(206, 158, 73, 0.2);
-        padding: 2px 10px;
-        border-radius: 20px;
-        font-size: 0.65rem;
-        font-weight: 700;
-        color: #ce9e49;
-    }
-    .ai-header .ai-status {
-        font-size: 0.7rem;
-        opacity: 0.8;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-weight: 600;
-        color: #94a3b8;
-    }
-    .ai-header .ai-status .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #10B981;
-        display: inline-block;
-        box-shadow: 0 0 8px #10B981;
-    }
-    
-    .ai-messages {
-        max-height: 280px;
-        overflow-y: auto;
-        padding: 16px 20px;
-        background: #0f071c;
-        min-height: 120px;
-        scrollbar-width: thin;
-        scrollbar-color: #ce9e49 transparent;
-    }
-    .ai-messages::-webkit-scrollbar { width: 4px; }
-    .ai-messages::-webkit-scrollbar-thumb { background: #ce9e49; border-radius: 10px; }
-    
-    .ai-messages .message-user {
-        text-align: left;
-        margin-bottom: 12px;
-    }
-    .ai-messages .message-user .bubble {
-        display: inline-block;
-        background: #ce9e49;
-        color: #05020a;
-        padding: 10px 16px;
-        border-radius: 16px 16px 4px 16px;
-        font-size: 0.875rem;
-        max-width: 85%;
-        text-align: right;
-        word-wrap: break-word;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .ai-messages .message-ai {
-        text-align: right;
-        margin-bottom: 12px;
-    }
-    .ai-messages .message-ai .bubble {
-        display: inline-block;
-        background: #150a29;
-        color: #f8fafc;
-        padding: 10px 16px;
-        border-radius: 16px 16px 16px 4px;
-        font-size: 0.875rem;
-        max-width: 85%;
-        text-align: right;
-        word-wrap: break-word;
-        border: 1px solid rgba(206, 158, 73, 0.1);
-    }
-    .ai-messages .message-ai .bubble .ai-name {
-        font-weight: 800;
-        color: #ce9e49;
-        font-size: 0.72rem;
-        display: block;
-        margin-bottom: 4px;
-    }
-    
-    .ai-messages .typing-indicator {
-        display: none;
-        text-align: right;
-        padding: 8px 0;
-    }
-    .ai-messages .typing-indicator span {
-        display: inline-block;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #ce9e49;
-        margin: 0 2px;
-        animation: typing 1.4s infinite both;
-    }
-    .ai-messages .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .ai-messages .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes typing {
-        0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-        40% { transform: scale(1); opacity: 1; }
-    }
-    
-    .ai-input-group {
-        padding: 14px 20px;
-        background: #0f071c;
-        border-top: 1px solid rgba(206, 158, 73, 0.1);
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    .ai-input-group input {
-        flex: 1;
-        border: 1.5px solid rgba(206, 158, 73, 0.2);
-        border-radius: 12px;
-        padding: 10px 16px;
-        font-size: 0.875rem;
-        transition: all 0.3s ease;
-        outline: none;
-        background: #05020a;
-        color: #f8fafc;
-        font-family: 'Cairo', sans-serif;
-    }
-    .ai-input-group input:focus {
-        border-color: #ce9e49;
-        box-shadow: 0 0 0 3px rgba(206, 158, 73, 0.15);
-        background: #0f071c;
-    }
-    .ai-input-group input::placeholder {
-        color: rgba(255,255,255,0.3);
-    }
-    .ai-input-group .btn-ai-send {
-        background: #ce9e49;
-        color: #05020a;
-        border: none;
-        border-radius: 12px;
-        padding: 10px 22px;
-        font-weight: 800;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        white-space: nowrap;
-        font-size: 0.85rem;
-    }
-    .ai-input-group .btn-ai-send:hover {
-        background: #fae19c;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(206, 158, 73, 0.25);
-    }
-    .ai-input-group .btn-ai-send:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-    
-    .ai-suggestions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 0 20px 14px;
-        background: #0f071c;
-    }
-    .ai-suggestions .suggestion-btn {
-        background: rgba(15, 7, 28, 0.6);
-        border: 1px solid rgba(206, 158, 73, 0.1);
-        border-radius: 20px;
-        padding: 6px 14px;
-        font-size: 0.75rem;
-        color: #ce9e49;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-weight: 600;
-        font-family: 'Cairo', sans-serif;
-    }
-    .ai-suggestions .suggestion-btn:hover {
-        background: #ce9e49;
-        color: #05020a;
-        border-color: #ce9e49;
-        transform: translateY(-1px);
-    }
-    
-    .badge-emerald-50 { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.2); }
-    .badge-amber-50 { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.2); }
-    .text-emerald-600 { color: #86efac; }
-    .text-amber-300 { color: #fcd34d; }
-    .text-amber-400 { color: #fbbf24; }
-    .text-amber-700 { color: #f59e0b; }
-    .text-emerald-700 { color: #34d399; }
-    .fw-extrabold { font-weight: 900; }
-    .fw-black { font-weight: 900; }
-    .rounded-2xl { border-radius: 1rem; }
-    .rounded-4 { border-radius: 1rem; }
-    .shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-    .gap-3 { gap: 1rem; }
-    .gap-2 { gap: 0.5rem; }
-    .mb-0 { margin-bottom: 0; }
-    .mb-1 { margin-bottom: 0.25rem; }
-    .mb-4 { margin-bottom: 1.5rem; }
-    .mt-3 { margin-top: 0.75rem; }
-    .mt-4 { margin-top: 1.5rem; }
-    .p-3 { padding: 0.75rem; }
-    .p-4 { padding: 1.5rem; }
-    .px-0 { padding-left: 0; padding-right: 0; }
-    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
-    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-    .d-flex { display: flex; }
-    .align-items-center { align-items: center; }
-    .justify-content-between { justify-content: space-between; }
-    .flex-wrap { flex-wrap: wrap; }
-    .flex-column { flex-direction: column; }
-    .text-center { text-align: center; }
-    .text-right { text-align: right; }
-    .text-sm { font-size: 0.875rem; }
-    .text-xs { font-size: 0.75rem; }
-    .text-uppercase { text-transform: uppercase; }
-    .container-fluid { width: 100%; padding-right: 15px; padding-left: 15px; margin-right: auto; margin-left: auto; }
-    .row { display: flex; flex-wrap: wrap; margin-right: -0.75rem; margin-left: -0.75rem; }
-    .col-12 { flex: 0 0 100%; max-width: 100%; padding-right: 0.75rem; padding-left: 0.75rem; }
-    .col-sm-6 { flex: 0 0 50%; max-width: 50%; }
-    .col-xl-3 { flex: 0 0 25%; max-width: 25%; }
-    .col-xl-6 { flex: 0 0 50%; max-width: 50%; }
-    .g-4 { gap: 1.5rem; }
-    .h-100 { height: 100%; }
-    .border-t { border-top: 1px solid rgba(206, 158, 73, 0.1); }
-    .border-b { border-bottom: 1px solid rgba(206, 158, 73, 0.1); }
-    .bg-black\/40 { background: rgba(0,0,0,0.4); }
-    .bg-white\/10 { background: rgba(255,255,255,0.1); }
-    .me-1 { margin-right: 0.25rem; }
-    .ms-1 { margin-left: 0.25rem; }
-    .mt-auto { margin-top: auto; }
-    .mb-0 { margin-bottom: 0; }
-</style>
-
-{% set wallet = supplier.wallet if (supplier and supplier.wallet) else None %}
-
-<div class="container-fluid px-0">
-    <!-- رأس الصفحة وترحيب المورد -->
-    <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3 bg-royalSurface/95 p-4 rounded-4 shadow-sm border border-royalGold/10">
-        <div class="d-flex align-items-center gap-3">
-            <div class="p-3 rounded-2xl bg-royalSurface border border-royalGold/20 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                <i class="fas fa-store fa-lg" style="color: #ce9e49;"></i>
-            </div>
-            <div>
-                <h3 class="fw-extrabold text-slate-900 mb-1" style="font-size: 1.25rem;">أهلاً بك، <span style="color: #ce9e49;">{{ current_user.username }}</span></h3>
-                <p class="text-slate-500 mb-0 text-sm">متجرك النشط: <strong class="text-slate-200">{{ supplier.trade_name if supplier else 'غير متاح' }}</strong></p>
-            </div>
+    <!-- عنوان الصفحة -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold gold-gradient-text">🏠 لوحة التحكم</h1>
+            <p class="text-xs text-slate-400">مرحباً بعودتك {{ supplier.store_name or supplier.trade_name or supplier.username }}</p>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge-emerald-50 px-3 py-2 rounded-xl text-xs font-bold">
-                <i class="fas fa-check-circle me-1"></i> حساب موثق ومفعل
+        <div class="flex items-center gap-3 mt-3 sm:mt-0">
+            <span class="text-xs px-3 py-1 rounded-full bg-royalGold/20 text-royalGold border border-royalGold/30">
+                {{ supplier.rank or 'برونز' }}
+            </span>
+            <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {{ supplier.status or 'نشط' }}
             </span>
         </div>
     </div>
 
-    <!-- البطاقات الإحصائية والمحفظة -->
-    <div class="row g-4 mb-4">
-        <!-- بطاقة المحفظة المالية -->
-        <div class="col-12 col-xl-6">
-            <div class="card dynamic-card gradient-wallet p-4 h-100 shadow-sm" style="border-radius: 20px;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0 fw-bold text-white flex items-center gap-2" style="font-size: 1rem;">
-                        <i class="fas fa-wallet" style="color: #ce9e49;"></i> رصيد المحفظة المالية
-                    </h5>
-                    <span class="bg-black/40 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-lg text-xs font-mono">
-                        {{ wallet.wallet_code if wallet else '---' }}
-                    </span>
+    <!-- البطاقات الإحصائية -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- الرصيد -->
+        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400">رصيد المحفظة</p>
+                    <p class="text-2xl font-bold gold-gradient-text">{{ "%.2f"|format(balance) }} SAR</p>
                 </div>
-                
-                <div class="row text-right">
-                    <div class="col-12">
-                        <div class="balance-label">💵 الرصيد الحالي المتاح (ر.س)</div>
-                        <div class="balance-val">
-                            {{ "{:,.2f}".format(wallet.balance_sar|float) if wallet else '0.00' }}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row text-right mt-3 pt-3 border-t border-white/10">
-                    <div class="col-12">
-                        <div class="balance-label">⏳ رصيد معلق قيد التسوية (ر.س)</div>
-                        <div class="balance-val text-amber-300" style="font-size: 1.25rem;">
-                            {{ "{:,.2f}".format(wallet.balance_pending|float) if (wallet and wallet.balance_pending) else '0.00' }}
-                        </div>
-                    </div>
+                <div class="p-3 rounded-lg bg-royalGold/10 border border-royalGold/30">
+                    <svg class="w-6 h-6 text-royalGold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
                 </div>
             </div>
         </div>
 
-        <!-- بطاقة الطلبات قيد التنفيذ -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card dynamic-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between" style="border-radius: 20px; background: #0f071c; border: 1px solid rgba(206,158,73,0.15);">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="stat-card-icon"><i class="fas fa-box-open fa-lg"></i></div>
-                    <span class="badge-amber-50 px-2.5 py-1 rounded-lg text-xs font-bold">نشط</span>
+        <!-- المنتجات -->
+        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400">المنتجات</p>
+                    <p class="text-2xl font-bold text-white">{{ products_count }}</p>
                 </div>
-                <div class="mt-4">
-                    <h6 class="text-slate-400 text-uppercase fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">طلبات قيد التنفيذ</h6>
-                    <h2 class="fw-black text-slate-200 mb-0" style="font-size: 1.75rem;">{{ pending_orders_count | default(0) }}</h2>
+                <div class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                    </svg>
                 </div>
             </div>
         </div>
 
-        <!-- بطاقة إجمالي المبيعات -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card dynamic-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between" style="border-radius: 20px; background: #0f071c; border: 1px solid rgba(206,158,73,0.15);">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="stat-card-icon" style="color: #10B981; background: rgba(16, 185, 129, 0.1);"><i class="fas fa-chart-line fa-lg"></i></div>
-                    <span class="badge-emerald-50 px-2.5 py-1 rounded-lg text-xs font-bold">الإجمالي</span>
+        <!-- الموظفين -->
+        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400">الموظفين</p>
+                    <p class="text-2xl font-bold text-white">{{ staff_count }}</p>
                 </div>
-                <div class="mt-4">
-                    <h6 class="text-slate-400 text-uppercase fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">إجمالي المبيعات (ر.س)</h6>
-                    <h2 class="fw-black text-emerald-600 mb-0" style="font-size: 1.75rem;">
-                        {{ "{:,.2f}".format(total_sales|float) if total_sales else '0.00' }}
-                    </h2>
+                <div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- كود المورد -->
+        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400">كود المورد</p>
+                    <p class="text-2xl font-bold font-mono text-royalGold">{{ supplier.supplier_code or 'غير محدد' }}</p>
+                </div>
+                <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- مساعد DeepSeek الذكي -->
-    <div class="ai-chat-container mb-4">
-        <button class="ai-toggle-btn" onclick="toggleAI()" id="aiToggleBtn">
-            <i class="fas fa-robot text-amber-400 fa-lg"></i>
-            <span>مساعدك الذكي لإدارة المتجر</span>
-            <span class="badge-ai">DeepSeek AI</span>
-            <span class="icon-arrow" id="aiArrowIcon"><i class="fas fa-chevron-down"></i></span>
-        </button>
-        
-        <div class="ai-content" id="aiContent">
-            <div class="ai-header">
-                <h5>
-                    <i class="fas fa-microchip" style="color: #ce9e49;"></i>
-                    <span>مساعد المورد الذكي</span>
-                    <span class="ai-badge">مفعل</span>
-                </h5>
-                <span class="ai-status">
-                    <span class="dot"></span> متصل وجاهز للرد
-                </span>
-            </div>
-            
-            <div class="ai-messages" id="aiMessages">
-                <div class="message-ai">
-                    <div class="bubble">
-                        <span class="ai-name">🤖 DeepSeek Assistant</span>
-                        أهلاً بك يا بطل! أنا مساعدك الذكي في منصة محجوب أونلاين. اسألني عن استراتيجيات تحسين مبيعاتك، إدارة المنتجات، أو تحليل أداء متجرك وسأكون سعيداً بمساعدتك.
-                    </div>
+    <!-- معلومات المورد -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- معلومات المورد -->
+        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
+            <h3 class="text-sm font-bold text-royalGold mb-4">📋 معلومات المنشأة</h3>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">الاسم التجاري</span>
+                    <span class="text-slate-200">{{ supplier.trade_name or 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">اسم المتجر</span>
+                    <span class="text-slate-200">{{ supplier.store_name or 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">المالك</span>
+                    <span class="text-slate-200">{{ supplier.owner_name or 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">البريد الإلكتروني</span>
+                    <span class="text-slate-200">{{ supplier.email or 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">رقم الهاتف</span>
+                    <span class="text-slate-200">{{ supplier.phone or 'غير محدد' }}</span>
                 </div>
             </div>
-            
-            <div class="ai-suggestions">
-                <button class="suggestion-btn" onclick="askSuggestion('كيف أحسن مبيعات متجري؟')">📈 تحسين المبيعات</button>
-                <button class="suggestion-btn" onclick="askSuggestion('أعطني نصائح لتسويق منتجاتي')">📢 التسويق الفعال</button>
-                <button class="suggestion-btn" onclick="askSuggestion('كيف أزيد أرباحي في المنصة؟')">💰 زيادة الأرباح</button>
-                <button class="suggestion-btn" onclick="askSuggestion('كيف أحلل أداء متجري الحالي؟')">📊 تحليل الأداء</button>
-            </div>
-            
-            <div class="ai-input-group">
-                <input type="text" id="aiQuestion" placeholder="اكتب سؤالك هنا لاستشارة المساعد الذكي..." 
-                       onkeypress="if(event.key==='Enter') askAI()">
-                <button class="btn-ai-send" onclick="askAI()" id="aiSendBtn">
-                    <i class="fas fa-paper-plane ms-1"></i> إرسال
-                </button>
+        </div>
+
+        <!-- الملف الشخصي -->
+        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
+            <h3 class="text-sm font-bold text-royalGold mb-4">📍 الملف الشخصي</h3>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">العنوان</span>
+                    <span class="text-slate-200">{{ profile.full_address if profile else 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">المدينة</span>
+                    <span class="text-slate-200">{{ profile.city if profile else 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-royalGold/10 pb-2">
+                    <span class="text-slate-400">الحي</span>
+                    <span class="text-slate-200">{{ profile.district if profile else 'غير محدد' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">تاريخ التسجيل</span>
+                    <span class="text-slate-200">{{ supplier.created_at.strftime('%Y-%m-%d') if supplier.created_at else 'غير محدد' }}</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- إشعار في حال عدم وجود محفظة مرتبطة -->
-    {% if not wallet %}
-    <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 16px; border-right: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.2); padding: 1rem;">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        <strong>تنبيه هامة:</strong> لا توجد محفظة مالية مرتبطة بحسابك حتى الآن. يرجى التواصل مع الإدارة لاستكمال التفعيل المالي.
+    <!-- المساعد الذكي -->
+    <div class="mt-6 bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
+        <h3 class="text-sm font-bold text-royalGold mb-3">🤖 المساعد الذكي</h3>
+        <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="aiQuestion" placeholder="اسأل عن نصائح لتطوير متجرك..."
+                   class="flex-1 px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+            <button onclick="askAI()" class="px-6 py-2.5 gold-btn rounded-xl text-sm font-bold">
+                اسأل المساعد
+            </button>
+        </div>
+        <div id="aiAnswer" class="mt-3 text-sm text-slate-300 hidden"></div>
     </div>
-    {% endif %}
+
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    let aiOpen = false;
-    
-    function toggleAI() {
-        aiOpen = !aiOpen;
-        const content = document.getElementById('aiContent');
-        const arrow = document.getElementById('aiArrowIcon');
-        
-        if (aiOpen) {
-            content.classList.add('open');
-            arrow.classList.add('open');
-        } else {
-            content.classList.remove('open');
-            arrow.classList.remove('open');
-        }
-    }
-    
-    function showTypingIndicator() {
-        const messages = document.getElementById('aiMessages');
-        const typing = document.createElement('div');
-        typing.className = 'typing-indicator';
-        typing.id = 'typingIndicator';
-        typing.innerHTML = `<span></span><span></span><span></span>`;
-        messages.appendChild(typing);
-        typing.style.display = 'block';
-        messages.scrollTop = messages.scrollHeight;
-    }
-    
-    function hideTypingIndicator() {
-        const typing = document.getElementById('typingIndicator');
-        if (typing) typing.remove();
-    }
-    
-    function addMessage(text, isUser = false) {
-        const messages = document.getElementById('aiMessages');
-        const div = document.createElement('div');
-        div.className = isUser ? 'message-user' : 'message-ai';
-        
-        if (isUser) {
-            div.innerHTML = `<div class="bubble">${text}</div>`;
-        } else {
-            div.innerHTML = `
-                <div class="bubble">
-                    <span class="ai-name">🤖 DeepSeek Assistant</span>
-                    ${text}
-                </div>
-            `;
-        }
-        
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight;
-    }
-    
-    function askSuggestion(question) {
-        document.getElementById('aiQuestion').value = question;
-        askAI();
-    }
-    
     function askAI() {
-        const input = document.getElementById('aiQuestion');
-        const question = input.value.trim();
-        const sendBtn = document.getElementById('aiSendBtn');
+        const question = document.getElementById('aiQuestion').value.trim();
+        const answerDiv = document.getElementById('aiAnswer');
         
-        if (!question) return;
+        if (!question) {
+            answerDiv.textContent = '⚠️ يرجى إدخال سؤال.';
+            answerDiv.classList.remove('hidden');
+            return;
+        }
         
-        if (!aiOpen) toggleAI();
+        answerDiv.textContent = '⏳ جاري التفكير...';
+        answerDiv.classList.remove('hidden');
         
-        addMessage(question, true);
-        input.value = '';
-        sendBtn.disabled = true;
-        sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> جاري...';
-        
-        showTypingIndicator();
-        
-        fetch('/supplier/api/ask-ai', {
+        fetch('{{ url_for("suppliers_dashboard.ask_ai") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name="csrf_token"]')?.value || ''
+                'X-CSRFToken': window.getCsrfToken()
             },
             body: JSON.stringify({ question: question })
         })
-        .then(res => res.json())
+        .then(response => response.json())
         .then(data => {
-            hideTypingIndicator();
             if (data.success) {
-                addMessage(data.answer);
+                answerDiv.textContent = '💡 ' + data.answer;
             } else {
-                addMessage('⚠️ عذراً، حدث خطأ أثناء معالجة الطلب. يرجى المحاولة لاحقاً.');
+                answerDiv.textContent = '❌ ' + (data.message || data.error || 'حدث خطأ');
             }
         })
-        .catch(err => {
-            hideTypingIndicator();
-            console.error('❌ خطأ في الاتصال:', err);
-            addMessage('⚠️ عذراً، تعذر الاتصال بالمساعد الذكي حالياً. يرجى التحقق من الشبكة.');
-        })
-        .finally(() => {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fas fa-paper-plane ms-1"></i> إرسال';
+        .catch(error => {
+            answerDiv.textContent = '❌ تعذر الاتصال بالخادم.';
         });
     }
+
+    // دعم Enter
+    document.getElementById('aiQuestion').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            askAI();
+        }
+    });
 </script>
 {% endblock %}
