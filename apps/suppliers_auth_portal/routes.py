@@ -412,7 +412,6 @@ def forgot_password_page():
         return f"Internal Server Error: {str(e)}", 500
 
 
-# دعم كلا المسارين (سواء بوجود s أو بدونها لتجنب خطأ 404 تماماً)
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 @suppliers_auth_bp.route('/supplier/forgot-password/request-otp', methods=['POST'])
 def request_otp():
@@ -540,7 +539,7 @@ def dashboard():
         
         if user_type == 'supplier' and hasattr(current_user, 'id'):
             supplier_id = current_user.id
-            products_count = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, is_active=True).count()
+            products_count = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).count()
             wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
             balance = wallet.balance if wallet else 0.0
             staff_count = SupplierStaff.query.filter_by(supplier_id=supplier_id, is_active=True).count()
