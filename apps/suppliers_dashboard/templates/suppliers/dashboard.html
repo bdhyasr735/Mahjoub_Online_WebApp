@@ -1,6 +1,6 @@
-{% extends "suppliers_dashboard/base.html" %} <!-- أو المسار الصحيح لقالب القاعدة لديك -->
+{% extends "suppliers/base.html" %}
 
-{% block title %}لوحة تحكم المورد | محجوب أونلاين{% endblock %}
+{% block title %}الرئيسية | لوحة المورد{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -21,7 +21,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="d-block text-white-50 small mb-1">رصيد المحفظة</span>
-                        <h4 class="fw-bold mb-0">{{ "%.2f"|format(balance) }} ر.س</h4>
+                        <h4 class="fw-bold mb-0">{{ "%.2f"|format(balance or 0) }} ر.س</h4>
                     </div>
                     <i class="fas fa-wallet fa-2x text-white-50"></i>
                 </div>
@@ -34,7 +34,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="d-block text-muted small mb-1">المنتجات النشطة</span>
-                        <h4 class="fw-bold mb-0 text-dark">{{ products_count }}</h4>
+                        <h4 class="fw-bold mb-0 text-dark">{{ products_count or 0 }}</h4>
                     </div>
                     <i class="fas fa-box-open fa-2x text-primary"></i>
                 </div>
@@ -47,7 +47,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="d-block text-muted small mb-1">فريق العمل</span>
-                        <h4 class="fw-bold mb-0 text-dark">{{ staff_count }}</h4>
+                        <h4 class="fw-bold mb-0 text-dark">{{ staff_count or 0 }}</h4>
                     </div>
                     <i class="fas fa-users fa-2x text-success"></i>
                 </div>
