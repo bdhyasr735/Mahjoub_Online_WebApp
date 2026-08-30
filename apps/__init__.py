@@ -6,7 +6,6 @@ import importlib
 import secrets
 import string
 import click
-import traceback
 from datetime import datetime
 from flask import Flask, redirect, session, url_for, request, jsonify, make_response
 from flask_login import current_user
@@ -23,7 +22,7 @@ SUPPLIER_MODULES = {}
 
 
 def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models لضمان التعرف على جميع الجداول والأنواع."""
     models_dir = os.path.join(os.path.dirname(__file__), 'models')
     if os.path.exists(models_dir):
         for file in os.listdir(models_dir):
@@ -36,7 +35,10 @@ def import_all_models():
 
 
 def seed_database():
-    """زراعة البيانات المبدئية"""
+    """
+    زراعة البيانات المبدئية بشكل آمن وديناميكي.
+    يتم التحقق من وجود البيانات قبل إضافتها لتجنب التكرار.
+    """
     try:
         from apps.models.admin_db import AdminUser
         from apps.models.admin_staff_db import AdminStaff
@@ -47,7 +49,9 @@ def seed_database():
         print(f"⚠️ [تحذير استيراد الزراعة]: تعذر استيراد بعض النماذج: {ie}")
         return
 
-    # 1. زراعة حساب المالك
+    # ============================================================
+    # 1. زراعة حساب المالك (Owner)
+    # ============================================================
     try:
         if not AdminUser.query.filter_by(username='ali_mahjoub').first():
             admin = AdminUser(username='ali_mahjoub', role='Owner')
@@ -55,11 +59,15 @@ def seed_database():
             db.session.add(admin)
             db.session.commit()
             print("✅ [الزراعة]: تم زرع حساب المالك (ali_mahjoub) بنجاح.")
+        else:
+            print("ℹ️ [الزراعة]: حساب المالك موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المالك]: {e}")
 
-    # 2. زراعة موظف إدارة
+    # ============================================================
+    # 2. زراعة موظف إدارة (Admin Staff)
+    # ============================================================
     try:
         if not AdminStaff.query.filter_by(username='admin_staff_test').first():
             staff = AdminStaff(
@@ -80,11 +88,15 @@ def seed_database():
             db.session.add(staff)
             db.session.commit()
             print("✅ [الزراعة]: تم زرع موظف الإدارة التجريبي (admin_staff_test) بنجاح.")
+        else:
+            print("ℹ️ [الزراعة]: موظف الإدارة موجود مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة موظف الإدارة]: {e}")
 
+    # ============================================================
     # 3. زراعة مورد تجريبي مع محفظة ورصيد افتتاحي
+    # ============================================================
     try:
         supplier = Supplier.query.filter_by(username='test_supplier').first()
         if not supplier:
@@ -167,6 +179,11 @@ def seed_database():
 
             db.session.commit()
             print("✅ [الزراعة]: تم زرع المورد والمحفظة وخزينة الرصيد الافتتاحي (1,000,000 SAR) بنجاح.")
+            print(f"    📌 كود المورد: SUP-963{supplier.id}")
+            print(f"    📌 كود المحفظة: WEL-963{supplier.id}")
+            print(f"    📌 رقم السند: {seed_voucher_number}")
+        else:
+            print("ℹ️ [الزراعة]: المورد التجريبي والمحفظة ومعاملة الرصيد الافتتاحي موجودة مسبقاً.")
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [خطأ زراعة المورد والمحفظة]: {e}")
@@ -183,6 +200,9 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
 
+    # ============================================================
+    # 🔌 إعدادات الاتصال بقاعدة البيانات
+    # ============================================================
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
@@ -192,37 +212,7 @@ def create_app():
     }
 
     db.init_app(app)
-    
     app.jinja_env.globals.update(getattr=getattr)
-
-    def get_seo_data(page_name='default', custom_seo=None):
-        default_seo = {
-            'title': 'محجوب أونلاين | بوابة الموردين',
-            'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين بسعر التكلفة',
-            'keywords': 'محجوب أونلاين, متجر, موردين',
-            'site_name': 'محجوب أونلاين',
-            'og': {
-                'site_name': 'محجوب أونلاين',
-                'locale': 'ar_AR',
-                'type': 'website',
-                'title': 'محجوب أونلاين | بوابة الموردين',
-                'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين',
-                'url': request.url if request else 'https://mahjoubonline.com',
-                'image': ''
-            },
-            'twitter': {
-                'card': 'summary_large_image',
-                'title': 'محجوب أونلاين | بوابة الموردين',
-                'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين',
-                'image': ''
-            },
-            'jsonld': {}
-        }
-        if custom_seo and isinstance(custom_seo, dict):
-            default_seo.update(custom_seo)
-        return default_seo
-
-    app.jinja_env.globals['get_seo_data'] = get_seo_data
 
     CORS(app, resources={
         r"/admin/graphql*": {
@@ -245,6 +235,9 @@ def create_app():
         }
     })
 
+    # ============================================================
+    # ⚙️ تنظيف وتفريغ الجلسات عند انتهاء الطلب أو وقوع خطأ
+    # ============================================================
     @app.teardown_request
     def shutdown_session(exception=None):
         if exception:
@@ -254,27 +247,39 @@ def create_app():
     @app.errorhandler(500)
     def handle_500_error(e):
         db.session.rollback()
-        tb = traceback.format_exc()
-        print(f"❌ [خطأ 500 مفصل]:\n{tb}")
-        if request.path.startswith('/suppliers') or request.path.startswith('/supplier'):
-            return f"<h1>Internal Server Error (500)</h1><pre>{tb}</pre>", 500
-        return jsonify({"error": "Internal Server Error", "details": str(e), "traceback": tb}), 500
+        return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
+    # ============================================================
+    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع
+    # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            db.create_all()
-            print("✅ [إنشاء الجداول]: تم التحقق من إنشاء الجداول بنجاح.")
-            seed_database()
-        except Exception as e:
-            print(f"⚠️ [تحذير إنشاء الجداول أو الزراعة]: {e}")
+            db.session.execute(text("DROP SCHEMA public CASCADE;"))
+            db.session.execute(text("CREATE SCHEMA public;"))
+            db.session.commit()
+            print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
 
+            db.create_all()
+            print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
+
+            seed_database()
+            print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
+
+    # ============================================================
+    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
+    # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
+        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
         click.echo("🔄 [إعادة بناء القاعدة]: جاري حذف جميع الجداول...")
         import_all_models()
         try:
-            db.session.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
+            db.session.execute(text("DROP SCHEMA public CASCADE;"))
             db.session.execute(text("CREATE SCHEMA public;"))
             db.session.commit()
             click.echo("✅ [إعادة تعيين الـ Schema]: تم مسح وإعادة إنشاء الـ Schema بنجاح (CASCADE).")
@@ -340,8 +345,8 @@ def create_app():
     @login_manager.unauthorized_handler
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if request.path.startswith('/supplier') or request.path.startswith('/suppliers'):
-            return redirect('/suppliers/login')
+        if request.path.startswith('/supplier'):
+            return redirect(url_for('suppliers_bp.login'))
         return redirect(admin_login_path)
 
     @app.before_request
@@ -359,13 +364,17 @@ def create_app():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
         exempt_prefixes = [
-            '/static', '/graphql', '/admin/graphql', '/favicon.ico',
+            '/static',
+            '/graphql',
+            '/admin/graphql',
+            '/favicon.ico',
             '/m7jb_test_connection',
-            '/supplier/login', '/supplier/register', '/supplier/forgot-password',
-            '/supplier/verify', '/supplier/resend-otp', '/supplier/reset-password',
-            '/suppliers/login', '/suppliers/register', '/suppliers/forgot-password',
-            '/suppliers/verify',
-            admin_login_path, '/auth', '/whatsapp'
+            '/supplier/login',
+            '/supplier/register',
+            '/supplier/forgot-password',
+            admin_login_path,
+            '/auth',
+            '/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -379,20 +388,20 @@ def create_app():
                 if is_admin_side:
                     return
                 if is_supplier_side:
-                    return redirect('/suppliers/dashboard')
+                    return redirect('/supplier/dashboard')
                 return redirect(admin_login_path)
 
-            if path.startswith('/supplier') or path.startswith('/suppliers'):
+            if path.startswith('/supplier'):
                 if is_supplier_side:
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect('/suppliers/login')
+                return redirect(url_for('suppliers_bp.login'))
 
             return
 
-        if path.startswith('/supplier') or path.startswith('/suppliers'):
-            return redirect('/suppliers/login')
+        if path.startswith('/supplier'):
+            return redirect(url_for('suppliers_bp.login'))
 
         return redirect(admin_login_path)
 
@@ -453,8 +462,12 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
+    # ============================================================
+    # 🎭 المسار الخادع (لتمويه المتسللين والآدمن الوهميين)
+    # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
+        """مسار خادع لتسجيل الدخول الوهمي يتم توجيه الفضوليين والأنظمة الآلية إليه."""
         from flask import render_template
         try:
             return render_template('auth/deceptive_login.html')
@@ -472,49 +485,128 @@ def create_app():
 
         if current_user.is_authenticated:
             if isinstance(current_user, (Supplier, SupplierStaff)):
-                return redirect('/suppliers/dashboard')
+                return redirect('/supplier/dashboard')
             elif isinstance(current_user, (AdminUser, AdminStaff)):
                 return redirect('/dashboard')
             return redirect(admin_login_path)
 
         return redirect(admin_login_path)
 
-    # تسجيل البوابات
+    # ============================================================
+    # 🗂️ تسجيل البوابات والموديولات
+    # ============================================================
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
+        print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
     except Exception as e:
-        print(f"❌ [خطأ بوابة المصادقة]: {e}")
+        print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
     try:
-        from apps.suppliers_auth_portal import bp as suppliers_bp
-        app.register_blueprint(suppliers_bp)
+        from apps.suppliers_auth_portal.routes import suppliers_bp
+        app.register_blueprint(suppliers_bp, url_prefix='/supplier')
+        csrf.exempt(suppliers_bp)
+        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
     except Exception as e:
-        print(f"❌ [خطأ بوابة الموردين]: {e}")
-
-    try:
-        from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
-        app.register_blueprint(suppliers_dashboard_bp, url_prefix='/suppliers')
-    except Exception as e:
-        print(f"❌ [خطأ لوحة تحكم الموردين]: {e}")
+        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
     try:
         from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
         csrf.exempt(graphql_bp)
-    except Exception:
+        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
+    except ImportError:
         pass
+    except Exception as e:
+        print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
+    # ============================================================
+    # 📱 تسجيل مسار الواتساب العام
+    # ============================================================
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
+
         if webhook_public_bp.name not in app.blueprints:
             app.register_blueprint(webhook_public_bp)
+            print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
+
         if whatsapp_bp.name not in app.blueprints:
             app.register_blueprint(whatsapp_bp)
+            print("✅ [واتساب]: تم تسجيل مسارات لوحة التحكم '/admin/whatsapp' بنجاح.")
+
         csrf.exempt(whatsapp_bp)
         csrf.exempt(webhook_public_bp)
+
     except Exception as e:
-        print(f"❌ [خطأ واتساب]: {e}")
+        print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
+
+    # ============================================================
+    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
+    # ============================================================
+    apps_dir = app.root_path
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
+
+    if os.path.exists(apps_dir):
+        for item in os.listdir(apps_dir):
+            item_path = os.path.join(apps_dir, item)
+            if not os.path.isdir(item_path) or item in ignored_dirs:
+                continue
+            registry_file = os.path.join(item_path, 'registry.py')
+            if os.path.exists(registry_file):
+                try:
+                    module = importlib.import_module(f"apps.{item}.registry")
+                    
+                    if hasattr(module, 'register_module'):
+                        module.register_module(app)
+                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
+                        
+                        if item == 'whatsapp_service' or 'whatsapp' in item:
+                            try:
+                                print(f"✅ [حماية CSRF]: تم استثناء موديول '{item}' من حماية CSRF.")
+                            except Exception as ex_csrf:
+                                print(f"⚠️ [تحذير CSRF]: لم يتم استثناء الموديول: {ex_csrf}")
+                    else:
+                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
+
+                    try:
+                        app_module = importlib.import_module(f"apps.{item}")
+                        if hasattr(app_module, 'init_app'):
+                            app_module.init_app(app)
+                    except ImportError:
+                        pass
+
+                    links_data = {}
+                    if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
+                        for nav in module.NAV_ITEMS:
+                            ep = nav.get('endpoint')
+                            title = nav.get('title')
+                            if ep and title:
+                                links_data[ep] = title
+                    if not links_data and hasattr(module, 'LINKS'):
+                        raw_links = getattr(module, 'LINKS')
+                        if isinstance(raw_links, dict):
+                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
+                        elif isinstance(raw_links, list):
+                            links_data = {ep: lbl for ep, lbl in raw_links}
+                    menu_items_func = getattr(module, 'get_menu_items', None)
+                    if not links_data and menu_items_func:
+                        res = menu_items_func()
+                        if isinstance(res, dict):
+                            links_data = res
+                        elif isinstance(res, list):
+                            links_data = {ep: lbl for ep, lbl in res}
+                    if links_data:
+                        mod_data = {
+                            "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
+                            "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
+                            "links": links_data,
+                        }
+                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
+                            SUPPLIER_MODULES[item] = mod_data
+                        else:
+                            ADMIN_MODULES[item] = mod_data
+                except Exception as e:
+                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
     @app.context_processor
     def inject_vars():
