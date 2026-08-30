@@ -27,17 +27,14 @@ def login():
         clean_phone_suffix = identifier[-9:] if identifier.isdigit() else identifier
 
         if user_type == 'supplier':
-            # مطابقة مرنة وآمنة مع أعمدة جدول الموردين
-            filters = [
-                Supplier.username == identifier,
-                Supplier.email == identifier,
-                Supplier.phone == identifier,
-                Supplier.phone == clean_phone_suffix
-            ]
-            if hasattr(Supplier, 'search_phone'):
-                filters.append(Supplier.search_phone == clean_phone_suffix)
-
-            supplier_obj = db.session.query(Supplier).filter(db.or_(*filters)).first()
+            # مطابقة صحيحة مع الأعمدة الحقيقية للجدول (username, email, search_phone)
+            supplier_obj = db.session.query(Supplier).filter(
+                db.or_(
+                    Supplier.username == identifier,
+                    Supplier.email == identifier,
+                    Supplier.search_phone == clean_phone_suffix
+                )
+            ).first()
 
             if not supplier_obj:
                 return jsonify({"success": False, "message": "المورد غير مسجل"}), 404
@@ -57,17 +54,16 @@ def login():
             })
 
         elif user_type == 'employee':
-            # مطابقة مرنة وآمنة مع أعمدة جدول موظفي الموردين
-            filters = [
+            staff_filters = [
                 SupplierStaff.username == identifier,
-                SupplierStaff.email == identifier,
-                SupplierStaff.phone == identifier,
-                SupplierStaff.phone == clean_phone_suffix
+                SupplierStaff.email == identifier
             ]
             if hasattr(SupplierStaff, 'search_phone'):
-                filters.append(SupplierStaff.search_phone == clean_phone_suffix)
+                staff_filters.append(SupplierStaff.search_phone == clean_phone_suffix)
+            elif hasattr(SupplierStaff, 'phone'):
+                staff_filters.append(SupplierStaff.phone == identifier)
 
-            staff_obj = db.session.query(SupplierStaff).filter(db.or_(*filters)).first()
+            staff_obj = db.session.query(SupplierStaff).filter(db.or_(*staff_filters)).first()
 
             if not staff_obj:
                 return jsonify({"success": False, "message": "موظف المورد غير مسجل"}), 404
