@@ -13,7 +13,7 @@ from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
 
 # ✅ إنشاء البلوبرنت مع تحديد مجلد القوالب لحل مشكلة TemplateNotFound
-bp = Blueprint('suppliers_auth', __name__, template_folder='templates')
+bp = Blueprint('suppliers_auth_portal', __name__, template_folder='templates')
 
 
 # ============================================================
