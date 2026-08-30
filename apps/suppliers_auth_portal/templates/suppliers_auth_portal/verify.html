@@ -1,42 +1,52 @@
 {% extends "suppliers_auth_portal/base.html" %}
 
-{% block title %}التحقق من الحساب والمصادقة | محجوب أونلاين{% endblock %}
+{% block title %}التحقق من الحساب | بوابة الموردين{% endblock %}
 
 {% block content %}
 <div class="w-full max-w-md mx-auto my-8">
-    <!-- بطاقة التحقق الرئيسية -->
     <div class="bg-royalSurface/95 border border-royalGold/30 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl royal-border relative">
         <div class="absolute -top-20 right-1/3 w-60 h-28 bg-royalGold/10 blur-3xl rounded-full pointer-events-none"></div>
 
-        <!-- الترويسة -->
+        <!-- Header -->
         <div class="text-center mb-6 pb-6 border-b border-royalGold/20 relative z-10">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#05020a] border-2 border-royalGold/50 p-2 mb-3 shadow-xl">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-royalDark border-2 border-royalGold/50 p-2 mb-3 shadow-xl">
                 <svg class="w-8 h-8 text-royalGold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
             </div>
             <h2 class="text-xl sm:text-2xl font-black gold-gradient-text">التحقق من الحساب</h2>
             <p class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
-                أدخل رمز التحقق (OTP) المرسل إليك لإتمام المصادقة وتفعيل لوحة التحكم.
+                أدخل رمز التحقق (OTP) المرسل إليك لإتمام المصادقة وتفعيل لوحة التحكم
             </p>
         </div>
 
-        <!-- رسالة التنبيه الفورية -->
-        <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-2"></div>
+        <!-- Alert Box -->
+        <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
-        <!-- نموذج التحقق -->
-        <form id="verifyForm" onsubmit="handleVerifySubmit(event)" class="space-y-6 relative z-10">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
+        <!-- Verify Form -->
+        <form id="verifyForm" method="POST" action="{{ url_for('suppliers_auth_portal.verify') }}" class="space-y-6 relative z-10">
+            {{ form.csrf_token }}
+            
+            <input type="hidden" name="identifier" value="{{ identifier or '' }}">
+            <input type="hidden" name="user_type" value="{{ user_type or 'supplier' }}">
 
             <div>
-                <label class="block text-xs font-medium text-slate-300 mb-2">رمز التحقق المكون من أرقام</label>
-                <input type="text" name="otp_code" id="otpCode" required autofocus autocomplete="one-time-code" maxlength="6"
-                    class="w-full px-4 py-3.5 text-center tracking-[0.5em] text-xl font-mono bg-royalDark/90 border border-royalGold/40 rounded-xl text-royalGoldLight placeholder-slate-600 focus:outline-none focus:border-royalGold shadow-inner"
-                    placeholder="••••••">
+                <label class="form-label text-center block">رمز التحقق المكون من 6 أرقام</label>
+                <div class="flex justify-center gap-2" dir="ltr" id="otpDigitsContainer">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center bg-royalDark/90 border border-royalGold/40 rounded-xl text-xl font-mono text-royalGold focus:outline-none focus:border-royalGold" inputmode="numeric" pattern="[0-9]*">
+                </div>
+                {{ form.otp_code(class="hidden", id="otpCodeInput", required=True) }}
+                {% if form.otp_code.errors %}
+                    <div class="form-error text-center">{{ form.otp_code.errors[0] }}</div>
+                {% endif %}
             </div>
 
-            <button type="submit" id="submitBtn"
-                class="w-full py-3.5 gold-btn rounded-xl text-sm font-bold shadow-xl flex items-center justify-center gap-2">
+            <button type="submit" id="submitBtn" class="w-full py-3.5 gold-btn rounded-xl text-sm font-bold shadow-xl flex items-center justify-center gap-2">
                 <span id="btnText">تأكيد الرمز واعتماد الحساب</span>
                 <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-black" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -45,11 +55,11 @@
             </button>
         </form>
 
-        <!-- خيارات إعادة الإرسال واختيار القناة (واتساب / بريد إلكتروني كبديل) -->
+        <!-- Resend Options -->
         <div class="mt-6 pt-4 border-t border-royalGold/20 space-y-3 relative z-10">
             <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-400">لم يصلك الرمز؟ أرسل عبر:</span>
-                <div class="flex gap-2">
+                <span class="text-slate-400">لم يصلك الرمز؟</span>
+                <div class="flex gap-3">
                     <button type="button" onclick="resendOtp('whatsapp')" id="resendWaBtn" class="text-royalGold hover:underline font-bold transition">
                         📱 واتساب
                     </button>
@@ -59,11 +69,9 @@
                     </button>
                 </div>
             </div>
-
             <div class="flex items-center justify-between text-xs pt-1">
                 <span id="resendStatusText" class="text-slate-400 font-medium"></span>
-                <!-- رابط العودة لتسجيل الدخول -->
-                <a href="/supplier/login" class="text-slate-400 hover:text-royalGold transition">
+                <a href="{{ url_for('suppliers_auth_portal.login') }}" class="text-slate-400 hover:text-royalGold transition">
                     &larr; العودة لتسجيل الدخول
                 </a>
             </div>
@@ -77,59 +85,144 @@
     function showAlert(msg, isSuccess = false) {
         const box = document.getElementById('alertBox');
         box.classList.remove('hidden');
+        
         if (isSuccess) {
-            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300';
-            box.innerHTML = `<span>✓</span> <div>${msg}</div>`;
+            box.className = 'flash-message flash-success flex items-center justify-between';
+            box.innerHTML = `<span>✓ ${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">&times;</button>`;
         } else {
-            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-2 bg-rose-950/80 border border-rose-500/50 text-rose-300';
-            box.innerHTML = `<span>⚠</span> <div>${msg}</div>`;
+            box.className = 'flash-message flash-danger flex items-center justify-between';
+            box.innerHTML = `<span>⚠ ${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">&times;</button>`;
         }
+        
+        setTimeout(() => {
+            if (box) {
+                box.style.transition = 'opacity 0.5s ease';
+                box.style.opacity = '0';
+                setTimeout(() => { box.remove(); }, 500);
+            }
+        }, 6000);
     }
 
-    async function handleVerifySubmit(e) {
+    // OTP inputs auto-focus
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('#otpDigitsContainer input');
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', function(e) {
+                const val = e.target.value;
+                if (val && !/^\d$/.test(val)) {
+                    e.target.value = '';
+                    return;
+                }
+                if (val && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+                updateCombinedOtp();
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !input.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pasteData = e.clipboardData.getData('text').trim();
+                if (/^\d{6}$/.test(pasteData)) {
+                    inputs.forEach((inp, idx) => {
+                        inp.value = pasteData[idx];
+                    });
+                    inputs[inputs.length - 1].focus();
+                    updateCombinedOtp();
+                }
+            });
+        });
+
+        // Auto-submit if all 6 digits are filled
+        const otpContainer = document.getElementById('otpDigitsContainer');
+        if (otpContainer) {
+            const observer = new MutationObserver(function() {
+                updateCombinedOtp();
+                const allFilled = Array.from(otpContainer.querySelectorAll('input')).every(inp => inp.value !== '');
+                if (allFilled) {
+                    document.getElementById('verifyForm').dispatchEvent(new Event('submit'));
+                }
+            });
+            otpContainer.querySelectorAll('input').forEach(inp => {
+                observer.observe(inp, { attributes: true, attributeFilter: ['value'] });
+            });
+        }
+    });
+
+    function updateCombinedOtp() {
+        const inputs = document.querySelectorAll('#otpDigitsContainer input');
+        let combined = '';
+        inputs.forEach(inp => combined += inp.value);
+        document.getElementById('otpCodeInput').value = combined;
+    }
+
+    // ==================== FORM HANDLING ====================
+    
+    document.getElementById('verifyForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const form = e.target;
-        const code = document.getElementById('otpCode').value.trim();
+        
+        const form = this;
         const submitBtn = document.getElementById('submitBtn');
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
 
-        if (!code || code.length < 4) {
-            showAlert('يرجى إدخال رمز التحقق بشكل صحيح.');
+        updateCombinedOtp();
+        const otpCode = document.getElementById('otpCodeInput').value.trim();
+
+        if (otpCode.length !== 6) {
+            showAlert('يرجى إدخال رمز التحقق كاملاً (6 أرقام)');
             return;
         }
 
         submitBtn.disabled = true;
-        btnText.textContent = 'جاري التحقق من الرمز...';
+        btnText.textContent = 'جاري التحقق...';
         btnSpinner.classList.remove('hidden');
 
         try {
-            const res = await window.secureFetch('/supplier/verify', {
+            const formData = new FormData(form);
+            
+            const response = await fetch(form.action, {
                 method: 'POST',
-                body: JSON.stringify({ 
-                    otp_code: code,
-                    csrf_token: form.csrf_token.value 
-                })
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
 
-            const data = await res.json();
-            if (res.ok && data.success) {
+            const data = await response.json();
+
+            if (response.ok && data.success) {
                 showAlert(data.message || 'تم التحقق بنجاح! جاري تحويلك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/supplier/dashboard';
+                    window.location.href = data.redirect_url || "{{ url_for('supplier.dashboard') }}";
                 }, 1500);
             } else {
-                showAlert(data.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته.');
+                submitBtn.disabled = false;
+                btnText.textContent = 'تأكيد الرمز واعتماد الحساب';
+                btnSpinner.classList.add('hidden');
+                showAlert(data.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+                
+                // Clear OTP fields on error
+                document.querySelectorAll('#otpDigitsContainer input').forEach(inp => inp.value = '');
+                document.getElementById('otpCodeInput').value = '';
+                document.querySelector('#otpDigitsContainer input').focus();
             }
         } catch (err) {
-            showAlert('حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.');
-        } finally {
+            console.error('Verify error:', err);
             submitBtn.disabled = false;
             btnText.textContent = 'تأكيد الرمز واعتماد الحساب';
             btnSpinner.classList.add('hidden');
+            showAlert('حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى');
         }
-    }
+    });
 
+    // ==================== RESEND OTP ====================
+    
     async function resendOtp(channel = 'whatsapp') {
         const waBtn = document.getElementById('resendWaBtn');
         const emailBtn = document.getElementById('resendEmailBtn');
@@ -140,29 +233,49 @@
         statusText.textContent = `جاري الإرسال عبر ${channel === 'whatsapp' ? 'الواتساب' : 'البريد'}...`;
 
         try {
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
-            const res = await window.secureFetch('/supplier/resend-otp', {
+            const form = document.getElementById('verifyForm');
+            const formData = new FormData(form);
+            formData.append('channel', channel);
+            
+            const response = await fetch("{{ url_for('suppliers_auth_portal.resend_otp') }}", {
                 method: 'POST',
-                body: JSON.stringify({ 
-                    channel: channel,
-                    csrf_token: csrfToken 
-                })
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                showAlert(data.message || 'تم إرسال رمز تحقق جديد بنجاح.', true);
-                statusText.textContent = 'تم الإرسال بنجاح.';
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showAlert(data.message || 'تم إرسال رمز تحقق جديد بنجاح', true);
+                statusText.textContent = '✅ تم الإرسال بنجاح';
+                
+                // Auto-fill OTP in development
+                if (data.data?.dev_otp) {
+                    const devOtp = String(data.data.dev_otp);
+                    const inputs = document.querySelectorAll('#otpDigitsContainer input');
+                    inputs.forEach((inp, idx) => {
+                        inp.value = devOtp[idx] || '';
+                    });
+                    updateCombinedOtp();
+                }
             } else {
-                showAlert(data.message || 'تعذر إعادة إرسال الرمز حالياً.');
-                statusText.textContent = 'فشل الإرسال، جرب القناة الأخرى.';
+                showAlert(data.message || 'تعذر إعادة إرسال الرمز حالياً');
+                statusText.textContent = '❌ فشل الإرسال، جرب القناة الأخرى';
             }
         } catch (err) {
-            showAlert('حدث خطأ أثناء الاتصال.');
-            statusText.textContent = '';
+            console.error('Resend error:', err);
+            showAlert('حدث خطأ أثناء الاتصال');
+            statusText.textContent = '❌ خطأ في الاتصال';
         } finally {
             waBtn.disabled = false;
             emailBtn.disabled = false;
-            setTimeout(() => { statusText.textContent = ''; }, 4000);
+            setTimeout(() => { 
+                if (statusText.textContent.includes('✅') || statusText.textContent.includes('❌')) {
+                    setTimeout(() => { statusText.textContent = ''; }, 4000);
+                }
+            }, 1000);
         }
     }
 </script>
