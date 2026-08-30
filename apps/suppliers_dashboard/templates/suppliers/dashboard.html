@@ -86,7 +86,7 @@
 
     <!-- معلومات المورد -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- معلومات المورد -->
+        <!-- معلومات المنشأة -->
         <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
             <h3 class="text-sm font-bold text-royalGold mb-4">📋 معلومات المنشأة</h3>
             <div class="space-y-3 text-sm">
@@ -137,63 +137,5 @@
         </div>
     </div>
 
-    <!-- المساعد الذكي -->
-    <div class="mt-6 bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
-        <h3 class="text-sm font-bold text-royalGold mb-3">🤖 المساعد الذكي</h3>
-        <div class="flex flex-col sm:flex-row gap-3">
-            <input type="text" id="aiQuestion" placeholder="اسأل عن نصائح لتطوير متجرك..."
-                   class="flex-1 px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
-            <button onclick="askAI()" class="px-6 py-2.5 gold-btn rounded-xl text-sm font-bold">
-                اسأل المساعد
-            </button>
-        </div>
-        <div id="aiAnswer" class="mt-3 text-sm text-slate-300 hidden"></div>
-    </div>
-
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    function askAI() {
-        const question = document.getElementById('aiQuestion').value.trim();
-        const answerDiv = document.getElementById('aiAnswer');
-        
-        if (!question) {
-            answerDiv.textContent = '⚠️ يرجى إدخال سؤال.';
-            answerDiv.classList.remove('hidden');
-            return;
-        }
-        
-        answerDiv.textContent = '⏳ جاري التفكير...';
-        answerDiv.classList.remove('hidden');
-        
-        fetch('{{ url_for("suppliers_dashboard.ask_ai") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': window.getCsrfToken ? window.getCsrfToken() : ''
-            },
-            body: JSON.stringify({ question: question })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                answerDiv.textContent = '💡 ' + data.answer;
-            } else {
-                answerDiv.textContent = '❌ ' + (data.message || data.error || 'حدث خطأ');
-            }
-        })
-        .catch(error => {
-            answerDiv.textContent = '❌ تعذر الاتصال بالخادم.';
-        });
-    }
-
-    // دعم Enter
-    document.getElementById('aiQuestion').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            askAI();
-        }
-    });
-</script>
 {% endblock %}
