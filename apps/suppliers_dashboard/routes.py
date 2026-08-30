@@ -138,9 +138,9 @@ def index():
             }
         ]
         
-        # الاستدعاء الصريح المباشر للقالب بالمسار الواضح
+        # الاستدعاء المباشر والصحيح للمسار الفعلي: apps/suppliers_dashboard/templates/suppliers/dashboard.html
         return render_template(
-            'suppliers_auth_portal/dashboard/supplier_dashboard.html',
+            'suppliers/dashboard.html',
             page_title='لوحة تحكم المورد | محجوب أونلاين',
             supplier=supplier,
             profile=profile,
