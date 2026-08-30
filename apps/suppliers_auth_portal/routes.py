@@ -20,7 +20,6 @@ from apps.models.supplier_db import Supplier
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_staff_db import SupplierStaff, SupplierStaffRole
-from apps.models.supplier_invitation_db import SupplierInvitation
 from apps.models.product_supplier_map import ProductSupplierMapping
 
 # إعداد التسجيل
@@ -87,7 +86,6 @@ def mask_email(email):
 
 def find_user(identifier):
     """البحث عن مستخدم (مورد أو موظف) حسب المعرف"""
-    # البحث في الموردين
     supplier = None
     
     # بحث بالبريد الإلكتروني
@@ -139,11 +137,7 @@ def find_user(identifier):
 def login_page():
     """صفحة تسجيل الدخول"""
     if current_user.is_authenticated:
-        # التحقق من نوع المستخدم
-        if hasattr(current_user, 'supplier_id'):  # موظف
-            return redirect(url_for('suppliers_auth_bp.dashboard'))
-        else:  # مورد
-            return redirect(url_for('suppliers_auth_bp.dashboard'))
+        return redirect(url_for('suppliers_auth_bp.dashboard'))
     
     return render_template('login.html', page_title='تسجيل الدخول')
 
@@ -262,7 +256,6 @@ def register():
         owner_name = data.get('owner_name', '').strip()
         trade_name = data.get('trade_name', '').strip()
         store_name = data.get('store_name', '').strip()
-        business_type = data.get('business_type', '').strip()
         full_address = data.get('full_address', '').strip()
         city = data.get('city', '').strip()
         district = data.get('district', '').strip()
@@ -336,7 +329,7 @@ def register():
         new_supplier = Supplier(
             username=valid_username,
             email=valid_email,
-            phone=phone,  # يتم تشفيره تلقائياً
+            phone=phone,
             owner_name=owner_name or trade_name or store_name,
             trade_name=trade_name,
             store_name=store_name or trade_name,
@@ -346,7 +339,7 @@ def register():
         new_supplier.set_password(password)
 
         db.session.add(new_supplier)
-        db.session.flush()  # للحصول على ID
+        db.session.flush()
 
         # إنشاء ملف تعريف المورد
         profile = SupplierProfile(
@@ -357,7 +350,7 @@ def register():
         )
         db.session.add(profile)
 
-        # إنشاء محفظة المورد (سيتم توليد WEL-963X تلقائياً)
+        # إنشاء محفظة المورد
         wallet = SupplierWallet(
             supplier_id=new_supplier.id,
             currency='YER',
@@ -413,7 +406,6 @@ def request_otp():
                 'message': 'يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني'
             }), 400
 
-        # البحث عن المستخدم
         user, user_type = find_user(identifier)
         
         if not user:
@@ -422,7 +414,6 @@ def request_otp():
                 'message': 'لم يتم العثور على حساب مرتبط بالبيانات المدخلة'
             }), 404
 
-        # تحديد الوجهة المقنعة
         if validate_email(identifier):
             masked_target = mask_email(identifier)
         elif validate_phone(identifier):
@@ -430,10 +421,8 @@ def request_otp():
         else:
             masked_target = identifier
 
-        # توليد OTP
         otp_code = generate_otp()
 
-        # تخزين OTP في الجلسة
         session['reset_otp'] = {
             'code': otp_code,
             'identifier': identifier,
@@ -445,16 +434,13 @@ def request_otp():
 
         logger.info(f"📱 تم توليد OTP للمستخدم: {user.username} (type: {user_type})")
 
-        # TODO: إرسال OTP عبر SMS/بريد إلكتروني
-        # في الإنتاج: استخدم Twilio أو أي خدمة SMS
-
         return jsonify({
             'success': True,
             'otp_sent': True,
             'message': 'تم إرسال رمز التحقق بنجاح',
             'data': {
                 'masked_phone': masked_target,
-                '_dev_otp': otp_code  # ⚠️ للتطوير فقط
+                '_dev_otp': otp_code
             }
         })
 
@@ -482,28 +468,24 @@ def reset_password():
         new_password = data.get('new_password', '')
         confirm_password = data.get('confirm_password', '')
 
-        # التحقق من الحقول المطلوبة
         if not all([identifier, otp_code, new_password, confirm_password]):
             return jsonify({
                 'success': False,
                 'message': 'جميع الحقول مطلوبة'
             }), 400
 
-        # التحقق من تطابق كلمة المرور
         if new_password != confirm_password:
             return jsonify({
                 'success': False,
                 'message': 'كلمتا المرور غير متطابقتين'
             }), 400
 
-        # التحقق من قوة كلمة المرور
         if len(new_password) < 8:
             return jsonify({
                 'success': False,
                 'message': 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل'
             }), 400
 
-        # التحقق من OTP
         reset_data = session.get('reset_otp')
         if not reset_data:
             return jsonify({
@@ -511,7 +493,6 @@ def reset_password():
                 'message': 'لم يتم طلب رمز تحقق. يرجى بدء العملية مرة أخرى.'
             }), 400
 
-        # التحقق من صلاحية OTP
         expires_at = datetime.fromisoformat(reset_data['expires_at'])
         if datetime.now() > expires_at:
             session.pop('reset_otp', None)
@@ -520,21 +501,18 @@ def reset_password():
                 'message': 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.'
             }), 400
 
-        # التحقق من تطابق OTP
         if reset_data['code'] != otp_code:
             return jsonify({
                 'success': False,
                 'message': 'رمز التحقق غير صحيح'
             }), 400
 
-        # التحقق من تطابق المعرف
         if reset_data['identifier'] != identifier:
             return jsonify({
                 'success': False,
                 'message': 'تعارض في بيانات المستخدم'
             }), 400
 
-        # الحصول على المستخدم
         user_type = reset_data['user_type']
         user_id = reset_data['user_id']
 
@@ -549,11 +527,9 @@ def reset_password():
                 'message': 'المستخدم غير موجود'
             }), 404
 
-        # تحديث كلمة المرور
         user.set_password(new_password)
         db.session.commit()
 
-        # حذف OTP من الجلسة
         session.pop('reset_otp', None)
 
         logger.info(f"✅ تم تحديث كلمة المرور: {user.username}")
@@ -592,26 +568,21 @@ def dashboard():
     user_type = session.get('user_type', 'supplier')
     
     if user_type == 'supplier' and hasattr(current_user, 'id'):
-        # إحصائيات المورد
         supplier_id = current_user.id
         
-        # عدد المنتجات
         products_count = ProductSupplierMapping.query.filter_by(
             supplier_id=supplier_id,
             is_active=True
         ).count()
         
-        # رصيد المحفظة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
         balance = wallet.balance if wallet else 0.0
         
-        # عدد الموظفين
         staff_count = SupplierStaff.query.filter_by(
             supplier_id=supplier_id,
             is_active=True
         ).count()
         
-        # ملف التعريف
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
         
         return render_template(
@@ -627,7 +598,6 @@ def dashboard():
         )
     
     elif user_type == 'employee':
-        # عرض لوحة تحكم موظف المورد
         return render_template(
             'dashboard/employee_dashboard.html',
             page_title='لوحة تحكم موظف المورد',
@@ -666,7 +636,6 @@ def init_app(app):
     """تهيئة تطبيق Flask مع Blueprint المصادقة"""
     app.register_blueprint(suppliers_auth_bp)
     
-    # المسار الرئيسي
     @app.route('/')
     def index():
         if current_user.is_authenticated:
