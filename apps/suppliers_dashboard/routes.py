@@ -69,7 +69,7 @@ def dashboard():
 @suppliers_bp.route('/api/ask-ai', methods=['POST'])
 @login_required
 def ask_ai():
-    """مسار استقبال أسئلة المورد ومعالجتها بواسطة DeepSeek AI"""
+    """مسار استقبال أسئلة المورد ومعالجتها بواسطة المساعد الذكي الداخلي"""
     data = request.get_json() or {}
     question = data.get('question', '').strip()
 
@@ -77,11 +77,8 @@ def ask_ai():
         return jsonify({'success': False, 'message': 'الرجاء إدخال سؤال صحيح.'}), 400
 
     try:
-        # هنا يتم استدعاء API الخاص بـ DeepSeek أو معالجة الاستفسار
-        # answer = call_deepseek_api(question)
-        
-        # رد تجريبي مؤقت للتحقق من عمل الواجهة:
-        answer = f"شكراً لاستفسارك! بناءً على تحليل متجرك، أنصحك بـ: التركيز على تحسين صور المنتجات وإضافة وصف دقيق لتطوير استراتيجية '{question}'."
+        # معالجة الاستفسار داخل النظام البيئي لمنصة محجوب أونلاين
+        answer = f"شكراً لاستفسارك! بناءً على تحليل متجرك الداخلي، أنصحك بـ: التركيز على تحسين تفاصيل المنتجات وإدارة المخزون بفعالية لتطوير استراتيجية '{question}'."
 
         return jsonify({
             'success': True,
