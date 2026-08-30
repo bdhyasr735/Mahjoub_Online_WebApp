@@ -2,7 +2,6 @@
 # 📂 apps/suppliers_auth_portal/auth_recovery.py
 
 from flask import render_template, request, jsonify, url_for
-from werkzeug.security import generate_password_hash
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
 from apps.models.supplier_db import Supplier
@@ -80,7 +79,8 @@ def reset_password():
         if not supplier_obj:
             return jsonify({"success": False, "message": "الحساب غير موجود."}), 404
 
-        supplier_obj.password_hash = generate_password_hash(new_password)
+        # استخدام دالة التشفير الموجودة حصراً في نموذج المورد
+        supplier_obj.set_password(new_password)
         db.session.commit()
 
         return jsonify({
