@@ -7,11 +7,9 @@ bp = Blueprint(
     'suppliers_auth_portal',
     __name__,
     template_folder='templates/suppliers_auth_portal',
-    url_prefix='/suppliers'  # ✅ تأكد: /suppliers وليس /supplier
+    url_prefix='/suppliers'
 )
 
-from . import auth_login, auth_register, auth_recovery, seo_service
+from . import auth_routes, seo_service
 
-bp.register_blueprint(auth_login.bp)
-bp.register_blueprint(auth_register.bp)
-bp.register_blueprint(auth_recovery.bp)
+bp.register_blueprint(auth_routes.bp)
