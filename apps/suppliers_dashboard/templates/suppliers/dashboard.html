@@ -1,141 +1,114 @@
-{% extends "suppliers_auth_portal/base.html" %}
+{% extends "suppliers_dashboard/base.html" %} <!-- أو المسار الصحيح لقالب القاعدة لديك -->
 
 {% block title %}لوحة تحكم المورد | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="w-full max-w-7xl mx-auto">
-    
-    <!-- عنوان الصفحة -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+<div class="container-fluid py-4">
+    <!-- الترحيب -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="text-2xl font-bold gold-gradient-text">🏠 لوحة التحكم</h1>
-            <p class="text-xs text-slate-400">مرحباً بعودتك {{ supplier.store_name or supplier.trade_name or supplier.username }}</p>
+            <h1 class="h3 fw-bold text-dark">مرحباً بك، المورد المتميز</h1>
+            <p class="text-muted small mb-0">إليك ملخص العمليات والنشاط التجاري لمتجرك</p>
         </div>
-        <div class="flex items-center gap-3 mt-3 sm:mt-0">
-            <span class="text-xs px-3 py-1 rounded-full bg-royalGold/20 text-royalGold border border-royalGold/30">
-                {{ supplier.rank or 'برونز' }}
-            </span>
-            <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {{ supplier.status or 'نشط' }}
-            </span>
-        </div>
+        <span class="badge badge-completed">الحالة: نشط</span>
     </div>
 
-    <!-- البطاقات الإحصائية -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <!-- الرصيد -->
-        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-400">رصيد المحفظة</p>
-                    <p class="text-2xl font-bold gold-gradient-text">{{ "%.2f"|format(balance) }} SAR</p>
-                </div>
-                <div class="p-3 rounded-lg bg-royalGold/10 border border-royalGold/30">
-                    <svg class="w-6 h-6 text-royalGold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                    </svg>
+    <!-- البطاقات الإحصائية (KPIs) -->
+    <div class="row g-3 mb-4">
+        <!-- المحفظة -->
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-card-featured">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block text-white-50 small mb-1">رصيد المحفظة</span>
+                        <h4 class="fw-bold mb-0">{{ "%.2f"|format(balance) }} ر.س</h4>
+                    </div>
+                    <i class="fas fa-wallet fa-2x text-white-50"></i>
                 </div>
             </div>
         </div>
 
         <!-- المنتجات -->
-        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-400">المنتجات</p>
-                    <p class="text-2xl font-bold text-white">{{ products_count }}</p>
-                </div>
-                <div class="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
-                    </svg>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block text-muted small mb-1">المنتجات النشطة</span>
+                        <h4 class="fw-bold mb-0 text-dark">{{ products_count }}</h4>
+                    </div>
+                    <i class="fas fa-box-open fa-2x text-primary"></i>
                 </div>
             </div>
         </div>
 
         <!-- الموظفين -->
-        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-400">الموظفين</p>
-                    <p class="text-2xl font-bold text-white">{{ staff_count }}</p>
-                </div>
-                <div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
-                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block text-muted small mb-1">فريق العمل</span>
+                        <h4 class="fw-bold mb-0 text-dark">{{ staff_count }}</h4>
+                    </div>
+                    <i class="fas fa-users fa-2x text-success"></i>
                 </div>
             </div>
         </div>
 
         <!-- كود المورد -->
-        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-5 royal-card-hover">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-400">كود المورد</p>
-                    <p class="text-2xl font-bold font-mono text-royalGold">{{ supplier.supplier_code or 'غير محدد' }}</p>
-                </div>
-                <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                    </svg>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block text-muted small mb-1">كود المورد</span>
+                        <h5 class="fw-bold mb-0 text-dark font-monospace">{{ supplier.supplier_code or 'N/A' }}</h5>
+                    </div>
+                    <i class="fas fa-id-badge fa-2x text-warning"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- معلومات المورد -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- معلومات المنشأة -->
-        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
-            <h3 class="text-sm font-bold text-royalGold mb-4">📋 معلومات المنشأة</h3>
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">الاسم التجاري</span>
-                    <span class="text-slate-200">{{ supplier.trade_name or 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">اسم المتجر</span>
-                    <span class="text-slate-200">{{ supplier.store_name or 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">المالك</span>
-                    <span class="text-slate-200">{{ supplier.owner_name or 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">البريد الإلكتروني</span>
-                    <span class="text-slate-200">{{ supplier.email or 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-400">رقم الهاتف</span>
-                    <span class="text-slate-200">{{ supplier.phone or 'غير محدد' }}</span>
-                </div>
+    <!-- معلومات المتجر والملف الشخصي -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="kpi-card h-100">
+                <h5 class="fw-bold text-dark mb-3"><i class="fas fa-store me-2 text-primary"></i> بيانات المتجر والمنشأة</h5>
+                <ul class="list-unstyled small mb-0">
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">اسم المتجر:</span>
+                        <span class="fw-bold text-dark">{{ supplier.store_name or 'غير محدد' }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">الاسم التجاري:</span>
+                        <span class="fw-bold text-dark">{{ supplier.trade_name or 'غير محدد' }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2">
+                        <span class="text-muted">البريد الإلكتروني:</span>
+                        <span class="fw-bold text-dark">{{ supplier.email or 'غير محدد' }}</span>
+                    </li>
+                </ul>
             </div>
         </div>
 
-        <!-- الملف الشخصي -->
-        <div class="bg-royalSurface/80 border border-royalGold/30 rounded-xl p-6">
-            <h3 class="text-sm font-bold text-royalGold mb-4">📍 الملف الشخصي</h3>
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">العنوان</span>
-                    <span class="text-slate-200">{{ profile.full_address if profile else 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">المدينة</span>
-                    <span class="text-slate-200">{{ profile.city if profile else 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between border-b border-royalGold/10 pb-2">
-                    <span class="text-slate-400">الحي</span>
-                    <span class="text-slate-200">{{ profile.district if profile else 'غير محدد' }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-400">تاريخ التسجيل</span>
-                    <span class="text-slate-200">{{ supplier.created_at.strftime('%Y-%m-%d') if supplier.created_at else 'غير محدد' }}</span>
-                </div>
+        <div class="col-lg-6">
+            <div class="kpi-card h-100">
+                <h5 class="fw-bold text-dark mb-3"><i class="fas fa-map-marker-alt me-2 text-danger"></i> معلومات الموقع والعنوان</h5>
+                <ul class="list-unstyled small mb-0">
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">المدينة:</span>
+                        <span class="fw-bold text-dark">{{ profile.city if profile else 'غير محدد' }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">الحي:</span>
+                        <span class="fw-bold text-dark">{{ profile.district if profile else 'غير محدد' }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2">
+                        <span class="text-muted">رقم الهاتف:</span>
+                        <span class="fw-bold text-dark">{{ supplier.phone or 'غير محدد' }}</span>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
-
 </div>
 {% endblock %}
