@@ -1,36 +1,42 @@
-{% extends 'suppliers/base.html' %}
+{% extends "suppliers_auth_portal/base.html" %}
 
 {% block title %}لوحة تحكم المورد | {{ supplier.trade_name if supplier else 'غير متاح' }}{% endblock %}
 
 {% block content %}
 <style>
     /* تحسينات التصميم الملكي للمتجر واللوحة */
-    .dynamic-card { transition: var(--transition); border-radius: 20px !important; overflow: hidden; border: 1px solid rgba(212, 175, 55, 0.15); background: #ffffff; }
-    .dynamic-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(31, 11, 56, 0.08) !important; border-color: var(--mahjoub-gold); }
-    .gradient-wallet { background: linear-gradient(135deg, var(--royal-purple-dark) 0%, var(--royal-purple) 100%); color: white; border: 1px solid rgba(212, 175, 55, 0.3); }
-    .balance-val { font-size: 1.8rem; font-weight: 800; color: var(--mahjoub-gold); letter-spacing: -0.5px; }
-    .balance-label { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.75); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-card-icon { color: var(--mahjoub-gold); background: rgba(212, 175, 55, 0.1); width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+    .dynamic-card { transition: all 0.3s ease; border-radius: 20px !important; overflow: hidden; border: 1px solid rgba(212, 175, 55, 0.15); background: #0f071c; color: #f8fafc; }
+    .dynamic-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(206, 158, 73, 0.15) !important; border-color: #ce9e49; }
+    .gradient-wallet { background: linear-gradient(135deg, #0f071c 0%, #150a29 100%); border: 1px solid rgba(206, 158, 73, 0.3); }
+    .balance-val { font-size: 1.8rem; font-weight: 800; color: #ce9e49; letter-spacing: -0.5px; }
+    .balance-label { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card-icon { color: #ce9e49; background: rgba(206, 158, 73, 0.1); width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+    .text-slate-400 { color: #94a3b8; }
+    .text-slate-800 { color: #f1f5f9; }
+    .text-slate-500 { color: #64748b; }
+    .text-slate-900 { color: #f8fafc; }
+    .bg-white { background: #0f071c; }
+    .border-slate-100 { border-color: rgba(206, 158, 73, 0.1); }
+    .border-slate-200 { border-color: rgba(206, 158, 73, 0.15); }
+    .bg-slate-50 { background: rgba(15, 7, 28, 0.6); }
     
-    /* مساعد الذكاء الاصطناعي - تصميم مخصص متناسق */
     .ai-chat-container {
         border-radius: 20px;
-        border: 1px solid rgba(212, 175, 55, 0.2);
+        border: 1px solid rgba(206, 158, 73, 0.2);
         overflow: hidden;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #fff;
+        background: #0f071c;
         position: relative;
-        box-shadow: 0 4px 20px rgba(31, 11, 56, 0.04);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     .ai-chat-container:hover {
-        box-shadow: 0 10px 30px rgba(31, 11, 56, 0.08);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
     
-    /* زر فتح وإغلاق المساعد */
     .ai-toggle-btn {
-        background: linear-gradient(135deg, var(--royal-purple-dark) 0%, var(--royal-purple) 100%);
-        color: white;
-        border: none;
+        background: linear-gradient(135deg, #0f071c 0%, #150a29 100%);
+        color: #f8fafc;
+        border: 1px solid rgba(206, 158, 73, 0.3);
         padding: 14px 24px;
         border-radius: 16px;
         font-weight: 700;
@@ -40,18 +46,17 @@
         gap: 12px;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 6px 20px rgba(31, 11, 56, 0.15);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         width: 100%;
-        border: 1px solid rgba(212, 175, 55, 0.3);
     }
     .ai-toggle-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(31, 11, 56, 0.25);
-        border-color: var(--mahjoub-gold);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+        border-color: #ce9e49;
     }
     .ai-toggle-btn .badge-ai {
-        background: var(--mahjoub-gold);
-        color: var(--royal-purple-dark);
+        background: #ce9e49;
+        color: #05020a;
         padding: 3px 10px;
         border-radius: 20px;
         font-size: 0.65rem;
@@ -62,13 +67,12 @@
         transition: transform 0.4s ease;
         font-size: 0.8rem;
         margin-right: auto;
-        color: var(--mahjoub-gold);
+        color: #ce9e49;
     }
     .ai-toggle-btn .icon-arrow.open {
         transform: rotate(180deg);
     }
     
-    /* محتوى المساعد (يظهر ويختفي انسيابياً) */
     .ai-content {
         max-height: 0;
         opacity: 0;
@@ -84,10 +88,10 @@
     }
     
     .ai-header {
-        background: linear-gradient(135deg, var(--royal-purple-dark) 0%, var(--royal-purple) 100%);
-        color: white;
+        background: linear-gradient(135deg, #0f071c 0%, #150a29 100%);
+        color: #f8fafc;
         padding: 14px 20px;
-        border-bottom: 2px solid var(--mahjoub-gold);
+        border-bottom: 2px solid #ce9e49;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -99,14 +103,15 @@
         align-items: center;
         gap: 10px;
         font-size: 0.95rem;
+        color: #f8fafc;
     }
     .ai-header .ai-badge {
-        background: rgba(212, 175, 55, 0.2);
+        background: rgba(206, 158, 73, 0.2);
         padding: 2px 10px;
         border-radius: 20px;
         font-size: 0.65rem;
         font-weight: 700;
-        color: var(--mahjoub-gold);
+        color: #ce9e49;
     }
     .ai-header .ai-status {
         font-size: 0.7rem;
@@ -115,6 +120,7 @@
         align-items: center;
         gap: 6px;
         font-weight: 600;
+        color: #94a3b8;
     }
     .ai-header .ai-status .dot {
         width: 8px;
@@ -129,13 +135,13 @@
         max-height: 280px;
         overflow-y: auto;
         padding: 16px 20px;
-        background: #fcfbfe;
+        background: #0f071c;
         min-height: 120px;
         scrollbar-width: thin;
-        scrollbar-color: var(--mahjoub-gold) transparent;
+        scrollbar-color: #ce9e49 transparent;
     }
     .ai-messages::-webkit-scrollbar { width: 4px; }
-    .ai-messages::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
+    .ai-messages::-webkit-scrollbar-thumb { background: #ce9e49; border-radius: 10px; }
     
     .ai-messages .message-user {
         text-align: left;
@@ -143,8 +149,8 @@
     }
     .ai-messages .message-user .bubble {
         display: inline-block;
-        background: var(--royal-purple);
-        color: white;
+        background: #ce9e49;
+        color: #05020a;
         padding: 10px 16px;
         border-radius: 16px 16px 4px 16px;
         font-size: 0.875rem;
@@ -159,19 +165,19 @@
     }
     .ai-messages .message-ai .bubble {
         display: inline-block;
-        background: #f1ecf6;
-        color: #1e293b;
+        background: #150a29;
+        color: #f8fafc;
         padding: 10px 16px;
         border-radius: 16px 16px 16px 4px;
         font-size: 0.875rem;
         max-width: 85%;
         text-align: right;
         word-wrap: break-word;
-        border: 1px solid rgba(31, 11, 56, 0.05);
+        border: 1px solid rgba(206, 158, 73, 0.1);
     }
     .ai-messages .message-ai .bubble .ai-name {
         font-weight: 800;
-        color: var(--royal-purple);
+        color: #ce9e49;
         font-size: 0.72rem;
         display: block;
         margin-bottom: 4px;
@@ -187,7 +193,7 @@
         width: 7px;
         height: 7px;
         border-radius: 50%;
-        background: var(--mahjoub-gold);
+        background: #ce9e49;
         margin: 0 2px;
         animation: typing 1.4s infinite both;
     }
@@ -200,44 +206,48 @@
     
     .ai-input-group {
         padding: 14px 20px;
-        background: white;
-        border-top: 1px solid #f1f5f9;
+        background: #0f071c;
+        border-top: 1px solid rgba(206, 158, 73, 0.1);
         display: flex;
         gap: 10px;
         align-items: center;
     }
     .ai-input-group input {
         flex: 1;
-        border: 1.5px solid #e2e8f0;
+        border: 1.5px solid rgba(206, 158, 73, 0.2);
         border-radius: 12px;
         padding: 10px 16px;
         font-size: 0.875rem;
-        transition: var(--transition);
+        transition: all 0.3s ease;
         outline: none;
-        background: #f8fafc;
+        background: #05020a;
+        color: #f8fafc;
         font-family: 'Cairo', sans-serif;
     }
     .ai-input-group input:focus {
-        border-color: var(--mahjoub-gold);
-        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
-        background: white;
+        border-color: #ce9e49;
+        box-shadow: 0 0 0 3px rgba(206, 158, 73, 0.15);
+        background: #0f071c;
+    }
+    .ai-input-group input::placeholder {
+        color: rgba(255,255,255,0.3);
     }
     .ai-input-group .btn-ai-send {
-        background: var(--mahjoub-gold);
-        color: var(--royal-purple-dark);
+        background: #ce9e49;
+        color: #05020a;
         border: none;
         border-radius: 12px;
         padding: 10px 22px;
         font-weight: 800;
-        transition: var(--transition);
+        transition: all 0.3s ease;
         cursor: pointer;
         white-space: nowrap;
         font-size: 0.85rem;
     }
     .ai-input-group .btn-ai-send:hover {
-        background: #c5a030;
+        background: #fae19c;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
+        box-shadow: 0 4px 12px rgba(206, 158, 73, 0.25);
     }
     .ai-input-group .btn-ai-send:disabled {
         opacity: 0.6;
@@ -250,44 +260,97 @@
         flex-wrap: wrap;
         gap: 8px;
         padding: 0 20px 14px;
-        background: white;
+        background: #0f071c;
     }
     .ai-suggestions .suggestion-btn {
-        background: #f8f5fa;
-        border: 1px solid rgba(31, 11, 56, 0.08);
+        background: rgba(15, 7, 28, 0.6);
+        border: 1px solid rgba(206, 158, 73, 0.1);
         border-radius: 20px;
         padding: 6px 14px;
         font-size: 0.75rem;
-        color: var(--royal-purple);
+        color: #ce9e49;
         cursor: pointer;
-        transition: var(--transition);
+        transition: all 0.3s ease;
         font-weight: 600;
         font-family: 'Cairo', sans-serif;
     }
     .ai-suggestions .suggestion-btn:hover {
-        background: var(--royal-purple);
-        color: white;
-        border-color: var(--royal-purple);
+        background: #ce9e49;
+        color: #05020a;
+        border-color: #ce9e49;
         transform: translateY(-1px);
     }
+    
+    .badge-emerald-50 { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.2); }
+    .badge-amber-50 { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .text-emerald-600 { color: #86efac; }
+    .text-amber-300 { color: #fcd34d; }
+    .text-amber-400 { color: #fbbf24; }
+    .text-amber-700 { color: #f59e0b; }
+    .text-emerald-700 { color: #34d399; }
+    .fw-extrabold { font-weight: 900; }
+    .fw-black { font-weight: 900; }
+    .rounded-2xl { border-radius: 1rem; }
+    .rounded-4 { border-radius: 1rem; }
+    .shadow-sm { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .gap-3 { gap: 1rem; }
+    .gap-2 { gap: 0.5rem; }
+    .mb-0 { margin-bottom: 0; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-4 { margin-bottom: 1.5rem; }
+    .mt-3 { margin-top: 0.75rem; }
+    .mt-4 { margin-top: 1.5rem; }
+    .p-3 { padding: 0.75rem; }
+    .p-4 { padding: 1.5rem; }
+    .px-0 { padding-left: 0; padding-right: 0; }
+    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .d-flex { display: flex; }
+    .align-items-center { align-items: center; }
+    .justify-content-between { justify-content: space-between; }
+    .flex-wrap { flex-wrap: wrap; }
+    .flex-column { flex-direction: column; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-sm { font-size: 0.875rem; }
+    .text-xs { font-size: 0.75rem; }
+    .text-uppercase { text-transform: uppercase; }
+    .container-fluid { width: 100%; padding-right: 15px; padding-left: 15px; margin-right: auto; margin-left: auto; }
+    .row { display: flex; flex-wrap: wrap; margin-right: -0.75rem; margin-left: -0.75rem; }
+    .col-12 { flex: 0 0 100%; max-width: 100%; padding-right: 0.75rem; padding-left: 0.75rem; }
+    .col-sm-6 { flex: 0 0 50%; max-width: 50%; }
+    .col-xl-3 { flex: 0 0 25%; max-width: 25%; }
+    .col-xl-6 { flex: 0 0 50%; max-width: 50%; }
+    .g-4 { gap: 1.5rem; }
+    .h-100 { height: 100%; }
+    .border-t { border-top: 1px solid rgba(206, 158, 73, 0.1); }
+    .border-b { border-bottom: 1px solid rgba(206, 158, 73, 0.1); }
+    .bg-black\/40 { background: rgba(0,0,0,0.4); }
+    .bg-white\/10 { background: rgba(255,255,255,0.1); }
+    .me-1 { margin-right: 0.25rem; }
+    .ms-1 { margin-left: 0.25rem; }
+    .mt-auto { margin-top: auto; }
+    .mb-0 { margin-bottom: 0; }
 </style>
 
 {% set wallet = supplier.wallet if (supplier and supplier.wallet) else None %}
 
 <div class="container-fluid px-0">
     <!-- رأس الصفحة وترحيب المورد -->
-    <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3 bg-white p-4 rounded-4 shadow-sm border border-slate-100">
+    <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3 bg-royalSurface/95 p-4 rounded-4 shadow-sm border border-royalGold/10">
         <div class="d-flex align-items-center gap-3">
-            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                <i class="fas fa-store fa-lg" style="color: var(--royal-purple);"></i>
+            <div class="p-3 rounded-2xl bg-royalSurface border border-royalGold/20 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                <i class="fas fa-store fa-lg" style="color: #ce9e49;"></i>
             </div>
             <div>
-                <h3 class="fw-extrabold text-slate-900 mb-1" style="font-size: 1.25rem;">أهلاً بك، <span style="color: var(--royal-purple);">{{ current_user.username }}</span></h3>
-                <p class="text-slate-500 mb-0 text-sm">متجرك النشط: <strong class="text-slate-800">{{ supplier.trade_name if supplier else 'غير متاح' }}</strong></p>
+                <h3 class="fw-extrabold text-slate-900 mb-1" style="font-size: 1.25rem;">أهلاً بك، <span style="color: #ce9e49;">{{ current_user.username }}</span></h3>
+                <p class="text-slate-500 mb-0 text-sm">متجرك النشط: <strong class="text-slate-200">{{ supplier.trade_name if supplier else 'غير متاح' }}</strong></p>
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-xl text-xs font-bold">
+            <span class="badge-emerald-50 px-3 py-2 rounded-xl text-xs font-bold">
                 <i class="fas fa-check-circle me-1"></i> حساب موثق ومفعل
             </span>
         </div>
@@ -297,12 +360,12 @@
     <div class="row g-4 mb-4">
         <!-- بطاقة المحفظة المالية -->
         <div class="col-12 col-xl-6">
-            <div class="card dynamic-card gradient-wallet p-4 h-100 shadow-sm">
+            <div class="card dynamic-card gradient-wallet p-4 h-100 shadow-sm" style="border-radius: 20px;">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0 fw-bold text-white flex items-center gap-2" style="font-size: 1rem;">
-                        <i class="fas fa-wallet" style="color: var(--mahjoub-gold);"></i> رصيد المحفظة المالية
+                        <i class="fas fa-wallet" style="color: #ce9e49;"></i> رصيد المحفظة المالية
                     </h5>
-                    <span class="badge bg-black/40 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-lg text-xs font-mono">
+                    <span class="bg-black/40 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-lg text-xs font-mono">
                         {{ wallet.wallet_code if wallet else '---' }}
                     </span>
                 </div>
@@ -329,24 +392,24 @@
 
         <!-- بطاقة الطلبات قيد التنفيذ -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card dynamic-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
+            <div class="card dynamic-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between" style="border-radius: 20px; background: #0f071c; border: 1px solid rgba(206,158,73,0.15);">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="stat-card-icon"><i class="fas fa-box-open fa-lg"></i></div>
-                    <span class="badge bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-bold">نشط</span>
+                    <span class="badge-amber-50 px-2.5 py-1 rounded-lg text-xs font-bold">نشط</span>
                 </div>
                 <div class="mt-4">
                     <h6 class="text-slate-400 text-uppercase fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">طلبات قيد التنفيذ</h6>
-                    <h2 class="fw-black text-slate-800 mb-0" style="font-size: 1.75rem;">{{ pending_orders_count | default(0) }}</h2>
+                    <h2 class="fw-black text-slate-200 mb-0" style="font-size: 1.75rem;">{{ pending_orders_count | default(0) }}</h2>
                 </div>
             </div>
         </div>
 
         <!-- بطاقة إجمالي المبيعات -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card dynamic-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
+            <div class="card dynamic-card p-4 shadow-sm h-100 d-flex flex-column justify-content-between" style="border-radius: 20px; background: #0f071c; border: 1px solid rgba(206,158,73,0.15);">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="stat-card-icon" style="color: #10B981; background: rgba(16, 185, 129, 0.1);"><i class="fas fa-chart-line fa-lg"></i></div>
-                    <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold">الإجمالي</span>
+                    <span class="badge-emerald-50 px-2.5 py-1 rounded-lg text-xs font-bold">الإجمالي</span>
                 </div>
                 <div class="mt-4">
                     <h6 class="text-slate-400 text-uppercase fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">إجمالي المبيعات (ر.س)</h6>
@@ -358,9 +421,8 @@
         </div>
     </div>
 
-    <!-- مساعد DeepSeek الذكي - تصميم متطور ومتكامل -->
+    <!-- مساعد DeepSeek الذكي -->
     <div class="ai-chat-container mb-4">
-        <!-- زر فتح وإغلاق المساعد -->
         <button class="ai-toggle-btn" onclick="toggleAI()" id="aiToggleBtn">
             <i class="fas fa-robot text-amber-400 fa-lg"></i>
             <span>مساعدك الذكي لإدارة المتجر</span>
@@ -368,11 +430,10 @@
             <span class="icon-arrow" id="aiArrowIcon"><i class="fas fa-chevron-down"></i></span>
         </button>
         
-        <!-- محتوى المساعد (يظهر عند النقر) -->
         <div class="ai-content" id="aiContent">
             <div class="ai-header">
                 <h5>
-                    <i class="fas fa-microchip" style="color: var(--mahjoub-gold);"></i>
+                    <i class="fas fa-microchip" style="color: #ce9e49;"></i>
                     <span>مساعد المورد الذكي</span>
                     <span class="ai-badge">مفعل</span>
                 </h5>
@@ -390,7 +451,6 @@
                 </div>
             </div>
             
-            <!-- اقتراحات سريعة تفاعلية -->
             <div class="ai-suggestions">
                 <button class="suggestion-btn" onclick="askSuggestion('كيف أحسن مبيعات متجري؟')">📈 تحسين المبيعات</button>
                 <button class="suggestion-btn" onclick="askSuggestion('أعطني نصائح لتسويق منتجاتي')">📢 التسويق الفعال</button>
@@ -410,15 +470,13 @@
 
     <!-- إشعار في حال عدم وجود محفظة مرتبطة -->
     {% if not wallet %}
-    <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 16px; border-right: 4px solid #f59e0b; background: #fffbeb; color: #b45309;">
+    <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 16px; border-right: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.2); padding: 1rem;">
         <i class="fas fa-exclamation-triangle me-2"></i>
         <strong>تنبيه هامة:</strong> لا توجد محفظة مالية مرتبطة بحسابك حتى الآن. يرجى التواصل مع الإدارة لاستكمال التفعيل المالي.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
     </div>
     {% endif %}
 </div>
 
-<!-- JavaScript للمساعد الذكي والتحكم بالحركات -->
 <script>
     let aiOpen = false;
     
@@ -441,11 +499,7 @@
         const typing = document.createElement('div');
         typing.className = 'typing-indicator';
         typing.id = 'typingIndicator';
-        typing.innerHTML = `
-            <span></span>
-            <span></span>
-            <span></span>
-        `;
+        typing.innerHTML = `<span></span><span></span><span></span>`;
         messages.appendChild(typing);
         typing.style.display = 'block';
         messages.scrollTop = messages.scrollHeight;
@@ -464,14 +518,10 @@
         if (isUser) {
             div.innerHTML = `<div class="bubble">${text}</div>`;
         } else {
-            const formattedText = text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\n/g, '<br>');
             div.innerHTML = `
                 <div class="bubble">
                     <span class="ai-name">🤖 DeepSeek Assistant</span>
-                    ${formattedText}
+                    ${text}
                 </div>
             `;
         }
@@ -492,9 +542,7 @@
         
         if (!question) return;
         
-        if (!aiOpen) {
-            toggleAI();
-        }
+        if (!aiOpen) toggleAI();
         
         addMessage(question, true);
         input.value = '';
