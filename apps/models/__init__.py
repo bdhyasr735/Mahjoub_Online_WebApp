@@ -18,6 +18,9 @@ from apps.models.sync_log import SyncLog
 # ✅ إضافة OTP
 from apps.models.otp_db import OTP
 
+# ✅ إضافة نموذج تحسين محركات البحث (SEO)
+from apps.models.search_db import SearchEngineOptimization
+
 # استيراد نماذج الواتساب
 from apps.models.whatsapp_models import (
     WhatsAppMessageLog,
@@ -39,6 +42,7 @@ __all__ = [
     'OTP',
     'Product',
     'ProductSupplierMapping',
+    'SearchEngineOptimization',
     'Supplier',
     'SupplierProfile',
     'SupplierStaff',
