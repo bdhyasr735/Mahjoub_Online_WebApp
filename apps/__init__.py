@@ -506,9 +506,32 @@ def create_app():
         from apps.suppliers_auth_portal.routes import suppliers_bp
         app.register_blueprint(suppliers_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_bp)
-        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين يدوياً بنجاح.")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+
+    # قراءة وتنفيذ بيانات قائمة التنقل الخاصة بـ suppliers_auth_portal يدوياً لضمان ظهورها في لوحة التحكم
+    try:
+        from apps.suppliers_auth_portal import registry as supplier_registry
+        links_data = {}
+        if hasattr(supplier_registry, 'NAV_ITEMS') and isinstance(supplier_registry.NAV_ITEMS, list):
+            for nav in supplier_registry.NAV_ITEMS:
+                ep = nav.get('endpoint')
+                title = nav.get('title')
+                if ep and title:
+                    links_data[ep] = title
+        if links_data:
+            mod_data = {
+                "display_name": getattr(supplier_registry, 'MODULE_NAME', 'بوابة الموردين'),
+                "icon": getattr(supplier_registry, 'MODULE_ICON', 'fa-store'),
+                "links": links_data,
+            }
+            if getattr(supplier_registry, 'SHOW_IN_SUPPLIER', False):
+                SUPPLIER_MODULES['suppliers_auth_portal'] = mod_data
+            else:
+                ADMIN_MODULES['suppliers_auth_portal'] = mod_data
+    except Exception as e:
+        print(f"⚠️ [تحذير تسجيل عناصر الموردين]: {e}")
 
     try:
         from apps.admin.graphql_routes import graphql_bp
@@ -541,7 +564,7 @@ def create_app():
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
     # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
+    # 🔄 التسجيل الديناميكي التلقائي لباقي الموديولات
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin', 'zsa_engine']
