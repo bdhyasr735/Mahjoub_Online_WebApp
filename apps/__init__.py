@@ -748,3 +748,5 @@ def create_app():
         if not response.headers.get('X-CSRF-Token'):
             response.headers['X-CSRF-Token'] = generate_csrf()
         return response
+
+  return app
