@@ -7,7 +7,8 @@ suppliers_bp = Blueprint(
     'suppliers_bp',
     __name__,
     template_folder='templates',
-    static_folder='static'
+    static_folder='static',
+    url_prefix='/supplier'
 )
 
 # استيراد الملفات المقسمة لتسجيل المسارات (Routes) تلقائياً داخل الـ Blueprint
