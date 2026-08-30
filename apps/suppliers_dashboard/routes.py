@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_dashboard/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from apps.models.supplier import Supplier
 from apps.models.wallet_db import SupplierWallet
@@ -143,21 +143,3 @@ def index():
         staff_count=staff_count,
         supplier_modules=supplier_modules
     )
-
-
-@suppliers_dashboard_bp.route('/api/ask-ai', methods=['POST'])
-@login_required
-def ask_ai():
-    """مسار استقبال أسئلة المورد ومعالجتها بواسطة المساعد الذكي الخاص بمنصة محجوب أونلاين."""
-    data = request.get_json() or {}
-    question = data.get('question', '').strip()
-
-    if not question:
-        return jsonify({'success': False, 'message': 'الرجاء إدخال سؤال صحيح.'}), 400
-
-    try:
-        answer = f"شكراً لاستفسارك! بناءً على تحليل متجرك الداخلي في منصة محجوب أونلاين، أنصحك بـ: التركيز على تحسين تفاصيل المنتجات وإدارة المخزون بفعالية لتطوير استراتيجية '{question}'."
-        return jsonify({'success': True, 'answer': answer})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
