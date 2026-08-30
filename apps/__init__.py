@@ -243,29 +243,15 @@ def create_app():
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
     # ============================================================
-    # ⚙️ إعادة بناء قاعدة البيانات
+    # ⚙️ إعادة بناء قاعدة البيانات (تم تعطيل الحذف التلقائي عند بدء التشغيل لمنع فقدان البيانات أو مشاكل الـ Drop)
     # ============================================================
     with app.app_context():
         import_all_models()
         try:
-            db.session.remove()
-            db.session.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
-            db.session.execute(text("CREATE SCHEMA public;"))
-            db.session.commit()
-            print("✅ [إعادة البناء الكامل]: تم حذف جميع الجداول القديمة وإعادة تعيين الـ Schema بنجاح.")
-
             db.create_all()
-            print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
-            seed_database()
-            print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
-
+            print("✅ [إنشاء الجداول]: تم التحقق من إنشاء الجداول بنجاح.")
         except Exception as e:
-            db.session.rollback()
-            db.session.remove()
-            print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"⚠️ [تحذير إنشاء الجداول]: {e}")
 
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
