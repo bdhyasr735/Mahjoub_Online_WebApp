@@ -14,7 +14,7 @@ class SupplierPortalSEOService:
     
     # الإعدادات الأساسية للموقع
     SITE_NAME = "محجوب أونلاين - سوقك الذكي"
-    SITE_URL = "https://mahjoub.online"  # يمكن تغييرها حسب البيئة
+    SITE_URL = "https://mahjoub.online"
     SITE_LOGO = "https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp"
     SITE_DESCRIPTION = "منصة اللامركزية لحوكمة التجارة اليمنية - بوابة الموردين وموظفيهم المعتمدة"
     AUTHOR = "منصة اللامركزية لحوكمة التجارة اليمنية"
@@ -98,7 +98,7 @@ class SupplierPortalSEOService:
                 "twitter_card": "summary_large_image",
                 "priority": 0.8,
                 "changefreq": "daily",
-                "noindex": True  # صفحات داخلية لا تظهر في محركات البحث
+                "noindex": True
             },
             "profile": {
                 "title": "الملف الشخصي | محجوب أونلاين",
@@ -156,10 +156,9 @@ class SupplierPortalSEOService:
     def _get_canonical_url(page_name):
         """الحصول على الرابط الأساسي للصفحة"""
         try:
-            # محاولة استخدام url_for للحصول على الرابط
             endpoints = {
                 "login": "auth_login.login",
-                "register": "auth_register.register_page",
+                "register": "auth_register.register",
                 "verify": "auth_recovery.verify",
                 "forgot_password": "auth_recovery.forgot_password",
                 "reset_password": "auth_recovery.reset_password",
@@ -171,18 +170,14 @@ class SupplierPortalSEOService:
             if endpoint:
                 return url_for(endpoint, _external=True)
             
-            # إذا لم يتم العثور على النقطة، استخدام الرابط الحالي
             return request.url
             
         except Exception:
-            # في حالة الخطأ، إرجاع الرابط الأساسي
             return request.url
     
     @staticmethod
     def _get_jsonld(page_name, page_data):
-        """
-        إنشاء بيانات JSON-LD للتكامل مع محركات البحث
-        """
+        """إنشاء بيانات JSON-LD للتكامل مع محركات البحث"""
         base_jsonld = {
             "@context": "https://schema.org",
             "@type": "WebPage",
@@ -229,67 +224,6 @@ class SupplierPortalSEOService:
             }
         
         return base_jsonld
-    
-    @staticmethod
-    def get_page_title(page_name, custom_title=None):
-        """الحصول على عنوان الصفحة"""
-        if custom_title:
-            return f"{custom_title} | {SupplierPortalSEOService.SITE_NAME}"
-        
-        data = SupplierPortalSEOService.get_meta_tags(page_name)
-        return data.get("title", SupplierPortalSEOService.SITE_NAME)
-    
-    @staticmethod
-    def get_page_description(page_name, custom_description=None):
-        """الحصول على وصف الصفحة"""
-        if custom_description:
-            return custom_description
-        
-        data = SupplierPortalSEOService.get_meta_tags(page_name)
-        return data.get("description", SupplierPortalSEOService.SITE_DESCRIPTION)
-    
-    @staticmethod
-    def get_og_tags(page_name, custom_data=None):
-        """الحصول على بيانات Open Graph"""
-        data = SupplierPortalSEOService.get_meta_tags(page_name, custom_data)
-        return data.get("og", {})
-    
-    @staticmethod
-    def get_twitter_tags(page_name, custom_data=None):
-        """الحصول على بيانات Twitter Cards"""
-        data = SupplierPortalSEOService.get_meta_tags(page_name, custom_data)
-        return data.get("twitter", {})
-    
-    @staticmethod
-    def get_jsonld_tags(page_name, custom_data=None):
-        """الحصول على بيانات JSON-LD"""
-        data = SupplierPortalSEOService.get_meta_tags(page_name, custom_data)
-        return data.get("jsonld", {})
-    
-    @staticmethod
-    def should_noindex(page_name):
-        """تحديد ما إذا كانت الصفحة يجب أن تكون noindex"""
-        data = SupplierPortalSEOService.get_meta_tags(page_name)
-        return data.get("noindex", False)
-    
-    @staticmethod
-    def get_sitemap_data():
-        """
-        الحصول على بيانات خريطة الموقع لجميع الصفحات
-        """
-        pages = ["login", "register", "forgot_password", "reset_password"]
-        sitemap = []
-        
-        for page in pages:
-            data = SupplierPortalSEOService.get_meta_tags(page)
-            sitemap.append({
-                "url": SupplierPortalSEOService._get_canonical_url(page),
-                "priority": data["sitemap"]["priority"],
-                "changefreq": data["sitemap"]["changefreq"],
-                "lastmod": datetime.utcnow().isoformat()
-            })
-        
-        return sitemap
 
 
 # ============================================================
@@ -297,31 +231,24 @@ class SupplierPortalSEOService:
 # ============================================================
 
 def get_seo_data(page_name, custom_data=None):
-    """
-    دالة مساعدة للحصول على بيانات SEO للقوالب
-    
-    Args:
-        page_name (str): اسم الصفحة
-        custom_data (dict): بيانات مخصصة
-    
-    Returns:
-        dict: قاموس يحتوي على جميع بيانات SEO
-    """
+    """دالة مساعدة للحصول على بيانات SEO للقوالب"""
     return SupplierPortalSEOService.get_meta_tags(page_name, custom_data)
 
 
 def get_page_title(page_name, custom_title=None):
-    """
-    دالة مساعدة للحصول على عنوان الصفحة للقوالب
-    """
-    return SupplierPortalSEOService.get_page_title(page_name, custom_title)
+    """دالة مساعدة للحصول على عنوان الصفحة للقوالب"""
+    if custom_title:
+        return f"{custom_title} | {SupplierPortalSEOService.SITE_NAME}"
+    data = SupplierPortalSEOService.get_meta_tags(page_name)
+    return data.get("title", SupplierPortalSEOService.SITE_NAME)
 
 
 def get_page_description(page_name, custom_description=None):
-    """
-    دالة مساعدة للحصول على وصف الصفحة للقوالب
-    """
-    return SupplierPortalSEOService.get_page_description(page_name, custom_description)
+    """دالة مساعدة للحصول على وصف الصفحة للقوالب"""
+    if custom_description:
+        return custom_description
+    data = SupplierPortalSEOService.get_meta_tags(page_name)
+    return data.get("description", SupplierPortalSEOService.SITE_DESCRIPTION)
 
 
 # ============================================================
