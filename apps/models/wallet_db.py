@@ -32,6 +32,15 @@ class SupplierWallet(db.Model):
     balance_pending = db.Column(db.Numeric(18, 2), default=0.00)
     total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)
 
+    @property
+    def balance(self):
+        """خاصية متوافقة مع القوالب التي تستخدم balance بدلاً من balance_sar"""
+        return self.balance_sar
+
+    @balance.setter
+    def balance(self, value):
+        self.balance_sar = value
+
     _bank_details_enc = db.Column(db.String(500), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -77,6 +86,7 @@ class SupplierWallet(db.Model):
             'status': self.status,
             'supplier_id': self.supplier_id,
             'balance_sar': float(self.balance_sar or 0.0),
+            'balance': float(self.balance_sar or 0.0),
             'bank_details': self.bank_details,
             'formatted_time': self.formatted_time,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
