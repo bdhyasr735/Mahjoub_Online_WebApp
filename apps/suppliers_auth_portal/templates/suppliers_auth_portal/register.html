@@ -32,7 +32,7 @@
         <!-- رسالة التنبيه -->
         <div id="alertBox" class="hidden mb-6 p-4 rounded-xl text-xs flex items-center gap-3"></div>
 
-        <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-8 relative z-10">
+        <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-8 relative z-10" novalidate>
             <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
 
             <!-- القسم 1: بيانات المنشأة (Supplier) -->
@@ -45,31 +45,43 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">الاسم التجاري (trade_name) *</label>
-                        <input type="text" id="tradeName" name="trade_name" required placeholder="مثال: شركة الركائز المتطورة للتوريد"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="text" id="tradeName" name="trade_name" required placeholder="مثال: شركة الركائز المتطورة للتوريد" oninput="validateField('tradeName')"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all">
+                            <span id="tradeNameIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="tradeNameError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المتجر (store_name) *</label>
-                        <input type="text" id="storeName" name="store_name" required placeholder="مثال: متجر الركائز"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="text" id="storeName" name="store_name" required placeholder="مثال: متجر الركائز" oninput="validateField('storeName')"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all">
+                            <span id="storeNameIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="storeNameError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                     </div>
 
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">العنوان الكامل (full_address) *</label>
-                        <input type="text" id="fullAddress" name="full_address" required placeholder="مثال: الحديدة، الخوخة، الشارع العام"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="text" id="fullAddress" name="full_address" required placeholder="مثال: الحديدة، الخوخة، الشارع العام" oninput="validateField('fullAddress')"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all">
+                            <span id="fullAddressIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="fullAddressError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">المدينة (city)</label>
-                        <input type="text" id="city" name="city" placeholder="مثال: صنعاء"
+                        <input type="text" id="city" name="city" placeholder="مثال: الحديدة"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">الحي (district)</label>
-                        <input type="text" id="district" name="district" placeholder="مثال: شارع الحديدة"
+                        <input type="text" id="district" name="district" placeholder="مثال: شارع الكورنيش"
                                class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
                     </div>
                 </div>
@@ -85,27 +97,44 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المالك (owner_name) *</label>
-                        <input type="text" id="ownerName" name="owner_name" required placeholder="الاسم الثلاثي أو الرباعي"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="text" id="ownerName" name="owner_name" required placeholder="الاسم الثلاثي أو الرباعي" oninput="validateField('ownerName')"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all">
+                            <span id="ownerNameIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="ownerNameError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المستخدم (username) *</label>
-                        <input type="text" id="username" name="username" required placeholder="أدخل اسم مستخدم فريد"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="text" id="username" name="username" required placeholder="أدخل اسم مستخدم فريد" oninput="validateField('username')" dir="ltr"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all text-right"
+                                   autocomplete="username">
+                            <span id="usernameIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="usernameError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                         <p class="text-[10px] text-slate-500 mt-1">3-30 حرفاً (حروف، أرقام، _)</p>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">البريد الإلكتروني (email) *</label>
-                        <input type="email" id="email" name="email" required placeholder="contact@company.ye"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold dir-ltr text-right">
+                        <div class="relative">
+                            <input type="email" id="email" name="email" required placeholder="contact@company.ye" oninput="validateField('email')" dir="ltr"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all text-right">
+                            <span id="emailIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="emailError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">رقم الهاتف (phone) *</label>
-                        <input type="tel" id="phone" name="phone" required placeholder="77xxxxxxx"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold dir-ltr text-right font-mono">
+                        <div class="relative">
+                            <input type="tel" id="phone" name="phone" required placeholder="77xxxxxxx" maxlength="9" oninput="validateField('phone')" dir="ltr"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all text-right font-mono">
+                            <span id="phoneIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="phoneError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                         <p class="text-[10px] text-slate-500 mt-1">أدخل رقم الهاتف بدون رمز الدولة (آخر 9 أرقام)</p>
                     </div>
                 </div>
@@ -121,15 +150,39 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">كلمة المرور *</label>
-                        <input type="password" id="regPassword" name="password" required minlength="8" placeholder="••••••••"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="password" id="regPassword" name="password" required minlength="8" placeholder="••••••••" oninput="validateField('regPassword')"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold transition-all"
+                                   autocomplete="new-password">
+                            <button type="button" onclick="togglePasswordVisibility('regPassword', this)" class="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold transition text-xs">
+                                إظهار
+                            </button>
+                            <span id="regPasswordIcon" class="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <!-- مؤشر قوة كلمة المرور -->
+                        <div class="mt-1.5 space-y-1">
+                            <div class="flex gap-1 h-1.5 w-full bg-royalDark rounded-full overflow-hidden">
+                                <div id="pwdBar1" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                                <div id="pwdBar2" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                                <div id="pwdBar3" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                                <div id="pwdBar4" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                            </div>
+                        </div>
                         <p class="text-[10px] text-slate-500 mt-1">يجب أن تحتوي على 8 أحرف على الأقل</p>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5">تأكيد كلمة المرور *</label>
-                        <input type="password" id="regConfirmPassword" name="confirm_password" required minlength="8" placeholder="••••••••"
-                               class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold">
+                        <div class="relative">
+                            <input type="password" id="regConfirmPassword" name="confirm_password" required minlength="8" placeholder="••••••••" oninput="validateField('regConfirmPassword')"
+                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold transition-all"
+                                   autocomplete="new-password">
+                            <button type="button" onclick="togglePasswordVisibility('regConfirmPassword', this)" class="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold transition text-xs">
+                                إظهار
+                            </button>
+                            <span id="regConfirmPasswordIcon" class="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
+                        </div>
+                        <div id="regConfirmPasswordError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
                     </div>
                 </div>
             </div>
@@ -145,7 +198,7 @@
                     <h4 class="text-sm font-bold text-royalGold">إنشاء المحفظة المالية الذكية تلقائياً</h4>
                     <p class="text-xs text-slate-300 mt-1 leading-relaxed">
                         بمجرد اكتمال تسجيل المنشأة، سيقوم النظام تلقائياً بإنشاء وتفعيل محفظة رقمية معتمدة (SupplierWallet) 
-                        برقم حساب بنكي مخصص (WEL-963X) لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
+                        برقم حساب بنكي مخصص لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
                     </p>
                 </div>
             </div>
@@ -202,6 +255,160 @@
         'use strict';
 
         let employeeCount = 0;
+
+        const DOM = {
+            tradeName: document.getElementById('tradeName'),
+            tradeNameIcon: document.getElementById('tradeNameIcon'),
+            tradeNameError: document.getElementById('tradeNameError'),
+
+            storeName: document.getElementById('storeName'),
+            storeNameIcon: document.getElementById('storeNameIcon'),
+            storeNameError: document.getElementById('storeNameError'),
+
+            fullAddress: document.getElementById('fullAddress'),
+            fullAddressIcon: document.getElementById('fullAddressIcon'),
+            fullAddressError: document.getElementById('fullAddressError'),
+
+            ownerName: document.getElementById('ownerName'),
+            ownerNameIcon: document.getElementById('ownerNameIcon'),
+            ownerNameError: document.getElementById('ownerNameError'),
+
+            username: document.getElementById('username'),
+            usernameIcon: document.getElementById('usernameIcon'),
+            usernameError: document.getElementById('usernameError'),
+
+            email: document.getElementById('email'),
+            emailIcon: document.getElementById('emailIcon'),
+            emailError: document.getElementById('emailError'),
+
+            phone: document.getElementById('phone'),
+            phoneIcon: document.getElementById('phoneIcon'),
+            phoneError: document.getElementById('phoneError'),
+
+            regPassword: document.getElementById('regPassword'),
+            regPasswordIcon: document.getElementById('regPasswordIcon'),
+            
+            regConfirmPassword: document.getElementById('regConfirmPassword'),
+            regConfirmPasswordIcon: document.getElementById('regConfirmPasswordIcon'),
+            regConfirmPasswordError: document.getElementById('regConfirmPasswordError'),
+
+            pwdBars: [
+                document.getElementById('pwdBar1'),
+                document.getElementById('pwdBar2'),
+                document.getElementById('pwdBar3'),
+                document.getElementById('pwdBar4')
+            ]
+        };
+
+        // ====== دالة التحقق اللحظي لكل حقل ======
+        window.validateField = function(fieldKey) {
+            const input = DOM[fieldKey];
+            if (!input) return;
+            const val = input.value.trim();
+            const icon = document.getElementById(fieldKey + 'Icon');
+            const errDiv = document.getElementById(fieldKey + 'Error');
+
+            if (!val) {
+                if (icon) icon.classList.add('hidden');
+                input.className = input.className.replace('border-emerald-500/50', 'border-royalGold/30').replace('border-rose-500/50', 'border-royalGold/30');
+                if (errDiv) errDiv.classList.add('hidden');
+                return;
+            }
+
+            let isValid = true;
+            let errorMsg = '';
+
+            if (fieldKey === 'tradeName') {
+                isValid = val.length >= 3;
+                errorMsg = 'الاسم التجاري يجب أن يكون 3 أحرف على الأقل.';
+            } else if (fieldKey === 'storeName') {
+                isValid = val.length >= 2;
+                errorMsg = 'اسم المتجر يجب أن يكون حرفين على الأقل.';
+            } else if (fieldKey === 'fullAddress') {
+                isValid = val.length >= 5;
+                errorMsg = 'يرجى إدخال العنوان الكامل بالتفصيل.';
+            } else if (fieldKey === 'ownerName') {
+                isValid = val.length >= 3;
+                errorMsg = 'اسم المالك يجب أن يكون 3 أحرف على الأقل.';
+            } else if (fieldKey === 'username') {
+                const userRegex = /^[a-zA-Z0-9_]{3,30}$/;
+                isValid = userRegex.test(val);
+                errorMsg = 'اسم المستخدم يجب أن يكون بالإنجليزية وأكثر من 3 خانات بدون مسافات.';
+            } else if (fieldKey === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                isValid = emailRegex.test(val);
+                errorMsg = 'يرجى إدخال بريد إلكتروني صالح.';
+            } else if (fieldKey === 'phone') {
+                const cleanPhone = val.replace(/[^0-9]/g, '');
+                isValid = cleanPhone.length === 9;
+                errorMsg = 'رقم الهاتف يجب أن يتكون من 9 أرقام (مثال: 77xxxxxxx).';
+            } else if (fieldKey === 'regPassword') {
+                checkPasswordStrength(val);
+                return;
+            } else if (fieldKey === 'regConfirmPassword') {
+                isValid = val.length > 0 && val === DOM.regPassword.value;
+                errorMsg = 'كلمتا المرور غير متطابقتين.';
+            }
+
+            if (icon) icon.classList.remove('hidden');
+            if (isValid) {
+                if (icon) {
+                    icon.textContent = '✓';
+                    icon.className = 'absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald-400';
+                }
+                input.className = input.className.replace('border-royalGold/30', 'border-emerald-500/50').replace('border-rose-500/50', 'border-emerald-500/50');
+                if (errDiv) errDiv.classList.add('hidden');
+            } else {
+                if (icon) {
+                    icon.textContent = '✗';
+                    icon.className = 'absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-rose-400';
+                }
+                input.className = input.className.replace('border-royalGold/30', 'border-rose-500/50').replace('border-emerald-500/50', 'border-rose-500/50');
+                if (errDiv) {
+                    errDiv.textContent = errorMsg;
+                    errDiv.classList.remove('hidden');
+                }
+            }
+        };
+
+        function checkPasswordStrength(password) {
+            const bars = DOM.pwdBars;
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+            if (/\d/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+
+            bars.forEach(b => b.className = 'w-1/4 bg-slate-700 transition-all duration-300');
+            const colors = ['bg-rose-500', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500'];
+
+            if (password.length > 0) {
+                for (let i = 0; i < score; i++) {
+                    bars[i].className = `w-1/4 ${colors[Math.min(score - 1, 3)]} transition-all duration-300`;
+                }
+                const isValid = password.length >= 8;
+                DOM.regPasswordIcon.classList.remove('hidden');
+                DOM.regPasswordIcon.textContent = isValid ? '✓' : '✗';
+                DOM.regPasswordIcon.className = `absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold ${isValid ? 'text-emerald-400' : 'text-rose-400'}`;
+            } else {
+                DOM.regPasswordIcon.classList.add('hidden');
+            }
+            if (DOM.regConfirmPassword.value) {
+                validateField('regConfirmPassword');
+            }
+        }
+
+        window.togglePasswordVisibility = function(fieldId, btnEl) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            if (field.type === 'password') {
+                field.type = 'text';
+                btnEl.textContent = 'إخفاء';
+            } else {
+                field.type = 'password';
+                btnEl.textContent = 'إظهار';
+            }
+        };
 
         // ====== إضافة موظف ======
         window.addEmployeeRow = function() {
@@ -280,17 +487,19 @@
 
             const form = e.target;
 
-            // التحقق من تطابق كلمة المرور
+            // التحقق من كافة الحقول الأساسية
+            ['tradeName', 'storeName', 'fullAddress', 'ownerName', 'username', 'email', 'phone', 'regPassword', 'regConfirmPassword'].forEach(k => validateField(k));
+
             const pass = document.getElementById('regPassword').value;
             const confirm = document.getElementById('regConfirmPassword').value;
 
             if (pass !== confirm) {
-                showAlert('كلمتا المرور غير متطابقتين');
+                showAlert('كلمتا المرور غير متطابقتين.');
                 return;
             }
 
             if (pass.length < 8) {
-                showAlert('كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل');
+                showAlert('كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.');
                 return;
             }
 
@@ -307,26 +516,18 @@
                 }
             });
 
-            // بناء الـ payload المتوافق مع Supplier و SupplierProfile و SupplierWallet
             const payload = {
-                // Supplier
-                username: document.getElementById('username').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                phone: document.getElementById('phone').value.trim(),
+                username: DOM.username.value.trim(),
+                email: DOM.email.value.trim(),
+                phone: DOM.phone.value.trim(),
                 password: pass,
-                owner_name: document.getElementById('ownerName').value.trim(),
-                trade_name: document.getElementById('tradeName').value.trim(),
-                store_name: document.getElementById('storeName').value.trim(),
-                
-                // SupplierProfile
-                full_address: document.getElementById('fullAddress').value.trim(),
+                owner_name: DOM.ownerName.value.trim(),
+                trade_name: DOM.tradeName.value.trim(),
+                store_name: DOM.storeName.value.trim(),
+                full_address: DOM.fullAddress.value.trim(),
                 city: document.getElementById('city').value.trim(),
                 district: document.getElementById('district').value.trim(),
-                
-                // SupplierStaff
                 employees: employees,
-                
-                // CSRF
                 csrf_token: form.csrf_token.value
             };
 
@@ -371,7 +572,7 @@
 
         // ====== التركيز التلقائي ======
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('tradeName').focus();
+            if (DOM.tradeName) DOM.tradeName.focus();
         });
 
     })();
