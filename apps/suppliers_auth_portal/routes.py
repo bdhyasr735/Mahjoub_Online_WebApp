@@ -11,15 +11,14 @@ import random
 import string
 from datetime import datetime, timedelta
 
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.models.wallet_db import SupplierWallet
-from apps.models.supplier_staff_db import SupplierStaff, SupplierStaffRole
+from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.product_supplier_map import ProductSupplierMapping
 
 # إعداد التسجيل
@@ -29,8 +28,8 @@ logger = logging.getLogger(__name__)
 suppliers_auth_bp = Blueprint(
     'suppliers_auth_bp',
     __name__,
-    template_folder='templates/suppliers_auth_portal',
-    static_folder='static/suppliers_auth_portal',
+    template_folder='templates',
+    static_folder='static',
     url_prefix='/suppliers'
 )
 
@@ -88,38 +87,29 @@ def find_user(identifier):
     """البحث عن مستخدم (مورد أو موظف) حسب المعرف"""
     supplier = None
     
-    # بحث بالبريد الإلكتروني
     email = validate_email(identifier)
     if email:
         supplier = Supplier.query.filter_by(email=email).first()
     
-    # بحث برقم الهاتف
-    if not supplier:
-        phone = validate_phone(identifier)
-        if phone:
+    phone = validate_phone(identifier)
+    if not supplier and phone:
+        supplier = Supplier.query.filter_by(phone=phone).first()
+        if not supplier and hasattr(Supplier, 'search_phone'):
             supplier = Supplier.query.filter_by(search_phone=phone).first()
     
-    # بحث باسم المستخدم
-    if not supplier:
-        username = validate_username(identifier)
-        if username:
-            supplier = Supplier.query.filter_by(username=username).first()
+    username = validate_username(identifier)
+    if not supplier and username:
+        supplier = Supplier.query.filter_by(username=username).first()
     
     if supplier:
         return supplier, 'supplier'
     
     # البحث في الموظفين
     employee = None
-    
-    # بحث بالبريد الإلكتروني
     if email:
         employee = SupplierStaff.query.filter_by(email=email).first()
-    
-    # بحث برقم الهاتف
     if not employee and phone:
         employee = SupplierStaff.query.filter_by(phone=phone).first()
-    
-    # بحث باسم المستخدم
     if not employee and username:
         employee = SupplierStaff.query.filter_by(username=username).first()
     
@@ -136,27 +126,31 @@ def find_user(identifier):
 @suppliers_auth_bp.route('/login', methods=['GET'])
 def login_page():
     """صفحة تسجيل الدخول"""
-    if current_user.is_authenticated:
-        return redirect(url_for('suppliers_auth_bp.dashboard'))
-    
-    return render_template('login.html', page_title='تسجيل الدخول')
+    try:
+        if current_user.is_authenticated:
+            return redirect(url_for('suppliers_auth_bp.dashboard'))
+        
+        return render_template('suppliers_auth_portal/login.html', page_title='تسجيل الدخول')
+    except Exception as e:
+        logger.error(f"❌ خطأ فادح أثناء عرض صفحة تسجيل الدخول: {str(e)}", exc_info=True)
+        return f"Internal Server Error: {str(e)}", 500
 
 
 @suppliers_auth_bp.route('/login', methods=['POST'])
 def login():
     """معالجة تسجيل الدخول (JSON)"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or request.form
         if not data:
             return jsonify({
                 'success': False,
                 'message': 'بيانات غير صالحة'
             }), 400
 
-        identifier = data.get('identifier', '').strip()
-        password = data.get('password', '')
-        user_type = data.get('user_type', 'supplier')
-        remember_me = data.get('remember_me', False)
+        identifier = str(data.get('identifier', '')).strip()
+        password = str(data.get('password', ''))
+        user_type = str(data.get('user_type', 'supplier'))
+        remember_me = bool(data.get('remember_me', False))
 
         if not identifier or not password:
             return jsonify({
@@ -164,17 +158,15 @@ def login():
                 'message': 'يرجى إدخال اسم المستخدم وكلمة المرور'
             }), 400
 
-        # البحث عن المستخدم
         user, found_type = find_user(identifier)
         
         if not user:
-            logger.warning(f"⚠️ محاولة دخول فاشلة: {identifier}")
+            logger.warning(f"⚠️ محاولة دخول فاشلة لمعرف غير موجود: {identifier}")
             return jsonify({
                 'success': False,
                 'message': 'اسم المستخدم أو كلمة المرور غير صحيحة'
             }), 401
 
-        # التحقق من نوع المستخدم المطلوب
         if user_type == 'supplier' and found_type != 'supplier':
             return jsonify({
                 'success': False,
@@ -188,30 +180,35 @@ def login():
             }), 403
 
         # التحقق من كلمة المرور
-        if not user.check_password(password):
-            logger.warning(f"⚠️ كلمة مرور خاطئة: {user.username}")
+        password_valid = False
+        if hasattr(user, 'check_password'):
+            password_valid = user.check_password(password)
+        elif hasattr(user, 'password_hash'):
+            from werkzeug.security import check_password_hash
+            password_valid = check_password_hash(user.password_hash, password)
+
+        if not password_valid:
+            logger.warning(f"⚠️ كلمة مرور خاطئة للمستخدم: {getattr(user, 'username', identifier)}")
             return jsonify({
                 'success': False,
                 'message': 'اسم المستخدم أو كلمة المرور غير صحيحة'
             }), 401
 
-        # التحقق من حالة المستخدم
-        if not user.is_active:
+        if hasattr(user, 'is_active') and not user.is_active:
             return jsonify({
                 'success': False,
                 'message': 'الحساب غير نشط. يرجى التواصل مع الدعم الفني.'
             }), 403
 
-        # تسجيل الدخول
         login_user(user, remember=remember_me)
         session['user_type'] = found_type
         session['login_time'] = datetime.now().isoformat()
         
-        # تحديث آخر تسجيل دخول
-        user.last_login = datetime.now()
-        db.session.commit()
+        if hasattr(user, 'last_login'):
+            user.last_login = datetime.now()
+            db.session.commit()
 
-        logger.info(f"✅ تم تسجيل الدخول: {user.username} ({found_type})")
+        logger.info(f"✅ تم تسجيل الدخول بنجاح: {getattr(user, 'username', identifier)} ({found_type})")
 
         return jsonify({
             'success': True,
@@ -220,128 +217,90 @@ def login():
         })
 
     except Exception as e:
-        logger.error(f"❌ خطأ في تسجيل الدخول: {str(e)}")
+        db.session.rollback()
+        logger.error(f"❌ خطأ غير متوقع أثناء تسجيل الدخول: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': 'حدث خطأ أثناء محاولة تسجيل الدخول'
+            'message': f'حدث خطأ داخلي في الخادم: {str(e)}'
         }), 500
 
 
 @suppliers_auth_bp.route('/register', methods=['GET'])
 def register_page():
     """صفحة تسجيل مورد جديد"""
-    if current_user.is_authenticated:
-        return redirect(url_for('suppliers_auth_bp.dashboard'))
-    
-    return render_template('register.html', page_title='اشتراك مورد جديد')
+    try:
+        if current_user.is_authenticated:
+            return redirect(url_for('suppliers_auth_bp.dashboard'))
+        return render_template('suppliers_auth_portal/register.html', page_title='اشتراك مورد جديد')
+    except Exception as e:
+        logger.error(f"❌ خطأ في عرض صفحة التسجيل: {str(e)}", exc_info=True)
+        return f"Internal Server Error: {str(e)}", 500
 
 
 @suppliers_auth_bp.route('/register', methods=['POST'])
 def register():
     """معالجة تسجيل مورد جديد"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or request.form
         if not data:
-            return jsonify({
-                'success': False,
-                'message': 'بيانات غير صالحة'
-            }), 400
+            return jsonify({'success': False, 'message': 'بيانات غير صالحة'}), 400
 
-        # استخراج البيانات
-        username = data.get('username', '').strip()
-        email = data.get('email', '').strip()
-        phone = data.get('phone', '').strip()
-        password = data.get('password', '')
-        confirm_password = data.get('confirm_password', '')
-        owner_name = data.get('owner_name', '').strip()
-        trade_name = data.get('trade_name', '').strip()
-        store_name = data.get('store_name', '').strip()
-        full_address = data.get('full_address', '').strip()
-        city = data.get('city', '').strip()
-        district = data.get('district', '').strip()
+        username = str(data.get('username', '')).strip()
+        email = str(data.get('email', '')).strip()
+        phone = str(data.get('phone', '')).strip()
+        password = str(data.get('password', ''))
+        confirm_password = str(data.get('confirm_password', ''))
+        trade_name = str(data.get('trade_name', '')).strip()
+        store_name = str(data.get('store_name', '')).strip()
+        full_address = str(data.get('full_address', '')).strip()
+        city = str(data.get('city', '')).strip()
+        district = str(data.get('district', '')).strip()
 
-        # التحقق من الحقول المطلوبة
-        required_fields = [username, email, phone, password, confirm_password]
-        if not all(required_fields):
-            return jsonify({
-                'success': False,
-                'message': 'جميع الحقول المطلوبة يجب تعبئتها'
-            }), 400
+        if not all([username, email, phone, password, confirm_password]):
+            return jsonify({'success': False, 'message': 'جميع الحقول الأساسية مطلوبة'}), 400
 
-        # التحقق من تطابق كلمة المرور
         if password != confirm_password:
-            return jsonify({
-                'success': False,
-                'message': 'كلمتا المرور غير متطابقتين'
-            }), 400
+            return jsonify({'success': False, 'message': 'كلمتا المرور غير متطابقتين'}), 400
 
-        # التحقق من قوة كلمة المرور
         if len(password) < 8:
-            return jsonify({
-                'success': False,
-                'message': 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل'
-            }), 400
+            return jsonify({'success': False, 'message': 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'}), 400
 
-        # التحقق من البريد الإلكتروني
         valid_email = validate_email(email)
-        if not valid_email:
-            return jsonify({
-                'success': False,
-                'message': 'البريد الإلكتروني غير صالح'
-            }), 400
-
-        # التحقق من رقم الهاتف
         valid_phone = validate_phone(phone)
-        if not valid_phone:
-            return jsonify({
-                'success': False,
-                'message': 'رقم الهاتف غير صالح'
-            }), 400
-
-        # التحقق من اسم المستخدم
         valid_username = validate_username(username)
-        if not valid_username:
-            return jsonify({
-                'success': False,
-                'message': 'اسم المستخدم غير صالح (3-30 حرفاً، حروف، أرقام، _)'
-            }), 400
 
-        # التحقق من عدم وجود بيانات مكررة
+        if not valid_email or not valid_phone or not valid_username:
+            return jsonify({'success': False, 'message': 'أحد المدخلات (البريد، الهاتف، أو اسم المستخدم) غير صالح'}), 400
+
         if Supplier.query.filter_by(email=valid_email).first():
-            return jsonify({
-                'success': False,
-                'message': 'البريد الإلكتروني مستخدم بالفعل'
-            }), 409
+            return jsonify({'success': False, 'message': 'البريد الإلكتروني مستخدم بالفعل'}), 409
 
-        if Supplier.query.filter_by(search_phone=valid_phone).first():
-            return jsonify({
-                'success': False,
-                'message': 'رقم الهاتف مستخدم بالفعل'
-            }), 409
+        if Supplier.query.filter_by(phone=valid_phone).first() or Supplier.query.filter_by(search_phone=valid_phone).first():
+            return jsonify({'success': False, 'message': 'رقم الهاتف مستخدم بالفعل'}), 409
 
         if Supplier.query.filter_by(username=valid_username).first():
-            return jsonify({
-                'success': False,
-                'message': 'اسم المستخدم مستخدم بالفعل'
-            }), 409
+            return jsonify({'success': False, 'message': 'اسم المستخدم مستخدم بالفعل'}), 409
 
-        # إنشاء حساب المورد الجديد
         new_supplier = Supplier(
             username=valid_username,
             email=valid_email,
             phone=phone,
-            owner_name=owner_name or trade_name or store_name,
+            search_phone=valid_phone,
+            owner_name=trade_name or store_name or valid_username,
             trade_name=trade_name,
-            store_name=store_name or trade_name,
+            store_name=store_name or trade_name or valid_username,
             status='active',
             rank='bronze'
         )
-        new_supplier.set_password(password)
+        if hasattr(new_supplier, 'set_password'):
+            new_supplier.set_password(password)
+        else:
+            from werkzeug.security import generate_password_hash
+            new_supplier.password_hash = generate_password_hash(password)
 
         db.session.add(new_supplier)
         db.session.flush()
 
-        # إنشاء ملف تعريف المورد
         profile = SupplierProfile(
             supplier_id=new_supplier.id,
             full_address=full_address,
@@ -350,7 +309,6 @@ def register():
         )
         db.session.add(profile)
 
-        # إنشاء محفظة المورد
         wallet = SupplierWallet(
             supplier_id=new_supplier.id,
             currency='YER',
@@ -361,198 +319,68 @@ def register():
             total_withdrawn=0.0
         )
         db.session.add(wallet)
-
         db.session.commit()
 
-        logger.info(f"✅ تم تسجيل مورد جديد: {valid_username} ({valid_email})")
-
+        logger.info(f"✅ تم تسجيل مورد جديد بنجاح: {valid_username}")
         return jsonify({
             'success': True,
-            'message': 'تم إنشاء حساب المورد بنجاح. يمكنك الآن تسجيل الدخول.',
+            'message': 'تم إنشاء حساب المورد بنجاح',
             'redirect_url': url_for('suppliers_auth_bp.login_page')
         })
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ خطأ في التسجيل: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ أثناء إنشاء الحساب'
-        }), 500
+        logger.error(f"❌ خطأ أثناء التسجيل: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'خطأ في الخادم: {str(e)}'}), 500
 
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password_page():
     """صفحة استعادة كلمة المرور"""
-    return render_template('forgot_password.html', page_title='استعادة كلمة المرور')
+    try:
+        return render_template('suppliers_auth_portal/forgot_password.html', page_title='استعادة كلمة المرور')
+    except Exception as e:
+        logger.error(f"❌ خطأ في صفحة الاستعادة: {str(e)}", exc_info=True)
+        return f"Internal Server Error: {str(e)}", 500
 
 
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 def request_otp():
-    """طلب رمز التحقق (OTP) لاستعادة كلمة المرور"""
+    """طلب رمز التحقق OTP"""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'success': False,
-                'message': 'بيانات غير صالحة'
-            }), 400
-
-        identifier = data.get('identifier', '').strip()
-
+        data = request.get_json(silent=True) or request.form
+        identifier = str(data.get('identifier', '')).strip()
         if not identifier:
-            return jsonify({
-                'success': False,
-                'message': 'يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني'
-            }), 400
+            return jsonify({'success': False, 'message': 'يرجى إدخال المعرف'}), 400
 
         user, user_type = find_user(identifier)
-        
         if not user:
-            return jsonify({
-                'success': False,
-                'message': 'لم يتم العثور على حساب مرتبط بالبيانات المدخلة'
-            }), 404
-
-        if validate_email(identifier):
-            masked_target = mask_email(identifier)
-        elif validate_phone(identifier):
-            masked_target = mask_phone(validate_phone(identifier))
-        else:
-            masked_target = identifier
+            return jsonify({'success': False, 'message': 'الحساب غير موجود'}), 404
 
         otp_code = generate_otp()
-
         session['reset_otp'] = {
             'code': otp_code,
             'identifier': identifier,
             'user_type': user_type,
             'user_id': user.id,
-            'created_at': datetime.now().isoformat(),
             'expires_at': (datetime.now() + timedelta(minutes=10)).isoformat()
         }
-
-        logger.info(f"📱 تم توليد OTP للمستخدم: {user.username} (type: {user_type})")
 
         return jsonify({
             'success': True,
             'otp_sent': True,
             'message': 'تم إرسال رمز التحقق بنجاح',
-            'data': {
-                'masked_phone': masked_target,
-                '_dev_otp': otp_code
-            }
+            'data': {'_dev_otp': otp_code}
         })
-
     except Exception as e:
-        logger.error(f"❌ خطأ في طلب OTP: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ أثناء طلب رمز التحقق'
-        }), 500
-
-
-@suppliers_auth_bp.route('/reset-password', methods=['POST'])
-def reset_password():
-    """تحديث كلمة المرور بعد التحقق من OTP"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'success': False,
-                'message': 'بيانات غير صالحة'
-            }), 400
-
-        identifier = data.get('identifier', '').strip()
-        otp_code = data.get('otp_code', '').strip()
-        new_password = data.get('new_password', '')
-        confirm_password = data.get('confirm_password', '')
-
-        if not all([identifier, otp_code, new_password, confirm_password]):
-            return jsonify({
-                'success': False,
-                'message': 'جميع الحقول مطلوبة'
-            }), 400
-
-        if new_password != confirm_password:
-            return jsonify({
-                'success': False,
-                'message': 'كلمتا المرور غير متطابقتين'
-            }), 400
-
-        if len(new_password) < 8:
-            return jsonify({
-                'success': False,
-                'message': 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل'
-            }), 400
-
-        reset_data = session.get('reset_otp')
-        if not reset_data:
-            return jsonify({
-                'success': False,
-                'message': 'لم يتم طلب رمز تحقق. يرجى بدء العملية مرة أخرى.'
-            }), 400
-
-        expires_at = datetime.fromisoformat(reset_data['expires_at'])
-        if datetime.now() > expires_at:
-            session.pop('reset_otp', None)
-            return jsonify({
-                'success': False,
-                'message': 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.'
-            }), 400
-
-        if reset_data['code'] != otp_code:
-            return jsonify({
-                'success': False,
-                'message': 'رمز التحقق غير صحيح'
-            }), 400
-
-        if reset_data['identifier'] != identifier:
-            return jsonify({
-                'success': False,
-                'message': 'تعارض في بيانات المستخدم'
-            }), 400
-
-        user_type = reset_data['user_type']
-        user_id = reset_data['user_id']
-
-        if user_type == 'supplier':
-            user = Supplier.query.get(user_id)
-        else:
-            user = SupplierStaff.query.get(user_id)
-
-        if not user:
-            return jsonify({
-                'success': False,
-                'message': 'المستخدم غير موجود'
-            }), 404
-
-        user.set_password(new_password)
-        db.session.commit()
-
-        session.pop('reset_otp', None)
-
-        logger.info(f"✅ تم تحديث كلمة المرور: {user.username}")
-
-        return jsonify({
-            'success': True,
-            'message': 'تم تحديث كلمة المرور بنجاح',
-            'redirect_url': url_for('suppliers_auth_bp.login_page')
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"❌ خطأ في تحديث كلمة المرور: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ أثناء تحديث كلمة المرور'
-        }), 500
+        logger.error(f"❌ خطأ OTP: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @suppliers_auth_bp.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
-    """تسجيل الخروج من المنصة"""
+    """تسجيل الخروج"""
     logout_user()
     session.clear()
     return redirect(url_for('suppliers_auth_bp.login_page'))
@@ -561,80 +389,56 @@ def logout():
 @suppliers_auth_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """
-    🏠 لوحة التحكم الرئيسية
-    يتم توجيه المستخدم هنا بعد تسجيل الدخول الناجح
-    """
-    user_type = session.get('user_type', 'supplier')
-    
-    if user_type == 'supplier' and hasattr(current_user, 'id'):
-        supplier_id = current_user.id
+    """لوحة التحكم الرئيسية"""
+    try:
+        user_type = session.get('user_type', 'supplier')
         
-        products_count = ProductSupplierMapping.query.filter_by(
-            supplier_id=supplier_id,
-            is_active=True
-        ).count()
-        
-        wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-        balance = wallet.balance if wallet else 0.0
-        
-        staff_count = SupplierStaff.query.filter_by(
-            supplier_id=supplier_id,
-            is_active=True
-        ).count()
-        
-        profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
+        if user_type == 'supplier' and hasattr(current_user, 'id'):
+            supplier_id = current_user.id
+            products_count = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, is_active=True).count()
+            wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+            balance = wallet.balance if wallet else 0.0
+            staff_count = SupplierStaff.query.filter_by(supplier_id=supplier_id, is_active=True).count()
+            profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
+            
+            return render_template(
+                'suppliers_auth_portal/dashboard/supplier_dashboard.html',
+                page_title='لوحة تحكم المورد',
+                user=current_user,
+                profile=profile,
+                wallet=wallet,
+                products_count=products_count,
+                staff_count=staff_count,
+                balance=balance
+            )
         
         return render_template(
-            'dashboard/supplier_dashboard.html',
-            page_title='لوحة تحكم المورد',
-            user=current_user,
-            profile=profile,
-            wallet=wallet,
-            products_count=products_count,
-            staff_count=staff_count,
-            balance=balance,
-            last_login=session.get('login_time', '')
-        )
-    
-    elif user_type == 'employee':
-        return render_template(
-            'dashboard/employee_dashboard.html',
+            'suppliers_auth_portal/dashboard/employee_dashboard.html',
             page_title='لوحة تحكم موظف المورد',
             user=current_user
         )
-    
-    return redirect(url_for('suppliers_auth_bp.login_page'))
+    except Exception as e:
+        logger.error(f"❌ خطأ في لوحة التحكم: {str(e)}", exc_info=True)
+        return f"Dashboard Error: {str(e)}", 500
 
 
 # ============================================================
-# سياق القوالب (Template Context)
+# سياق القوالب والتكوين
 # ============================================================
 
 @suppliers_auth_bp.context_processor
 def utility_processor():
-    """إضافة دوال مساعدة إلى جميع القوالب"""
-    def get_csrf_token():
-        return session.get('csrf_token', '')
-    
-    def get_user_type():
-        return session.get('user_type', '')
-    
     return {
-        'csrf_token': get_csrf_token,
-        'get_user_type': get_user_type,
+        'csrf_token': lambda: session.get('csrf_token', ''),
+        'get_user_type': lambda: session.get('user_type', ''),
         'is_authenticated': current_user.is_authenticated,
         'now': datetime.now
     }
 
-
-# ============================================================
-# تكوين التطبيق
-# ============================================================
-
 def init_app(app):
-    """تهيئة تطبيق Flask مع Blueprint المصادقة"""
-    app.register_blueprint(suppliers_auth_bp)
+    """تهيئة التطبيق"""
+    if not app.blueprints.get('suppliers_auth_bp'):
+        app.register_blueprint(suppliers_auth_bp)
     
     @app.route('/')
     def index():
@@ -642,20 +446,5 @@ def init_app(app):
             return redirect(url_for('suppliers_auth_bp.dashboard'))
         return redirect(url_for('suppliers_auth_bp.login_page'))
     
-    logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح")
+    logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح مع تفعيل نظام التقاط الأخطاء")
     return app
-
-
-# ============================================================
-# Debug Info
-# ============================================================
-
-if __name__ == '__main__':
-    print("=" * 60)
-    print("🔐 Suppliers Auth Portal - Routes")
-    print("=" * 60)
-    print(f"📌 Blueprint: {suppliers_auth_bp.name}")
-    print(f"📌 URL Prefix: {suppliers_auth_bp.url_prefix}")
-    print(f"📌 Template Folder: {suppliers_auth_bp.template_folder}")
-    print("=" * 60)
-    print("✅ Routes loaded successfully")
