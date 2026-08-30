@@ -13,8 +13,8 @@ from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
 
-# ✅ إنشاء البلوبرنت
-bp = Blueprint('auth', __name__)
+# ✅ إنشاء البلوبرنت - الاسم الصحيح هو 'suppliers_auth'
+bp = Blueprint('suppliers_auth', __name__)
 
 
 # ============================================================
@@ -312,7 +312,7 @@ def logout():
     logout_user()
     session.clear()
     flash('تم تسجيل الخروج بنجاح', 'success')
-    return redirect(url_for('auth.login'))
+    return redirect(url_for('suppliers_auth.login'))
 
 
 # ============================================================
@@ -553,7 +553,7 @@ def register():
         return jsonify({
             'success': True,
             'message': 'تم التسجيل بنجاح',
-            'redirect_url': url_for('auth.verify', identifier=username),
+            'redirect_url': url_for('suppliers_auth.verify', identifier=username),
             'data': {'_dev_otp': otp_code}
         })
         
@@ -831,7 +831,7 @@ def reset_password():
         return jsonify({
             'success': True,
             'message': 'تم تحديث كلمة المرور بنجاح',
-            'redirect_url': url_for('auth.login')
+            'redirect_url': url_for('suppliers_auth.login')
         })
         
     except Exception as e:
