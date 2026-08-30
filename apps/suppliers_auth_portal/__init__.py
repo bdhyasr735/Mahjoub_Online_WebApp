@@ -10,6 +10,17 @@ bp = Blueprint(
     url_prefix='/suppliers'
 )
 
-from . import auth_routes, seo_service
+from . import routes, seo_service
 
-bp.register_blueprint(auth_routes.bp)
+# ✅ تسجيل البلوبرنت الفرعي
+bp.register_blueprint(routes.suppliers_auth_bp)
+
+# ✅ إضافة دوال SEO
+@bp.app_context_processor
+def inject_seo():
+    from .seo_service import get_seo_data, get_page_title, get_page_description
+    return {
+        'get_seo_data': get_seo_data,
+        'get_page_title': get_page_title,
+        'get_page_description': get_page_description
+    }
