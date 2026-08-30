@@ -34,7 +34,7 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Registration Form -->
-        <form id="registerForm" method="POST" action="/suppliers/register" class="space-y-5 relative z-10">
+        <form id="registerForm" method="POST" action="{{ url_for('suppliers_auth.register') }}" class="space-y-5 relative z-10">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
@@ -165,7 +165,7 @@
         <!-- Login Link -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">لديك حساب مسجل مسبقاً؟</span>
-            <a href="/suppliers/login" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="{{ url_for('suppliers_auth.login') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>تسجيل الدخول إلى لوحة التحكم</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -176,10 +176,6 @@
 
 {% block scripts %}
 <script>
-    // ============================================================
-    // دوال مساعدة
-    // ============================================================
-
     function showAlert(title, msg, isSuccess = false) {
         const box = document.getElementById('alertBox');
         box.classList.remove('hidden');
@@ -258,10 +254,7 @@
         }
     }
 
-    // ============================================================
-    // التحقق الفوري من اسم المستخدم (AJAX)
-    // ============================================================
-
+    // التحقق الفوري من اسم المستخدم (AJAX) مع المسار الديناميكي
     document.getElementById('username').addEventListener('blur', async function() {
         const username = this.value.trim();
         const statusEl = document.getElementById('usernameStatus');
@@ -274,7 +267,7 @@
         }
         
         try {
-            const response = await fetch("/suppliers/register/check-username", {
+            const response = await fetch("{{ url_for('suppliers_auth.check_username') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username })
@@ -294,10 +287,6 @@
         }
     });
 
-    // ============================================================
-    // مستمعات الأحداث
-    // ============================================================
-
     document.addEventListener('DOMContentLoaded', function() {
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirm_password');
@@ -313,10 +302,7 @@
         }
     });
 
-    // ============================================================
-    // معالجة النموذج (AJAX)
-    // ============================================================
-    
+    // معالجة نموذج التسجيل (AJAX)
     document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -325,7 +311,6 @@
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
 
-        // التحقق من تطابق كلمة المرور
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm_password').value;
 
@@ -339,7 +324,6 @@
             return;
         }
 
-        // التحقق من رقم الهاتف
         const phone = form.querySelector('[name="phone"]').value.trim();
         const phoneDigits = phone.replace(/\D/g, '');
         if (phoneDigits.length < 9) {
@@ -347,7 +331,6 @@
             return;
         }
 
-        // التحقق من الموافقة على السياسة
         const agree = document.getElementById('agree_pricing_policy');
         if (!agree.checked) {
             showAlert('خطأ', 'يجب الموافقة على شروط حوكمة الأسعار');
@@ -374,7 +357,7 @@
             if (response.ok && data.success) {
                 showAlert('تم التسجيل بنجاح', 'جاري إعداد لوحة التحكم المجانية الخاصة بك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || "/suppliers/dashboard";
+                    window.location.href = data.redirect_url || "{{ url_for('suppliers_auth.dashboard') }}";
                 }, 1500);
             } else {
                 submitBtn.disabled = false;
