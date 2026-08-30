@@ -43,7 +43,7 @@
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
         <!-- Login Form -->
-        <form id="loginForm" method="POST" action="{{ url_for('suppliers_auth.login') }}" class="space-y-5 relative z-10">
+        <form id="loginForm" method="POST" action="/suppliers/login" class="space-y-5 relative z-10">
             <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <input type="hidden" id="userTypeInput" name="user_type" value="supplier">
@@ -67,7 +67,7 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="form-label mb-0">كلمة المرور</label>
-                    <a href="{{ url_for('suppliers_auth.forgot_password') }}" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
+                    <a href="/suppliers/forgot-password" class="text-xs text-royalGold hover:text-royalGoldLight transition underline underline-offset-4">
                         نسيت كلمة المرور؟
                     </a>
                 </div>
@@ -111,7 +111,7 @@
         <!-- Register Link -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">منشأة جديدة ترغب في التوريد؟</span>
-            <a href="{{ url_for('suppliers_auth.register') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="/suppliers/register" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>فتح حساب جديد</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
