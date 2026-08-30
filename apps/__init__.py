@@ -198,8 +198,25 @@ def create_app():
     def get_seo_data(page_name='default', custom_seo=None):
         default_seo = {
             'title': 'محجوب أونلاين | بوابة الموردين',
-            'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين',
-            'keywords': 'محجوب أونلاين, متجر, موردين'
+            'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين بسعر التكلفة',
+            'keywords': 'محجوب أونلاين, متجر, موردين',
+            'site_name': 'محجوب أونلاين',
+            'og': {
+                'site_name': 'محجوب أونلاين',
+                'locale': 'ar_AR',
+                'type': 'website',
+                'title': 'محجوب أونلاين | بوابة الموردين',
+                'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين',
+                'url': request.url if request else 'https://mahjoubonline.com',
+                'image': ''
+            },
+            'twitter': {
+                'card': 'summary_large_image',
+                'title': 'محجوب أونلاين | بوابة الموردين',
+                'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين',
+                'image': ''
+            },
+            'jsonld': {}
         }
         if custom_seo and isinstance(custom_seo, dict):
             default_seo.update(custom_seo)
@@ -234,7 +251,6 @@ def create_app():
             db.session.rollback()
         db.session.remove()
 
-    # 🛑 تعديل معالج 500 لإظهار الخطأ البرمجي الحقيقي في المتصفح والكونسول لتسهيل التصحيح
     @app.errorhandler(500)
     def handle_500_error(e):
         db.session.rollback()
