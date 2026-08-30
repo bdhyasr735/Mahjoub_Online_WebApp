@@ -1,4 +1,5 @@
-# apps/suppliers_auth_portal/registry.py
+# -*- coding: utf-8 -*-
+# 📂 apps/suppliers_auth_portal/registry.py
 
 """
 سجل المصادقة - بوابة الموردين وموظفيهم
