@@ -3,7 +3,6 @@
 
 from flask import render_template, request, jsonify, session, url_for
 from flask_login import login_user
-from werkzeug.security import generate_password_hash
 
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
@@ -32,11 +31,8 @@ def register():
 
         filters = [
             Supplier.username == username,
-            Supplier.phone == phone,
-            Supplier.phone == clean_phone_suffix
+            Supplier.search_phone == clean_phone_suffix
         ]
-        if hasattr(Supplier, 'search_phone'):
-            filters.append(Supplier.search_phone == clean_phone_suffix)
         if email:
             filters.append(Supplier.email == email)
 
@@ -45,16 +41,15 @@ def register():
         if existing_supplier:
             return jsonify({"success": False, "message": "اسم المستخدم، البريد الإلكتروني، أو رقم الهاتف مسجل مسبقاً."}), 400
 
+        # تمرير الهاتف مباشرة لتتولى خاصية النموذج (property setter) تشفيره واستخراج search_phone تلقائياً
         new_supplier = Supplier(
             company_name=company_name,
             username=username,
             email=email if email else None,
             phone=phone,
-            password_hash=generate_password_hash(password),
             status='active'
         )
-        if hasattr(new_supplier, 'search_phone'):
-            new_supplier.search_phone = clean_phone_suffix
+        new_supplier.set_password(password)
 
         db.session.add(new_supplier)
         db.session.commit()
