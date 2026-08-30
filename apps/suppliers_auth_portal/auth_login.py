@@ -24,7 +24,7 @@ def login():
     """
     # إذا كان المستخدم مسجل دخول بالفعل
     if current_user.is_authenticated:
-        # ✅ التصحيح: استخدام endpoint الصحيح للوحة تحكم الموردين
+        # ✅ التحويل إلى لوحة تحكم الموردين
         return redirect(url_for('suppliers_dashboard.dashboard'))
     
     if request.method == 'GET':
@@ -113,7 +113,7 @@ def login():
         
         current_app.logger.info(f'✅ تسجيل دخول ناجح: {user.username}')
         
-        # ✅ التصحيح: استخدام endpoint الصحيح للوحة تحكم الموردين
+        # ✅ التحويل إلى لوحة تحكم الموردين
         return jsonify({
             'success': True,
             'message': 'تم تسجيل الدخول بنجاح',
