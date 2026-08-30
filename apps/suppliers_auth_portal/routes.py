@@ -9,6 +9,8 @@ import logging
 import re
 import random
 import string
+import os
+import requests
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
@@ -132,6 +134,54 @@ def find_user(identifier):
         return employee, 'employee'
     
     return None, None
+
+def send_whatsapp_otp(phone, otp_code):
+    """إرسال رمز التحقق عبر واتساب باستخدام Meta Cloud API الرسمي"""
+    try:
+        formatted_phone = validate_phone(phone)
+        if not formatted_phone:
+            return False
+            
+        phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '1336881386166971')
+        access_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
+        
+        if not access_token:
+            logger.error("❌ رمز الوصول WHATSAPP_ACCESS_TOKEN غير متوفر في متغيرات البيئة")
+            return False
+
+        url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
+        
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        if not formatted_phone.startswith('967') and len(formatted_phone) == 9:
+            recipient_phone = f"967{formatted_phone}"
+        else:
+            recipient_phone = formatted_phone
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": recipient_phone,
+            "type": "text",
+            "text": {
+                "body": f"رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 10 دقائق."
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            logger.info(f"📲 تم إرسال رمز الواتساب بنجاح عبر ميتا إلى الرقم: {recipient_phone}")
+            return True
+        else:
+            logger.error(f"❌ فشل إرسال واتساب من ميتا: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ خطأ غير متوقع أثناء إرسال واتساب: {str(e)}", exc_info=True)
+        return False
 
 
 # ============================================================
@@ -361,7 +411,7 @@ def forgot_password_page():
 
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 def request_otp():
-    """طلب رمز التحقق OTP"""
+    """طلب رمز التحقق OTP عبر الواتساب"""
     try:
         data = request.get_json(silent=True) or request.form
         identifier = str(data.get('identifier', '')).strip()
@@ -372,7 +422,17 @@ def request_otp():
         if not user:
             return jsonify({'success': False, 'message': 'الحساب غير موجود'}), 404
 
+        target_phone = getattr(user, 'phone', None)
+        if not target_phone:
+            return jsonify({'success': False, 'message': 'لا يوجد رقم هاتف مسجل لهذا الحساب لإرسال رمز الواتساب'}), 400
+
         otp_code = generate_otp()
+        
+        whatsapp_sent = send_whatsapp_otp(target_phone, otp_code)
+        
+        if not whatsapp_sent:
+            return jsonify({'success': False, 'message': 'فشل إرسال رمز التحقق عبر واتساب، يرجى المحاولة لاحقاً'}), 500
+
         session['reset_otp'] = {
             'code': otp_code,
             'identifier': identifier,
@@ -384,11 +444,11 @@ def request_otp():
         return jsonify({
             'success': True,
             'otp_sent': True,
-            'message': 'تم إرسال رمز التحقق بنجاح',
-            'data': {'_dev_otp': otp_code}
+            'message': 'تم إرسال رمز التحقق بنجاح إلى رقم الواتساب المرتبط بالحساب',
+            'data': {'masked_phone': mask_phone(target_phone)}
         })
     except Exception as e:
-        logger.error(f"❌ خطأ OTP: {str(e)}", exc_info=True)
+        logger.error(f"❌ خطأ OTP واتساب: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
