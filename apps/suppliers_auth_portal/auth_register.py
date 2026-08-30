@@ -6,12 +6,12 @@ from flask_login import login_user
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 
-# بما أن البصمة الرئيسية للبوابة معرّفة بـ url_prefix='/supplier'، سيكون الرابط النهائي /supplier/register
 auth_register_bp = Blueprint('auth_register', __name__, template_folder='templates')
 
 @auth_register_bp.route('/register', methods=['POST'])
+@auth_register_bp.route('/suppliers/register', methods=['POST'])
 def register():
-    """معالجة تسجيل مورد جديد والتحقق من البيانات وتخزينها وفقاً لهيكلة الجدول المعتمدة"""
+    """معالجة تسجيل مورد جديد والتحقق من البيانات وتخزينها"""
     try:
         data = request.get_json(force=True, silent=True) or request.form or {}
         if not data:
@@ -69,7 +69,7 @@ def register():
             owner_name=contact_person,
             trade_name=company_name,
             store_name=company_name,
-            phone=phone,  # سيتم تشفيره وتحديث search_phone تلقائياً داخل نموذج Supplier
+            phone=phone,
             status='active',
             rank='bronze'
         )
@@ -78,7 +78,7 @@ def register():
         new_supplier.set_password(password)
 
         db.session.add(new_supplier)
-        db.session.commit()  # سيقوم المحرك التلقائي بعد الـ insert بتوليد SUP و WEL
+        db.session.commit()
 
         # تسجيل الدخول تلقائياً عبر Flask-Login والجلسة
         login_user(new_supplier)
