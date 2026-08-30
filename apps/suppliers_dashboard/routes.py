@@ -101,7 +101,7 @@ def index():
     ]
     
     return render_template(
-        'suppliers_dashboard/index.html',
+        'dashboard.html',
         page_title='لوحة تحكم المورد',
         supplier=supplier,
         profile=profile,
