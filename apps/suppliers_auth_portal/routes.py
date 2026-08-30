@@ -452,6 +452,74 @@ def request_otp():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@suppliers_auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """التحقق من رمز OTP وتحديث كلمة المرور للمورد أو الموظف"""
+    try:
+        data = request.get_json(silent=True) or request.form
+        if not data:
+            return jsonify({'success': False, 'message': 'بيانات غير صالحة'}), 400
+
+        otp_code = str(data.get('otp_code', '')).strip()
+        new_password = str(data.get('new_password', ''))
+        confirm_password = str(data.get('confirm_password', ''))
+
+        if not all([otp_code, new_password, confirm_password]):
+            return jsonify({'success': False, 'message': 'جميع الحقول مطلوبة'}), 400
+
+        if new_password != confirm_password:
+            return jsonify({'success': False, 'message': 'كلمتا المرور غير متطابقتين'}), 400
+
+        if len(new_password) < 8:
+            return jsonify({'success': False, 'message': 'كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف'}), 400
+
+        stored_otp_data = session.get('reset_otp')
+        if not stored_otp_data:
+            return jsonify({'success': False, 'message': 'انتهت صلاحية الجلسة أو لم يتم طلب رمز تحقق'}), 400
+
+        # التحقق من صلاحية الوقت (10 دقائق)
+        expires_at = datetime.fromisoformat(stored_otp_data['expires_at'])
+        if datetime.now() > expires_at:
+            session.pop('reset_otp', None)
+            return jsonify({'success': False, 'message': 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد'}), 400
+
+        if stored_otp_data['code'] != otp_code:
+            return jsonify({'success': False, 'message': 'رمز التحقق غير صحيح'}), 400
+
+        user_id = stored_otp_data['user_id']
+        u_type = stored_otp_data['user_type']
+
+        if u_type == 'supplier':
+            user = Supplier.query.get(user_id)
+        else:
+            user = SupplierStaff.query.get(user_id)
+
+        if not user:
+            return jsonify({'success': False, 'message': 'المستخدم غير موجود'}), 404
+
+        # تحديث كلمة المرور
+        if hasattr(user, 'set_password'):
+            user.set_password(new_password)
+        else:
+            from werkzeug.security import generate_password_hash
+            user.password_hash = generate_password_hash(new_password)
+
+        db.session.commit()
+        session.pop('reset_otp', None)
+
+        logger.info(f"✅ تم إعادة تعيين كلمة المرور بنجاح للمستخدم ID: {user_id} ({u_type})")
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن',
+            'redirect_url': url_for('suppliers_auth_bp.login_page')
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ خطأ أثناء إعادة تعيين كلمة المرور: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'حدث خطأ في الخادم: {str(e)}'}), 500
+
+
 @suppliers_auth_bp.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
@@ -521,5 +589,5 @@ def init_app(app):
             return redirect(url_for('suppliers_auth_bp.dashboard'))
         return redirect(url_for('suppliers_auth_bp.login_page'))
     
-    logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح مع تفعيل نظام التقاط الأخطاء")
+    logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح مع تفعيل نظام التقاط الأخطاء ومسارات الاستعادة")
     return app
