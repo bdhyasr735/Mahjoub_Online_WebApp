@@ -1,71 +1,88 @@
-from flask import Blueprint, request, jsonify
+# -*- coding: utf-8 -*-
+# 📂 apps/suppliers_auth_portal/auth_register.py
+
+from flask import render_template, request, jsonify, session, url_for
 from flask_login import login_user
 from werkzeug.security import generate_password_hash
-from apps.extensions import db  # Assuming standard extension structure
-from apps.models import Supplier  # Assuming Supplier model exists
+import random
+import string
 
-# If defined as a Blueprint or imported in routes.py
-# Assuming this module defines the registration logic or Blueprint route handler
+from apps.suppliers_auth_portal import suppliers_bp
+from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
+from apps.models.supplier_db import Supplier
+from apps.models.supplier_wallet_db import SupplierWallet  # Assuming wallet model exists or standard import
+from apps.extensions import db
 
-def register_supplier_logic():
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'message': 'بيانات الطلب غير صالحة.'}), 400
-
-    company_name = data.get('company_name', '').strip()
-    contact_person = data.get('contact_person', '').strip()
-    phone = data.get('phone', '').strip()
-    email = data.get('email')
-    password = data.get('password', '')
-    category = data.get('category', '')
-    agree_pricing_policy = data.get('agree_pricing_policy', False)
-
-    # Validation checks
-    if not company_name or not contact_person or not phone or not password or not category:
-        return jsonify({'success': False, 'message': 'يرجى تعبئة كافة الحقول الإجبارية.'}), 400
-
-    if not agree_pricing_policy:
-        return jsonify({'success': False, 'message': 'يجب الموافقة على شروط حوكمة الأسعار والتوريد للاستمرار.'}), 400
-
-    # Check if supplier with same phone already exists
-    existing_supplier = Supplier.query.filter_by(phone=phone).first()
-    if existing_supplier:
-        return jsonify({'success': False, 'message': 'رقم الهاتف مسجل مسبقاً لحساب آخر.'}), 400
-
-    if email:
-        email = email.strip()
-        existing_email = Supplier.query.filter_by(email=email).first()
-        if existing_email:
-            return jsonify({'success': False, 'message': 'البريد الإلكتروني مسجل مسبقاً لحساب آخر.'}), 400
-    else:
-        email = None
+@suppliers_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'GET':
+        seo = SupplierPortalSEOService.get_meta_tags("register")
+        return render_template('suppliers_auth_portal/register.html', seo=seo)
 
     try:
-        hashed_password = generate_password_hash(password)
+        data = request.get_json(force=True, silent=True) or request.form or {}
         
+        company_name = data.get('company_name', '').strip()
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        phone = data.get('phone', '').strip()
+        password = data.get('password', '')
+
+        if not company_name or not username or not phone or not password:
+            return jsonify({"success": False, "message": "يرجى تعبئة كافة الحقول الإجبارية (اسم الشركة، اسم المستخدم، رقم الهاتف، وكلمة المرور)."}), 400
+
+        clean_phone_suffix = phone[-9:] if phone.isdigit() else phone
+
+        # التحقق من عدم تكرار الحساب
+        existing_supplier = db.session.query(Supplier).filter(
+            (Supplier.username == username) |
+            (Supplier.phone == phone) |
+            (Supplier.search_phone == clean_phone_suffix) |
+            (Supplier.email == email if email else False)
+        ).first()
+
+        if existing_supplier:
+            return jsonify({"success": False, "message": "اسم المستخدم، البريد الإلكتروني، أو رقم الهاتف مسجل مسبقاً."}), 400
+
+        # إنشاء كائن المورد الجديد
         new_supplier = Supplier(
             company_name=company_name,
-            contact_person=contact_person,
+            username=username,
+            email=email if email else None,
             phone=phone,
-            email=email,
-            password_hash=hashed_password,
-            category=category,
-            agree_pricing_policy=agree_pricing_policy,
-            is_active=True
+            search_phone=clean_phone_suffix,
+            password_hash=generate_password_hash(password),
+            status='active'
         )
 
         db.session.add(new_supplier)
+        db.session.flush() # لحفظ المورد وجلب الـ ID الخاص به لإنشاء المحفظة
+
+        # إنشاء محفظة مالية افتراضية للمورد الجديد
+        wallet_code = ''.join(random.choices(string.digits, k=10))
+        new_wallet = SupplierWallet(
+            supplier_id=new_supplier.id,
+            wallet_code=wallet_code,
+            balance=0.00
+        )
+        db.session.add(new_wallet)
+        
         db.session.commit()
 
-        # Log in the supplier automatically after successful registration
+        # تسجيل الدخول تلقائياً بعد التسجيل الناجح
+        session['user_type'] = 'supplier'
         login_user(new_supplier)
+        session['supplier_logged_in'] = True
+        session['supplier_identifier'] = username
 
         return jsonify({
-            'success': True,
-            'message': 'تم تسجيل المنشأة بنجاح',
-            'redirect_url': '/supplier/dashboard'
-        }), 200
+            "success": True,
+            "message": "تم إنشاء الحساب والمحفظة المالية بنجاح",
+            "redirect_url": url_for('suppliers_dashboard.dashboard')
+        }), 201
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'حدث خطأ أثناء معالجة الطلب: {str(e)}'}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"خطأ داخلي في الخادم: {str(e)}"}), 500
