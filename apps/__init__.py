@@ -265,8 +265,9 @@ def create_app():
         try:
             db.create_all()
             print("✅ [إنشاء الجداول]: تم التحقق من إنشاء الجداول بنجاح.")
+            seed_database()
         except Exception as e:
-            print(f"⚠️ [تحذير إنشاء الجداول]: {e}")
+            print(f"⚠️ [تحذير إنشاء الجداول أو الزراعة]: {e}")
 
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
