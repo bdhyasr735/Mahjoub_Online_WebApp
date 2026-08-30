@@ -106,6 +106,37 @@ class OTP(db.Model):
                 return otp
         return None
 
+    @classmethod
+    def verify_code_for_identifier(cls, identifier: str, otp_code: str) -> dict:
+        """دالة مساعدة للبحث والتحقق مباشرة عبر المُعرف والرمز"""
+        if not otp_code or not identifier:
+            return {'success': False, 'message': 'بيانات التحقق غير مكتملة'}
+            
+        clean_code = str(otp_code).strip()
+        otp_record = cls.get_valid_otp(clean_code, identifier)
+        
+        if not otp_record:
+            return {'success': False, 'message': 'رمز التحقق غير صالح أو انتهت صلاحيته'}
+            
+        return otp_record.verify(clean_code)
+
+    @classmethod
+    def cleanup_expired_otps(cls):
+        """حذف رموز التحقق المنتهية أو المستخدمة القديمة لتخفيف حجم الجدول"""
+        try:
+            threshold = datetime.utcnow() - timedelta(days=1)
+            expired_records = cls.query.filter(
+                (cls.expiry < threshold) | (cls.is_used == True)
+            ).all()
+            
+            for record in expired_records:
+                db.session.delete(record)
+            db.session.commit()
+            return len(expired_records)
+        except Exception:
+            db.session.rollback()
+            return 0
+
     def to_dict(self):
         return {
             'id': self.id,
