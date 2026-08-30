@@ -5,15 +5,15 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- رسالة الترحيب ومعلومات المورد -->
+    <!-- رسالة الترحيب واسم المتجر والمستخدم -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
         <div>
             <h1 class="h3 fw-bold text-dark mb-1">
                 أهلاً بك، <span class="text-primary">{{ supplier.store_name or supplier.trade_name or supplier.username }}</span> 👋
             </h1>
             <p class="text-muted mb-0">
-                اسم المستخدم: <span class="font-monospace fw-semibold text-secondary">@{{ supplier.username }}</span> 
-                {% if supplier.supplier_code %} | الكود التعريفي: <span class="badge bg-secondary font-monospace">{{ supplier.supplier_code }}</span>{% endif %}
+                اسم المستخدم: <span class="font-monospace fw-semibold text-secondary">@{{ supplier.username }}</span>
+                {% if supplier.supplier_code %} | كود المورد: <span class="badge bg-secondary font-monospace">{{ supplier.supplier_code }}</span>{% endif %}
             </p>
         </div>
         <div class="mt-3 mt-md-0">
@@ -24,7 +24,7 @@
     <!-- البطاقات الإحصائية الرئيسية (KPIs) -->
     <div class="row g-3 mb-4">
         
-        <!-- بطاقة المحفظة المالية (المميزة) -->
+        <!-- بطاقة المحفظة (بتصميم مميز فاخر) -->
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden text-white" style="background: linear-gradient(135deg, #632C8F 0%, #1a0b2e 100%);">
                 <div class="card-body p-4">
@@ -49,7 +49,7 @@
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block text-muted small mb-1">المنتجات المرتبطة</span>
+                        <span class="d-block text-muted small mb-1">المنتجات النشطة</span>
                         <h3 class="fw-bold mb-0 text-dark">{{ products_count or 0 }}</h3>
                     </div>
                     <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
@@ -59,12 +59,12 @@
             </div>
         </div>
 
-        <!-- فريق العمل / الموظفين -->
+        <!-- الموظفين -->
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block text-muted small mb-1">الموظفين النشطين</span>
+                        <span class="d-block text-muted small mb-1">فريق العمل</span>
                         <h3 class="fw-bold mb-0 text-dark">{{ staff_count or 0 }}</h3>
                     </div>
                     <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
@@ -74,7 +74,7 @@
             </div>
         </div>
 
-        <!-- رتبة الحساب -->
+        <!-- الرتبة -->
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
                 <div class="card-body p-4 d-flex justify-content-between align-items-center">
@@ -91,12 +91,12 @@
 
     </div>
 
-    <!-- تفاصيل الحساب والمتجر -->
+    <!-- معلومات المتجر والتفاصيل -->
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-store me-2 text-primary"></i> بيانات المتجر</h5>
+                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-store me-2 text-primary"></i> بيانات المتجر والمنشأة</h5>
                     <ul class="list-unstyled small mb-0">
                         <li class="d-flex justify-content-between py-2 border-bottom">
                             <span class="text-muted">اسم المتجر:</span>
@@ -118,19 +118,19 @@
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-address-card me-2 text-success"></i> معلومات التواصل</h5>
+                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-map-marker-alt me-2 text-danger"></i> معلومات الموقع والتواصل</h5>
                     <ul class="list-unstyled small mb-0">
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">المدينة:</span>
+                            <span class="fw-bold text-dark">{{ profile.city if profile else 'غير محدد' }}</span>
+                        </li>
                         <li class="d-flex justify-content-between py-2 border-bottom">
                             <span class="text-muted">البريد الإلكتروني:</span>
                             <span class="fw-bold text-dark">{{ supplier.email or 'غير محدد' }}</span>
                         </li>
-                        <li class="d-flex justify-content-between py-2 border-bottom">
+                        <li class="d-flex justify-content-between py-2">
                             <span class="text-muted">رقم الهاتف:</span>
                             <span class="fw-bold text-dark font-monospace">{{ supplier.phone or 'غير محدد' }}</span>
-                        </li>
-                        <li class="d-flex justify-content-between py-2">
-                            <span class="text-muted">تاريخ الانضمام:</span>
-                            <span class="fw-bold text-dark">{{ supplier.created_at.strftime('%Y-%m-%d') if supplier.created_at else 'غير محدد' }}</span>
                         </li>
                     </ul>
                 </div>
