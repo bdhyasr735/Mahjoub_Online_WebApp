@@ -1,120 +1,162 @@
 {% extends "suppliers_auth_portal/base.html" %}
 
-{% block title %}اشتراك مورد جديد | البوابة الملكية - محجوب أونلاين{% endblock %}
+{% block title %}اشتراك مورد جديد | بوابة الموردين{% endblock %}
 
 {% block content %}
 <div class="w-full max-w-2xl mx-auto my-6">
-    <!-- بطاقة التسجيل الملكية -->
-    <div class="bg-royalSurface/95 border border-royalGold/30 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative overflow-hidden royal-border">
-        <!-- إضاءة خلفية ذهبية -->
+    <div class="bg-royalSurface/95 border border-royalGold/30 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl royal-border relative overflow-hidden">
         <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-80 h-36 bg-royalGold/15 blur-3xl rounded-full pointer-events-none"></div>
 
-        <!-- الترويسة والشعار -->
+        <!-- Header -->
         <div class="text-center mb-8 relative z-10">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#05020a] border-2 border-royalGold/50 p-2 mb-3 shadow-xl overflow-hidden">
-                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
-                     alt="محجوب أونلاين - سوقك الذكي"
-                     class="w-full h-full object-contain brightness-0 invert">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-royalDark border-2 border-royalGold/50 p-2 mb-3 shadow-xl overflow-hidden">
+                <img src="{{ url_for('static', filename='images/logo.webp') }}" 
+                     alt="محجوب أونلاين"
+                     class="w-full h-full object-contain brightness-0 invert"
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🛒%3C/text%3E%3C/svg%3E'">
             </div>
             <h2 class="text-2xl font-black gold-gradient-text tracking-wide mb-1">
                 فتح حساب مورد جديد
-                <span class="text-xs px-2.5 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30 align-middle mr-1.5 font-normal">لوحة مجانية بالكامل</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30 align-middle mr-1.5 font-normal">مجاني بالكامل</span>
             </h2>
-            <p class="text-xs text-royalGold/80 font-medium">انضم إلى شبكة المسوقين والشركاء في منصة اللامركزية لحوكمة التجارة اليمنية</p>
+            <p class="text-xs text-royalGold/80 font-medium">انضم إلى شبكة المسوقين والشركاء في منصة حوكمة التجارة اليمنية</p>
 
-            <!-- صندوق الشروط وحوكمة الأسعار -->
+            <!-- Governance Notice -->
             <div class="mt-4 p-3.5 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-[11px] text-amber-200 text-right leading-relaxed">
-                <strong class="text-royalGoldLight block font-bold mb-1">شروط حوكمة التوريد والأسعار:</strong>
-                اللوحة مجانية بالكامل للموردين، والشرط الأساسي للاستمرار هو الالتزام الصارم بالبيع والتوريد <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية عادلة</span>. في حال رصد أي أسعار غير مناسبة، <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم فوراً</span>.
+                <strong class="text-royalGoldLight block font-bold mb-1">📋 شروط حوكمة التوريد:</strong>
+                اللوحة <span class="text-emerald-400 font-bold">مجانية بالكامل</span>، والشرط الأساسي هو الالتزام 
+                <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية عادلة</span>. 
+                في حال رصد أي أسعار غير مناسبة، <span class="text-rose-400 font-bold">سيتم توقيف الحساب فوراً</span>.
             </div>
         </div>
 
-        <!-- صندوق التنبيهات الفورية -->
+        <!-- Alert Box -->
         <div id="alertBox" class="hidden mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 transition-all"></div>
 
-        <!-- نموذج التسجيل -->
-        <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="space-y-5 relative z-10">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
+        <!-- Registration Form -->
+        <form id="registerForm" method="POST" action="{{ url_for('suppliers_auth_portal.register') }}" class="space-y-5 relative z-10">
+            {{ form.csrf_token }}
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- اسم المنشأة التجاري -->
+                <!-- Trade Name -->
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">اسم المنشأة / اسم المورد <span class="text-rose-400">*</span></label>
-                    <input type="text" name="company_name" required
-                           placeholder="مثال: شركة النور للتجارة والتوريد"
-                           class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
+                    <label class="form-label">اسم المنشأة التجاري <span class="text-rose-400">*</span></label>
+                    {{ form.trade_name(class="form-input", placeholder="مثال: شركة النور للتجارة", required=True) }}
+                    {% if form.trade_name.errors %}
+                        <div class="form-error">{{ form.trade_name.errors[0] }}</div>
+                    {% endif %}
                 </div>
 
-                <!-- اسم المسؤول أو ممثل المنشأة -->
+                <!-- Owner Name -->
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">اسم المسؤول المعتمد <span class="text-rose-400">*</span></label>
-                    <input type="text" name="contact_person" required
-                           placeholder="الاسم الثلاثي للمسؤول"
-                           class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
+                    <label class="form-label">اسم المالك / المسؤول <span class="text-rose-400">*</span></label>
+                    {{ form.owner_name(class="form-input", placeholder="الاسم الثلاثي للمالك", required=True) }}
+                    {% if form.owner_name.errors %}
+                        <div class="form-error">{{ form.owner_name.errors[0] }}</div>
+                    {% endif %}
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- رقم الهاتف -->
+                <!-- Phone -->
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">رقم الهاتف (واتساب / اتصال) <span class="text-rose-400">*</span></label>
-                    <input type="tel" name="phone" required
-                           placeholder="مثال: 77xxxxxxx أو 73xxxxxxx"
-                           class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all text-right" dir="ltr">
+                    <label class="form-label">رقم الهاتف (واتساب / اتصال) <span class="text-rose-400">*</span></label>
+                    {{ form.phone(class="form-input text-right", placeholder="مثال: 77xxxxxxx أو 73xxxxxxx", required=True, dir="ltr") }}
+                    {% if form.phone.errors %}
+                        <div class="form-error">{{ form.phone.errors[0] }}</div>
+                    {% endif %}
                 </div>
 
-                <!-- البريد الإلكتروني -->
+                <!-- Email -->
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">البريد الإلكتروني</label>
-                    <input type="email" name="email"
-                           placeholder="supplier@domain.com"
-                           class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all text-right" dir="ltr">
+                    <label class="form-label">البريد الإلكتروني <span class="text-slate-500 text-[10px]">(اختياري)</span></label>
+                    {{ form.email(class="form-input text-right", placeholder="supplier@domain.com", dir="ltr") }}
+                    {% if form.email.errors %}
+                        <div class="form-error">{{ form.email.errors[0] }}</div>
+                    {% endif %}
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- كلمة المرور -->
+                <!-- Username -->
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">كلمة المرور <span class="text-rose-400">*</span></label>
-                    <input type="password" name="password" id="password" required
-                           placeholder="••••••••"
-                           class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
+                    <label class="form-label">اسم المستخدم <span class="text-rose-400">*</span></label>
+                    {{ form.username(class="form-input", placeholder="اختر اسم مستخدم فريد", required=True) }}
+                    {% if form.username.errors %}
+                        <div class="form-error">{{ form.username.errors[0] }}</div>
+                    {% endif %}
                 </div>
 
-                <!-- تأكيد كلمة المرور -->
+                <!-- Store Name -->
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">تأكيد كلمة المرور <span class="text-rose-400">*</span></label>
-                    <input type="password" name="confirm_password" id="confirm_password" required
-                           placeholder="••••••••"
-                           class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
+                    <label class="form-label">اسم المتجر <span class="text-slate-500 text-[10px]">(اختياري)</span></label>
+                    {{ form.store_name(class="form-input", placeholder="اسم المتجر للعرض") }}
+                    {% if form.store_name.errors %}
+                        <div class="form-error">{{ form.store_name.errors[0] }}</div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- طبيعة النشاط أو الفئة -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Password -->
+                <div>
+                    <label class="form-label">كلمة المرور <span class="text-rose-400">*</span></label>
+                    <div class="relative">
+                        {{ form.password(class="form-input", placeholder="•••••••• (8 أحرف على الأقل)", id="password", required=True, minlength=8) }}
+                        <button type="button" onclick="togglePasswordVisibility('password', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold text-xs">إظهار</button>
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="form-error">{{ form.password.errors[0] }}</div>
+                    {% endif %}
+                    <!-- Password Strength -->
+                    <div class="mt-2 space-y-1">
+                        <div class="flex gap-1 h-1 w-full bg-royalDark rounded-full overflow-hidden">
+                            <div id="pwdBar1" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                            <div id="pwdBar2" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                            <div id="pwdBar3" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                            <div id="pwdBar4" class="w-1/4 bg-slate-700 transition-all duration-300"></div>
+                        </div>
+                        <p id="pwdStrengthText" class="text-[10px] text-slate-400">يجب أن تحتوي على 8 أحرف على الأقل، أرقام، ورموز</p>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div>
+                    <label class="form-label">تأكيد كلمة المرور <span class="text-rose-400">*</span></label>
+                    <div class="relative">
+                        {{ form.confirm_password(class="form-input", placeholder="••••••••", id="confirm_password", required=True, minlength=8) }}
+                        <button type="button" onclick="togglePasswordVisibility('confirm_password', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-royalGold text-xs">إظهار</button>
+                    </div>
+                    {% if form.confirm_password.errors %}
+                        <div class="form-error">{{ form.confirm_password.errors[0] }}</div>
+                    {% endif %}
+                    <p id="matchErrorText" class="form-error hidden">كلمتا المرور غير متطابقتين</p>
+                </div>
+            </div>
+
+            <!-- Category -->
             <div>
-                <label class="block text-xs font-medium text-slate-300 mb-2">فئة المنتجات أو النشاط التجاري الأساسي <span class="text-rose-400">*</span></label>
-                <select name="category" required
-                        class="w-full px-4 py-3 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-royalGold focus:ring-1 focus:ring-royalGold transition-all">
-                    <option value="" disabled selected>اختر فئة التوريد الرئيسية...</option>
-                    <option value="food">المواد الغذائية والتموينية الأساسية</option>
-                    <option value="electronics">الأجهزة الإلكترونية والتقنية</option>
-                    <option value="clothing">الملابس والمنسوجات</option>
-                    <option value="wholesale">تجارة الجملة العامة والمستلزمات</option>
-                    <option value="other">أخرى / منتجات متخصصة</option>
-                </select>
+                <label class="form-label">فئة المنتجات أو النشاط التجاري الأساسي <span class="text-rose-400">*</span></label>
+                {{ form.category(class="form-input", required=True) }}
+                {% if form.category.errors %}
+                    <div class="form-error">{{ form.category.errors[0] }}</div>
+                {% endif %}
             </div>
 
-            <!-- الموافقة على شروط حوكمة الأسعار -->
+            <!-- Agree to Pricing Policy -->
             <div class="p-4 rounded-xl bg-royalDark/60 border border-royalGold/20 space-y-2">
                 <label class="flex items-start gap-3 cursor-pointer select-none text-xs text-slate-300">
-                    <input type="checkbox" name="agree_pricing_policy" required class="mt-0.5 rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold">
-                    <span>أتعهد وأوافق التزاماً تاماً بأن تكون كافة أسعار التوريد المقدمة من طرفنا عبر المنصة هي <strong class="text-royalGold">بسعر التكلفة وبأسعار تنافسية عادلة</strong>، وأقر بحق المنصة في إيقاف الحساب ولوحة التحكم فوراً في حال ثبوت خلاف ذلك.</span>
+                    {{ form.agree_pricing_policy(class="mt-0.5 rounded border-royalGold/30 bg-royalDark text-royalGold focus:ring-royalGold", required=True) }}
+                    <span>أتعهد وأوافق التزاماً تاماً بأن تكون كافة أسعار التوريد المقدمة من طرفنا هي <strong class="text-royalGold">بسعر التكلفة وبأسعار تنافسية عادلة</strong>، وأقر بحق المنصة في إيقاف الحساب فوراً في حال ثبوت خلاف ذلك.</span>
                 </label>
+                {% if form.agree_pricing_policy.errors %}
+                    <div class="form-error">{{ form.agree_pricing_policy.errors[0] }}</div>
+                {% endif %}
             </div>
 
-            <!-- زر التسجيل -->
+            <!-- Submit Button -->
             <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 gold-btn rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
-                <span id="btnText">إرسال طلب التسجيل وتوثيق الحساب</span>
+                <span id="btnText">إرسال طلب التسجيل</span>
                 <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-black" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -122,10 +164,10 @@
             </button>
         </form>
 
-        <!-- رابط العودة لتسجيل الدخول -->
+        <!-- Login Link -->
         <div class="mt-8 pt-6 border-t border-royalGold/15 text-center text-xs">
             <span class="text-slate-400">لديك حساب مسجل مسبقاً؟</span>
-            <a href="/supplier/login" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
+            <a href="{{ url_for('suppliers_auth_portal.login') }}" class="font-bold text-royalGold hover:text-royalGoldLight mr-1 inline-flex items-center gap-1 transition">
                 <span>تسجيل الدخول إلى لوحة التحكم</span>
                 <span aria-hidden="true">&larr;</span>
             </a>
@@ -139,101 +181,164 @@
     function showAlert(title, msg, isSuccess = false) {
         const box = document.getElementById('alertBox');
         box.classList.remove('hidden');
+        
         if (isSuccess) {
-            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 shadow-xl';
-            box.innerHTML = `
-                <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-500/40 flex items-center justify-center shrink-0 text-emerald-400 font-bold">✓</div>
-                <div class="flex flex-col gap-0.5">
-                    <span class="font-bold text-emerald-200">${title}</span>
-                    <span class="text-emerald-300/90 text-[11px]">${msg}</span>
-                </div>
-            `;
+            box.className = 'flash-message flash-success flex items-center justify-between';
+            box.innerHTML = `<span>✓ ${title}: ${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">&times;</button>`;
         } else {
-            box.className = 'mb-6 p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl';
-            box.innerHTML = `
-                <div class="w-8 h-8 rounded-lg bg-rose-900/50 border border-rose-500/40 flex items-center justify-center shrink-0 text-rose-400 font-bold">⚠</div>
-                <div class="flex flex-col gap-0.5">
-                    <span class="font-bold text-rose-200">${title}</span>
-                    <span class="text-rose-300/90 text-[11px]">${msg}</span>
-                </div>
-            `;
+            box.className = 'flash-message flash-danger flex items-center justify-between';
+            box.innerHTML = `<span>⚠ ${title}: ${msg}</span><button onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">&times;</button>`;
+        }
+        
+        setTimeout(() => {
+            if (box) {
+                box.style.transition = 'opacity 0.5s ease';
+                box.style.opacity = '0';
+                setTimeout(() => { box.remove(); }, 500);
+            }
+        }, 6000);
+    }
+
+    function togglePasswordVisibility(fieldId, btnEl) {
+        const field = document.getElementById(fieldId);
+        if (field.type === 'password') {
+            field.type = 'text';
+            btnEl.textContent = 'إخفاء';
+        } else {
+            field.type = 'password';
+            btnEl.textContent = 'إظهار';
         }
     }
 
-    async function handleRegisterSubmit(event) {
-        event.preventDefault();
-        const form = event.target;
+    function checkPasswordStrength(password) {
+        const bars = [
+            document.getElementById('pwdBar1'),
+            document.getElementById('pwdBar2'),
+            document.getElementById('pwdBar3'),
+            document.getElementById('pwdBar4')
+        ];
+        const text = document.getElementById('pwdStrengthText');
+
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+        if (/\d/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        bars.forEach(b => b.className = 'w-1/4 bg-slate-700 transition-all duration-300');
+        const colors = ['bg-rose-500', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500'];
+        const messages = ['ضعيفة جداً', 'متوسطة الأمان', 'قوية', 'ممتازة وآمنة للغاية'];
+
+        if (password.length > 0) {
+            for (let i = 0; i < Math.min(score, 4); i++) {
+                bars[i].className = `w-1/4 ${colors[score - 1]} transition-all duration-300`;
+            }
+            text.textContent = messages[score - 1] || messages[0];
+            text.className = `text-[10px] ${score >= 3 ? 'text-emerald-400' : 'text-amber-400'}`;
+        } else {
+            text.textContent = 'يجب أن تحتوي على 8 أحرف على الأقل، أرقام، ورموز';
+            text.className = 'text-[10px] text-slate-400';
+        }
+        checkPasswordMatch();
+    }
+
+    function checkPasswordMatch() {
+        const p1 = document.getElementById('password');
+        const p2 = document.getElementById('confirm_password');
+        const errText = document.getElementById('matchErrorText');
+        
+        if (!p1 || !p2) return;
+        
+        if (p2.value.length > 0 && p1.value !== p2.value) {
+            errText.classList.remove('hidden');
+        } else {
+            errText.classList.add('hidden');
+        }
+    }
+
+    // Real-time validation listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+        
+        if (password) {
+            password.addEventListener('input', function() {
+                checkPasswordStrength(this.value);
+            });
+        }
+        
+        if (confirmPassword) {
+            confirmPassword.addEventListener('input', checkPasswordMatch);
+        }
+    });
+
+    // ==================== FORM HANDLING ====================
+    
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const form = this;
         const submitBtn = document.getElementById('submitBtn');
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
 
-        const password = form.password.value;
-        const confirmPassword = form.confirm_password.value;
+        // Validate password match
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
 
         if (password !== confirmPassword) {
-            showAlert('خطأ في مطابقة كلمة المرور', 'كلمة المرور غير مطابقة لتأكيد كلمة المرور. يرجى التحقق.');
+            showAlert('خطأ', 'كلمة المرور غير مطابقة لتأكيد كلمة المرور');
+            return;
+        }
+
+        if (password.length < 8) {
+            showAlert('خطأ', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+            return;
+        }
+
+        // Validate phone (at least 9 digits)
+        const phone = form.querySelector('[name="phone"]').value.trim();
+        const phoneDigits = phone.replace(/\D/g, '');
+        if (phoneDigits.length < 9) {
+            showAlert('خطأ', 'رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل');
             return;
         }
 
         submitBtn.disabled = true;
-        btnText.textContent = 'جاري معالجة طلب التسجيل...';
+        btnText.textContent = 'جاري معالجة الطلب...';
         btnSpinner.classList.remove('hidden');
 
-        const emailVal = form.email.value.trim();
-
-        const payload = {
-            company_name: form.company_name.value.trim(),
-            contact_person: form.contact_person.value.trim(),
-            phone: form.phone.value.trim(),
-            email: emailVal !== "" ? emailVal : null,
-            password: password,
-            category: form.category.value,
-            agree_pricing_policy: form.agree_pricing_policy.checked,
-            csrf_token: form.csrf_token.value
-        };
-
         try {
-            const response = await fetch("{{ url_for('.register') }}", {
+            const formData = new FormData(form);
+            
+            const response = await fetch(form.action, {
                 method: 'POST',
+                body: formData,
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRFToken': form.csrf_token.value,
-                    'X-CSRF-Token': form.csrf_token.value
-                },
-                body: JSON.stringify(payload)
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
 
-            const textResponse = await response.text();
-            let data;
-            try {
-                data = JSON.parse(textResponse);
-            } catch (e) {
-                console.error("Server response is not valid JSON:", textResponse);
-                throw new Error("استجابة الخادم غير صالحة (خطأ برمي داخلي 500)");
-            }
+            const data = await response.json();
 
             if (response.ok && data.success) {
-                showAlert('تم تسجيل المنشأة بنجاح', 'جاري إعداد لوحة التحكم المجانية الخاصة بك وتوجيهك...', true);
+                showAlert('تم التسجيل بنجاح', 'جاري إعداد لوحة التحكم المجانية الخاصة بك...', true);
                 setTimeout(() => {
-                    window.location.href = data.redirect_url || '/supplier/dashboard';
-                }, 1200);
+                    window.location.href = data.redirect_url || "{{ url_for('supplier.dashboard') }}";
+                }, 1500);
             } else {
                 submitBtn.disabled = false;
-                showAlert('خطأ في التسجيل', data.message || 'تعذر إتمام التسجيل. يرجى التحقق من المدخلات وإعادة المحاولة.');
-            }
-        } كلا {
-            // catch block
-        } catch (err) {
-            console.error("Register error:", err);
-            submitBtn.disabled = false;
-            showAlert('خطأ في الاتصال', err.message || 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة وإعادة المحاولة.');
-        } finally {
-            if (submitBtn.disabled === false) {
-                btnText.textContent = 'إرسال طلب التسجيل وتوثيق الحساب';
+                btnText.textContent = 'إرسال طلب التسجيل';
                 btnSpinner.classList.add('hidden');
+                showAlert('خطأ في التسجيل', data.message || 'تعذر إتمام التسجيل. يرجى التحقق من المدخلات');
             }
+        } catch (err) {
+            console.error('Register error:', err);
+            submitBtn.disabled = false;
+            btnText.textContent = 'إرسال طلب التسجيل';
+            btnSpinner.classList.add('hidden');
+            showAlert('خطأ في الاتصال', 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة');
         }
-    }
+    });
 </script>
 {% endblock %}
