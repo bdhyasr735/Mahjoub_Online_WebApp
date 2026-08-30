@@ -26,7 +26,7 @@ from apps.models.product_supplier_map import ProductSupplierMapping
 # إعداد التسجيل
 logger = logging.getLogger(__name__)
 
-# إنشاء Blueprint
+# إنشاء Blueprint الأساسي
 suppliers_auth_bp = Blueprint(
     'suppliers_auth_bp',
     __name__,
@@ -103,7 +103,6 @@ def find_user(identifier):
     if not supplier and username:
         supplier = Supplier.query.filter_by(username=username).first()
     
-    # دعم مطابقة مباشرة كاحتياط إضافي للبريد أو الهاتف أو اسم المستخدم
     if not supplier:
         supplier = Supplier.query.filter(
             (Supplier.username == identifier) | 
@@ -114,7 +113,6 @@ def find_user(identifier):
     if supplier:
         return supplier, 'supplier'
     
-    # البحث في الموظفين
     employee = None
     if email:
         employee = SupplierStaff.query.filter_by(email=email).first()
@@ -194,7 +192,6 @@ def login_page():
     try:
         if current_user.is_authenticated:
             return redirect(url_for('suppliers_auth_bp.dashboard'))
-        
         return render_template('suppliers_auth_portal/login.html', page_title='تسجيل الدخول')
     except Exception as e:
         logger.error(f"❌ خطأ فادح أثناء عرض صفحة تسجيل الدخول: {str(e)}", exc_info=True)
@@ -207,10 +204,7 @@ def login():
     try:
         data = request.get_json(silent=True) or request.form
         if not data:
-            return jsonify({
-                'success': False,
-                'message': 'بيانات غير صالحة'
-            }), 400
+            return jsonify({'success': False, 'message': 'بيانات غير صالحة'}), 400
 
         identifier = str(data.get('identifier', '')).strip()
         password = str(data.get('password', ''))
@@ -218,33 +212,19 @@ def login():
         remember_me = bool(data.get('remember_me', False))
 
         if not identifier or not password:
-            return jsonify({
-                'success': False,
-                'message': 'يرجى إدخال اسم المستخدم أو البريد أو الهاتف وكلمة المرور'
-            }), 400
+            return jsonify({'success': False, 'message': 'يرجى إدخال اسم المستخدم أو البريد أو الهاتف وكلمة المرور'}), 400
 
         user, found_type = find_user(identifier)
         
         if not user:
-            logger.warning(f"⚠️ محاولة دخول فاشلة لمعرف غير موجود: {identifier}")
-            return jsonify({
-                'success': False,
-                'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'
-            }), 401
+            return jsonify({'success': False, 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
 
         if user_type == 'supplier' and found_type != 'supplier':
-            return jsonify({
-                'success': False,
-                'message': 'هذا الحساب ليس حساب مورد'
-            }), 403
+            return jsonify({'success': False, 'message': 'هذا الحساب ليس حساب مورد'}), 403
         
         if user_type == 'employee' and found_type != 'employee':
-            return jsonify({
-                'success': False,
-                'message': 'هذا الحساب ليس حساب موظف مورد'
-            }), 403
+            return jsonify({'success': False, 'message': 'هذا الحساب ليس حساب موظف مورد'}), 403
 
-        # التحقق من كلمة المرور
         password_valid = False
         if hasattr(user, 'check_password'):
             password_valid = user.check_password(password)
@@ -253,17 +233,10 @@ def login():
             password_valid = check_password_hash(user.password_hash, password)
 
         if not password_valid:
-            logger.warning(f"⚠️ كلمة مرور خاطئة للمستخدم: {getattr(user, 'username', identifier)}")
-            return jsonify({
-                'success': False,
-                'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'
-            }), 401
+            return jsonify({'success': False, 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
 
         if hasattr(user, 'is_active') and not user.is_active:
-            return jsonify({
-                'success': False,
-                'message': 'الحساب غير نشط. يرجى التواصل مع الدعم الفني.'
-            }), 403
+            return jsonify({'success': False, 'message': 'الحساب غير نشط. يرجى التواصل مع الدعم الفني.'}), 403
 
         login_user(user, remember=remember_me)
         session['user_type'] = found_type
@@ -272,8 +245,6 @@ def login():
         if hasattr(user, 'last_login'):
             user.last_login = datetime.now()
             db.session.commit()
-
-        logger.info(f"✅ تم تسجيل الدخول بنجاح: {getattr(user, 'username', identifier)} ({found_type})")
 
         return jsonify({
             'success': True,
@@ -284,10 +255,7 @@ def login():
     except Exception as e:
         db.session.rollback()
         logger.error(f"❌ خطأ غير متوقع أثناء تسجيل الدخول: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'message': f'حدث خطأ داخلي في الخادم: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'message': f'حدث خطأ داخلي في الخادم: {str(e)}'}), 500
 
 
 @suppliers_auth_bp.route('/register', methods=['GET'])
@@ -386,7 +354,6 @@ def register():
         db.session.add(wallet)
         db.session.commit()
 
-        logger.info(f"✅ تم تسجيل مورد جديد بنجاح: {valid_username}")
         return jsonify({
             'success': True,
             'message': 'تم إنشاء حساب المورد بنجاح',
@@ -409,7 +376,9 @@ def forgot_password_page():
         return f"Internal Server Error: {str(e)}", 500
 
 
+# دعم كلا المسارين (سواء بوجود s أو بدونها لتجنب خطأ 404 تماماً)
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
+@suppliers_auth_bp.route('/supplier/forgot-password/request-otp', methods=['POST'])
 def request_otp():
     """طلب رمز التحقق OTP عبر الواتساب"""
     try:
@@ -427,7 +396,6 @@ def request_otp():
             return jsonify({'success': False, 'message': 'لا يوجد رقم هاتف مسجل لهذا الحساب لإرسال رمز الواتساب'}), 400
 
         otp_code = generate_otp()
-        
         whatsapp_sent = send_whatsapp_otp(target_phone, otp_code)
         
         if not whatsapp_sent:
@@ -453,6 +421,7 @@ def request_otp():
 
 
 @suppliers_auth_bp.route('/reset-password', methods=['POST'])
+@suppliers_auth_bp.route('/supplier/reset-password', methods=['POST'])
 def reset_password():
     """التحقق من رمز OTP وتحديث كلمة المرور للمورد أو الموظف"""
     try:
@@ -477,7 +446,6 @@ def reset_password():
         if not stored_otp_data:
             return jsonify({'success': False, 'message': 'انتهت صلاحية الجلسة أو لم يتم طلب رمز تحقق'}), 400
 
-        # التحقق من صلاحية الوقت (10 دقائق)
         expires_at = datetime.fromisoformat(stored_otp_data['expires_at'])
         if datetime.now() > expires_at:
             session.pop('reset_otp', None)
@@ -497,7 +465,6 @@ def reset_password():
         if not user:
             return jsonify({'success': False, 'message': 'المستخدم غير موجود'}), 404
 
-        # تحديث كلمة المرور
         if hasattr(user, 'set_password'):
             user.set_password(new_password)
         else:
@@ -507,7 +474,6 @@ def reset_password():
         db.session.commit()
         session.pop('reset_otp', None)
 
-        logger.info(f"✅ تم إعادة تعيين كلمة المرور بنجاح للمستخدم ID: {user_id} ({u_type})")
         return jsonify({
             'success': True,
             'message': 'تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن',
