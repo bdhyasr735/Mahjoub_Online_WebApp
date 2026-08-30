@@ -4,7 +4,7 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, timedelta
 import secrets
 
 from apps.extensions import db
@@ -12,8 +12,8 @@ from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
 
-# ✅ إنشاء البلوبرنت
-bp = Blueprint('suppliers_auth', __name__)
+# ✅ إنشاء البلوبرنت مع تحديد مجلد القوالب لحل مشكلة TemplateNotFound
+bp = Blueprint('suppliers_auth', __name__, template_folder='templates')
 
 
 # ============================================================
