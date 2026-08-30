@@ -7,9 +7,15 @@ from sqlalchemy import func, extract
 from datetime import datetime, timedelta
 import traceback
 
-from apps.models import db, Supplier, Order, OrderItem, SupplierWallet, Product
+from apps.extensions import db
+from apps.models.supplier_db import Supplier
+from apps.models.supplier_staff_db import SupplierStaff
+from apps.models.wallet_db import SupplierWallet
+from apps.models.orders_db import Order
+from apps.models.order_items_db import OrderItem
+from apps.models.product_db import Product
 
-# ✅ تعريف الـ Blueprint بالاسم المعتمد في التطبيق
+# ✅ تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
@@ -58,7 +64,8 @@ def dashboard():
         supplier = get_supplier_context()
         if not supplier:
             flash('❌ يرجى تسجيل الدخول أولاً', 'danger')
-            return redirect(url_for('suppliers_bp.login'))
+            # ✅ التصحيح: استخدام الـ endpoint الصحيح
+            return redirect(url_for('auth_login.login'))
 
         # ✅ 2. جلب المحفظة أو إنشاؤها تلقائياً إن لم تكن موجودة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
@@ -134,10 +141,14 @@ def dashboard():
             sales_change_percent = ((sales_today - sales_yesterday) / sales_yesterday) * 100
 
         # ✅ 6. عدد المنتجات النشطة
-        active_products = Product.query.filter(
-            Product.supplier_id == supplier.id,
-            Product.status == 'active'
-        ).count() if hasattr(Product, 'status') else Product.query.filter_by(supplier_id=supplier.id).count()
+        try:
+            from apps.models.product_db import Product
+            active_products = Product.query.filter(
+                Product.supplier_id == supplier.id,
+                Product.status == 'active'
+            ).count() if hasattr(Product, 'status') else Product.query.filter_by(supplier_id=supplier.id).count()
+        except:
+            active_products = 0
 
         # ✅ 7. أحدث 5 طلبات
         recent_orders = Order.query.filter_by(
@@ -207,14 +218,14 @@ def dashboard():
                 'link': '/supplier/wallet'
             })
 
-        # ✅ 12. عرض القالب مع ربط المسميات المتوافقة مع HTML
+        # ✅ 12. عرض القالب
         return render_template(
             'suppliers/dashboard.html',
             supplier=supplier,
             wallet=wallet,
             total_orders=total_orders,
             pending_orders=pending_orders,
-            pending_orders_count=pending_orders,  # مطابقة الحقل في dashboard.html
+            pending_orders_count=pending_orders,
             completed_orders=completed_orders,
             cancelled_orders=cancelled_orders,
             total_sales=total_sales,
@@ -236,7 +247,8 @@ def dashboard():
         error_details = traceback.format_exc()
         print(f"❌ خطأ في dashboard: {error_details}")
         flash('❌ حدث خطأ تقني في عرض لوحة التحكم', 'danger')
-        return redirect(url_for('suppliers_bp.login'))
+        # ✅ التصحيح: استخدام الـ endpoint الصحيح
+        return redirect(url_for('auth_login.login'))
 
 
 # ============================================================
@@ -283,13 +295,13 @@ def api_dashboard_stats():
 
 
 # ============================================================
-# ✅ API المساعد الذكي (AI Assistant) مع تفعيل نظام ZSA
+# ✅ API المساعد الذكي (AI Assistant)
 # ============================================================
 
 @suppliers_dashboard_bp.route('/api/ask-ai', methods=['POST'])
 @login_required
 def api_ask_ai():
-    """معالجة استفسارات المورد عبر المساعد الذكي مع تكامل نظام الـ Zero-State Architecture (ZSA)"""
+    """معالجة استفسارات المورد عبر المساعد الذكي"""
     try:
         supplier = get_supplier_context()
         if not supplier:
@@ -301,20 +313,14 @@ def api_ask_ai():
         if not question:
             return jsonify({'success': False, 'answer': 'يرجى كتابة سؤال صحيح.'}), 400
 
-        # تطبيق تفعيل هيكلية الحالة الصفرية (Zero-State Architecture - ZSA) لضمان المعالجة الديناميكية
-        zsa_context_active = True
-
-        # الرد التفاعلي المبني على سياق متجر المورد مع دمج دعم ZSA
         answer_text = (
             f"أهلاً بك في متجر **{supplier.trade_name or 'المورد'}**.\n"
-            f"تم تفعيل نظام **ZSA (Zero-State Architecture)** بنجاح لمعالجة استفسارك.\n"
             f"لقد تلقيت استفسارك حول: ({question}).\n"
-            f"متجرك يعمل بكفاءة ونحن مستعدون دائماً لدعمك في إدارة منتجاتك ومبيعاتك عبر المزامنة الفورية."
+            f"متجرك يعمل بكفاءة ونحن مستعدون دائماً لدعمك."
         )
 
         return jsonify({
             'success': True,
-            'zsa_enabled': zsa_context_active,
             'answer': answer_text
         })
 
