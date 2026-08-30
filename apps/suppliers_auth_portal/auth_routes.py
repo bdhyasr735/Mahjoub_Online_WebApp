@@ -170,7 +170,7 @@ def register():
         wallet = SupplierWallet(
             supplier_id=supplier.id,
             wallet_code=f"WEL-963{supplier.id}",
-            balance=0.0,
+            balance_sar=0.0,
             status='active'
         )
         db.session.add(wallet)
