@@ -5,7 +5,6 @@ from flask import render_template, request, jsonify, session, redirect, url_for
 from flask_login import login_user, logout_user
 from apps.suppliers_auth_portal import suppliers_bp
 from apps.suppliers_auth_portal.seo_service import SupplierPortalSEOService
-from apps.suppliers_auth_portal.security import check_rate_limit, clear_rate_limit
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.extensions import db
@@ -17,14 +16,6 @@ def login():
         return render_template('suppliers_auth_portal/login.html', seo=seo)
 
     try:
-        ip = request.remote_addr
-        allowed, wait_time = check_rate_limit(ip)
-        if not allowed:
-            return jsonify({
-                "success": False,
-                "message": f"تم حظر المحاولات مؤقتاً. يرجى الانتظار {wait_time} ثانية."
-            }), 429
-
         data = request.get_json(force=True, silent=True) or request.form or {}
         identifier = data.get('identifier', '').strip()
         password = data.get('password', '')
@@ -48,7 +39,6 @@ def login():
             if not supplier_obj.check_password(password):
                 return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
 
-            clear_rate_limit(ip)
             session['user_type'] = 'supplier'
             login_user(supplier_obj)
             session['supplier_logged_in'] = True
@@ -73,7 +63,6 @@ def login():
             if not staff_obj.check_password(password):
                 return jsonify({"success": False, "message": "كلمة المرور غير صحيحة"}), 401
 
-            clear_rate_limit(ip)
             session['user_type'] = 'supplier_staff'
             login_user(staff_obj)
             session['supplier_staff_logged_in'] = True
