@@ -194,7 +194,21 @@ def create_app():
     }
 
     db.init_app(app)
+    
+    # ✅ إعداد الدوال العامة لـ Jinja وتجنب خطأ UndefinedError لـ get_seo_data
     app.jinja_env.globals.update(getattr=getattr)
+
+    def get_seo_data(page_name='default', custom_seo=None):
+        default_seo = {
+            'title': 'محجوب أونلاين | بوابة الموردين',
+            'description': 'منصة محجوب أونلاين للتجارة الإلكترونية وإدارة الموردين',
+            'keywords': 'محجوب أونلاين, متجر, موردين'
+        }
+        if custom_seo and isinstance(custom_seo, dict):
+            default_seo.update(custom_seo)
+        return default_seo
+
+    app.jinja_env.globals['get_seo_data'] = get_seo_data
 
     CORS(app, resources={
         r"/admin/graphql*": {
@@ -490,7 +504,7 @@ def create_app():
         from apps.suppliers_auth_portal import bp as suppliers_bp
         app.register_blueprint(suppliers_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
-        print("   📍 المسار: /suppliers")
+        print("    📍 المسار: /suppliers")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: {e}")
         import traceback
@@ -501,7 +515,7 @@ def create_app():
         from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
         app.register_blueprint(suppliers_dashboard_bp, url_prefix='/suppliers')
         print("✅ [لوحة تحكم الموردين]: تم تسجيل لوحة التحكم بنجاح.")
-        print("   📍 المسار: /suppliers/dashboard")
+        print("    📍 المسار: /suppliers/dashboard")
     except Exception as e:
         print(f"❌ [خطأ لوحة تحكم الموردين]: {e}")
         import traceback
