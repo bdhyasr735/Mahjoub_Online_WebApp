@@ -157,13 +157,13 @@ class SupplierPortalSEOService:
         """الحصول على الرابط الأساسي للصفحة"""
         try:
             endpoints = {
-                "login": "auth_login.login",
-                "register": "auth_register.register",
-                "verify": "auth_recovery.verify",
-                "forgot_password": "auth_recovery.forgot_password",
-                "reset_password": "auth_recovery.reset_password",
-                "dashboard": "auth_login.dashboard",
-                "profile": "auth_login.profile"
+                "login": "auth.login",
+                "register": "auth.register",
+                "verify": "auth.verify",
+                "forgot_password": "auth.forgot_password",
+                "reset_password": "auth.reset_password",
+                "dashboard": "suppliers_dashboard.dashboard",
+                "profile": "auth.profile"
             }
             
             endpoint = endpoints.get(page_name)
