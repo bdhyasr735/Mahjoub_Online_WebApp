@@ -1,17 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_auth_portal/registry.py
 
-from flask import Blueprint
-
-def register_module(app):
-    """تسجيل موديول بوابة المصادقة للموردين."""
-    try:
-        from apps.suppliers_auth_portal.routes import suppliers_bp
-        if not suppliers_bp.name in app.blueprints:
-            app.register_blueprint(suppliers_bp, url_prefix='/supplier')
-        print("✅ [بوابة الموردين]: تم تسجيل الموديول بنجاح عبر نظام التسجيل الديناميكي.")
-    except Exception as e:
-        print(f"❌ [خطأ تسجيل موديول الموردين]: {e}")
+# تم إزالة تسجيل البوابة من هنا لأنها مسجلة يدوياً في apps/__init__.py لتجنب التكرار.
 
 # تعريف القائمة الجانبية وعناصر التنقل الخاصة بالموردين ضمن لوحة التحكم
 NAV_ITEMS = [
