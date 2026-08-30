@@ -3,7 +3,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from apps.models.supplier import Supplier
+from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_staff_db import SupplierStaff
