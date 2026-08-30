@@ -7,7 +7,7 @@ import secrets
 import string
 import click
 from datetime import datetime
-from flask import Flask, redirect, session, url_for, request, jsonify, make_response
+from flask import Flask, redirect, session, url_for, request, jsonify, make_response, Blueprint
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
@@ -384,7 +384,6 @@ def create_app():
     def unauthorized():
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if request.path.startswith('/supplier'):
-            # ✅ استخدام المسار المباشر لتجنب BuildError
             return redirect('/supplier/login')
         return redirect(admin_login_path)
 
@@ -436,13 +435,11 @@ def create_app():
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                # ✅ استخدام المسار المباشر
                 return redirect('/supplier/login')
 
             return
 
         if path.startswith('/supplier'):
-            # ✅ استخدام المسار المباشر
             return redirect('/supplier/login')
 
         return redirect(admin_login_path)
@@ -548,8 +545,19 @@ def create_app():
             from apps.auth_portal.routes import auth_portal_bp
             app.register_blueprint(auth_portal_bp)
             print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح (auth_portal_bp).")
-        except Exception as e2:
-            print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e2}")
+        except ImportError:
+            try:
+                import apps.auth_portal.routes as auth_routes
+                for attr_name in dir(auth_routes):
+                    attr = getattr(auth_routes, attr_name)
+                    if isinstance(attr, Blueprint):
+                        app.register_blueprint(attr)
+                        print(f"✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح ({attr_name}).")
+                        break
+            except Exception as e:
+                print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
+        except Exception as e:
+            print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
@@ -565,8 +573,23 @@ def create_app():
             app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
             csrf.exempt(suppliers_auth_bp)
             print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (من registry).")
-        except Exception as e2:
-            print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e2}")
+        except ImportError:
+            try:
+                # إنشاء Blueprint مباشرة
+                suppliers_auth_bp = Blueprint(
+                    'suppliers_auth_bp',
+                    __name__,
+                    template_folder='templates/suppliers_auth_portal',
+                    url_prefix='/supplier'
+                )
+                from apps.suppliers_auth_portal import routes
+                app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
+                csrf.exempt(suppliers_auth_bp)
+                print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (تم إنشاؤها مباشرة).")
+            except Exception as e:
+                print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+        except Exception as e:
+            print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
