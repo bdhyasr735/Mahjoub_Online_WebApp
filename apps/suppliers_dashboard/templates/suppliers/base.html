@@ -560,7 +560,8 @@
                     e.preventDefault();
                     sessionStorage.clear();
                     localStorage.clear();
-                    window.location.href = this.href;
+                    // استخدام replace لمنع العودة للصفحة عبر زر الرجوع في المتصفح
+                    window.location.replace(this.href);
                 });
             }
         });
