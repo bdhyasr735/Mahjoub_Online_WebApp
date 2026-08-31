@@ -47,12 +47,13 @@ class WalletService:
         
         request_number = f"WDR-{uuid.uuid4().hex[:6].upper()}"
         
-        # استخدام العمود الصريح والمدعوم في النموذج WithdrawalRequest وهو bank_details
+        # استخدام العمود الصريح والمدعوم في النموذج WithdrawalRequest وهو payout_method مع تمرير supplier_id
         withdrawal_request = WithdrawalRequest(
             request_number=request_number,
+            supplier_id=wallet.supplier_id,
             wallet_id=wallet.id,
             amount=amount,
-            bank_details=bank_account,
+            payout_method=bank_account,
             status='pending',
             notes=notes
         )
