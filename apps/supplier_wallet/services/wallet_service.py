@@ -12,9 +12,8 @@ class WalletService:
 
     @staticmethod
     def get_or_create_wallet(session, supplier_id, trade_name="متجر المورد"):
-        """جلب محفظة المورد مع قفل الصف لتجنب تداخل العمليات، أو إنشائها إذا لمג تكن موجودة"""
-        # استخدام استعلام مباشر على جدول المحافظ فقط لتجنب مشكلة Outer Join مع with_for_update
-        wallet = session.query(SupplierWallet).filter_by(supplier_id=supplier_id).with_for_update().first()
+        """جلب محفظة المورد أو إنشائها إذا لم تكن موجودة"""
+        wallet = session.query(SupplierWallet).filter(SupplierWallet.supplier_id == supplier_id).first()
         
         if not wallet:
             wallet_code = f"WEL-{uuid.uuid4().hex[:6].upper()}"
@@ -33,8 +32,9 @@ class WalletService:
 
     @staticmethod
     def create_withdrawal_request(session, wallet_id, bank_account, amount, notes=""):
-        """إنشاء طلب سحب جديد وتحديث الأرصدة المعلقة في المحفظة"""
-        wallet = session.query(SupplierWallet).filter_by(id=wallet_id).with_for_update().first()
+        """إنشاء طلب سحب جديد وتحديث الأرصدة المعلقة في المحفظة بدون تعارض مع قيود القفل في بوستجرس"""
+        # جلب المحفظة بالمعرف مباشرة بدون with_for_update لمنع أي Outer Join افتراضي مع الجداول المرتبطة
+        wallet = session.query(SupplierWallet).filter(SupplierWallet.id == wallet_id).first()
         
         if not wallet:
             raise ValueError("المحفظة غير موجودة")
