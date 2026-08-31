@@ -1,135 +1,182 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>البوابة السيادية الإدارية | محجوب أونلاين</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        royal: {
-                            900: '#1a0b2e',
-                            800: '#32145a',
-                            700: '#570575',
-                            600: '#632C8F',
-                        },
-                        gold: {
-                            500: '#D4AF37',
-                            600: '#b89728',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #1a0b2e 0%, #32145a 50%, #000000 100%);
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
+# -*- coding: utf-8 -*-
+# apps/auth_portal/routes.py
 
-    <div class="w-full max-w-md bg-royal-900/80 backdrop-blur-md border border-gold-500/30 rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden">
+"""
+مسارات وبوابات المصادقة السيادية الإدارية (Admin Auth Portal)
+لمنصة محجوب أونلاين - متوافقة تماماً مع قالب واجهة تسجيل الدخول
+"""
+
+import logging
+import re
+from datetime import datetime
+
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
+from flask_login import login_user, logout_user, login_required, current_user
+
+from apps.extensions import db
+from apps.models.admin_db import Admin  # تأكد من تطابق مسار نموذج المشرفين في هيكلة مشروعك
+
+# إعداد التسجيل (Logger)
+logger = logging.getLogger(__name__)
+
+# تعريف الـ Blueprint الخاص ببوابة الآدمن
+auth_portal_bp = Blueprint(
+    'auth_portal_bp',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/admin-auth'  # يمكنك تعديل البادئة (Prefix) حسب رغبتك في توجيه الروابط
+)
+
+
+# ============================================================
+# دوال مساعدة للتحقق من المدخلات
+# ============================================================
+
+def validate_username(username):
+    """التحقق من صحة اسم المستخدم الإداري لمنع الحقن أو القيم الفارغة"""
+    if not username:
+        return None
+    # السماح بالأحرف (الإنجليزية/العربية) والأرقام والشرطة السفلى
+    cleaned = username.strip()
+    if re.match(r'^[a-zA-Z0-9_\u0600-\u06FF]{3,50}$', cleaned):
+        return cleaned
+    return None
+
+
+# ============================================================
+# مسارات المصادقة والتحكم
+# ============================================================
+
+@auth_portal_bp.route('/login', methods=['GET'])
+def login_page():
+    """عرض صفحة تسجيل الدخول للبوابة السيادية الإدارية"""
+    try:
+        # إذا كان المشرف مسجلاً مسبقاً، يتم توجيهه مباشرة للوحة التحكم
+        if current_user.is_authenticated and getattr(current_user, 'is_admin', True):
+            return redirect(url_for('auth_portal_bp.dashboard'))
+            
+        return render_template(
+            'auth/login.html', 
+            page_title='البوابة السيادية الإدارية | محجوب أونلاين'
+        )
+    except Exception as e:
+        logger.error(f"❌ خطأ فادح أثناء عرض صفحة دخول الآدمن: {str(e)}", exc_info=True)
+        return f"Internal Server Error: {str(e)}", 500
+
+
+@auth_portal_bp.route('/login', methods=['POST'])
+def login():
+    """معالجة طلب تسجيل الدخول القادم عبر الـ JSON من الواجهة الأمامية"""
+    try:
+        data = request.get_json(silent=True) or request.form
+        if not data:
+            return jsonify({'status': 'error', 'message': 'بيانات غير صالحة'}), 400
+
+        username_input = str(data.get('username', '')).strip()
+        password = str(data.get('password', ''))
+
+        if not username_input or not password:
+            return jsonify({'status': 'error', 'message': 'يرجى إدخال اسم المستخدم وكلمة المرور'}), 400
+
+        valid_username = validate_username(username_input)
+        if not valid_username:
+            return jsonify({'status': 'error', 'message': 'صيغة اسم المستخدم الإداري غير صالحة'}), 400
+
+        # البحث عن المشرف في قاعدة البيانات (سواء بالـ username أو الـ email)
+        admin_user = Admin.query.filter(
+            (Admin.username == valid_username) | (Admin.email == valid_username)
+        ).first()
+
+        if not admin_user:
+            logger.warning(f"⚠️ محاولة تسجيل دخول فاشلة لمشرف غير موجود: {username_input}")
+            return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
+
+        # التحقق من كلمة المرور باستخدام الدوال المعتمدة
+        password_valid = False
+        if hasattr(admin_user, 'check_password'):
+            password_valid = admin_user.check_password(password)
+        elif hasattr(admin_user, 'password_hash'):
+            from werkzeug.security import check_password_hash
+            password_valid = check_password_hash(admin_user.password_hash, password)
+
+        if not password_valid:
+            logger.warning(f"⚠️ كلمة مرور خاطئة لمحاولة تسجيل دخول المشرف: {valid_username}")
+            return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
+
+        # التحقق من أن حساب المشرف نشط
+        if hasattr(admin_user, 'is_active') and not admin_user.is_active:
+            logger.warning(f"⚠️ محاولة دخول على حساب إداري معطل: {valid_username}")
+            return jsonify({'status': 'error', 'message': 'هذا الحساب الإداري معطل. يرجى مراجعة الإدارة العليا.'}), 403
+
+        # تسجيل الدخول بنجاح وتفعيل الجلسة عبر Flask-Login
+        login_user(admin_user, remember=True)
+        session['user_type'] = 'admin'
+        session['login_time'] = datetime.now().isoformat()
+
+        # تحديث وقت آخر تسجيل دخول إن وجد الحقل في قاعدة البيانات
+        if hasattr(admin_user, 'last_login'):
+            admin_user.last_login = datetime.now()
+            db.session.commit()
+
+        logger.info(f"🛡️ تم تسجيل دخول المشرف السيادي بنجاح: {admin_user.username}")
         
-        <!-- تأثير جمالي علوي -->
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-500 to-transparent"></div>
+        # الرد بالصيغة المتوافقة تماماً مع الـ JavaScript في القالب الأمامي
+        return jsonify({
+            'status': 'success',
+            'message': 'تم التحقق بنجاح. جاري توجيهك إلى النظام السيادي...',
+            'redirect': url_for('auth_portal_bp.dashboard')
+        })
 
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-gold-500 mb-2">البوابة السيادية للإدارة</h1>
-            <p class="text-xs text-gray-300">محجوب أونلاين - منطقة آمنة ومحمية</p>
-        </div>
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ خطأ غير متوقع أثناء معالجة تسجيل دخول الآدمن: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f'خطأ داخلي في الخادم: {str(e)}'}), 500
 
-        <!-- رسالة التنبيه -->
-        <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm border"></div>
 
-        <!-- نموذج تسجيل الدخول المباشر -->
-        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
-            <div>
-                <label class="block text-xs font-semibold text-gold-500 mb-2">اسم المستخدم الإداري</label>
-                <input type="text" id="username" required 
-                    class="w-full px-4 py-3 bg-black/40 border border-royal-600 rounded-xl focus:outline-none focus:border-gold-500 text-white placeholder-gray-500 transition"
-                    placeholder="أدخل اسم المستخدم">
-            </div>
+@auth_portal_bp.route('/dashboard')
+@login_required
+def dashboard():
+    """لوحة التحكم السيادية الإدارية الرئيسية"""
+    try:
+        # التحقق الإضافي من الصلاحيات ونوع الجلسة للأمان العالي
+        if session.get('user_type') != 'admin' and not getattr(current_user, 'is_admin', True):
+            logout_user()
+            return redirect(url_for('auth_portal_bp.login_page'))
 
-            <div>
-                <label class="block text-xs font-semibold text-gold-500 mb-2">كلمة المرور المشفرة</label>
-                <input type="password" id="password" required 
-                    class="w-full px-4 py-3 bg-black/40 border border-royal-600 rounded-xl focus:outline-none focus:border-gold-500 text-white placeholder-gray-500 transition"
-                    placeholder="••••••••••••">
-            </div>
+        return render_template(
+            'auth/dashboard.html',
+            page_title='لوحة التحكم السيادية | محجوب أونلاين',
+            admin_user=current_user
+        )
+    except Exception as e:
+        logger.error(f"❌ خطأ في عرض لوحة التحكم السيادية: {str(e)}", exc_info=True)
+        return f"Internal Server Error: {str(e)}", 500
 
-            <button type="submit" id="submit-btn"
-                class="w-full py-3 px-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-500 text-royal-900 font-bold rounded-xl shadow-lg transition transform active:scale-95">
-                دخول النظام السيادي
-            </button>
-        </form>
 
-        <div class="mt-8 text-center text-[10px] text-gray-500">
-            جميع الحقوق محفوظة لمنصة محجوب أونلاين السيادية &copy; 2026
-        </div>
-    </div>
+@auth_portal_bp.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    """تسجيل الخروج وإنهاء الجلسة السيادية للأدمن"""
+    try:
+        admin_name = getattr(current_user, 'username', 'Unknown')
+        logout_user()
+        session.clear()
+        logger.info(f"🔒 تم تسجيل خروج المشرف السيادي: {admin_name}")
+    except Exception as e:
+        logger.error(f"❌ خطأ أثناء تسجيل الخروج: {str(e)}", exc_info=True)
+        
+    return redirect(url_for('auth_portal_bp.login_page'))
 
-    <script>
-        async function handleLogin(event) {
-            event.preventDefault();
-            const alertBox = document.getElementById('alert-box');
-            alertBox.classList.add('hidden');
 
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('submit-btn');
-            
-            btn.disabled = true;
-            btn.innerText = 'جاري المصادقة...';
+# ============================================================
+# دالة تهيئة التطبيق (App Initialization)
+# ============================================================
 
-            try {
-                const response = await fetch(window.location.pathname, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username, password: password })
-                });
-                
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    throw new Error("استجابة الخادم غير صالحة.");
-                }
-
-                const data = await response.json();
-
-                if (response.ok && data.status === 'success') {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 1000);
-                } else {
-                    showAlert(data.message || 'بيانات الدخول غير صحيحة.', 'error');
-                }
-            } catch (err) {
-                showAlert('تعذر الاتصال بالخادم السيادي.', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'دخول النظام السيادي';
-            }
-        }
-
-        function showAlert(message, type) {
-            const alertBox = document.getElementById('alert-box');
-            alertBox.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300', 'bg-rose-950/80', 'border-rose-500', 'text-rose-300');
-            
-            if (type === 'success') {
-                alertBox.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300');
-            } else {
-                alertBox.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-300');
-            }
-            alertBox.innerText = message;
-        }
-    </script>
-</body>
-</html>
+def init_app(app):
+    """تسجيل الـ Blueprint ضمن تطبيق Flask الرئيسي"""
+    if not app.blueprints.get('auth_portal_bp'):
+        app.register_blueprint(auth_portal_bp)
+    
+    logger.info("✅ تم تسجيل وتهيئة مسارات البوابة السيادية الإدارية بنجاح.")
+    return app
