@@ -121,6 +121,7 @@
                             <th style="padding: 12px 10px; font-weight: 700;">رقم الطلب</th>
                             <th style="padding: 12px 10px; font-weight: 700;">المبلغ</th>
                             <th style="padding: 12px 10px; font-weight: 700;">الحالة</th>
+                            <th style="padding: 12px 10px; font-weight: 700;">تاريخ ووقت الإنشاء</th>
                             <th style="padding: 12px 10px; font-weight: 700; text-align: center;">التفاصيل / السند</th>
                         </tr>
                     </thead>
@@ -128,7 +129,7 @@
                         {% for req in pagination.items %}
                         <tr class="request-row" data-status="{{ req.status }}" data-number="{{ req.request_number|lower }}" style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)';" onmouseout="this.style.background='transparent';">
                             <td style="padding: 14px 10px; font-weight: bold;" class="font-mono text-white">{{ req.request_number }}</td>
-                            <td style="padding: 14px 10px; font-weight: bold; color: var(--royal-gold, #D4AF37);" class="font-mono">{{ "%.2f"|format(req.amount) }} {{ req.currency }}</td>
+                            <td style="padding: 14px 10px; font-weight: bold; color: var(--royal-gold, #D4AF37);" class="font-mono">{{ "%.2f"|format(req.amount) }} {{ req.currency if req.currency else 'SAR' }}</td>
                             <td style="padding: 14px 10px;">
                                 {% if req.status == 'pending' %}
                                     <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">قيد الانتظار</span>
@@ -136,6 +137,13 @@
                                     <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">مكتمل</span>
                                 {% else %}
                                     <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">مرفوض</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 14px 10px; color: #9ca3af; font-size: 12px;" class="font-mono">
+                                {% if req.created_at %}
+                                    {{ req.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}
+                                {% else %}
+                                    -
                                 {% endif %}
                             </td>
                             <td style="padding: 14px 10px; text-align: center;">
@@ -219,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    if(searchInput) searchInput.addEventListener('input', updateLiveView);
+    if(searchInput) searchInput.addEventListener('input', updateLiveTableView = updateLiveView);
     if(statusFilter) statusFilter.addEventListener('change', updateLiveView);
     
     if(resetBtn) {
