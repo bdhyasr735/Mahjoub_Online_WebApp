@@ -1,67 +1,79 @@
-from flask import Blueprint, request, jsonify, url_for, session, render_template
-from datetime import datetime
-import logging
+# -*- coding: utf-8 -*-
+# 📂 apps/auth_portal/routes.py
 
-logger = logging.getLogger(__name__)
+import os
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_login import login_user, logout_user, login_required, current_user
+from apps.extensions import db
+from apps.models.admin_db import AdminUser
+from apps.models.admin_staff_db import AdminStaff
 
-auth_portal_bp = Blueprint('auth_portal_bp', __name__, template_folder='templates')
+auth_bp = Blueprint('auth_portal', __name__, template_folder='templates', static_folder='static')
 
-@auth_portal_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    """معالجة تسجيل دخول المشرفين للبوابة السيادية بناءً على بيانات النظام"""
-    if request.method == 'GET':
-        return render_template('auth/login.html')
+@auth_bp.route('/auth/m7jb_sovereign_hq_v2_99x', methods=['GET', 'POST'])
+def sovereign_login():
+    """مسار تسجيل الدخول السيادي الإداري المخصص"""
+    # إذا كان المستخدم مسجلاً دخوله مسبقاً، يتم توجيهه إلى لوحة التحكم مباشرة
+    if current_user.is_authenticated:
+        if isinstance(current_user, (AdminUser, AdminStaff)):
+            return redirect(url_for('admin_dashboard.index') if 'admin_dashboard.index' in [p.endpoint for p in auth_bp.app.view_functions.values() or []] else '/dashboard')
+        return redirect('/dashboard')
 
-    try:
-        # استقبال البيانات المرسلة عبر FormData من الواجهة الأمامية
-        username = str(request.form.get('username', '')).strip()
-        password = str(request.form.get('password', ''))
+    if request.method == 'POST':
+        # دعم استقبال البيانات كـ JSON أو Form Data لتفادي أخطاء 400
+        data = request.get_json(silent=True) or request.form
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
 
-        # التحقق من ملء الحقول الإجبارية
         if not username or not password:
-            return jsonify({
-                'status': 'error', 
-                'message': 'يرجى إدخال اسم المستخدم وكلمة المرور بدقة.'
-            }), 400
+            if request.is_json:
+                return jsonify({"success": False, "message": "الرجاء إدخال اسم المستخدم وكلمة المرور"}), 400
+            flash('الرجاء إدخال اسم المستخدم وكلمة المرور', 'danger')
+            return render_template('auth/login.html')
 
-        # الاستعلام الفعلي عن المشرف أو الموظف الإداري في قاعدة البيانات
-        admin_staff = AdminStaff.query.filter(
-            (AdminStaff.username == username) | (AdminStaff.email == username)
-        ).first()
+        # 1. البحث في جدول مسؤولي النظام (AdminUser)
+        user = AdminUser.query.filter_by(username=username).first()
+        user_type = 'admin'
 
-        # التحقق من صحة كلمة المرور ووجود الحساب
-        if not admin_staff or not admin_staff.check_password(password):
-            logger.warning(f"⚠️ محاولة دخول إداري فاشلة لاسم المستخدم: {username}")
-            return jsonify({
-                'status': 'error', 
-                'message': 'اسم المستخدم أو كلمة المرور غير صحيحة.'
-            }), 401
+        # 2. إذا لم يوجد، البحث في جدول موظفي الإدارة (AdminStaff)
+        if not user:
+            user = AdminStaff.query.filter_by(username=username).first()
+            user_type = 'admin_staff'
 
-        # التحقق من حالة تفعيل الحساب الإداري
-        if hasattr(admin_staff, 'is_active') and not admin_staff.is_active:
-            logger.warning(f"⚠️ محاولة دخول على حساب إداري معطل: {username}")
-            return jsonify({
-                'status': 'error', 
-                'message': 'هذا الحساب الإداري معطل. يرجى مراجعة الصلاحيات العليا.'
-            }), 403
+        if user and user.check_password(password):
+            # التحقق مما إذا كان حساب الموظف مفَعلاً (إن وجد الحقل)
+            if user_type == 'admin_staff' and hasattr(user, 'is_active') and not user.is_active:
+                if request.is_json:
+                    return jsonify({"success": False, "message": "هذا الحساب معطل، يرجى مراجعة الإدارة"}), 403
+                flash('هذا الحساب معطل، يرجى مراجعة الإدارة', 'danger')
+                return render_template('auth/login.html')
 
-        # اعتماد تسجيل الدخول عبر نظام المصادقة وتوثيق الجلسة
-        login_user(admin_staff, remember=True)
-        session['user_type'] = 'admin_staff'
-        session['login_time'] = datetime.now().isoformat()
+            # تسجيل الدخول عبر Flask-Login
+            login_user(user, remember=True)
+            session['user_type'] = user_type
+            session.permanent = True
 
-        logger.info(f"🛡️ تم تسجيل دخول المشرف السيادي بنجاح: {admin_staff.username}")
+            if request.is_json:
+                return jsonify({"success": True, "redirect_url": "/dashboard"})
+            
+            return redirect('/dashboard')
+
+        if request.is_json:
+            return jsonify({"success": False, "message": "اسم المستخدم أو كلمة المرور غير صحيحة"}), 401
         
-        return jsonify({
-            'status': 'success',
-            'message': 'تم التحقق بنجاح. جاري التوجيه إلى لوحة التحكم السيادية...',
-            'redirect': url_for('auth_portal_bp.dashboard')
-        }), 200
+        flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
 
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"❌ خطأ فادح أثناء معالجة تسجيل دخول المشرفين: {str(e)}", exc_info=True)
-        return jsonify({
-            'status': 'error', 
-            'message': f'خطأ داخلي في الخادم: {str(e)}'
-        }), 500
+    return render_template('auth/login.html')
+
+
+@auth_bp.route('/auth/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    """تسجيل الخروج وإنهاء الجلسة بأمان"""
+    session.pop('user_type', None)
+    logout_user()
+    session.clear()
+    flash('تم تسجيل الخروج بنجاح', 'success')
+    
+    admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+    return redirect(admin_login_path)
