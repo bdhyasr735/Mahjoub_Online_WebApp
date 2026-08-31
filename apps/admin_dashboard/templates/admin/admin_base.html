@@ -293,7 +293,8 @@
         </div>
         
         <nav class="nav-menu">
-            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="nav-link-custom {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
+            <!-- تم تصحيح الـ endpoint هنا إلى admin_dashboard.index لتتوافق مع التسجيل الديناميكي الفعلي للخادم -->
+            <a href="{{ url_for('admin_dashboard.index') }}" class="nav-link-custom {{ 'active' if request.endpoint == 'admin_dashboard.index' }}">
                 <i class="fas fa-chart-line"></i> <span>الإحصائيات</span>
             </a>
             
