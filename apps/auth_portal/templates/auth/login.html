@@ -54,7 +54,8 @@
             errorMsg.classList.add('hidden');
 
             try {
-                const response = await fetch('/admin-auth/login', {
+                // استخدام المسار السيادي الصحيح والمطابق تماماً عبر جينجا
+                const response = await fetch("{{ url_for('auth_portal_bp.login') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -67,7 +68,7 @@
                 if (response.ok && data.status === 'success') {
                     window.location.href = data.redirect;
                 } else {
-                    errorMsg.textContent = data.message || 'فشل تسجيل الدخول';
+                    errorMsg.textContent = data.message || 'بيانات الدخول غير صحيحة';
                     errorMsg.classList.remove('hidden');
                 }
             } catch (err) {
