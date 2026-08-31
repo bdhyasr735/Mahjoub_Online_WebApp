@@ -5,7 +5,9 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from apps.models.admin_db import AdminUser
 from apps.models.admin_staff_db import AdminStaff
 
+# توحيد اسم البلتبرنت ليتطابق مع آلية التسجيل التلقائي في التطبيق
 auth_portal = Blueprint('auth_portal', __name__, template_folder='templates')
+auth_portal_bp = auth_portal  # توافقية تامة مع الاستيراد في __init__.py
 
 # المسار السيادي السري الحقيقي لتسجيل الدخول
 SECRET_ADMIN_PATH = '/m7jb_sovereign_hq_v2_99x'
@@ -38,9 +40,10 @@ def secure_admin_login():
                 "message": "هذا الحساب معطل حالياً."
             }), 403
 
-        # تسجيل الدخول مباشرة بدون OTP
+        # تسجيل الدخول مباشرة بدون OTP وتفعيل جلسة Admin
         session['admin_logged_in'] = True
-        session['admin_user'] = username
+        session['user_type'] = 'admin'
+        session['_user_id'] = str(admin.id)
         
         return jsonify({
             "status": "success",
@@ -62,7 +65,7 @@ def fake_login():
 
 @auth_portal.route('/dashboard')
 def dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('auth_portal.secure_admin_login'))
+    if not session.get('admin_logged_in') and not session.get('_user_id'):
+        return redirect(SECRET_ADMIN_PATH)
     
     return "مرحباً بك في لوحة التحكم السيادية للإدارة - محجوب أونلاين"
