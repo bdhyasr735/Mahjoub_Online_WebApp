@@ -170,6 +170,73 @@ class WalletTransaction(db.Model):
         }
 
 
+class WithdrawalRequest(db.Model):
+    """جدول طلبات سحب الأرباح للموردين بالريال السعودي مع دعم الفهارس والتشفير والتحقق الصارم."""
+    __tablename__ = 'withdrawal_requests'
+
+    __table_args__ = (
+        db.Index('idx_withdrawal_supplier', 'supplier_id', 'status'),
+        db.Index('idx_withdrawal_lookup', 'request_number'),
+        {'extend_existing': True}
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_number = db.Column(db.String(50), unique=True, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
+    
+    amount = db.Column(db.Numeric(18, 2), nullable=False)
+    currency = db.Column(db.String(5), nullable=False, default='SAR')
+    
+    _payout_method_enc = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(30), default='pending', nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    wallet = db.relationship('SupplierWallet', backref=db.backref('withdrawal_requests', lazy='selectin'))
+
+    @staticmethod
+    def _get_fernet():
+        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
+        try:
+            return Fernet(key.encode('utf-8'))
+        except Exception:
+            b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
+            return Fernet(b64_key)
+
+    @property
+    def payout_method(self):
+        if not self._payout_method_enc:
+            return None
+        try:
+            return self._get_fernet().decrypt(self._payout_method_enc.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    @payout_method.setter
+    def payout_method(self, value):
+        if value:
+            self._payout_method_enc = self._get_fernet().encrypt(str(value).encode('utf-8')).decode('utf-8')
+        else:
+            self._payout_method_enc = None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'request_number': self.request_number,
+            'amount': float(self.amount or 0.0),
+            'currency': self.currency,
+            'payout_method': self.payout_method,
+            'status': self.status,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+# الدوال المساعدة وأحداث الإدخال (تم نقلها لتكون بعد تعريف النماذج بالكامل)
+
 def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
     characters = string.ascii_uppercase + string.digits
     while True:
@@ -251,68 +318,3 @@ def process_withdrawal_request_before_insert(mapper, connection, target):
     """ضمان توليد وتعيين رقم طلب سحب فريد بصيغة WDR-MAH تلقائياً قبل الحفظ وتحمل الضغط العالي"""
     if not target.request_number:
         target.request_number = generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-")
-
-
-class WithdrawalRequest(db.Model):
-    """جدول طلبات سحب الأرباح للموردين بالريال السعودي مع دعم الفهارس والتشفير والتحقق الصارم."""
-    __tablename__ = 'withdrawal_requests'
-
-    __table_args__ = (
-        db.Index('idx_withdrawal_supplier', 'supplier_id', 'status'),
-        db.Index('idx_withdrawal_lookup', 'request_number'),
-        {'extend_existing': True}
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    request_number = db.Column(db.String(50), unique=True, nullable=False)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
-    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
-    
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
-    currency = db.Column(db.String(5), nullable=False, default='SAR')
-    
-    _payout_method_enc = db.Column(db.String(500), nullable=True)
-    status = db.Column(db.String(30), default='pending', nullable=False)
-    notes = db.Column(db.Text, nullable=True)
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    wallet = db.relationship('SupplierWallet', backref=db.backref('withdrawal_requests', lazy='selectin'))
-
-    @staticmethod
-    def _get_fernet():
-        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
-        try:
-            return Fernet(key.encode('utf-8'))
-        except Exception:
-            b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
-            return Fernet(b64_key)
-
-    @property
-    def payout_method(self):
-        if not self._payout_method_enc:
-            return None
-        try:
-            return self._get_fernet().decrypt(self._payout_method_enc.encode('utf-8')).decode('utf-8')
-        except Exception:
-            return None
-
-    @payout_method.setter
-    def payout_method(self, value):
-        if value:
-            self._payout_method_enc = self._get_fernet().encrypt(str(value).encode('utf-8')).decode('utf-8')
-        else:
-            self._payout_method_enc = None
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'request_number': self.request_number,
-            'amount': float(self.amount or 0.0),
-            'currency': self.currency,
-            'payout_method': self.payout_method,
-            'status': self.status,
-            'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
