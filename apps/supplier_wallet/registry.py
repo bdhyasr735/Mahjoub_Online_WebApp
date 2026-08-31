@@ -23,7 +23,7 @@ MENU_ITEMS = [
     }
 ]
 
-# تغطية كافة الاحتمالات التي قد يبحث عنها نظام الـ Sidebar الرئيسي
+# تغطية كافة الاحتمالات والمسميات التي قد يبحث عنها نظام الـ Sidebar الرئيسي للمنصة
 NAV_ITEMS = MENU_ITEMS
 LINKS = MENU_ITEMS
 get_links = lambda: MENU_ITEMS
