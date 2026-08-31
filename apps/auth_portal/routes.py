@@ -3,7 +3,7 @@
 
 """
 مسارات وبوابات المصادقة السيادية الإدارية (Admin Auth Portal)
-لمنصة محجوب أونلاين - متوافقة تماماً مع قالب واجهة تسجيل الدخول
+لمنصة محجوب أونلاين - متوافقة مع المسار السيادي المعتمد
 """
 
 import logging
@@ -14,18 +14,18 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from flask_login import login_user, logout_user, login_required, current_user
 
 from apps.extensions import db
-from apps.models.admin_db import AdminUser  # تم التحديث لتطابق AdminUser المعرف في الهيكل
+from apps.models.admin_db import AdminUser
 
 # إعداد التسجيل (Logger)
 logger = logging.getLogger(__name__)
 
-# تعريف الـ Blueprint الخاص ببوابة الآدمن
+# تعريف الـ Blueprint الخاص ببوابة الآدمن مع المسار السيادي الفعلي
 auth_portal_bp = Blueprint(
     'auth_portal_bp',
     __name__,
     template_folder='templates',
     static_folder='static',
-    url_prefix='/admin-auth'  # البادئة الخاصة بمسار الدخول
+    url_prefix='/m7jb_sovereign_hq_v2_99x'  # المسار السيادي الأصلي المعتمد
 )
 
 
@@ -107,7 +107,7 @@ def login():
             logger.warning(f"⚠️ محاولة دخول على حساب إداري معطل: {valid_username}")
             return jsonify({'status': 'error', 'message': 'هذا الحساب الإداري معطل. يرجى مراجعة الإدارة العليا.'}), 403
 
-        # تسجيل الدخول وتحديد نوع الجلسة كـ admin ليتوافق مع load_user في apps/__init__.py
+        # تسجيل الدخول وتحديد نوع الجلسة كـ admin ليتوافق مع load_user في التطبيق
         login_user(admin_user, remember=True)
         session['user_type'] = 'admin'
         session['login_time'] = datetime.now().isoformat()
