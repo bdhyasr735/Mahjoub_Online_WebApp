@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """
 📂 apps/supplier_wallet/routes.py
 مسارات واجهات محفظة المورد (Supplier Wallet Routes)
@@ -12,10 +12,22 @@ from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
+from apps.registry import registry
 import re
 from decimal import Decimal
 
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
+
+
+@wallet_bp.context_processor
+def inject_supplier_modules():
+    """
+    حقن موديولات لوحة تحكم الموردين والقوائم الجانبية تلقائياً في سياق قوالب هذا البلوبرنت
+    لضمان ظهور القائمة والمحفظة والإدارة المالية في واجهة الموردين دون انقطاع.
+    """
+    return {
+        'supplier_modules': registry.get_modules()
+    }
 
 
 def get_current_wallet_identifier():
