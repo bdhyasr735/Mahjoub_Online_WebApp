@@ -30,7 +30,7 @@ def wallet_dashboard():
     db.session.commit()
 
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
-    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
+    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.desc()).all()
 
     return render_template(
         'supplier_wallet/dashboard.html',
@@ -43,7 +43,7 @@ def wallet_dashboard():
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
-    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع البحث والفلترة والـ Pagination"""
+    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع جلب كافة الطلبات للبحث والفلترة اللحظية (Client-side)"""
     supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
@@ -72,20 +72,14 @@ def withdraw():
 
         return redirect(url_for('supplier_wallet.withdraw'))
 
-    # إعدادات البحث والفلترة وترقيم الصفحات لطلبات السحب
+    # جلب كافة طلبات السحب الخاصة بالمورد مرتبة تنازلياً لتفعيل الفلترة والبحث اللحظي السلس في الواجهة
     page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('q', '').strip()
-    status_filter = request.args.get('status', '').strip()
-
-    query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
-
-    if search_query:
-        query = query.filter(WithdrawalRequest.request_number.ilike(f"%{search_query}%"))
-
-    if status_filter:
-        query = query.filter(WithdrawalRequest.status == status_filter)
-
-    pagination = query.order_by(WithdrawalRequest.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+    
+    # استعلام جلب كافة السجلات لكي تعمل الفلاتر اللحظية (Client-side filtering) بكفاءة عالية
+    query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
+    
+    # لتوافق الكود مع متغيرات الـ pagination في القالب (في حال احتجت المرجع الكلي pagination.total)
+    pagination = query.paginate(page=page, per_page=1000, error_out=False)
 
     active_bank = {
         'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)',
