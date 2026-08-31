@@ -3,7 +3,7 @@
 
 """
 مسارات وبوابات المصادقة السيادية الإدارية (Admin Staff Auth Portal)
-متوافقة صراحةً مع جدول وموديل AdminStaff في قاعدة البيانات مع أدوات التتبع التشخيصية
+متوافقة صراحةً مع جدول وموديل AdminStaff في قاعدة البيانات مع معالجة دقيقة لحالات الخطأ
 """
 
 import logging
@@ -14,11 +14,10 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from flask_login import login_user, logout_user, login_required, current_user
 
 from apps.extensions import db
-from apps.models.admin_staff_db import AdminStaff  # المطابقة الصريحة مع موديل موظفي الإدارة
+from apps.models.admin_staff_db import AdminStaff
 
 logger = logging.getLogger(__name__)
 
-# تعريف الـ Blueprint بالمسار السيادي الأصلي
 auth_portal_bp = Blueprint(
     'auth_portal_bp',
     __name__,
@@ -56,48 +55,50 @@ def login_page():
 
 @auth_portal_bp.route('/login', methods=['POST'])
 def login():
-    """معالجة الدخول الصريح مع أدوات تشخيص الأخطاء لتتبع حالات الرفض (400)"""
+    """معالجة الدخول مع التعامل الآمن مع أخطاء اسم المستخدم وكلمة المرور"""
     try:
-        logger.info(f"📥 Content-Type received: {request.content_type}")
-        data = request.get_json(silent=True) or request.form
-        logger.info(f"📥 Parsed Request Data: {data}")
+        # قراءة البيانات بمرونة لتفادي أخطاء 400
+        data = {}
+        if request.is_json:
+            data = request.get_json(silent=True) or {}
+        elif request.form:
+            data = request.form.to_dict()
+        else:
+            try:
+                import json
+                data = json.loads(request.data.decode('utf-8'))
+            except Exception:
+                data = request.form.to_dict()
 
-        if not data:
-            logger.warning("❌ رفض الطلب: البيانات الواردة فارغة تماماً أو غير صالحة.")
+        if not data or not isinstance(data, dict):
             return jsonify({'status': 'error', 'message': 'بيانات الإدخال غير صالحة'}), 400
 
         login_input = str(data.get('username', '')).strip()
         password = str(data.get('password', ''))
 
         if not login_input or not password:
-            logger.warning(f"❌ رفض الطلب: حقل اسم المستخدم أو كلمة المرور فارغ. (User provided: {bool(login_input)}, Pass provided: {bool(password)})")
             return jsonify({'status': 'error', 'message': 'يرجى إدخال اسم المستخدم/البريد وكلمة المرور'}), 400
 
         valid_input = validate_input(login_input)
         if not valid_input:
-            logger.warning(f"❌ رفض الطلب: الصيغة المدخلة لا تتطابق مع التعبير النمطي (Regex): {login_input}")
             return jsonify({'status': 'error', 'message': 'صيغة البيانات المدخلة غير مطابقة للمعايير'}), 400
 
-        # الاستعلام الصريح المطابق للجدول: البحث إما عبر الـ username أو الـ email
+        # الاستعلام عن الحساب بالاسم أو البريد
         admin_staff = AdminStaff.query.filter(
             (AdminStaff.username == valid_input) | (AdminStaff.email == valid_input)
         ).first()
 
-        if not admin_staff:
-            logger.warning(f"⚠️ محاولة دخول فاشلة لمشرف/موظف غير مسجل: {login_input}")
-            return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
+        # إذا لم يكن المستخدم موجوداً أو كانت كلمة المرور غير صحيحة، نعيد نفس الرسالة الأمنية الموحدة
+        if not admin_staff or not admin_staff.check_password(password):
+            logger.warning(f"⚠️ محاولة دخول فاشلة (اسم مستخدم غير موجود أو كلمة مرور خاطئة): {login_input}")
+            return jsonify({'status': 'error', 'message': 'اسم المستخدم أو كلمة المرور غير صحيحة'}), 401
 
-        # التحقق من كلمة المرور باستخدام دالة check_password المعرفة في الموديل
-        if not admin_staff.check_password(password):
-            logger.warning(f"⚠️ كلمة مرور خاطئة للحساب: {valid_input}")
-            return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
-
-        # التحقق من حالة نشاط الحساب (is_active)
+        # التحقق من حالة نشاط الحساب
         if hasattr(admin_staff, 'is_active') and not admin_staff.is_active:
             logger.warning(f"⚠️ محاولة دخول على حساب إداري معطل: {valid_input}")
             return jsonify({'status': 'error', 'message': 'هذا الحساب الإداري معطل. يرجى مراجعة الإدارة العليا.'}), 403
 
-        # إنشاء جلسة الدخول البرمجية للموظف/المشرف
+        # إنشاء جلسة الدخول بنجاح
         login_user(admin_staff, remember=True)
         session['user_type'] = 'admin_staff'
         session['login_time'] = datetime.now().isoformat()
