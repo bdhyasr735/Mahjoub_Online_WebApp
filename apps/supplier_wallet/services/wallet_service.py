@@ -7,6 +7,8 @@
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
 from decimal import Decimal
 import uuid
+import secrets
+import string
 
 class WalletService:
 
@@ -45,7 +47,15 @@ class WalletService:
         wallet.balance_sar -= amount
         wallet.balance_pending = (wallet.balance_pending or Decimal('0.00')) + amount
         
-        request_number = f"WDR-{uuid.uuid4().hex[:6].upper()}"
+        # توليد رقم طلب سحب فريد مطابق تماماً للنمط الرسمي المعتمد في جدول المحفظة WDR-MAH-
+        characters = string.ascii_uppercase + string.digits
+        while True:
+            random_str = ''.join(secrets.choice(characters) for _ in range(6))
+            candidate_number = f"WDR-MAH-{random_str}"
+            existing = session.query(WithdrawalRequest).filter_by(request_number=candidate_number).first()
+            if not existing:
+                request_number = candidate_number
+                break
         
         # استخدام العمود الصريح والمدعوم في النموذج WithdrawalRequest وهو payout_method مع تمرير supplier_id
         withdrawal_request = WithdrawalRequest(
