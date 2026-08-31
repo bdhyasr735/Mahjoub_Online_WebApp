@@ -95,48 +95,48 @@ def index():
         # الاعتماد الحصري على balance_sar
         balance = float(wallet.balance_sar or 0.0) if wallet else 0.0
         
-        # قائمة الوحدات الجانبية (sidebar) بتصميم المنصة
-        supplier_modules = [
-            {
-                'name': 'الرئيسية',
-                'icon': 'fa-chart-pie',
-                'items': [
-                    {'name': 'لوحة التحكم', 'url': url_for('suppliers_dashboard.index'), 'active': True}
-                ]
+        # قائمة الوحدات الجانبية (sidebar) المتوافقة مع القالب العام
+        supplier_modules = {
+            'suppliers_dashboard': {
+                'title': 'لوحة التحكم',
+                'icon': 'fas fa-chart-pie',
+                'links': {
+                    'suppliers_dashboard.index': 'الرئيسية'
+                }
             },
-            {
-                'name': 'إدارة المنتجات',
-                'icon': 'fa-box',
-                'items': [
-                    {'name': 'جميع المنتجات', 'url': '#', 'active': False},
-                    {'name': 'إضافة منتج جديد', 'url': '#', 'active': False}
-                ]
+            'supplier_products': {
+                'title': 'إدارة المنتجات',
+                'icon': 'fas fa-box',
+                'links': {
+                    'supplier_products.index': 'جميع المنتجات',
+                    'supplier_products.add': 'إضافة منتج جديد'
+                }
             },
-            {
-                'name': 'المبيعات والطلبات',
-                'icon': 'fa-shopping-cart',
-                'items': [
-                    {'name': 'الطلبات الواردة', 'url': '#', 'active': False},
-                    {'name': 'سجل المبيعات', 'url': '#', 'active': False}
-                ]
+            'supplier_orders': {
+                'title': 'المبيعات والطلبات',
+                'icon': 'fas fa-shopping-cart',
+                'links': {
+                    'supplier_orders.index': 'الطلبات الواردة',
+                    'supplier_orders.history': 'سجل المبيعات'
+                }
             },
-            {
-                'name': 'الإدارة المالية',
-                'icon': 'fa-wallet',
-                'items': [
-                    {'name': 'المحفظة والسحب', 'url': '#', 'active': False},
-                    {'name': 'تقارير التسوية', 'url': '#', 'active': False}
-                ]
+            'supplier_wallet': {
+                'title': 'الإدارة المالية',
+                'icon': 'fas fa-wallet',
+                'links': {
+                    'supplier_wallet.index': 'المحفظة والسحب',
+                    'supplier_wallet.reports': 'تقارير التسوية'
+                }
             },
-            {
-                'name': 'الموظفين',
-                'icon': 'fa-users',
-                'items': [
-                    {'name': 'قائمة الموظفين', 'url': '#', 'active': False},
-                    {'name': 'إضافة موظف', 'url': '#', 'active': False}
-                ]
+            'supplier_staff': {
+                'title': 'الموظفين',
+                'icon': 'fas fa-users',
+                'links': {
+                    'supplier_staff.index': 'قائمة الموظفين',
+                    'supplier_staff.add': 'إضافة موظف'
+                }
             }
-        ]
+        }
         
         # الاستدعاء المباشر والصحيح للمسار الفعلي: apps/suppliers_dashboard/templates/suppliers/dashboard.html
         return render_template(
