@@ -96,6 +96,11 @@
                     body: JSON.stringify({ username: username, password: password })
                 });
                 
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("استجابة الخادم غير صالحة.");
+                }
+
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
