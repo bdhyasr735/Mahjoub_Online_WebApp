@@ -1,89 +1,27 @@
 {% extends 'admin/admin_base.html' %}
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="لوحة التحكم السيادية للإدارة - محجوب أونلاين.">
-    <title>تسجيل دخول الإدارة السيادية | محجوب أونلاين</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; --error: #ff4d4d; --success: #28a745; }
-        
-        * { box-sizing: border-box; }
-        body { 
-            margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; 
-            min-height: 100vh; display: flex; align-items: center; justify-content: center; 
-            padding: 20px; line-height: 1.6;
-        }
-        
-        .wrapper { 
-            display: flex; width: 100%; max-width: 950px; background: var(--card-bg); 
-            border: 1px solid #222; border-radius: 24px; overflow: hidden; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-        }
-        
-        .side { flex: 1; padding: clamp(20px, 5vw, 60px); display: flex; flex-direction: column; justify-content: center; }
-        .marketing-side { background: linear-gradient(160deg, #1a102a, #05020a); border-left: 1px solid #333; }
-        
-        h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 1rem; }
-        .btn-gold { 
-            padding: 14px; background: linear-gradient(90deg, var(--gold), #9e7634); 
-            border: none; border-radius: 12px; font-weight: 700; cursor: pointer; 
-            color: #000; margin: 10px 0; width: 100%; transition: all 0.3s;
-        }
-        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(206,158,73,0.3); }
-        
-        .cyber-input { 
-            background: #000; border: 1px solid #333; padding: 15px; color: #fff; 
-            border-radius: 12px; margin: 8px 0; width: 100%; outline: none; 
-        }
-        .cyber-input:focus { border-color: var(--gold); }
-        
-        .hidden { display: none; }
-        #status-msg { 
-            padding: 12px; margin-bottom: 15px; border-radius: 10px; display: none; 
-            text-align: center; font-size: 0.9rem; border: 1px solid transparent;
-        }
-        
-        @media (max-width: 768px) {
-            .wrapper { flex-direction: column; border-radius: 0; }
-            .side { padding: 30px; }
-            .marketing-side { display: none; }
-        }
-    </style>
-</head>
-<body>
 
 {% block title %}لوحة القيادة المركزية | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3">
+<div class="container-fluid py-3" dir="rtl">
+    <!-- رأس لوحة التحكم -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="fw-bold" style="color: var(--royal-purple);">لوحة تحكم النظام</h3>
+            <h3 class="fw-bold" style="color: var(--royal-purple, #632C8F);">لوحة تحكم النظام</h3>
             <p class="text-muted">مرحباً بك، {{ current_user.username if current_user.is_authenticated else 'المسؤول' }}.</p>
         </div>
-        <button class="btn" onclick="window.location.reload();" style="background: var(--mahjoub-gold); color: white; border-radius: 10px;">
+        <button class="btn" onclick="window.location.reload();" style="background: var(--mahjoub-gold, #D4AF37); color: white; border-radius: 10px;">
             <i class="fas fa-sync-alt me-2"></i> تحديث البيانات
         </button>
-<div class="wrapper">
-    <div class="side marketing-side">
-        <h1>المنظومة <span style="color:var(--gold)">الإدارية السيادية</span></h1>
-        <p style="color: #aaa;">بوابة التحكم المركزي لمحجوب أونلاين. صلاحيات مطلقة ومراقبة أمنية مشددة للعمليات.</p>
     </div>
-    
-    <div class="side" id="auth-container">
-        <div id="status-msg"></div>
-        <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
 
-    <!-- ====== البطاقات الإحصائية ====== -->
+    <!-- البطاقات الإحصائية -->
     <div class="row g-4">
         <!-- عدد الموردين -->
         <div class="col-xl-3 col-md-6">
             <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="p-3 rounded-3" style="background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold);">
+                    <div class="p-3 rounded-3" style="background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold, #D4AF37);">
                         <i class="fas fa-users fa-lg"></i>
                     </div>
                     <div class="ms-3"><h6 class="text-muted mb-0">الموردين</h6></div>
@@ -128,59 +66,47 @@
                     <div class="ms-3"><h6 class="text-muted mb-0">إجمالي الإيرادات</h6></div>
                 </div>
                 <h5 class="fw-bold mb-0">{{ "{:,.2f}".format(total_revenue | default(0) | float) }} <small class="text-muted">ر.س</small></h5>
-        <div id="admin-login">
-            <h2 style="color: var(--gold); margin-top: 0;">تسجيل دخول الإدارة</h2>
-            <input type="text" id="admin-user" class="cyber-input" placeholder="اسم المستخدم الإداري">
-            <input type="password" id="admin-pass" class="cyber-input" placeholder="كلمة المرور الإدارية">
-            
-            <div id="admin-otp-container" class="hidden">
-                <input type="text" id="admin-otp" class="cyber-input" placeholder="رمز التحقق السيادي (OTP)">
             </div>
-            
-            <button class="btn-gold" id="admin-submit-btn" onclick="loginAdmin()">دخول المشرفين</button>
         </div>
     </div>
-</div>
 
-    <!-- ====== الأرصدة ====== -->
+    <!-- الأرصدة المركزية -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
-                <h5 class="fw-bold mb-3"><i class="fas fa-wallet me-2" style="color: var(--mahjoub-gold);"></i>الأرصدة المركزية</h5>
+                <h5 class="fw-bold mb-3"><i class="fas fa-wallet me-2" style="color: var(--mahjoub-gold, #D4AF37);"></i>الأرصدة المركزية</h5>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <div class="p-3 rounded-3" style="background: #f8f9fa;">
+                        <div class="p-3 rounded-3 bg-light">
                             <small class="text-muted">ر.س (ريال سعودي)</small>
-                            <h4 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_sar | default(0) | float) }}</h4>
+                            <h4 class="fw-bold mb-0 text-dark">{{ "{:,.2f}".format(total_balance_sar | default(0) | float) }}</h4>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 rounded-3" style="background: #f8f9fa;">
+                        <div class="p-3 rounded-3 bg-light">
                             <small class="text-muted">ر.ي (ريال يمني)</small>
-                            <h4 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_yer | default(0) | float) }}</h4>
+                            <h4 class="fw-bold mb-0 text-dark">{{ "{:,.2f}".format(total_balance_yer | default(0) | float) }}</h4>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 rounded-3" style="background: #f8f9fa;">
+                        <div class="p-3 rounded-3 bg-light">
                             <small class="text-muted">د.أ (دولار أمريكي)</small>
-                            <h4 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_usd | default(0) | float) }}</h4>
+                            <h4 class="fw-bold mb-0 text-dark">{{ "{:,.2f}".format(total_balance_usd | default(0) | float) }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<script>
-    let currentAuthStep = 'credentials';
 
-    <!-- ====== آخر العمليات ====== -->
+    <!-- آخر العمليات المالية -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
-                <h5 class="fw-bold mb-3"><i class="fas fa-clock me-2" style="color: var(--mahjoub-gold);"></i>آخر العمليات المالية</h5>
+                <h5 class="fw-bold mb-3"><i class="fas fa-clock me-2" style="color: var(--mahjoub-gold, #D4AF37);"></i>آخر العمليات المالية</h5>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
-                        <thead style="background: var(--royal-purple); color: white;">
+                        <thead style="background: var(--royal-purple, #632C8F); color: white;">
                             <tr>
                                 <th>#</th>
                                 <th>القيمة</th>
@@ -229,52 +155,3 @@
     </div>
 </div>
 {% endblock %}
-    function showMessage(text, type) {
-        const msg = document.getElementById('status-msg');
-        msg.innerText = text;
-        msg.style.display = "block";
-        msg.style.background = type === 'error' ? "rgba(220, 53, 69, 0.1)" : "rgba(40, 167, 69, 0.1)";
-        msg.style.border = "1px solid " + (type === 'error' ? "#ff4d4d" : "#28a745");
-        msg.style.color = type === 'error' ? "#ff4d4d" : "#28a745";
-    }
-
-    async function loginAdmin() {
-        const data = {
-            username: document.getElementById('admin-user').value,
-            password: document.getElementById('admin-pass').value,
-            step: currentAuthStep,
-            otp_code: document.getElementById('admin-otp').value
-        };
-        
-        try {
-            const response = await fetch("{{ url_for('auth_portal.login') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.getElementById('csrf_token').value
-                },
-                body: JSON.stringify(data)
-            });
-            
-            const res = await response.json();
-            
-            if (response.ok) {
-                if (res.status === 'require_otp') {
-                    currentAuthStep = 'verify_otp';
-                    document.getElementById('admin-otp-container').classList.remove('hidden');
-                    document.getElementById('admin-submit-btn').innerText = 'تأكيد الرمز والدخول السيادي';
-                    showMessage(res.message, 'success');
-                } else if (res.redirect) {
-                    window.location.href = res.redirect;
-                }
-            } else {
-                showMessage(res.message || 'بيانات الدخول غير صحيحة', 'error');
-            }
-        } catch(e) { 
-            console.error(e);
-            showMessage('حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً', 'error'); 
-        }
-    }
-</script>
-</body>
-</html>
