@@ -61,6 +61,9 @@
 
             <!-- Login Form -->
             <form id="login-form" method="POST" class="space-y-6">
+                <!-- حقل الحماية من تزوير الطلبات -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <div>
                     <label class="block text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">اسم المستخدم الإداري</label>
                     <div class="relative">
