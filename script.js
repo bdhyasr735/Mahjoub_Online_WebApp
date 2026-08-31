@@ -3,9 +3,9 @@ import { sleep, check } from 'k6';
 
 export const options = {
   stages: [
-    { duration: '20s', target: 20 }, // تصاعد تدريجي إلى 20 مستخدم متزامن
-    { duration: '30s', target: 50 }, // ضغط بـ 50 مستخدم متزامن
-    { duration: '10s', target: 0 },  // تهدئة النزول
+    { duration: '30s', target: 200 }, // تصاعد تدريجي إلى 200 مستخدم متزامن
+    { duration: '1m', target: 1000 },  // الوصول والضغط بـ 1000 مستخدم متزامن
+    { duration: '20s', target: 0 },   // تهدئة النزول
   ],
 };
 
