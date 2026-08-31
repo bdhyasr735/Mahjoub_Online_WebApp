@@ -10,6 +10,7 @@ from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
+from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 from decimal import Decimal
 
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
@@ -19,7 +20,10 @@ wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', 
 @login_required
 def wallet_dashboard():
     """لوحة تحكم المحفظة الخاصة بالمورد"""
-    supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
+    supplier_id = get_current_supplier_id()
+    if not supplier_id:
+        NotificationService.notify_error("تعذر تحديد حساب المورد الحالي")
+        return redirect(url_for('main.index'))
     
     # جلب المحفظة أو إنشائها تلقائياً للمورد الحالي
     wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
@@ -40,7 +44,7 @@ def wallet_dashboard():
 @login_required
 def withdraw():
     """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع البحث والفلترة والـ Pagination"""
-    supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
+    supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     if not wallet:
@@ -50,16 +54,15 @@ def withdraw():
     if request.method == 'POST':
         try:
             amount = Decimal(request.form.get('amount', '0'))
-            # استقبال جهة التحويل أو الحساب البنكي المسجل تلقائياً
             bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)')
             notes = request.form.get('notes', '')
 
-            # إنشاء طلب سحب (بحالة قيد الانتظار دون خصم نهائي من الرصيد المتاح حتى يتم اعتماده)
+            # إنشاء طلب سحب بحالة (قيد الانتظار) دون خصم نهائي من الرصيد المتاح حتى يتم اعتماده
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
-            NotificationService.notify_success("تم تقديم طلب السحب بنجاح وهو قيد المراجعة")
+            NotificationService.notify_success("تم تقديم طلب السحب بنجاح وهو قيد المراجعة والاعتماد")
         except ValueError as e:
             db.session.rollback()
             NotificationService.notify_error(str(e))
@@ -84,7 +87,6 @@ def withdraw():
 
     pagination = query.order_by(WithdrawalRequest.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
 
-    # تعريف الحساب الافتراضي وتمريره للقالب
     active_bank = {
         'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)',
         'id': 1
@@ -102,7 +104,7 @@ def withdraw():
 @login_required
 def transactions():
     """عرض كشف الحساب وسندات الحركات المالية مع الفلترة (Zero-JS)"""
-    supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
+    supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     if not wallet:
@@ -110,7 +112,6 @@ def transactions():
 
     query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
 
-    # استقبال معاملات الفلترة عبر الرابط (GET Parameters)
     search_query = request.args.get('q', '').strip()
     trans_type = request.args.get('trans_type', '').strip()
     status = request.args.get('status', '').strip()
@@ -125,10 +126,12 @@ def transactions():
             )
         )
 
-    if trans_type:
-        query = query.filter_by(trans_type=trans_type)
+    # استخدام الـ helper الخاص بنوع المعاملة إن وجد لتلافي أي اختلاف في أسماء الأعمدة
+    trx_column = get_trx_type_attr()
+    if trans_type and trx_column is not None:
+        query = query.filter(trx_column == trans_type)
 
-    if status:
+    if status and hasattr(WalletTransaction, 'status'):
         query = query.filter_by(status=status)
 
     transactions = query.order_by(WalletTransaction.created_at.desc()).all()
