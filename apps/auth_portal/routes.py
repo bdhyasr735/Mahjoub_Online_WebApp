@@ -55,22 +55,29 @@ def login_page():
 
 @auth_portal_bp.route('/login', methods=['POST'])
 def login():
-    """معالجة الدخول مع التعامل الآمن والموثوق مع البيانات الواردة والتحقق من صلاحية الحساب"""
+    """معالجة الدخول مع التعامل المرن جداً مع كافة صيغ الطلبات (JSON, Form, Multi-part)"""
     try:
         data = {}
+        
+        # محاولة قراءة البيانات بكل الطرق المتاحة لضمان عدم فشل الاستلام
         if request.is_json:
             data = request.get_json(silent=True) or {}
         elif request.form:
             data = request.form.to_dict()
         else:
             try:
-                import json
-                data = json.loads(request.data.decode('utf-8'))
+                data = request.get_json(force=True, silent=True) or {}
             except Exception:
-                data = request.form.to_dict()
+                if request.data:
+                    import json
+                    try:
+                        data = json.loads(request.data.decode('utf-8'))
+                    except Exception:
+                        data = {}
 
-        if not data or not isinstance(data, dict):
-            return jsonify({'status': 'error', 'message': 'بيانات الإدخال غير صالحة'}), 400
+        # إذا كانت البيانات فارغة نهائياً، نجرب قراءة الـ form مباشرة حتى لو لم يتم تفعيل ترويسة الفورم
+        if not data and request.form:
+            data = request.form.to_dict()
 
         login_input = str(data.get('username', '')).strip()
         password = str(data.get('password', ''))
