@@ -10,7 +10,7 @@ from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.extensions import db
 
-# إنشاء Blueprint متوافق مع هيكلة المسارات والجداول
+# إنشاء Blueprint متوافق مع هيكلة المسارات والجداول مع دعم الرابط المنتهي بـ /
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
@@ -19,7 +19,7 @@ suppliers_dashboard_bp = Blueprint(
 )
 
 
-@suppliers_dashboard_bp.route('/')
+@suppliers_dashboard_bp.route('/', strict_slashes=False)
 @login_required
 def index():
     """الصفحة الرئيسية للوحة تحكم المورد متوافقة تماماً مع الجداول ونموذج المحفظة."""
