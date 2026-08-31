@@ -36,6 +36,7 @@
         </div>
 
         <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <div style="width: 100%; box-sizing: border-box;">
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #e5e7eb; margin-bottom: 8px;">
