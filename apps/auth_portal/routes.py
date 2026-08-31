@@ -16,7 +16,7 @@ def sovereign_login():
     # إذا كان المستخدم مسجلاً دخوله مسبقاً، يتم توجيهه إلى لوحة التحكم مباشرة
     if current_user.is_authenticated:
         if isinstance(current_user, (AdminUser, AdminStaff)):
-            return redirect('/dashboard')
+            return redirect(request.args.get('next') or '/dashboard')
         return redirect('/dashboard')
 
     if request.method == 'POST':
@@ -48,6 +48,9 @@ def sovereign_login():
                 session['user_type'] = user_type
                 session.permanent = True
                 
+                next_page = request.form.get('next') or request.args.get('next')
+                if next_page:
+                    return redirect(next_page)
                 return redirect('/dashboard')
 
             flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
@@ -69,5 +72,10 @@ def logout():
     session.clear()
     flash('تم تسجيل الخروج بنجاح', 'success')
     
+    # التحقق من معامل next الممرر أو العودة لمسار تسجيل الدخول الافتراضي
+    next_url = request.args.get('next') or request.form.get('next')
+    if next_url:
+        return redirect(next_url)
+
     admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
     return redirect(admin_login_path)
