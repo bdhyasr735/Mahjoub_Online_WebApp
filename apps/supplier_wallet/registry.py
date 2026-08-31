@@ -2,11 +2,10 @@
 
 MODULE_NAME = "supplier_wallet"
 DISPLAY_NAME = "الإدارة المالية"
-ICON = "wallet"  # أو أي أيقونة معتمدة لديك
+ICON = "wallet"
 SHOW_IN_SUPPLIER = True
 SORT_ORDER = 20
 
-# تعريف الروابط التي ستظهر في القائمة الجانبية للمورد
 MENU_ITEMS = [
     {
         "name": "لوحة المحفظة",
