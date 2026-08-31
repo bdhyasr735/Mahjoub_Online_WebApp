@@ -3,55 +3,57 @@
 {% block title %}طلب سحب أرباح مالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
+<style>
+    /* إزالة أزرار الزيادة والنقصان (الأسهم) الخاصة بحقل الرقم لجميع المتصفحات */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+</style>
+
 <div style="max-width: 680px; margin: 0 auto;">
 
-    <div style="background: var(--royal-purple-card); border: 1px solid var(--royal-border); border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
         
-        <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px;">
-            <span style="font-size: 11px; color: var(--royal-gold); font-weight: 700;">خدمة التحويل البنكي الفوري</span>
-            <h1 style="font-size: 20px; font-weight: 900; color: white; margin-top: 4px;">طلب سحب أرباح إلى الحساب البنكي</h1>
-            <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
-                الرصيد المتاح للسحب حالياً: <span style="color: var(--royal-gold); font-weight: 900;" class="font-mono">{{ "%.2f"|format(wallet.balance_sar if wallet else 42850.00) }} SAR</span>
-            </p>
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+            <div>
+                <span style="font-size: 11px; color: var(--royal-gold, #D4AF37); font-weight: 700; letter-spacing: 0.5px;">خدمة التحويل المصرفي الفوري</span>
+                <h1 style="font-size: 20px; font-weight: 900; color: white; margin-top: 4px;">طلب سحب أرباح إلى الحساب المصرفي</h1>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    الرصيد المتاح للسحب حالياً: <span style="color: var(--royal-gold, #D4AF37); font-weight: 900;" class="font-mono">{{ "%.2f"|format(wallet.balance_sar if wallet else 0.00) }} SAR</span>
+                </p>
+            </div>
+            <!-- دائرة حالة الطلب التوضيحية -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.08); border: 1px dashed rgba(212, 175, 55, 0.4); border-radius: 14px; padding: 10px 14px; min-width: 110px; flex-shrink: 0;">
+                <div style="width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; box-shadow: 0 0 10px #f59e0b; margin-bottom: 6px; animation: pulse 2s infinite;"></div>
+                <span style="font-size: 10px; color: #d1d5db; font-weight: 700; text-align: center;">حالة الطلب المتوقعة</span>
+                <span style="font-size: 11px; color: #f59e0b; font-weight: 900; margin-top: 2px; text-align: center;">قيد الانتظار</span>
+            </div>
         </div>
 
-        <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" style="display: flex; flex-direction: column; gap: 20px;">
+        <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box;">
             
-            <div>
+            <div style="width: 100%; box-sizing: border-box;">
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #e5e7eb; margin-bottom: 8px;">
                     المبلغ المراد سحبه (SAR) <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="number" step="0.01" min="50" max="{{ wallet.balance_sar if wallet else 42850.00 }}" name="amount" required placeholder="50.00"
-                       style="width: 100%; background: #0f0717; border: 1px solid var(--royal-border); border-radius: 12px; padding: 12px 16px; color: white; font-size: 16px; font-weight: bold; outline: none;" class="font-mono">
-                <span style="display: block; font-size: 11px; color: #9ca3af; margin-top: 6px;">الحد الأدنى للسحب 50.00 ريال سعودي. التحويل معفى من الرسوم.</span>
+                <input type="number" step="0.01" min="50" max="{{ wallet.balance_sar if wallet else 0.00 }}" name="amount" required placeholder="50.00"
+                       style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 12px; padding: 12px 16px; color: white; font-size: 16px; font-weight: bold; outline: none; transition: border-color 0.2s;" class="font-mono"
+                       onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
+                <span style="display: block; font-size: 11px; color: #9ca3af; margin-top: 6px; line-height: 1.5;">الحد الأدنى للسحب 50.00 ريال سعودي. سيتم تحويل المبلغ إلى حسابك المصرفي ويدخل قيد الانتظار للمراجعة.</span>
             </div>
 
-            <!-- عرض جهة التحويل أو الحساب البنكي المسجل تلقائياً -->
-            <div>
-                <label style="display: block; font-size: 12px; font-weight: 700; color: #e5e7eb; margin-bottom: 8px;">
-                    جهة التحويل (الحساب البنكي المعتمد عند الاشتراك)
-                </label>
-                <div style="width: 100%; background: #0f0717; border: 1px solid var(--royal-border); border-radius: 12px; padding: 12px 16px; color: var(--royal-gold); font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: space-between;">
-                    <span>{{ wallet.bank_name or active_bank.bank_name or 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)' }}</span>
-                    <span style="font-size: 11px; background: rgba(212, 175, 55, 0.15); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold);">معتمد تلقائياً</span>
-                </div>
-                <!-- حقل خفي لتمرير اسم الحساب أو البنك المسجل تلقائياً مع الـ POST -->
-                <input type="hidden" name="bank_account_id" value="{{ wallet.bank_name or active_bank.bank_name or 'الحساب البنكي المعتمد للمتجر' }}">
-            </div>
-
-            <div>
-                <label style="display: block; font-size: 12px; font-weight: 700; color: #e5e7eb; margin-bottom: 8px;">
-                    ملاحظات أو بيان إضافي (اختياري)
-                </label>
-                <textarea name="notes" rows="3" placeholder="أدخل أي إشارة أو مرجع ترغب بتضمينه في سند الصرف..."
-                          style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 12px; padding: 12px 16px; color: white; font-size: 12px; outline: none; resize: vertical;"></textarea>
-            </div>
-
-            <div style="display: flex; gap: 12px; margin-top: 10px;">
-                <button type="submit" class="btn-gold" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px;">
-                    تأكيد وإرسال طلب السحب (POST)
+            <div style="display: flex; gap: 12px; margin-top: 10px; width: 100%;">
+                <button type="submit" class="btn-gold" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
+                        onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
+                    تأكيد وإرسال طلب السحب
                 </button>
-                <a href="{{ url_for('supplier_wallet.wallet_dashboard') }}" style="padding: 14px 20px; background: #1f2937; color: #d1d5db; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center;">
+                <a href="{{ url_for('supplier_wallet.index') }}" style="padding: 14px 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #d1d5db; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;"
+                   onmouseover="this.style.background='rgba(255, 255, 255, 0.1)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)';">
                     رجوع
                 </a>
             </div>
