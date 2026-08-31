@@ -16,8 +16,8 @@ def sovereign_login():
     # إذا كان المستخدم مسجلاً دخوله مسبقاً، يتم توجيهه إلى لوحة التحكم مباشرة
     if current_user.is_authenticated:
         if isinstance(current_user, (AdminUser, AdminStaff)):
-            return redirect(request.args.get('next') or '/dashboard')
-        return redirect('/dashboard')
+            return redirect(request.args.get('next') or '/admin/dashboard')
+        return redirect('/admin/dashboard')
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -51,7 +51,7 @@ def sovereign_login():
                 next_page = request.form.get('next') or request.args.get('next')
                 if next_page:
                     return redirect(next_page)
-                return redirect('/dashboard')
+                return redirect('/admin/dashboard')
 
             flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
 
