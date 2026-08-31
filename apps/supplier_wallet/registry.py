@@ -7,23 +7,25 @@ SHOW_IN_SUPPLIER = True
 
 MENU_ITEMS = [
     {
+        "title": "لوحة المحفظة",
         "name": "لوحة المحفظة",
         "endpoint": "supplier_wallet.wallet_dashboard",
         "icon": "dashboard"
     },
     {
+        "title": "كشف حركات المحفظة",
         "name": "كشف حركات المحفظة",
         "endpoint": "supplier_wallet.transactions",
         "icon": "list"
     },
     {
+        "title": "طلب سحب الرصيد",
         "name": "طلب سحب الرصيد",
         "endpoint": "supplier_wallet.withdraw",
         "icon": "cash"
     }
 ]
 
-# تغطية كافة الاحتمالات والمسميات التي قد يبحث عنها نظام الـ Sidebar الرئيسي للمنصة
 NAV_ITEMS = MENU_ITEMS
 LINKS = MENU_ITEMS
 get_links = lambda: MENU_ITEMS
