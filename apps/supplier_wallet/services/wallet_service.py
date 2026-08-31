@@ -33,7 +33,6 @@ class WalletService:
     @staticmethod
     def create_withdrawal_request(session, wallet_id, bank_account, amount, notes=""):
         """إنشاء طلب سحب جديد وتحديث الأرصدة المعلقة في المحفظة بدون تعارض مع قيود القفل في بوستجرس"""
-        # جلب المحفظة بالمعرف مباشرة بدون with_for_update لمنع أي Outer Join افتراضي مع الجداول المرتبطة
         wallet = session.query(SupplierWallet).filter(SupplierWallet.id == wallet_id).first()
         
         if not wallet:
@@ -48,11 +47,12 @@ class WalletService:
         
         request_number = f"WDR-{uuid.uuid4().hex[:6].upper()}"
         
+        # استخدام العمود الصريح والمدعوم في النموذج WithdrawalRequest وهو bank_details
         withdrawal_request = WithdrawalRequest(
             request_number=request_number,
             wallet_id=wallet.id,
             amount=amount,
-            bank_account=bank_account,
+            bank_details=bank_account,
             status='pending',
             notes=notes
         )
