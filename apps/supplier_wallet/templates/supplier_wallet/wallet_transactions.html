@@ -6,17 +6,19 @@
 <div style="display: flex; flex-direction: column; gap: 20px;">
 
     <!-- 1. شريط البحث والفلترة المتقدم (زر واحد فقط) -->
-    <div style="background: #1a0b2e; border: 1px solid #332155; border-radius: 16px; padding: 18px;">
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
         <form method="GET" action="{{ url_for('supplier_wallet.transactions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
             <div>
                 <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">بحث بالكلمة المفتاحية أو السند:</label>
                 <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="VCH-XXXXXX، رقم الحوالة..."
-                       style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;">
+                       style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;"
+                       onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
             </div>
 
             <div>
                 <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">نوع الحركة المالية:</label>
-                <select name="trans_type" style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;">
+                <select name="trans_type" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none; cursor: pointer;"
+                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
                     <option value="">جميع الحركات</option>
                     <option value="deposit" {% if request.args.get('trans_type') == 'deposit' %}selected{% endif %}>تعزيز مبيعات (Deposit)</option>
                     <option value="withdraw" {% if request.args.get('trans_type') == 'withdraw' %}selected{% endif %}>سحب رصيد (Withdraw)</option>
@@ -27,7 +29,8 @@
 
             <div>
                 <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">حالة المعاملة:</label>
-                <select name="status" style="width: 100%; background: #0f0717; border: 1px solid #374151; border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;">
+                <select name="status" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none; cursor: pointer;"
+                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
                     <option value="">جميع الحالات</option>
                     <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتملة</option>
                     <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
@@ -36,7 +39,8 @@
             </div>
 
             <div>
-                <button type="submit" style="width: 100%; background: #D4AF37; color: #1a0b2e; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 12px;">
+                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 12px; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
+                        onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
                     بحث وتصفية
                 </button>
             </div>
@@ -44,11 +48,11 @@
     </div>
 
     <!-- 2. جدول المعاملات والسندات الرسمية -->
-    <div style="background: #1a0b2e; border: 1px solid #332155; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
         <div style="overflow-x: auto;">
             <table style="width: 100%; text-align: right; border-collapse: collapse; font-size: 12px; color: white;">
                 <thead>
-                    <tr style="background: #0f0717; color: #9ca3af; border-bottom: 1px solid #332155; font-weight: 700;">
+                    <tr style="background: #0f0717; color: #9ca3af; border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: 700;">
                         <th style="padding: 14px 16px;">رقم السند</th>
                         <th style="padding: 14px 16px;">الجهة (البنك / الشركة)</th>
                         <th style="padding: 14px 16px;">نوع الحركة</th>
@@ -61,20 +65,22 @@
                 </thead>
                 <tbody>
                     {% for tx in transactions %}
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 14px 16px; color: #D4AF37; font-weight: bold;" class="font-mono">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)';" onmouseout="this.style.background='transparent';">
+                        <td style="padding: 14px 16px; color: var(--royal-gold, #D4AF37); font-weight: bold;" class="font-mono">
                             {{ tx.voucher_number }}
                         </td>
-                        <td style="padding: 14px 16px; color: #D4AF37; font-weight: 600;">
+                        <td style="padding: 14px 16px; color: var(--royal-gold, #D4AF37); font-weight: 600;">
                             {{ tx.bank_name or tx.company_name or wallet.bank_name or wallet.company_name or 'محجوب أونلاين' }}
                         </td>
                         <td style="padding: 14px 16px;">
                             {% if tx.trans_type == 'deposit' %}
-                                <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.4);">تعزيز مبيعات</span>
+                                <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">تعزيز مبيعات</span>
                             {% elif tx.trans_type == 'withdraw' %}
-                                <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid rgba(168, 85, 247, 0.4);">سحب رصيد</span>
+                                <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(168, 85, 247, 0.3);">سحب رصيد</span>
+                            {% elif tx.trans_type == 'commission' %}
+                                <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">عمولة منصة</span>
                             {% else %}
-                                <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 3px 8px; border-radius: 6px; font-weight: 700; border: 1px solid rgba(59, 130, 246, 0.4);">تسوية</span>
+                                <span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(59, 130, 246, 0.3);">تسوية</span>
                             {% endif %}
                         </td>
                         <td style="padding: 14px 16px; font-weight: bold; font-size: 13px;" class="font-mono">
@@ -93,17 +99,17 @@
                         </td>
                         <td style="padding: 14px 16px;">
                             {% if tx.status == 'completed' %}
-                                <span style="color: #34d399; font-weight: 700;">● مكتملة</span>
+                                <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">● مكتملة</span>
                             {% elif tx.status == 'pending' %}
-                                <span style="color: #fbbf24; font-weight: 700;">● قيد المراجعة</span>
+                                <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">● قيد المراجعة</span>
                             {% else %}
-                                <span style="color: #f87171; font-weight: 700;">● مرفوضة</span>
+                                <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">● مرفوضة</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" style="padding: 36px; text-align: center; color: #9ca3af;">
+                        <td colspan="8" style="padding: 36px; text-align: center; color: #9ca3af; font-size: 13px;">
                             لا توجد سندات أو حركات مالية مطابقة لمعايير البحث المحددة.
                         </td>
                     </tr>
@@ -114,4 +120,4 @@
     </div>
 
 </div>
-{% endblock %}
+{% endblock>
