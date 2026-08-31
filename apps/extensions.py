@@ -40,6 +40,7 @@ limiter = Limiter(
 def load_user(user_id):
     try:
         from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         from apps.models.marketer_db import Marketer
@@ -47,22 +48,29 @@ def load_user(user_id):
         uid = int(user_id)
         user_type = session.get('user_type')
         
+        if user_type == 'admin':
+            return db.session.get(AdminUser, uid)
+        if user_type == 'admin_staff':
+            return db.session.get(AdminStaff, uid)
         if user_type == 'staff':
             return SupplierStaff.query.options(joinedload(SupplierStaff.supplier)).get(uid)
-            
-        if user_type == 'admin': return db.session.get(AdminUser, uid)
-        if user_type == 'supplier': return db.session.get(Supplier, uid)
-        if user_type == 'marketer': return db.session.get(Marketer, uid)
+        if user_type == 'supplier':
+            return db.session.get(Supplier, uid)
+        if user_type == 'marketer':
+            return db.session.get(Marketer, uid)
         
-        return (db.session.get(Supplier, uid) or 
-                db.session.get(SupplierStaff, uid) or 
-                db.session.get(Marketer, uid) or 
-                db.session.get(AdminUser, uid))
-                
+        return (
+            db.session.get(AdminUser, uid) or
+            db.session.get(AdminStaff, uid) or
+            db.session.get(Supplier, uid) or
+            db.session.get(SupplierStaff, uid) or
+            db.session.get(Marketer, uid)
+        )
+            
     except (ValueError, TypeError, Exception):
         return None
 
-# ✅ إعدادات تسجيل الدخول
-login_manager.login_view = 'suppliers_bp.login'
+# ✅ إعدادات تسجيل الدخول الافتراضية
+login_manager.login_view = 'auth_portal.sovereign_login'
 login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
 login_manager.login_message_category = "info"
