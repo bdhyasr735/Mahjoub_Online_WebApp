@@ -1,0 +1,17 @@
+name: Load Test
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  k6_load_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run k6 load test
+        uses: grafana/k6-action@v0.3.0
+        with:
+          filename: script.js
