@@ -1,11 +1,12 @@
-# coding: utf-8
-# 📂 apps/auth_portal/__init__.py
+# -*- coding: utf-8 -*-
+# apps/auth_portal/__init__.py
 
 """
-ملف تهيئة الموديول (Package Initialization).
-هذا الملف يجعل المجلد 'auth_portal' قابلاً للاستيراد كـ Package،
-مما يسمح لنظام الـ Auto-Discovery باكتشافه وتسجيله.
+حزمة بوابة المصادقة السيادية الإدارية (Auth Portal Package)
+لمنصة محجوب أونلاين
 """
 
-# لا داعي لإضافة أي استيرادات هنا لمنع الـ Circular Imports.
-# النظام يعتمد على ملف 'registry.py' للقيام بعملية التسجيل.
+from apps.auth_portal.routes import auth_portal_bp
+from apps.auth_portal.registry import auth_registry, AuthPortalRegistry
+
+__all__ = ['auth_portal_bp', 'auth_registry', 'AuthPortalRegistry']
