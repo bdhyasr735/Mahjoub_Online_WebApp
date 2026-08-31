@@ -1,20 +1,32 @@
-# coding: utf-8
-# 📂 apps/auth_portal/registry.py
+# apps/auth_portal/registry.py
 
-from .routes import auth_portal
-
-# تعريفات الموديول (حتى لو لم تظهر في القائمة، يفضل تعريفها للنظام)
-MODULE_NAME = "بوابة الوصول"
-MODULE_ICON = "fas fa-shield-alt"
-LINKS = {} # فارغ لأنها صفحة تسجيل دخول ولا تحتاج للظهور في القائمة الجانبية
-
-def register_module(app):
+class AuthPortalRegistry:
     """
-    دالة التسجيل الديناميكي: 
-    يتم استدعاؤها من قبل المصنع (Factory) لاكتشاف وتسجيل 
-    الـ Blueprints الخاصة بموديول البوابة.
+    سجل مركزي لإدارة مسارات، صلاحيات ووحدات المصادقة السيادية في منصة محجوب أونلاين.
     """
-    # تسجيل الـ Blueprint الخاص بالبوابة
-    app.register_blueprint(auth_portal, url_prefix='/auth')
-    
-    # يمكنك إضافة أي تهيئة إضافية خاصة بهذا الموديول هنا
+    def __init__(self):
+        self._registry = {}
+
+    def register(self, module_name, config):
+        """تسجيل وحدة أو مسار جديد ضمن المنظومة السيادية."""
+        self._registry[module_name] = config
+
+    def get_config(self, module_name):
+        """استرجاع إعدادات وحدة معينة."""
+        return self._registry.get(module_name)
+
+    def list_modules(self):
+        """استعراض كافة الوحدات المسجلة."""
+        return self._registry
+
+# كائن عام موحد للسجل السيادي
+auth_registry = AuthPortalRegistry()
+
+# تسجيل مسار الدخول السيادي والمسارات التمويهية المرتبطة بها
+auth_registry.register('secure_admin_auth', {
+    'DISPLAY_NAME': 'البوابة السيادية للإدارة',
+    'SECRET_PATH': '/m7jb_sovereign_hq_v2_99x',
+    'DECOY_PATH': '/auth_portal/login',
+    'STATUS': 'active',
+    'REQUIRES_OTP': True
+})
