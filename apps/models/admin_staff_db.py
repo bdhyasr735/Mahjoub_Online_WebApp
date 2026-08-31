@@ -48,10 +48,10 @@ class AdminStaff(db.Model, UserMixin):
 
     @property
     def phone(self):
-        if not self._phone_enc: 
+        if not _phone_enc := self._phone_enc: 
             return None
         try:
-            return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
+            return Fernet(self._get_key()).decrypt(_phone_enc.encode()).decode()
         except Exception: 
             return None
 
