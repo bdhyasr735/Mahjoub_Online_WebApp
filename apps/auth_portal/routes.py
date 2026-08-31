@@ -2,7 +2,7 @@
 # 📂 apps/auth_portal/routes.py
 
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from apps.extensions import db
 from apps.models.admin_db import AdminUser
@@ -20,14 +20,10 @@ def sovereign_login():
         return redirect('/dashboard')
 
     if request.method == 'POST':
-        # دعم استقبال البيانات كـ JSON أو Form Data لتفادي أخطاء 400
-        data = request.get_json(silent=True) or request.form
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
 
         if not username or not password:
-            if request.is_json:
-                return jsonify({"success": False, "message": "الرجاء إدخال اسم المستخدم وكلمة المرور"}), 400
             flash('الرجاء إدخال اسم المستخدم وكلمة المرور', 'danger')
             return render_template('auth/login.html')
 
@@ -43,8 +39,6 @@ def sovereign_login():
         if user and user.check_password(password):
             # التحقق مما إذا كان حساب الموظف مفَعلاً (إن وجد الحقل)
             if user_type == 'admin_staff' and hasattr(user, 'is_active') and not user.is_active:
-                if request.is_json:
-                    return jsonify({"success": False, "message": "هذا الحساب معطل، يرجى مراجعة الإدارة"}), 403
                 flash('هذا الحساب معطل، يرجى مراجعة الإدارة', 'danger')
                 return render_template('auth/login.html')
 
@@ -52,15 +46,9 @@ def sovereign_login():
             login_user(user, remember=True)
             session['user_type'] = user_type
             session.permanent = True
-
-            if request.is_json:
-                return jsonify({"success": True, "redirect_url": "/dashboard"})
             
             return redirect('/dashboard')
 
-        if request.is_json:
-            return jsonify({"success": False, "message": "اسم المستخدم أو كلمة المرور غير صحيحة"}), 401
-        
         flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
 
     return render_template('auth/login.html')
