@@ -1,12 +1,24 @@
 # -*- coding: utf-8 -*-
-# apps/auth_portal/registry.py
+# 📂 apps/auth_portal/registry.py
 
-"""
-ملف التسجيل المركزي لبوابة المصادقة السيادية
-"""
+from flask import Blueprint
 
-from .routes import init_app, auth_portal_bp
+MODULE_NAME = "بوابة المصادقة الإدارية"
+MODULE_ICON = "fa-shield-alt"
+SHOW_IN_SUPPLIER = False
 
-def register_auth_portal(app):
-    """تسجيل وتهيئة مكونات بوابة المصادقة في التطبيق الرئيسي"""
-    return init_app(app)
+NAV_ITEMS = [
+    # يمكن إضافة روابط القائمة الجانبية الإدارية الخاصة بالمصادقة هنا إن وجدت
+]
+
+def register_module(app):
+    """تسجيل مودي وبوابات المصادقة الإدارية"""
+    try:
+        from apps.auth_portal.routes import auth_bp
+        if auth_bp.name not in app.blueprints:
+            app.register_blueprint(auth_bp)
+        print("✅ [مجلد auth_portal]: تم تسجيل الموديول وبواباته بنجاح.")
+    except ImportError as e:
+        print(f"⚠️ [تحذير موديول auth_portal]: لم يتم العثور على المسارات: {e}")
+    except Exception as e:
+        print(f"❌ [خطأ موديول auth_portal]: فشل التسجيل: {e}")
