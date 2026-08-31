@@ -17,6 +17,28 @@
 
 <div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;">
 
+    <!-- بطاقات الإحصائيات الصغيرة (إجمالي الطلبات، قيد الانتظار، المقبولة، المرفوضة) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #D4AF37;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">إجمالي الطلبات</div>
+            <div style="font-size: 22px; font-weight: 900; color: white; margin-top: 6px;" id="stat-total">
+                {{ pagination.total if pagination else 0 }}
+            </div>
+        </div>
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #f59e0b;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">قيد الانتظار</div>
+            <div style="font-size: 22px; font-weight: 900; color: #f59e0b; margin-top: 6px;" id="stat-pending">0</div>
+        </div>
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #10b981;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">المقبولة / المكتملة</div>
+            <div style="font-size: 22px; font-weight: 900; color: #10b981; margin-top: 6px;" id="stat-approved">0</div>
+        </div>
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #ef4444;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">المرفوضة</div>
+            <div style="font-size: 22px; font-weight: 900; color: #ef4444; margin-top: 6px;" id="stat-rejected">0</div>
+        </div>
+    </div>
+
     <!-- نموذج طلب السحب -->
     <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
         
@@ -62,45 +84,38 @@
         </form>
     </div>
 
-    <!-- جدول طلبات السحب السابقة مع البحث والفلاتر -->
+    <!-- جدول طلبات السحب السابقة مع البحث اللحظي والفلاتر -->
     <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
             <h2 style="font-size: 16px; font-weight: 900; color: white; margin: 0;">سجل طلبات السحب الخاصة بك</h2>
-            <span style="font-size: 12px; color: var(--royal-gold, #D4AF37);">المجموع: {{ pagination.total if pagination else 0 }} طلب</span>
+            <span style="font-size: 12px; color: var(--royal-gold, #D4AF37);">المجموع: <span id="table-total-count">{{ pagination.total if pagination else 0 }}</span> طلب</span>
         </div>
 
-        <!-- شريط البحث والفلاتر بالحالة -->
-        <form method="GET" action="{{ url_for('supplier_wallet.withdraw') }}" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+        <!-- شريط البحث اللحظي والفلاتر بالحالة -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
             <div style="flex: 1; min-width: 200px; position: relative;">
-                <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="بحث برقم الطلب..." 
+                <input type="text" id="live-search" placeholder="بحث لحظي برقم الطلب..." 
                        style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 10px 14px; color: white; font-size: 13px; outline: none;"
                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
             </div>
 
             <div style="min-width: 150px;">
-                <select name="status" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 10px 14px; color: white; font-size: 13px; outline: none; cursor: pointer;"
+                <select id="status-filter" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 10px 14px; color: white; font-size: 13px; outline: none; cursor: pointer;"
                         onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
                     <option value="">جميع الحالات</option>
-                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                    <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
-                    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
+                    <option value="pending">قيد الانتظار</option>
+                    <option value="completed">مكتمل / مقبول</option>
+                    <option value="rejected">مرفوض</option>
                 </select>
             </div>
 
-            <button type="submit" style="background: rgba(212, 175, 55, 0.15); border: 1px solid rgba(212, 175, 55, 0.4); color: var(--royal-gold, #D4AF37); padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s;"
-                    onmouseover="this.style.background='rgba(212, 175, 55, 0.3)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.15)';">
-                تصفية وبحث
-            </button>
-
-            {% if request.args.get('q') or request.args.get('status') %}
-                <a href="{{ url_for('supplier_wallet.withdraw') }}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; text-decoration: none;">إعادة ضبط</a>
-            {% endif %}
-        </form>
+            <button type="button" id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">إعادة ضبط</button>
+        </div>
 
         {% if pagination and pagination.items %}
             <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 13px; color: #e5e7eb;">
+                <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 13px; color: #e5e7eb;" id="requests-table">
                     <thead>
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #9ca3af; font-size: 12px;">
                             <th style="padding: 12px 10px; font-weight: 700;">رقم الطلب</th>
@@ -111,7 +126,7 @@
                     </thead>
                     <tbody>
                         {% for req in pagination.items %}
-                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)';" onmouseout="this.style.background='transparent';">
+                        <tr class="request-row" data-status="{{ req.status }}" data-number="{{ req.request_number|lower }}" style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)';" onmouseout="this.style.background='transparent';">
                             <td style="padding: 14px 10px; font-weight: bold;" class="font-mono text-white">{{ req.request_number }}</td>
                             <td style="padding: 14px 10px; font-weight: bold; color: var(--royal-gold, #D4AF37);" class="font-mono">{{ "%.2f"|format(req.amount) }} {{ req.currency }}</td>
                             <td style="padding: 14px 10px;">
@@ -134,29 +149,89 @@
                 </table>
             </div>
 
-            <!-- ترقيم الصفحات (Pagination) مع الحفاظ على قيم البحث والفلتر -->
-            {% if pagination.pages > 1 %}
-            <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
-                {% if pagination.has_prev %}
-                    <a href="{{ url_for('supplier_wallet.withdraw', page=pagination.prev_num, q=request.args.get('q', ''), status=request.args.get('status', '')) }}" style="padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #d1d5db; border-radius: 8px; font-size: 12px; text-decoration: none;">السابق</a>
-                {% endif %}
-
-                <span style="font-size: 12px; color: #9ca3af; padding: 0 8px;">
-                    الصفحة <strong class="text-white">{{ pagination.page }}</strong> من <strong class="text-white">{{ pagination.pages }}</strong>
-                </span>
-
-                {% if pagination.has_next %}
-                    <a href="{{ url_for('supplier_wallet.withdraw', page=pagination.next_num, q=request.args.get('q', ''), status=request.args.get('status', '')) }}" style="padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #d1d5db; border-radius: 8px; font-size: 12px; text-decoration: none;">التالي</a>
-                {% endif %}
+            <div id="no-results-message" style="display: none; text-align: center; padding: 30px; color: #9ca3af; font-size: 13px;">
+                لا توجد طلبات سحب مطابقة للبحث أو الفلتر الحالي.
             </div>
-            {% endif %}
 
         {% else %}
             <div style="text-align: center; padding: 30px; color: #9ca3af; font-size: 13px;">
-                لا توجد طلبات سحب مطابقة للبحث أو السجلات الحالية.
+                لا توجد طلبات سحب سابقة مسجلة حتى الآن.
             </div>
         {% endif %}
     </div>
 
 </div>
+
+<!-- سكريبت البحث اللحظي وتحديث البطاقات ديناميكياً -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById('live-search');
+    const statusFilter = document.getElementById('status-filter');
+    const resetBtn = document.getElementById('reset-filters');
+    const rows = document.querySelectorAll('.request-row');
+    const noResultsMsg = document.getElementById('no-results-message');
+    const tableTotalCount = document.getElementById('table-total-count');
+
+    function updateLiveView() {
+        const query = searchInput.value.toLowerCase().trim();
+        const selectedStatus = statusFilter.value;
+
+        let visibleCount = 0;
+        let pendingCount = 0;
+        let approvedCount = 0;
+        let rejectedCount = 0;
+
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status');
+            const number = row.getAttribute('data-number');
+
+            // حساب العدادات الكلية للبطاقات بناءً على الصفوف الموجودة بالصفحة
+            if (status === 'pending') pendingCount++;
+            if (status === 'completed' || status === 'approved') approvedCount++;
+            if (status === 'rejected') rejectedCount++;
+
+            // مطابقة الفلتر والبحث اللحظي
+            const matchesSearch = number.includes(query);
+            let matchesStatus = true;
+
+            if (selectedStatus === 'completed') {
+                matchesStatus = (status === 'completed' || status === 'approved');
+            } else if (selectedStatus) {
+                matchesStatus = (status === selectedStatus);
+            }
+
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // تحديث البطاقات العلوية الإحصائية
+        document.getElementById('stat-pending').textContent = pendingCount;
+        document.getElementById('stat-approved').textContent = approvedCount;
+        document.getElementById('stat-rejected').textContent = rejectedCount;
+        if(tableTotalCount) tableTotalCount.textContent = visibleCount;
+
+        if (noResultsMsg) {
+            noResultsMsg.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+        }
+    }
+
+    if(searchInput) searchInput.addEventListener('input', updateLiveView);
+    if(statusFilter) statusFilter.addEventListener('change', updateLiveView);
+    
+    if(resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if(searchInput) searchInput.value = '';
+            if(statusFilter) statusFilter.value = '';
+            updateLiveView();
+        });
+    }
+
+    // التشغيل الأولي لحساب الإحصائيات عند تحميل الصفحة
+    updateLiveView();
+});
+</script>
 {% endblock %}
