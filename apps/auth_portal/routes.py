@@ -9,7 +9,7 @@ import traceback
 auth_portal = Blueprint('auth_portal', __name__, template_folder='templates')
 auth_portal_bp = auth_portal
 
-SECRET_ADMIN_PATH = '/m7jb_sovereign_hq_v2_99x'
+SECRET_ADMIN_PATH = '/auth/m7jb_sovereign_hq_v2_99x' # تم توحيد المسار ليطابق إعدادات التطبيق
 
 @auth_portal.route(SECRET_ADMIN_PATH, methods=['GET', 'POST'])
 def secure_admin_login():
@@ -17,14 +17,7 @@ def secure_admin_login():
         return render_template('auth/login.html')
     
     try:
-        # التأكد من استقبال البيانات بصيغة JSON
-        data = request.get_json(silent=True)
-        if not data:
-            return jsonify({
-                "status": "error",
-                "message": "بيانات الطلب غير صالحة."
-            }), 400
-
+        data = request.get_json(silent=True) or request.form
         username = data.get('username')
         password = data.get('password')
         
@@ -34,13 +27,13 @@ def secure_admin_login():
                 "message": "يرجى إدخال اسم المستخدم وكلمة المرور."
             }), 400
 
-        # البحث عن المستخدم الإداري
+        # البحث عن المشرف الأساسي أو موظف الإدارة
         admin = AdminUser.query.filter_by(username=username).first()
         if not admin:
             admin = AdminStaff.query.filter_by(username=username).first()
 
         if admin and admin.check_password(password):
-            if not admin.is_active:
+            if hasattr(admin, 'is_active') and not admin.is_active:
                 return jsonify({
                     "status": "error",
                     "message": "هذا الحساب معطل حالياً."
@@ -62,22 +55,15 @@ def secure_admin_login():
             }), 401
 
     except Exception as e:
-        # طباعة الخطأ في السجلات لمراجعته إذا ظهرت المشكلة مجدداً
-        print(f"Login Error: {traceback.format_exc()}")
+        print(f"❌ [خطأ تسجيل الدخول]: {traceback.format_exc()}")
         return jsonify({
             "status": "error",
             "message": "حدث خطأ داخلي في الخادم السيادي."
         }), 500
 
 
-@auth_portal.route('/login', methods=['GET', 'POST'])
-def fake_login():
-    abort(404)
-
-
 @auth_portal.route('/dashboard')
 def dashboard():
     if not session.get('admin_logged_in') and not session.get('_user_id'):
         return redirect(SECRET_ADMIN_PATH)
-    
     return "مرحباً بك في لوحة التحكم السيادية الإدارية - محجوب أونلاين"
