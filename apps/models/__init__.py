@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 from apps.extensions import db
 
 from apps.models.supplier_db import Supplier
