@@ -3,133 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>البوابة السيادية الإدارية | محجوب أونلاين</title>
-    <!-- Tailwind CSS CDN -->
+    <title>{{ page_title }}</title>
+    <!-- روابط التصميم أو Tailwind / Bootstrap حسب الهيكل لديك -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        royal: {
-                            900: '#1a0b2e',
-                            800: '#32145a',
-                            700: '#570575',
-                            600: '#632C8F',
-                        },
-                        gold: {
-                            500: '#D4AF37',
-                            600: '#b89728',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
+            background-color: #1a0b2e; /* البصمة اللونية: البنفسجي الملكي */
+            color: #ffffff;
             font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #1a0b2e 0%, #32145a 50%, #000000 100%);
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-md bg-royal-900/80 backdrop-blur-md border border-gold-500/30 rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden">
-        
-        <!-- تأثير جمالي علوي -->
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-500 to-transparent"></div>
-
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-gold-500 mb-2">البوابة السيادية للإدارة</h1>
-            <p class="text-xs text-gray-300">محجوب أونلاين - منطقة آمنة ومحمية</p>
+    <div class="w-full max-w-md p-8 space-y-6 bg-slate-900 border border-purple-900 rounded-2xl shadow-2xl">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-amber-400">محجوب أونلاين</h1>
+            <p class="text-sm text-gray-400 mt-2">البوابة السيادية الإدارية</p>
         </div>
 
-        <!-- رسالة التنبيه -->
-        <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm border"></div>
-
-        <!-- نموذج تسجيل الدخول المباشر -->
-        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+        <form id="loginForm" class="space-y-4">
             <div>
-                <label class="block text-xs font-semibold text-gold-500 mb-2">اسم المستخدم الإداري</label>
-                <input type="text" id="username" required 
-                    class="w-full px-4 py-3 bg-black/40 border border-royal-600 rounded-xl focus:outline-none focus:border-gold-500 text-white placeholder-gray-500 transition"
-                    placeholder="أدخل اسم المستخدم">
+                <label class="block text-sm font-medium text-gray-300">اسم المستخدم أو البريد الإلكتروني</label>
+                <input type="text" id="username" name="username" required
+                    class="w-full mt-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:outline-none text-white">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-gold-500 mb-2">كلمة المرور المشفرة</label>
-                <input type="password" id="password" required 
-                    class="w-full px-4 py-3 bg-black/40 border border-royal-600 rounded-xl focus:outline-none focus:border-gold-500 text-white placeholder-gray-500 transition"
-                    placeholder="••••••••••••">
+                <label class="block text-sm font-medium text-gray-300">كلمة المرور</label>
+                <input type="password" id="password" name="password" required
+                    class="w-full mt-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:outline-none text-white">
             </div>
 
-            <button type="submit" id="submit-btn"
-                class="w-full py-3 px-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-500 text-royal-900 font-bold rounded-xl shadow-lg transition transform active:scale-95">
-                دخول النظام السيادي
+            <div id="errorMsg" class="hidden text-red-400 text-sm text-center"></div>
+
+            <button type="submit"
+                class="w-full py-3 px-4 bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-semibold rounded-lg shadow-lg transition duration-200">
+                تسجيل الدخول السيادي
             </button>
         </form>
-
-        <div class="mt-8 text-center text-[10px] text-gray-500">
-            جميع الحقوق محفوظة لمنصة محجوب أونلاين السيادية &copy; 2026
-        </div>
     </div>
 
     <script>
-        async function handleLogin(event) {
-            event.preventDefault();
-            const alertBox = document.getElementById('alert-box');
-            alertBox.classList.add('hidden');
-
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const btn = document.getElementById('submit-btn');
-            
-            btn.disabled = true;
-            btn.innerText = 'جاري المصادقة...';
+            const errorMsg = document.getElementById('errorMsg');
+
+            errorMsg.classList.add('hidden');
 
             try {
-                const response = await fetch(window.location.pathname, {
+                const response = await fetch('/admin-auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username, password: password })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
                 });
-                
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    throw new Error("استجابة الخادم غير صالحة.");
-                }
 
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 1000);
+                    window.location.href = data.redirect;
                 } else {
-                    showAlert(data.message || 'بيانات الدخول غير صحيحة.', 'error');
+                    errorMsg.textContent = data.message || 'فشل تسجيل الدخول';
+                    errorMsg.classList.remove('hidden');
                 }
             } catch (err) {
-                showAlert('تعذر الاتصال بالخادم السيادي.', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'دخول النظام السيادي';
+                errorMsg.textContent = 'حدث خطأ في الاتصال بالخادم.';
+                errorMsg.classList.remove('hidden');
             }
-        }
-
-        function showAlert(message, type) {
-            const alertBox = document.getElementById('alert-box');
-            alertBox.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300', 'bg-rose-950/80', 'border-rose-500', 'text-rose-300');
-            
-            if (type === 'success') {
-                alertBox.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300');
-            } else {
-                alertBox.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-300');
-            }
-            alertBox.innerText = message;
-        }
+        });
     </script>
 </body>
 </html>
