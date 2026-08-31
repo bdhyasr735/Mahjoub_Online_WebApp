@@ -30,7 +30,9 @@ def wallet_dashboard():
     db.session.commit()
 
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
-    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.desc()).all()
+    
+    # [تصحيح الخطأ هنا]: تحديد عمود created_at للترتيب التنازلي بشكل صحيح
+    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
 
     return render_template(
         'supplier_wallet/dashboard.html',
