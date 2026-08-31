@@ -81,7 +81,7 @@ def withdraw():
             NotificationService.notify_error(str(e))
         except Exception as e:
             db.session.rollback()
-            NotificationService.notify_error("حدث خطأ غير متوقع أثناء معالجة طلب السحب")
+            NotificationService.notify_error(f"حدث خطأ غير متوقع أثناء معالجة طلب السحب: {str(e)}")
 
         return redirect(url_for('supplier_wallet.withdraw'))
 
