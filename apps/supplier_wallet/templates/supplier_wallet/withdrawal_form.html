@@ -207,15 +207,25 @@
                                 {% endif %}
                             </td>
                             <td style="padding: 14px 10px; text-align: center;">
-                                <button type="button" class="open-modal-btn" 
-                                    data-number="{{ req.request_number }}"
-                                    data-amount="{{ '%.2f'|format(req.amount) }} {{ req.currency if req.currency else 'SAR' }}"
-                                    data-status="{% if req.status == 'pending' %}قيد الانتظار{% elif req.status in ['completed', 'approved'] %}مكتمل{% else %}مرفوض{% endif %}"
-                                    data-date="{% if req.created_at %}{{ req.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}{% else %}-{% endif %}"
-                                    style="display: inline-flex; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold, #D4AF37); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background 0.2s;" 
-                                    onmouseover="this.style.background='rgba(212, 175, 55, 0.2)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)';">
-                                    عرض السند
-                                </button>
+                                {% if req.status in ['completed', 'approved'] %}
+                                    <!-- رابط احترافي وخاص يفتح صفحة قالب السند مباشرة بعد الموافقة -->
+                                    <a href="{{ url_for('supplier_wallet.withdrawal_receipt', request_number=req.request_number) }}" 
+                                       style="display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #10b981; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                       onmouseover="this.style.background='rgba(16, 185, 129, 0.25)';" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
+                                        عرض السند الرسمي
+                                    </a>
+                                {% else %}
+                                    <!-- زر عرض التفاصيل عبر النافذة المنبثقة للطلبات التي لم تتم الموافقة عليها بعد -->
+                                    <button type="button" class="open-modal-btn" 
+                                        data-number="{{ req.request_number }}"
+                                        data-amount="{{ '%.2f'|format(req.amount) }} {{ req.currency if req.currency else 'SAR' }}"
+                                        data-status="{% if req.status == 'pending' %}قيد الانتظار{% else %}مرفوض{% endif %}"
+                                        data-date="{% if req.created_at %}{{ req.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}{% else %}-{% endif %}"
+                                        style="display: inline-flex; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold, #D4AF37); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background 0.2s;" 
+                                        onmouseover="this.style.background='rgba(212, 175, 55, 0.2)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)';">
+                                        عرض التفاصيل
+                                    </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -236,7 +246,7 @@
 
 </div>
 
-<!-- نافذة عرض السند أو إشعار نجاح الطلب (Modal) -->
+<!-- نافذة عرض تفاصيل الطلب غير الموافق عليه (Modal) -->
 <div id="withdrawal-modal" class="modal-overlay {% if request.args.get('success') == 'true' or show_success_modal %}active{% endif %}">
     <div class="modal-container" style="text-align: center;">
         
@@ -248,7 +258,7 @@
         <h3 style="font-size: 18px; font-weight: 900; color: white; margin-bottom: 8px;" id="modal-title-text">تم الطلب بنجاح</h3>
         <p style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 24px;" id="modal-subtitle-text">قيد الإنتظار للمراجعة والتحويل</p>
         
-        <!-- تفاصيل السند (تظهر عند عرض السند أو الطلب) -->
+        <!-- تفاصيل السند أو الطلب -->
         <div id="modal-details-box" style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: #e5e7eb; text-align: right; margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
                 <span style="color: #9ca3af;">رقم الطلب:</span>
@@ -298,11 +308,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const modalSubtitleText = document.getElementById('modal-subtitle-text');
     const modalDetailsBox = document.getElementById('modal-details-box');
 
-    // فتح النافذة المنبثقة لعرض السند القديم
+    // فتح النافذة المنبثقة لعرض تفاصيل الطلبات غير المكتملة
     openModalBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            // إعادة ضبط النافذة لوضع عرض السند العادي
-            modalTitleText.textContent = "سند طلب سحب المستحقات";
+            modalTitleText.textContent = "تفاصيل طلب سحب المستحقات";
             modalSubtitleText.style.display = 'none';
             if(modalDetailsBox) modalDetailsBox.style.display = 'flex';
 
@@ -314,8 +323,6 @@ document.addEventListener("DOMContentLoaded", function() {
             
             if(statusText === 'قيد الانتظار') {
                 modalReqStatus.style.color = '#f59e0b';
-            } else if(statusText === 'مكتمل') {
-                modalReqStatus.style.color = '#10b981';
             } else {
                 modalReqStatus.style.color = '#ef4444';
             }
@@ -325,24 +332,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // اعتراض إرسال النموذج لإظهار إشعار النجاح مباشرة (أو يمكن الاعتماد على توجيه الـ Backend مع تمرير معلمة success)
-    if(withdrawForm) {
-        withdrawForm.addEventListener('submit', function(e) {
-            // ملاحظة: إذا كنت تريد إرسال النموذج بشكل طبيعي لتتم معالجته في الخادم (Backend)
-            // ثم إعادة تحميل الصفحة مع إظهار الـ Modal، تأكد من إعادة توجيه مسار Flask مع ?success=true
-            // أما إذا أردت إظهارها فوراً كـ AJAX/UI تجريبي، يمكنك إلغاء التعليق التالي:
-            // e.preventDefault();
-            // modalTitleText.textContent = "تم الطلب بنجاح";
-            // modalSubtitleText.style.display = 'block';
-            // if(modalDetailsBox) modalDetailsBox.style.display = 'none'; // أو تعبئة بيانات الطلب الجديد
-            // modal.classList.add('active');
-        });
-    }
-
     // إغلاق النافذة المنبثقة
     function closeModal() {
         modal.classList.remove('active');
-        // إذا كان هناك معلمة في الرابط بعد النجاح، تنظيف الرابط
         if (window.location.search.includes('success=true')) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -350,7 +342,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     
-    // إغلاق النافذة عند الضغط خارج محتواها
     if(modal) {
         modal.addEventListener('click', function(e) {
             if(e.target === modal) {
