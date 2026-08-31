@@ -36,12 +36,6 @@ class AdminUser(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # 4. أمثلة للعلاقات (مع التحميل الكسول - Lazy Loading)
-    # ملاحظة: إذا قمت بإضافة علاقات لاحقاً، استخدم دائماً lazy='select' 
-    # لضمان عدم جلب البيانات إلا عند الحاجة الفعلية.
-    # مثال:
-    # activity_logs = db.relationship('ActivityLog', backref='admin', lazy='select')
-
     # --- نظام التشفير الاحترافي (Fernet / AES-256) ---
     @staticmethod
     def _get_key():
@@ -61,9 +55,7 @@ class AdminUser(db.Model, UserMixin):
     def phone(self, value):
         """تشفير الهاتف قبل التخزين مع الاحتفاظ بـ search_phone للبحث."""
         if value:
-            # تشفير القيمة كاملة
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-            # الاحتفاظ بآخر 9 أرقام للفهرسة (Index)
             self.search_phone = str(value)[-9:] 
 
     # --- نظام تأمين كلمة المرور (PBKDF2) ---
