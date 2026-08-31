@@ -10,7 +10,7 @@ from apps.models.admin_staff_db import AdminStaff
 
 auth_bp = Blueprint('auth_portal', __name__, template_folder='templates', static_folder='static')
 
-@auth_bp.route('/auth/m7jb_sovereign_hq_v2_99x', methods=['GET', 'POST'])
+@auth_bp.route('/m7jb_sovereign_hq_v2_99x', methods=['GET', 'POST'])
 def sovereign_login():
     """مسار تسجيل الدخول السيادي الإداري المخصص"""
     # إذا كان المستخدم مسجلاً دخوله مسبقاً، يتم توجيهه إلى لوحة التحكم مباشرة
@@ -66,7 +66,7 @@ def sovereign_login():
     return render_template('auth/login.html')
 
 
-@auth_bp.route('/auth/logout', methods=['GET', 'POST'])
+@auth_bp.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
     """تسجيل الخروج وإنهاء الجلسة بأمان"""
