@@ -59,17 +59,8 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- Dynamic Error Alert Box (for AJAX) -->
-            <div id="error-alert" class="hidden mb-6 p-4 rounded-xl text-sm font-semibold flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
-                <i class="fas fa-exclamation-circle text-lg"></i>
-                <span id="error-message"></span>
-            </div>
-
             <!-- Login Form -->
             <form id="login-form" method="POST" class="space-y-6">
-                <!-- CSRF Token if needed, handled globally or via header -->
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
                 <div>
                     <label class="block text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">اسم المستخدم الإداري</label>
                     <div class="relative">
@@ -125,55 +116,6 @@
                 toggleIcon.classList.add('fa-eye');
             }
         }
-
-        // AJAX Form Submission to prevent 400 errors and handle JSON/Redirect gracefully
-        document.getElementById('login-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            const errorAlert = document.getElementById('error-alert');
-            const errorMessage = document.getElementById('error-message');
-            const submitBtn = document.getElementById('submit-btn');
-
-            errorAlert.classList.add('hidden');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق...';
-
-            try {
-                const response = await fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    const data = await response.json();
-                    if (response.ok && data.success) {
-                        window.location.href = data.redirect_url || '/dashboard';
-                    } else {
-                        errorMessage.textContent = data.message || 'حدث خطأ أثناء تسجيل الدخول';
-                        errorAlert.classList.remove('hidden');
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<span>تسجيل الدخول السيادي</span><i class="fas fa-arrow-left text-sm"></i>';
-                    }
-                } else {
-                    // If server returned HTML (standard form submission fallback)
-                    window.location.reload();
-                }
-            } catch (err) {
-                errorMessage.textContent = 'تعذر الاتصال بالخادم، يرجى المحاولة لاحقاً';
-                errorAlert.classList.remove('hidden');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>تسجيل الدخول السيادي</span><i class="fas fa-arrow-left text-sm"></i>';
-            }
-        });
     </script>
 </body>
 </html>
