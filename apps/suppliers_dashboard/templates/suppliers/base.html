@@ -451,8 +451,8 @@
             {% endif %}
             
             <hr class="nav-divider">
-            {% set logout_url = safe_url_for('suppliers_auth.logout') if safe_url_for is defined else '#' %}
-            <a href="{{ logout_url if logout_url != '#' else url_for('logout') }}" id="logout-btn" class="nav-link text-danger">
+            {% set logout_url = safe_url_for('suppliers_auth_bp.logout') if safe_url_for is defined else url_for('suppliers_auth_bp.logout') %}
+            <a href="{{ logout_url }}" id="logout-btn" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
             </a>
         </nav>
