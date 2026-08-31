@@ -3,7 +3,7 @@
 
 """
 مسارات وبوابات المصادقة السيادية الإدارية (Admin Staff Auth Portal)
-متوافقة صراحةً مع جدول وموديل AdminStaff في قاعدة البيانات
+متوافقة صراحةً مع جدول وموديل AdminStaff في قاعدة البيانات مع أدوات التتبع التشخيصية
 """
 
 import logging
@@ -56,20 +56,26 @@ def login_page():
 
 @auth_portal_bp.route('/login', methods=['POST'])
 def login():
-    """معالجة الدخول الصريح عبر جدول admin_staff باستخدام اسم المستخدم أو البريد الإلكتروني"""
+    """معالجة الدخول الصريح مع أدوات تشخيص الأخطاء لتتبع حالات الرفض (400)"""
     try:
+        logger.info(f"📥 Content-Type received: {request.content_type}")
         data = request.get_json(silent=True) or request.form
+        logger.info(f"📥 Parsed Request Data: {data}")
+
         if not data:
+            logger.warning("❌ رفض الطلب: البيانات الواردة فارغة تماماً أو غير صالحة.")
             return jsonify({'status': 'error', 'message': 'بيانات الإدخال غير صالحة'}), 400
 
-        login_input = str(data.get('username', '')).strip()  # الحقل في الواجهة يرسل اسم المستخدم أو البريد
+        login_input = str(data.get('username', '')).strip()
         password = str(data.get('password', ''))
 
         if not login_input or not password:
+            logger.warning(f"❌ رفض الطلب: حقل اسم المستخدم أو كلمة المرور فارغ. (User provided: {bool(login_input)}, Pass provided: {bool(password)})")
             return jsonify({'status': 'error', 'message': 'يرجى إدخال اسم المستخدم/البريد وكلمة المرور'}), 400
 
         valid_input = validate_input(login_input)
         if not valid_input:
+            logger.warning(f"❌ رفض الطلب: الصيغة المدخلة لا تتطابق مع التعبير النمطي (Regex): {login_input}")
             return jsonify({'status': 'error', 'message': 'صيغة البيانات المدخلة غير مطابقة للمعايير'}), 400
 
         # الاستعلام الصريح المطابق للجدول: البحث إما عبر الـ username أو الـ email
