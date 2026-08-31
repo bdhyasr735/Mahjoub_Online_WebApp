@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page_title }}</title>
+    <title>{{ page_title|default('تسجيل دخول المشرفين | البوابة السيادية') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -15,30 +15,43 @@
 </head>
 <body class="flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-md p-8 space-y-6 bg-slate-900 border border-purple-900 rounded-2xl shadow-2xl">
-        <div class="text-center">
-            <h1 class="text-2xl font-bold text-amber-400">محجوب أونلاين</h1>
-            <p class="text-sm text-gray-400 mt-2">البوابة السيادية الإدارية</p>
+    <div class="w-full max-w-md p-8 space-y-6 bg-slate-900 border border-purple-900 rounded-2xl shadow-2xl relative overflow-hidden">
+        <!-- لمسة إضاءة علوية ذهبية -->
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
+
+        <div class="text-center relative z-10">
+            <h1 class="text-2xl font-black text-amber-400 tracking-wide">محجوب أونلاين</h1>
+            <p class="text-xs text-amber-400/80 font-medium mt-1">البوابة السيادية الإدارية</p>
         </div>
 
-        <form id="loginForm" class="space-y-4">
+        <!-- صندوق التنبيهات -->
+        <div id="errorMsg" class="hidden p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl relative z-10"></div>
+
+        <form id="loginForm" class="space-y-4 relative z-10">
+            <!-- حقل الـ CSRF إن وجد -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
+
             <div>
-                <label class="block text-sm font-medium text-gray-300">اسم المستخدم أو البريد الإلكتروني</label>
+                <label class="block text-xs font-medium text-gray-300 mb-2">اسم المستخدم أو البريد الإلكتروني</label>
                 <input type="text" id="username" name="username" required
-                    class="w-full mt-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:outline-none text-white">
+                    class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
+                    autocomplete="username">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-300">كلمة المرور</label>
+                <label class="block text-xs font-medium text-gray-300 mb-2">كلمة المرور</label>
                 <input type="password" id="password" name="password" required
-                    class="w-full mt-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-600 focus:outline-none text-white">
+                    class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
+                    autocomplete="current-password">
             </div>
-
-            <div id="errorMsg" class="hidden p-3 bg-red-950/50 border border-red-800 text-red-300 text-sm text-center rounded-lg"></div>
 
             <button type="submit" id="submitBtn"
-                class="w-full py-3 px-4 bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-semibold rounded-lg shadow-lg transition duration-200">
-                تسجيل الدخول السيادي
+                class="w-full py-3.5 px-4 bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-bold text-sm rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                <span id="btnText">تسجيل الدخول السيادي</span>
+                <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
             </button>
         </form>
     </div>
@@ -46,24 +59,28 @@
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
             const errorMsg = document.getElementById('errorMsg');
             const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
 
             errorMsg.classList.add('hidden');
             errorMsg.textContent = '';
             submitBtn.disabled = true;
-            submitBtn.textContent = 'جاري التحقق...';
+            btnText.textContent = 'جاري التحقق الأمني...';
+            btnSpinner.classList.remove('hidden');
 
             try {
+                // إرسال البيانات كـ FormData لضمان توافقها التام مع request.form في Flask
+                const formData = new FormData(this);
+
                 const response = await fetch("{{ url_for('auth_portal_bp.login') }}", {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
                     },
-                    body: JSON.stringify({ username, password })
+                    body: formData
                 });
 
                 const rawText = await response.text();
@@ -77,19 +94,28 @@
                 }
 
                 if (response.ok && data.status === 'success') {
-                    window.location.href = data.redirect;
+                    errorMsg.className = 'p-3.5 rounded-xl text-xs flex items-center gap-3 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 shadow-xl relative z-10';
+                    errorMsg.textContent = data.message || 'تم التحقق بنجاح. جاري التوجيه...';
+                    errorMsg.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
                 } else {
+                    errorMsg.className = 'p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl relative z-10';
                     errorMsg.textContent = data.message || 'فشل تسجيل الدخول، يرجى المحاولة مرة أخرى.';
                     errorMsg.classList.remove('hidden');
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'تسجيل الدخول السيادي';
+                    btnText.textContent = 'تسجيل الدخول السيادي';
+                    btnSpinner.classList.add('hidden');
                 }
             } catch (err) {
                 console.error("Fetch Error:", err);
+                errorMsg.className = 'p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl relative z-10';
                 errorMsg.textContent = err.message || 'حدث خطأ في الاتصال بالخادم.';
                 errorMsg.classList.remove('hidden');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'تسجيل الدخول السيادي';
+                btnText.textContent = 'تسجيل الدخول السيادي';
+                btnSpinner.classList.add('hidden');
             }
         });
     </script>
