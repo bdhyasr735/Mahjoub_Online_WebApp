@@ -39,7 +39,7 @@ def wallet_dashboard():
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
-    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST)"""
+    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع البحث والفلترة والـ Pagination"""
     supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
@@ -54,10 +54,12 @@ def withdraw():
             bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)')
             notes = request.form.get('notes', '')
 
+            # إنشاء طلب سحب (بحالة قيد الانتظار دون خصم نهائي من الرصيد المتاح حتى يتم اعتماده)
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
+            NotificationService.notify_success("تم تقديم طلب السحب بنجاح وهو قيد المراجعة")
         except ValueError as e:
             db.session.rollback()
             NotificationService.notify_error(str(e))
@@ -65,15 +67,35 @@ def withdraw():
             db.session.rollback()
             NotificationService.notify_error("حدث خطأ غير متوقع أثناء معالجة طلب السحب")
 
-        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+        return redirect(url_for('supplier_wallet.withdraw'))
 
-    # تعريف الحساب الافتراضي وتمريره للقالب لتجنب خطأ UndefinedError
+    # إعدادات البحث والفلترة وترقيم الصفحات لطلبات السحب
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '').strip()
+    status_filter = request.args.get('status', '').strip()
+
+    query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
+
+    if search_query:
+        query = query.filter(WithdrawalRequest.request_number.ilike(f"%{search_query}%"))
+
+    if status_filter:
+        query = query.filter(WithdrawalRequest.status == status_filter)
+
+    pagination = query.order_by(WithdrawalRequest.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+
+    # تعريف الحساب الافتراضي وتمريره للقالب
     active_bank = {
         'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)',
         'id': 1
     }
 
-    return render_template('supplier_wallet/withdrawal_form.html', wallet=wallet, active_bank=active_bank)
+    return render_template(
+        'supplier_wallet/withdrawal_form.html',
+        wallet=wallet,
+        active_bank=active_bank,
+        pagination=pagination
+    )
 
 
 @wallet_bp.route('/transactions')
