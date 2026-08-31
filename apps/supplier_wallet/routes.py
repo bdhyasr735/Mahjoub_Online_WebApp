@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
+from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
@@ -145,4 +146,17 @@ def transactions():
         'supplier_wallet/wallet_transactions.html',
         wallet=wallet,
         transactions=transactions
+    )
+
+
+@wallet_bp.route('/store/<string:supplier_code>')
+def public_store_view(supplier_code):
+    """عرض صفحة متجر المورد العامة بشكل احترافي باستخدام كود المورد الفريد"""
+    supplier = Supplier.query.filter_by(supplier_code=supplier_code, status='active').first_or_404()
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+    
+    return render_template(
+        'supplier_wallet/public_store.html',
+        supplier=supplier,
+        wallet=wallet
     )
