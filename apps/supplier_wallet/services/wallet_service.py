@@ -94,7 +94,7 @@ class WalletService:
         notes: str = None
     ) -> WithdrawalRequest:
         """
-        طلب سحب رصيد: إنشاء طلب سحب جديد وتوثيقه
+        طلب سحب رصيد: التحقق من الرصيد وإنشاء الطلب بحالة معلقة دون خصم فوري من الرصيد المتاح
         """
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wallet_id).first()
         if not wallet:
@@ -110,11 +110,7 @@ class WalletService:
         if amount > wallet.balance_sar:
             raise ValueError("الرصيد المتاح غير كافٍ لإتمام طلب السحب")
 
-        # خصم المبلغ المؤقت من المتاح وإضافته للمعلق
-        wallet.balance_sar -= amount
-        wallet.balance_pending += amount
-        wallet.updated_at = get_mecca_now()
-
+        # لا يتم خصم المبلغ من الرصيد المتاح هنا، بل يتم التحقق وتسجيل الطلب كمعلق فقط
         req_number = f"WDR-{secrets.token_hex(4).upper()}"
         wdr = WithdrawalRequest(
             request_number=req_number,
@@ -141,16 +137,18 @@ class WalletService:
         notes: str = None
     ) -> WalletTransaction:
         """
-        اعتماد وقبول طلب السحب من الإدارة
+        اعتماد وقبول طلب السحب من الإدارة (يتم خصم المبلغ من الرصيد المتاح وتسجيل سند الصرف نهائياً)
         """
         wdr = session.query(WithdrawalRequest).with_for_update().filter_by(id=request_id).first()
         if not wdr or wdr.status != 'pending':
             raise ValueError("طلب السحب غير صالح أو تمت معالجته مسبقاً")
 
         wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wdr.wallet_id).first()
+        if wallet.balance_sar < wdr.amount:
+            raise ValueError("رصيد المورد المتاح لم يعد كافياً لتنفيذ عملية الصرف")
 
-        # تحديث الأرصدة المعلقة والمسحوبات
-        wallet.balance_pending -= wdr.amount
+        # خصم المبلغ من الرصيد المتاح وإضافته للمسحوبات نهائياً عند الموافقة
+        wallet.balance_sar -= wdr.amount
         wallet.total_withdrawn += wdr.amount
         wallet.updated_at = get_mecca_now()
 
@@ -183,19 +181,13 @@ class WalletService:
         reason: str = None
     ) -> WithdrawalRequest:
         """
-        رفض طلب السحب وإعادة المبلغ إلى الرصيد المتاح بالمحفظة
+        رفض طلب السحب (بما أن الرصيد لم يُخصم مسبقاً، يتم فقط تحديث حالة الطلب إلى مرفوض وتثبيت السبب)
         """
         wdr = session.query(WithdrawalRequest).with_for_update().filter_by(id=request_id).first()
         if not wdr or wdr.status != 'pending':
             raise ValueError("طلب السحب غير صالح أو تمت معالجته مسبقاً")
 
-        wallet = session.query(SupplierWallet).with_for_update().filter_by(id=wdr.wallet_id).first()
-
-        # إعادة المبلغ من المعلق إلى الرصيد المتاح
-        wallet.balance_pending -= wdr.amount
-        wallet.balance_sar += wdr.amount
-        wallet.updated_at = get_mecca_now()
-
+        # لا داعي لتعديل الأرصدة لأننا لم نقوم بتجميدها أو خصمها لحظة إنشاء الطلب
         wdr.status = 'rejected'
         wdr.notes = f"{wdr.notes or ''} | سبب الرفض من ({admin_name}): {reason or 'غير محدد'}"
         wdr.updated_at = get_mecca_now()
