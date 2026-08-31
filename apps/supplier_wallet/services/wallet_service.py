@@ -52,7 +52,7 @@ class WalletService:
             request_number=request_number,
             wallet_id=wallet.id,
             amount=amount,
-            bank_details=bank_account,
+            bank_account=bank_account,
             status='pending',
             notes=notes
         )
