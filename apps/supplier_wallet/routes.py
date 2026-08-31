@@ -76,6 +76,10 @@ def withdraw():
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
             NotificationService.notify_success("تم تقديم طلب السحب بنجاح وهو قيد المراجعة والاعتماد")
+            
+            # إعادة التوجيه مع تمرير معامل النجاح لإظهار النافذة المنبثقة تلقائياً
+            return redirect(url_for('supplier_wallet.withdraw', success='true'))
+            
         except ValueError as e:
             db.session.rollback()
             NotificationService.notify_error(str(e))
