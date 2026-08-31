@@ -13,6 +13,66 @@
     input[type="number"] {
         -moz-appearance: textfield;
     }
+
+    /* تنسيقات النافذة المنبثقة (Modal) */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(10, 5, 20, 0.85);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .modal-container {
+        background: var(--royal-purple-card, #1a0b2e);
+        border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.3));
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        padding: 30px;
+        box-shadow: 0 15px 50px rgba(0,0,0,0.7);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+        position: relative;
+        box-sizing: border-box;
+    }
+    .modal-overlay.active .modal-container {
+        transform: translateY(0);
+    }
+    
+    /* أنيميشن علامة الصح للنجاح */
+    @keyframes scaleUp {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .success-checkmark {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 20px;
+        background: rgba(16, 185, 129, 0.15);
+        border: 2px solid #10b981;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #10b981;
+        font-size: 32px;
+        animation: scaleUp 0.4s ease-out forwards;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
 </style>
 
 <div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;">
@@ -58,7 +118,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box;">
+        <form id="withdraw-form" method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <div style="width: 100%; box-sizing: border-box;">
@@ -147,9 +207,15 @@
                                 {% endif %}
                             </td>
                             <td style="padding: 14px 10px; text-align: center;">
-                                <a href="#" onclick="alert('تفاصيل طلب السحب رقم: {{ req.request_number }}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold, #D4AF37); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(212, 175, 55, 0.2)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)';">
+                                <button type="button" class="open-modal-btn" 
+                                    data-number="{{ req.request_number }}"
+                                    data-amount="{{ '%.2f'|format(req.amount) }} {{ req.currency if req.currency else 'SAR' }}"
+                                    data-status="{% if req.status == 'pending' %}قيد الانتظار{% elif req.status in ['completed', 'approved'] %}مكتمل{% else %}مرفوض{% endif %}"
+                                    data-date="{% if req.created_at %}{{ req.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}{% else %}-{% endif %}"
+                                    style="display: inline-flex; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold, #D4AF37); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background 0.2s;" 
+                                    onmouseover="this.style.background='rgba(212, 175, 55, 0.2)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)';">
                                     عرض السند
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -170,7 +236,45 @@
 
 </div>
 
-<!-- سكريبت البحث اللحظي وتحديث البطاقات ديناميكياً -->
+<!-- نافذة عرض السند أو إشعار نجاح الطلب (Modal) -->
+<div id="withdrawal-modal" class="modal-overlay {% if request.args.get('success') == 'true' or show_success_modal %}active{% endif %}">
+    <div class="modal-container" style="text-align: center;">
+        
+        <!-- أيقونة علامة الصح للنجاح -->
+        <div class="success-checkmark">
+            ✓
+        </div>
+
+        <h3 style="font-size: 18px; font-weight: 900; color: white; margin-bottom: 8px;" id="modal-title-text">تم الطلب بنجاح</h3>
+        <p style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 24px;" id="modal-subtitle-text">قيد الإنتظار للمراجعة والتحويل</p>
+        
+        <!-- تفاصيل السند (تظهر عند عرض السند أو الطلب) -->
+        <div id="modal-details-box" style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: #e5e7eb; text-align: right; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">رقم الطلب:</span>
+                <span id="modal-req-number" class="font-mono text-white" style="font-weight: bold;">-</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">المبلغ المسحوب:</span>
+                <span id="modal-req-amount" class="font-mono" style="color: var(--royal-gold, #D4AF37); font-weight: bold;">-</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">حالة الطلب:</span>
+                <span id="modal-req-status" style="font-weight: bold; color: #f59e0b;">قيد الانتظار</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">تاريخ ووقت الإنشاء:</span>
+                <span id="modal-req-date" class="font-mono" style="color: #d1d5db;">-</span>
+            </div>
+        </div>
+
+        <div>
+            <button type="button" id="close-modal" style="width: 100%; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; padding: 12px; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- سكريبت التفاعل والتحكم بالنافذة المنبثقة -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const searchInput = document.getElementById('live-search');
@@ -180,9 +284,84 @@ document.addEventListener("DOMContentLoaded", function() {
     const noResultsMsg = document.getElementById('no-results-message');
     const tableTotalCount = document.getElementById('table-total-count');
 
+    // عناصر النافذة المنبثقة (Modal)
+    const modal = document.getElementById('withdrawal-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const openModalBtns = document.querySelectorAll('.open-modal-btn');
+    const withdrawForm = document.getElementById('withdraw-form');
+
+    const modalReqNumber = document.getElementById('modal-req-number');
+    const modalReqAmount = document.getElementById('modal-req-amount');
+    const modalReqStatus = document.getElementById('modal-req-status');
+    const modalReqDate = document.getElementById('modal-req-date');
+    const modalTitleText = document.getElementById('modal-title-text');
+    const modalSubtitleText = document.getElementById('modal-subtitle-text');
+    const modalDetailsBox = document.getElementById('modal-details-box');
+
+    // فتح النافذة المنبثقة لعرض السند القديم
+    openModalBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // إعادة ضبط النافذة لوضع عرض السند العادي
+            modalTitleText.textContent = "سند طلب سحب المستحقات";
+            modalSubtitleText.style.display = 'none';
+            if(modalDetailsBox) modalDetailsBox.style.display = 'flex';
+
+            modalReqNumber.textContent = this.getAttribute('data-number');
+            modalReqAmount.textContent = this.getAttribute('data-amount');
+            
+            const statusText = this.getAttribute('data-status');
+            modalReqStatus.textContent = statusText;
+            
+            if(statusText === 'قيد الانتظار') {
+                modalReqStatus.style.color = '#f59e0b';
+            } else if(statusText === 'مكتمل') {
+                modalReqStatus.style.color = '#10b981';
+            } else {
+                modalReqStatus.style.color = '#ef4444';
+            }
+
+            modalReqDate.textContent = this.getAttribute('data-date');
+            modal.classList.add('active');
+        });
+    });
+
+    // اعتراض إرسال النموذج لإظهار إشعار النجاح مباشرة (أو يمكن الاعتماد على توجيه الـ Backend مع تمرير معلمة success)
+    if(withdrawForm) {
+        withdrawForm.addEventListener('submit', function(e) {
+            // ملاحظة: إذا كنت تريد إرسال النموذج بشكل طبيعي لتتم معالجته في الخادم (Backend)
+            // ثم إعادة تحميل الصفحة مع إظهار الـ Modal، تأكد من إعادة توجيه مسار Flask مع ?success=true
+            // أما إذا أردت إظهارها فوراً كـ AJAX/UI تجريبي، يمكنك إلغاء التعليق التالي:
+            // e.preventDefault();
+            // modalTitleText.textContent = "تم الطلب بنجاح";
+            // modalSubtitleText.style.display = 'block';
+            // if(modalDetailsBox) modalDetailsBox.style.display = 'none'; // أو تعبئة بيانات الطلب الجديد
+            // modal.classList.add('active');
+        });
+    }
+
+    // إغلاق النافذة المنبثقة
+    function closeModal() {
+        modal.classList.remove('active');
+        // إذا كان هناك معلمة في الرابط بعد النجاح، تنظيف الرابط
+        if (window.location.search.includes('success=true')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    
+    // إغلاق النافذة عند الضغط خارج محتواها
+    if(modal) {
+        modal.addEventListener('click', function(e) {
+            if(e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
     function updateLiveView() {
-        const query = searchInput.value.toLowerCase().trim();
-        const selectedStatus = statusFilter.value;
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedStatus = statusFilter ? statusFilter.value : '';
 
         let visibleCount = 0;
         let pendingCount = 0;
@@ -193,12 +372,10 @@ document.addEventListener("DOMContentLoaded", function() {
             const status = row.getAttribute('data-status');
             const number = row.getAttribute('data-number');
 
-            // حساب العدادات الكلية للبطاقات بناءً على الصفوف الموجودة بالصفحة
             if (status === 'pending') pendingCount++;
             if (status === 'completed' || status === 'approved') approvedCount++;
             if (status === 'rejected') rejectedCount++;
 
-            // مطابقة الفلتر والبحث اللحظي
             const matchesSearch = number.includes(query);
             let matchesStatus = true;
 
@@ -216,10 +393,9 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
-        // تحديث البطاقات العلوية الإحصائية
-        document.getElementById('stat-pending').textContent = pendingCount;
-        document.getElementById('stat-approved').textContent = approvedCount;
-        document.getElementById('stat-rejected').textContent = rejectedCount;
+        if(document.getElementById('stat-pending')) document.getElementById('stat-pending').textContent = pendingCount;
+        if(document.getElementById('stat-approved')) document.getElementById('stat-approved').textContent = approvedCount;
+        if(document.getElementById('stat-rejected')) document.getElementById('stat-rejected').textContent = rejectedCount;
         if(tableTotalCount) tableTotalCount.textContent = visibleCount;
 
         if (noResultsMsg) {
@@ -227,7 +403,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    if(searchInput) searchInput.addEventListener('input', updateLiveTableView = updateLiveView);
+    if(searchInput) searchInput.addEventListener('input', updateLiveView);
     if(statusFilter) statusFilter.addEventListener('change', updateLiveView);
     
     if(resetBtn) {
@@ -238,7 +414,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // التشغيل الأولي لحساب الإحصائيات عند تحميل الصفحة
     updateLiveView();
 });
 </script>
