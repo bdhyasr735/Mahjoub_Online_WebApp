@@ -482,8 +482,12 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-                            {{ message }}
+                        <div class="alert alert-{{ category if category is string else 'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                            {% if message is mapping %}
+                                {{ message.get('message', 'حدث خطأ ما') }}
+                            {% else %}
+                                {{ message }}
+                            {% endif %}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
                         </div>
                     {% endfor %}
@@ -560,7 +564,6 @@
                     e.preventDefault();
                     sessionStorage.clear();
                     localStorage.clear();
-                    // استخدام replace لمنع العودة للصفحة عبر زر الرجوع في المتصفح
                     window.location.replace(this.href);
                 });
             }
