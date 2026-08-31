@@ -4,9 +4,6 @@
 from flask import Blueprint, render_template, flash
 from flask_login import login_required
 from apps.extensions import db
-from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from sqlalchemy import func
 
 admin_dashboard_bp = Blueprint(
     'admin_dashboard_bp', 
@@ -17,81 +14,78 @@ admin_dashboard_bp = Blueprint(
 @admin_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    """عرض لوحة تحكم النظام الرئيسية بأمان تام"""
-    try:
-        # ✅ إجمالي الأرصدة (مع حماية ضد القيم الفارغة)
-        totals = db.session.query(
-            func.sum(SupplierWallet.balance_sar).label('total_sar'),
-            func.sum(SupplierWallet.balance_yer).label('total_yer'),
-            func.sum(SupplierWallet.balance_usd).label('total_usd')
-        ).first()
-        
-        total_sar = float(totals.total_sar or 0) if totals and totals.total_sar else 0.0
-        total_yer = float(totals.total_yer or 0) if totals and totals.total_yer else 0.0
-        total_usd = float(totals.total_usd or 0) if totals and totals.total_usd else 0.0
+    """عرض لوحة تحكم النظام الرئيسية بشكل آمن تماماً ضد الانهيار"""
+    total_sar = 0.0
+    total_yer = 0.0
+    total_usd = 0.0
+    supplier_count = 0
+    product_count = 0
+    order_count = 0
+    total_revenue = 0.0
+    recent_transactions = []
 
-        # ✅ عدد الموردين
+    try:
+        # محاولة جلب الأرصدة إن وجد الجدول
         try:
-            supplier_count = db.session.query(func.count(Supplier.id)).scalar() or 0
-        except:
-            supplier_count = 0
+            from apps.models.wallet_db import SupplierWallet
+            totals = db.session.query(
+                db.func.sum(SupplierWallet.balance_sar).label('total_sar'),
+                db.func.sum(SupplierWallet.balance_yer).label('total_yer'),
+                db.func.sum(SupplierWallet.balance_usd).label('total_usd')
+            ).first()
+            if totals:
+                total_sar = float(totals.total_sar or 0)
+                total_yer = float(totals.total_yer or 0)
+                total_usd = float(totals.total_usd or 0)
+        except Exception as e:
+            print(f"⚠️ [Wallet Error Skipped]: {e}")
+
+        # محاولة جلب عدد الموردين
+        try:
+            from apps.models.supplier_db import Supplier
+            supplier_count = db.session.query(db.func.count(Supplier.id)).scalar() or 0
+        except Exception as e:
+            print(f"⚠️ [Supplier Error Skipped]: {e}")
         
-        # ✅ عدد المنتجات
-        product_count = 0
+        # محاولة جلب عدد المنتجات
         try:
             from apps.models.product_db import Product
-            product_count = db.session.query(func.count(Product.id)).scalar() or 0
-        except:
-            pass
+            product_count = db.session.query(db.func.count(Product.id)).scalar() or 0
+        except Exception as e:
+            print(f"⚠️ [Product Error Skipped]: {e}")
         
-        # ✅ عدد الطلبات والإيرادات
-        order_count = 0
-        total_revenue = 0.0
+        # محاولة جلب الطلبات والإيرادات
         try:
             from apps.models.orders_db import Order
-            order_count = db.session.query(func.count(Order.id)).scalar() or 0
-            
+            order_count = db.session.query(db.func.count(Order.id)).scalar() or 0
             if hasattr(Order, 'total_amount'):
-                total_revenue = db.session.query(func.sum(Order.total_amount)).scalar() or 0.0
+                total_revenue = db.session.query(db.func.sum(Order.total_amount)).scalar() or 0.0
             elif hasattr(Order, 'total'):
-                total_revenue = db.session.query(func.sum(Order.total)).scalar() or 0.0
-            elif hasattr(Order, 'total_price'):
-                total_revenue = db.session.query(func.sum(Order.total_price)).scalar() or 0.0
-        except:
-            pass
+                total_revenue = db.session.query(db.func.sum(Order.total)).scalar() or 0.0
+        except Exception as e:
+            print(f"⚠️ [Order Error Skipped]: {e}")
         
-        # ✅ آخر المعاملات المالية
-        recent_transactions = []
+        # محاولة جلب المعاملات الأخيرة
         try:
+            from apps.models.wallet_db import WalletTransaction
             recent_transactions = WalletTransaction.query.order_by(
                 WalletTransaction.created_at.desc()
             ).limit(10).all()
-        except:
-            pass
+        except Exception as e:
+            print(f"⚠️ [Transactions Error Skipped]: {e}")
 
-        context = {
-            "total_suppliers": supplier_count,
-            "total_products": product_count,
-            "total_orders": order_count,
-            "total_revenue": float(total_revenue),
-            "total_balance_sar": total_sar,
-            "total_balance_yer": total_yer,
-            "total_balance_usd": total_usd,
-            "recent_transactions": recent_transactions
-        }
-        
-        return render_template('admin/dashboard.html', **context)
+    except Exception as general_err:
+        print(f"❌ [Dashboard General Error]: {str(general_err)}")
 
-    except Exception as e:
-        print(f"❌ [Dashboard Error]: {str(e)}")
-        flash("حدث خطأ أثناء تحميل بيانات لوحة التحكم، يرجى المحاولة لاحقاً.", "danger")
-        
-        return render_template('admin/dashboard.html', 
-                               total_suppliers=0, 
-                               total_products=0,
-                               total_orders=0,
-                               total_revenue=0.0,
-                               total_balance_sar=0.0, 
-                               total_balance_yer=0.0, 
-                               total_balance_usd=0.0, 
-                               recent_transactions=[])
+    context = {
+        "total_suppliers": supplier_count,
+        "total_products": product_count,
+        "total_orders": order_count,
+        "total_revenue": float(total_revenue),
+        "total_balance_sar": total_sar,
+        "total_balance_yer": total_yer,
+        "total_balance_usd": total_usd,
+        "recent_transactions": recent_transactions
+    }
+    
+    return render_template('admin/dashboard.html', **context)
