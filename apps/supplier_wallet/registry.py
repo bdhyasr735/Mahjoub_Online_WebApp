@@ -1,19 +1,26 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/registry.py
 
-MODULE_NAME = "محفظة المورد"
-MODULE_ICON = "fas fa-wallet"
+MODULE_NAME = "supplier_wallet"
+DISPLAY_NAME = "الإدارة المالية"
+ICON = "wallet"  # أو أي أيقونة معتمدة لديك
 SHOW_IN_SUPPLIER = True
+SORT_ORDER = 20
 
-# ربط واجهة المحفظة وطلب السحب لتظهر تلقائياً في القائمة الجانبية للموردين
-LINKS = {
-    'supplier_wallet.withdraw': '💰 المحفظة وطلب السحب'
-}
-
-def register_module(app):
-    from apps.supplier_wallet.routes import supplier_wallet_bp
-    if 'supplier_wallet_bp' not in app.blueprints:
-        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
-    else:
-        print("ℹ️ [Registry]: موديول 'supplier_wallet' مسجل مسبقاً.")
+# تعريف الروابط التي ستظهر في القائمة الجانبية للمورد
+MENU_ITEMS = [
+    {
+        "name": "لوحة المحفظة",
+        "endpoint": "supplier_wallet.wallet_dashboard",
+        "icon": "dashboard"
+    },
+    {
+        "name": "كشف حركات المحفظة",
+        "endpoint": "supplier_wallet.transactions",
+        "icon": "list"
+    },
+    {
+        "name": "طلب سحب الرصيد",
+        "endpoint": "supplier_wallet.withdraw",
+        "icon": "cash"
+    }
+]
