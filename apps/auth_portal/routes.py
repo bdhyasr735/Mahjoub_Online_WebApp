@@ -1,6 +1,9 @@
-# apps/auth_portal/routes.py
+# -*- coding: utf-8 -*-
+# 📂 apps/auth_portal/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, abort
+from apps.models.admin_db import AdminUser
+from apps.models.admin_staff_db import AdminStaff
 
 auth_portal = Blueprint('auth_portal', __name__, template_folder='templates')
 
@@ -12,14 +15,32 @@ def secure_admin_login():
     if request.method == 'GET':
         return render_template('auth/login.html')
     
-    data = request.get_json() or {}
+    # دعم استقبال البيانات سواء كانت JSON أو Form Data لتجنب أي خطأ
+    data = request.get_json(silent=True) or request.form
     username = data.get('username')
     password = data.get('password')
     step = data.get('step', 'credentials')
     otp_code = data.get('otp_code')
     
     if step == 'credentials':
-        if username == "admin" and password == "secure_admin_password":
+        if not username or not password:
+            return jsonify({
+                "status": "error",
+                "message": "يرجى إدخال اسم المستخدم وكلمة المرور."
+            }), 400
+
+        # البحث في جدول المديرين الأساسيين أو الموظفين
+        admin = AdminUser.query.filter_by(username=username).first()
+        if not admin:
+            admin = AdminStaff.query.filter_by(username=username).first()
+
+        if admin and admin.check_password(password):
+            if not admin.is_active:
+                return jsonify({
+                    "status": "error",
+                    "message": "هذا الحساب معطل حالياً."
+                }), 403
+
             session['pre_auth_admin'] = username
             return jsonify({
                 "status": "require_otp",
@@ -38,10 +59,11 @@ def secure_admin_login():
                 "message": "جلسة غير صالحة، يرجى إعادة المحاولة."
             }), 400
             
+        # يمكنك لاحقاً ربط التحقق من OTP بقاعدة البيانات أو إبقائه مؤقتاً
         if otp_code == "123456":
-            session.pop('pre_auth_admin', None)
+            auth_username = session.pop('pre_auth_admin', None)
             session['admin_logged_in'] = True
-            session['admin_user'] = username
+            session['admin_user'] = auth_username
             
             return jsonify({
                 "status": "success",
@@ -60,10 +82,9 @@ def secure_admin_login():
     }), 400
 
 
-# مسار تمويهي (يظهر للمتطفلين كأن الصفحة غير موجودة أو يقودهم لصفحة وهمية)
+# مسار تمويهي (يظهر للمتطفلين كأن الصفحة غير موجودة)
 @auth_portal.route('/login', methods=['GET', 'POST'])
 def fake_login():
-    # يمكنك إرجاع خطأ 404 لتمويه أي متطفل يحاول البحث عن صفحة تسجيل الدخول بالطرق التقليدية
     abort(404)
 
 
