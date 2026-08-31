@@ -3,119 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page_title|default('تسجيل دخول المشرفين | البوابة السيادية') }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>تسجيل الدخول - البوابة السيادية | محجوب أونلاين</title>
+    <!-- خط العرض العربي الاحترافي -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- مكتبة الأيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #1a0b2e; /* البصمة اللونية: البنفسجي الملكي */
-            color: #ffffff;
+        :root {
+            --primary-purple: #632C8F;
+            --dark-purple: #1a0b2e;
+            --deep-purple-hover: #570575;
+            --gold-accent: #D4AF37;
+            --gold-light: #f3e5ab;
+            --bg-color: #f8f6fc;
+            --white: #ffffff;
+            --text-dark: #2d1b4e;
+            --error-red: #e74c3c;
+            --success-green: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
             font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 10% 20%, rgba(99, 44, 143, 0.08) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.08) 0%, transparent 40%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: var(--white);
+            width: 100%;
+            max-width: 440px;
+            border-radius: 16px;
+            box-shadow: 0 12px 35px rgba(26, 11, 46, 0.12);
+            overflow: hidden;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            position: relative;
+        }
+
+        /* شريط علوي ذهبي ملكي */
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-purple), var(--gold-accent), var(--primary-purple));
+        }
+
+        .login-header {
+            background: var(--dark-purple);
+            color: var(--white);
+            padding: 35px 25px 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold-accent);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .login-header p {
+            font-size: 13px;
+            color: #dcd6f7;
+            opacity: 0.85;
+        }
+
+        .login-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-with-icon i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-purple);
+            font-size: 16px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            border: 2px solid #e2dbec;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-dark);
+            background-color: #fcfbfe;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background-color: var(--white);
+            box-shadow: 0 0 0 4px rgba(99, 44, 143, 0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--primary-purple), var(--dark-purple));
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(99, 44, 143, 0.25);
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, var(--deep-purple-hover), var(--dark-purple));
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(99, 44, 143, 0.35);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* تنبيهات الحالة */
+        #alert-box {
+            display: none;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        #alert-box.error {
+            background-color: #fde8e8;
+            color: var(--error-red);
+            border: 1px solid #fbd5d5;
+        }
+
+        #alert-box.success {
+            background-color: #def7ec;
+            color: var(--success-green);
+            border: 1px solid #bcf0da;
+        }
+
+        .login-footer {
+            text-align: center;
+            padding: 15px 30px 25px;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #f0edf6;
+        }
+
+        .login-footer span {
+            color: var(--primary-purple);
+            font-weight: 700;
         }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body>
 
-    <div class="w-full max-w-md p-8 space-y-6 bg-slate-900 border border-purple-900 rounded-2xl shadow-2xl relative overflow-hidden">
-        <!-- لمسة إضاءة علوية ذهبية -->
-        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
-
-        <div class="text-center relative z-10">
-            <h1 class="text-2xl font-black text-amber-400 tracking-wide">محجوب أونلاين</h1>
-            <p class="text-xs text-amber-400/80 font-medium mt-1">البوابة السيادية الإدارية</p>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>محجوب أونلاين</h1>
+            <p>بوابة المصادقة السيادية وإدارة النظام</p>
         </div>
 
-        <!-- صندوق التنبيهات -->
-        <div id="errorMsg" class="hidden p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl relative z-10"></div>
+        <div class="login-body">
+            <!-- صندوق التنبيهات الديناميكي -->
+            <div id="alert-box"></div>
 
-        <form id="loginForm" class="space-y-4 relative z-10">
-            <!-- حقل الـ CSRF إن وجد -->
-            <input type="hidden" name="csrf_token" value="{{ csrf_token|default('') }}">
+            <form id="loginForm" method="POST">
+                <!-- تضمين رمز حماية الـ CSRF في حال توفره عبر Flask-WTF -->
+                {% if form and form.csrf_token %}
+                    {{ form.csrf_token }}
+                {% endif %}
 
-            <div>
-                <label class="block text-xs font-medium text-gray-300 mb-2">اسم المستخدم أو البريد الإلكتروني</label>
-                <input type="text" id="username" name="username" required
-                    class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
-                    autocomplete="username">
-            </div>
+                <div class="form-group">
+                    <label for="username">اسم المستخدم أو البريد الإداري</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <input type="text" id="username" name="username" class="form-control" required autocomplete="username" placeholder="أدخل اسم المستخدم أو البريد">
+                    </div>
+                </div>
 
-            <div>
-                <label class="block text-xs font-medium text-gray-300 mb-2">كلمة المرور</label>
-                <input type="password" id="password" name="password" required
-                    class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition-all"
-                    autocomplete="current-password">
-            </div>
+                <div class="form-group">
+                    <label for="password">كلمة المرور الآمنة</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" name="password" class="form-control" required autocomplete="current-password" placeholder="••••••••">
+                    </div>
+                </div>
 
-            <button type="submit" id="submitBtn"
-                class="w-full py-3.5 px-4 bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-bold text-sm rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
-                <span id="btnText">تسجيل الدخول السيادي</span>
-                <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </button>
-        </form>
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <span id="btnText">تسجيل الدخول</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="login-footer">
+            منظومة إدارة الملاحة والعمليات &copy; <span>محجوب أونلاين</span> 2026
+        </div>
     </div>
 
     <script>
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const errorMsg = document.getElementById('errorMsg');
+            
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
-            const btnSpinner = document.getElementById('btnSpinner');
-
-            errorMsg.classList.add('hidden');
-            errorMsg.textContent = '';
+            const alertBox = document.getElementById('alert-box');
+            
+            // إخفاء أي تنبيه سابق وتعطيل الزر مؤقتاً أثناء المعالجة
+            alertBox.style.display = 'none';
+            alertBox.className = '';
             submitBtn.disabled = true;
-            btnText.textContent = 'جاري التحقق الأمني...';
-            btnSpinner.classList.remove('hidden');
+            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+
+            const formData = new FormData(this);
 
             try {
-                // إرسال البيانات كـ FormData لضمان توافقها التام مع request.form في Flask
-                const formData = new FormData(this);
-
-                const response = await fetch("{{ url_for('auth_portal_bp.login') }}", {
+                const response = await fetch(window.location.href, {
                     method: 'POST',
+                    body: formData,
                     headers: {
-                        'Accept': 'application/json',
-                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
-                    },
-                    body: formData
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
 
-                const rawText = await response.text();
-                let data;
+                const result = await response.json();
 
-                try {
-                    data = JSON.parse(rawText);
-                } catch (parseErr) {
-                    console.error("Server returned non-JSON response:", rawText);
-                    throw new Error("خطأ داخلي في الخادم (استجابة غير صالحة من السيرفر)");
-                }
-
-                if (response.ok && data.status === 'success') {
-                    errorMsg.className = 'p-3.5 rounded-xl text-xs flex items-center gap-3 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 shadow-xl relative z-10';
-                    errorMsg.textContent = data.message || 'تم التحقق بنجاح. جاري التوجيه...';
-                    errorMsg.classList.remove('hidden');
+                if (response.ok && result.status === 'success') {
+                    alertBox.textContent = result.message;
+                    alertBox.className = 'success';
+                    alertBox.style.display = 'block';
+                    
                     setTimeout(() => {
-                        window.location.href = data.redirect;
+                        window.location.href = result.redirect || '/dashboard';
                     }, 1000);
                 } else {
-                    errorMsg.className = 'p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl relative z-10';
-                    errorMsg.textContent = data.message || 'فشل تسجيل الدخول، يرجى المحاولة مرة أخرى.';
-                    errorMsg.classList.remove('hidden');
-                    submitBtn.disabled = false;
-                    btnText.textContent = 'تسجيل الدخول السيادي';
-                    btnSpinner.classList.add('hidden');
+                    throw new Error(result.message || 'حدث خطأ غير متوقع أثناء عملية المصادقة.');
                 }
-            } catch (err) {
-                console.error("Fetch Error:", err);
-                errorMsg.className = 'p-3.5 rounded-xl text-xs flex items-center gap-3 bg-rose-950/90 border border-rose-500/50 text-rose-300 shadow-xl relative z-10';
-                errorMsg.textContent = err.message || 'حدث خطأ في الاتصال بالخادم.';
-                errorMsg.classList.remove('hidden');
+
+            } catch (error) {
+                alertBox.textContent = error.message;
+                alertBox.className = 'error';
+                alertBox.style.display = 'block';
                 submitBtn.disabled = false;
-                btnText.textContent = 'تسجيل الدخول السيادي';
-                btnSpinner.classList.add('hidden');
+                btnText.textContent = 'تسجيل الدخول';
             }
         });
     </script>
