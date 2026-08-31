@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
-    <!-- روابط التصميم أو Tailwind / Bootstrap حسب الهيكل لديك -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -54,7 +53,6 @@
             errorMsg.classList.add('hidden');
 
             try {
-                // استخدام المسار السيادي الصحيح والمطابق تماماً عبر جينجا
                 const response = await fetch("{{ url_for('auth_portal_bp.login') }}", {
                     method: 'POST',
                     headers: {
@@ -68,7 +66,7 @@
                 if (response.ok && data.status === 'success') {
                     window.location.href = data.redirect;
                 } else {
-                    errorMsg.textContent = data.message || 'بيانات الدخول غير صحيحة';
+                    errorMsg.textContent = data.message || 'فشل تسجيل الدخول';
                     errorMsg.classList.remove('hidden');
                 }
             } catch (err) {
