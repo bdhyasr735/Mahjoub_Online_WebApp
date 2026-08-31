@@ -12,7 +12,7 @@ export const options = {
 const BASE_URL = 'https://mahjoubonlinewebapp-production-7236.up.railway.app';
 
 export default function () {
-  // 1. اختبار رابط الدخول والصفحة الرئيسية لوحدها
+  // 1. اختبار الصفحة الرئيسية للبلاتفورم
   let loginResponse = http.get(`${BASE_URL}/`);
   check(loginResponse, {
     'Login / Home status is 200': (r) => r.status === 200,
@@ -20,10 +20,10 @@ export default function () {
 
   sleep(1);
 
-  // 2. اختبار رابط لوحة التحكم (التحكم والعمليات الحساسة/السحب) لوحدها
-  let dashboardResponse = http.get(`${BASE_URL}/admin/dashboard/`);
+  // 2. اختبار رابط البوابة الخاصة والمسيطر عليها (Sovereign HQ)
+  let dashboardResponse = http.get(`${BASE_URL}/m7jb_sovereign_hq_v2_99x`);
   check(dashboardResponse, {
-    'Dashboard status is 200 or requires auth': (r) => r.status === 200 || r.status === 302 || r.status === 401,
+    'Sovereign HQ status is 200 or requires auth': (r) => r.status === 200 || r.status === 302 || r.status === 401,
   });
 
   sleep(2);
