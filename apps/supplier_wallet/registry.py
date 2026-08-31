@@ -1,16 +1,19 @@
+# coding: utf-8
 # 📂 apps/supplier_wallet/registry.py
 
-SHOW_IN_SUPPLIER = True  # 👈 هذا هو مفتاح ظهور الموديول في لوحة الموردين
-MODULE_NAME = "المحفظة المالية"
-ICON = "fa-wallet"
+MODULE_NAME = "محفظة المورد"
+MODULE_ICON = "fas fa-wallet"
+SHOW_IN_SUPPLIER = True
 
-# وباقي تعريف القوائم...
-NAV_ITEMS = [
-    {"endpoint": "supplier_wallet.wallet_dashboard", "title": "رئيسية المحفظة"},
-    {"endpoint": "supplier_wallet.transactions_list", "title": "سجل المعاملات"}
-]
+# ربط واجهة المحفظة وطلب السحب لتظهر تلقائياً في القائمة الجانبية للموردين
+LINKS = {
+    'supplier_wallet.withdraw': '💰 المحفظة وطلب السحب'
+}
 
 def register_module(app):
-    # تسجيل الـ Blueprint الخاص بالمحفظة هنا
     from apps.supplier_wallet.routes import supplier_wallet_bp
-    app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
+    if 'supplier_wallet_bp' not in app.blueprints:
+        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
+        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
+    else:
+        print("ℹ️ [Registry]: موديول 'supplier_wallet' مسجل مسبقاً.")
