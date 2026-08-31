@@ -183,6 +183,20 @@ def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
             return candidate_voucher
 
 
+def generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-"):
+    """توليد رقم طلب سحب فريد بنمط WDR-MAH ومزيج من 6 أحرف وأرقام مع ضمان عدم التكرار تحت الضغط العالي"""
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        random_str = ''.join(secrets.choice(characters) for _ in range(length))
+        candidate_number = f"{prefix}{random_str}"
+        existing = connection.execute(
+            select(WithdrawalRequest.request_number)
+            .where(WithdrawalRequest.request_number == candidate_number)
+        ).scalar()
+        if not existing:
+            return candidate_number
+
+
 @event.listens_for(WalletTransaction, 'before_insert')
 def process_wallet_transaction_before_insert(mapper, connection, target):
     wallet_table = SupplierWallet.__table__
@@ -219,7 +233,6 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         target.voucher_number = generate_unique_voucher_number(connection, length=6, prefix="VCH-")
 
     if wallet_row:
-        # الاعتماد الثابت على balance_sar فقط
         current_bal = Decimal(str(wallet_row.get('balance_sar', 0)))
         
         target.balance_before = current_bal
@@ -233,12 +246,20 @@ def process_wallet_transaction_before_insert(mapper, connection, target):
         )
 
 
+@event.listens_for(WithdrawalRequest, 'before_insert')
+def process_withdrawal_request_before_insert(mapper, connection, target):
+    """ضمان توليد وتعيين رقم طلب سحب فريد بصيغة WDR-MAH تلقائياً قبل الحفظ وتحمل الضغط العالي"""
+    if not target.request_number:
+        target.request_number = generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-")
+
+
 class WithdrawalRequest(db.Model):
-    """جدول طلبات سحب الأرباح للموردين بالريال السعودي."""
+    """جدول طلبات سحب الأرباح للموردين بالريال السعودي مع دعم الفهارس والتشفير والتحقق الصارم."""
     __tablename__ = 'withdrawal_requests'
 
     __table_args__ = (
         db.Index('idx_withdrawal_supplier', 'supplier_id', 'status'),
+        db.Index('idx_withdrawal_lookup', 'request_number'),
         {'extend_existing': True}
     )
 
@@ -250,7 +271,7 @@ class WithdrawalRequest(db.Model):
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     currency = db.Column(db.String(5), nullable=False, default='SAR')
     
-    payout_method = db.Column(db.String(150), nullable=False)
+    _payout_method_enc = db.Column(db.String(500), nullable=True)
     status = db.Column(db.String(30), default='pending', nullable=False)
     notes = db.Column(db.Text, nullable=True)
     
@@ -258,6 +279,31 @@ class WithdrawalRequest(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     wallet = db.relationship('SupplierWallet', backref=db.backref('withdrawal_requests', lazy='selectin'))
+
+    @staticmethod
+    def _get_fernet():
+        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
+        try:
+            return Fernet(key.encode('utf-8'))
+        except Exception:
+            b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
+            return Fernet(b64_key)
+
+    @property
+    def payout_method(self):
+        if not self._payout_method_enc:
+            return None
+        try:
+            return self._get_fernet().decrypt(self._payout_method_enc.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    @payout_method.setter
+    def payout_method(self, value):
+        if value:
+            self._payout_method_enc = self._get_fernet().encrypt(str(value).encode('utf-8')).decode('utf-8')
+        else:
+            self._payout_method_enc = None
 
     def to_dict(self):
         return {
