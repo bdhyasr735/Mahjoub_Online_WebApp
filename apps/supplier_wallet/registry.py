@@ -7,7 +7,7 @@ MODULE_NAME = "الإدارة المالية للمحفظة"
 MODULE_ICON = "fa-wallet"
 SHOW_IN_SUPPLIER = True  # ليظهر في بوابة الموردين
 
-# تعريف الروابط التي ستظهر في السيردبار
+# تعريف الروابط التي ستظهر في السيردبار بشكل مباشر وآمن
 NAV_ITEMS = [
     {
         "endpoint": "supplier_wallet.wallet_dashboard",
@@ -24,4 +24,4 @@ NAV_ITEMS = [
 def register_module(app):
     from apps.supplier_wallet.routes import wallet_bp
     app.register_blueprint(wallet_bp)
-    print("✅ [Registry]: تم تسجيل موديول 'محفظة الموردين' (مع خيار التسوية) بنجاح.")
+    print("✅ [Registry]: تم تسجيل موديول 'محفظة الموردين' بنجاح.")
