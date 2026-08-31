@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, url_for, session
+from flask import Blueprint, request, jsonify, url_for, session, render_template
 from datetime import datetime
 import logging
 
@@ -8,42 +8,38 @@ auth_portal_bp = Blueprint('auth_portal_bp', __name__, template_folder='template
 
 @auth_portal_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """معالجة تسجيل الدخول للمشرفين (تدعم عرض الصفحة GET ومعالجة الفورم POST)"""
+    """بوابة تسجيل دخول المشرفين السيادية"""
     if request.method == 'GET':
-        # إذا تم فتح الرابط مباشرة، قم بعرض قالب صفحة تسجيل الدخول
-        from flask import render_template
         return render_template('auth/login.html')
 
     try:
-        # استقبال البيانات المتوافقة مع الحقول المرسلة من الفورم (username, password)
+        # استقبال البيانات الواردة من كائن FormData عبر JavaScript
         username = str(request.form.get('username', '')).strip()
         password = str(request.form.get('password', ''))
 
-        # التحقق من ملء الحقول الأساسية
+        # التحقق من إدخال الحقول الأساسية
         if not username or not password:
             return jsonify({
                 'status': 'error', 
-                'message': 'يرجى إدخال اسم المستخدم وكلمة المرور بشكل صحيح.'
+                'message': 'يرجى إدخال اسم المستخدم وكلمة المرور.'
             }), 400
 
-        # البحث عن المشرف في قاعدة البيانات (تأكد من تعديل النماذج حسب مشروعك)
-        # مثال افتراضي للبحث:
+        # استعلام التحقق من المشرف في قاعدة البيانات
         # admin_staff = AdminStaff.query.filter(
         #     (AdminStaff.username == username) | (AdminStaff.email == username)
         # ).first()
         
-        # --- (قالب تجريبي للتحقق - استبدله بمنطق قاعدة البيانات لديك) ---
-        admin_staff = None # ضع استعلام قاعدة البيانات الحقيقي هنا
+        # نموذج افتراضي (استبدله بمنطق قاعدة البيانات لديك)
+        admin_staff = None 
 
         if not admin_staff:
             logger.warning(f"⚠️ محاولة دخول فاشلة لمستخدِم غير موجود: {username}")
             return jsonify({
                 'status': 'error', 
                 'message': 'اسم المستخدم أو كلمة المرور غير صحيحة.'
-            }), 401
+            }, 401) # تم تعديل رمز الحالة ليكون 401 للخطأ في بيانات الاعتماد بدلاً من 400
 
-        # تسجيل الدخول الناجح وتخزين الجلسة
-        # login_user(admin_staff, remember=True)
+        # تخزين بيانات الجلسة عند النجاح
         session['user_type'] = 'admin_staff'
         session['admin_logged_in'] = True
         session['login_time'] = datetime.now().isoformat()
@@ -54,11 +50,11 @@ def login():
             'status': 'success',
             'message': 'تم التحقق بنجاح. جاري التوجيه إلى النظام السيادي...',
             'redirect': url_for('auth_portal_bp.dashboard')
-        })
+        }), 200
 
     except Exception as e:
         logger.error(f"❌ خطأ فادح أثناء معالجة تسجيل الدخول للإدارة: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error', 
             'message': f'خطأ داخلي في الخادم: {str(e)}'
-        }), 400
+        }), 500
