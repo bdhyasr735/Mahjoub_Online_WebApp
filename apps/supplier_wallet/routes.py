@@ -4,7 +4,7 @@
 مسارات واجهات محفظة المورد (Supplier Wallet Routes)
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, g
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -12,14 +12,52 @@ from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
+import re
 from decimal import Decimal
 
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
 
-@wallet_bp.route('/')
+def get_current_wallet_identifier():
+    """الحصول على رقم المحفظة أو اسم المتجر بصيغة آمنة للرابط (URL Slug)"""
+    supplier_id = get_current_supplier_id()
+    if not supplier_id:
+        return 'general'
+    
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if wallet:
+        if hasattr(wallet, 'account_number') and wallet.account_number:
+            return str(wallet.account_number)
+        return str(wallet.id)
+        
+    trade_name = getattr(current_user, 'trade_name', None)
+    if trade_name:
+        slug = re.sub(r'[^\w\s-]', '', trade_name).strip().lower()
+        slug = re.sub(r'[-\s]+', '-', slug)
+        if slug:
+            return slug
+            
+    return str(supplier_id)
+
+
+@wallet_bp.url_defaults
+def add_wallet_identifier_to_urls(endpoint, values):
+    """إضافة معرّف المحفظة تلقائياً لكل روابط البلوبرنت لتجنب التعديل اليدوي في القوالب"""
+    if current_user.is_authenticated and 'wallet_id' not in values:
+        values['wallet_id'] = get_current_wallet_identifier()
+
+
+@wallet_bp.url_value_processor
+def pull_wallet_identifier_from_url(endpoint, values):
+    """استخلاص معرّف المحفظة من الرابط عند الطلب"""
+    if values and 'wallet_id' in values:
+        g.wallet_id = values.pop('wallet_id')
+
+
+@wallet_bp.route('/<string:wallet_id>/')
+@wallet_bp.route('/<string:wallet_id>/dashboard')
 @login_required
-def wallet_dashboard():
+def wallet_dashboard(wallet_id):
     """لوحة تحكم المحفظة الخاصة بالمورد مع معالجة آمنة للأخطاء والتأكد من وجود المحفظة"""
     supplier_id = get_current_supplier_id()
     if not supplier_id:
@@ -27,7 +65,6 @@ def wallet_dashboard():
         return redirect(url_for('main.index'))
     
     try:
-        # جلب المحفظة أو إنشائها تلقائياً للمورد الحالي
         wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
         db.session.commit()
     except Exception as e:
@@ -46,9 +83,9 @@ def wallet_dashboard():
     )
 
 
-@wallet_bp.route('/withdraw', methods=['GET', 'POST'])
+@wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'])
 @login_required
-def withdraw():
+def withdraw(wallet_id):
     """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع التحقق من الرصيد والبيانات المدخلة بدقة"""
     supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
@@ -71,14 +108,12 @@ def withdraw():
             bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)')
             notes = request.form.get('notes', '')
 
-            # إنشاء طلب السحب وحفظ التغييرات
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
             NotificationService.notify_success("تم تقديم طلب السحب بنجاح وهو قيد المراجعة والاعتماد")
             
-            # إعادة التوجيه مع تمرير معامل النجاح لإظهار النافذة المنبثقة تلقائياً
             return redirect(url_for('supplier_wallet.withdraw', success='true'))
             
         except ValueError as e:
@@ -107,9 +142,9 @@ def withdraw():
     )
 
 
-@wallet_bp.route('/transactions')
+@wallet_bp.route('/<string:wallet_id>/transactions')
 @login_required
-def transactions():
+def transactions(wallet_id):
     """عرض كشف الحساب وسندات الحركات المالية مع الفلترة الذكية والآمنة"""
     supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
