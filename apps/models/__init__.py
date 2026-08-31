@@ -6,7 +6,7 @@ from apps.models.admin_db import AdminUser
 from apps.models.admin_staff_db import AdminStaff
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.models.supplier_staff_db import SupplierStaff, SupplierStaffRole
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
 from apps.models.financials_db import OrderFinancial
 from apps.models.treasury_db import TreasuryEntry
 from apps.models.orders_db import Order
@@ -48,6 +48,7 @@ __all__ = [
     'SupplierStaff',
     'SupplierStaffRole',
     'SupplierWallet',
+    'WithdrawalRequest',
     'TreasuryEntry',
     'SyncLog',
     'WalletTransaction',
