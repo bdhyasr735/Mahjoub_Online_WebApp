@@ -3,7 +3,7 @@
 
 """
 مسارات وبوابات المصادقة السيادية الإدارية (Admin Auth Portal)
-لمنصة محجوب أونلاين - متوافقة مع المسار السيادي المعتمد
+متوافقة صراحةً مع جداول قاعدة البيانات والكيانات الفعلية لنظام محجوب أونلاين
 """
 
 import logging
@@ -14,42 +14,33 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from flask_login import login_user, logout_user, login_required, current_user
 
 from apps.extensions import db
-from apps.models.admin_db import AdminUser
+from apps.models.admin_db import AdminUser  # الجدول والحقل الصريح المعتمد في الهيكل
 
-# إعداد التسجيل (Logger)
 logger = logging.getLogger(__name__)
 
-# تعريف الـ Blueprint الخاص ببوابة الآدمن مع المسار السيادي الفعلي
+# تعريف الـ Blueprint بالمسار السيادي الأصلي
 auth_portal_bp = Blueprint(
     'auth_portal_bp',
     __name__,
     template_folder='templates',
     static_folder='static',
-    url_prefix='/m7jb_sovereign_hq_v2_99x'  # المسار السيادي الأصلي المعتمد
+    url_prefix='/m7jb_sovereign_hq_v2_99x'
 )
 
 
-# ============================================================
-# دوال مساعدة للتحقق من المدخلات
-# ============================================================
-
 def validate_username(username):
-    """التحقق من صحة اسم المستخدم الإداري لمنع الحقن أو القيم الفارغة"""
+    """التحقق الصريح من مطابقة صيغة اسم المستخدم أو البريد الإداري"""
     if not username:
         return None
     cleaned = username.strip()
-    if re.match(r'^[a-zA-Z0-9_\u0600-\u06FF]{3,50}$', cleaned):
+    if re.match(r'^[a-zA-Z0-9_@.\-\u0600-\u06FF]{3,100}$', cleaned):
         return cleaned
     return None
 
 
-# ============================================================
-# مسارات المصادقة والتحكم
-# ============================================================
-
 @auth_portal_bp.route('/login', methods=['GET'])
 def login_page():
-    """عرض صفحة تسجيل الدخول للبوابة السيادية الإدارية"""
+    """عرض صفحة تسجيل الدخول السيادية"""
     try:
         if current_user.is_authenticated and isinstance(current_user, AdminUser):
             return redirect(url_for('auth_portal_bp.dashboard'))
@@ -59,38 +50,38 @@ def login_page():
             page_title='البوابة السيادية الإدارية | محجوب أونلاين'
         )
     except Exception as e:
-        logger.error(f"❌ خطأ فادح أثناء عرض صفحة دخول الآدمن: {str(e)}", exc_info=True)
+        logger.error(f"❌ خطأ في تحميل واجهة الدخول السيادية: {str(e)}", exc_info=True)
         return f"Internal Server Error: {str(e)}", 500
 
 
 @auth_portal_bp.route('/login', methods=['POST'])
 def login():
-    """معالجة طلب تسجيل الدخول القادم عبر الـ JSON أو النموذج من الواجهة الأمامية"""
+    """معالجة عملية التحقق والمطابقة الصريحة مع أعمدة جدول المشرفين في قاعدة البيانات"""
     try:
         data = request.get_json(silent=True) or request.form
         if not data:
-            return jsonify({'status': 'error', 'message': 'بيانات غير صالحة'}), 400
+            return jsonify({'status': 'error', 'message': 'بيانات الإدخال غير صالحة'}), 400
 
         username_input = str(data.get('username', '')).strip()
         password = str(data.get('password', ''))
 
         if not username_input or not password:
-            return jsonify({'status': 'error', 'message': 'يرجى إدخال اسم المستخدم وكلمة المرور'}), 400
+            return jsonify({'status': 'error', 'message': 'يرجى إدخال اسم المستخدم وكلمة المرور بدقة'}), 400
 
-        valid_username = validate_username(username_input)
-        if not valid_username:
-            return jsonify({'status': 'error', 'message': 'صيغة اسم المستخدم الإداري غير صالحة'}), 400
+        valid_input = validate_username(username_input)
+        if not valid_input:
+            return jsonify({'status': 'error', 'message': 'صيغة البيانات المدخلة لا تتطابق مع المعايير'}), 400
 
-        # البحث عن المشرف باستخدام نموذج AdminUser
+        # الاستعلام الصريح من جدول AdminUser بالاعتماد على الأعمدة الفعلية (username أو email)
         admin_user = AdminUser.query.filter(
-            (AdminUser.username == valid_username) | (AdminUser.email == valid_username)
+            (AdminUser.username == valid_input) | (AdminUser.email == valid_input)
         ).first()
 
         if not admin_user:
-            logger.warning(f"⚠️ محاولة تسجيل دخول فاشلة لمشرف غير موجود: {username_input}")
-            return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
+            logger.warning(f"⚠️ محاولة دخول مرفوضة لحساب غير موجود: {username_input}")
+            return jsonify({'status': 'error', 'message': 'اسم المستخدم أو كلمة المرور غير مطابقة للبيانات المخزنة'}), 401
 
-        # التحقق من كلمة المرور باستخدام دالة النموذج المعتمدة set_password / check_password
+        # التحقق المطابق من حقل كلمة المرور المشفرة (password_hash)
         password_valid = False
         if hasattr(admin_user, 'check_password'):
             password_valid = admin_user.check_password(password)
@@ -99,41 +90,42 @@ def login():
             password_valid = check_password_hash(admin_user.password_hash, password)
 
         if not password_valid:
-            logger.warning(f"⚠️ كلمة مرور خاطئة لمحاولة تسجيل دخول المشرف: {valid_username}")
-            return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
+            logger.warning(f"⚠️ خطأ في مطابقة كلمة المرور للمشرف: {valid_input}")
+            return jsonify({'status': 'error', 'message': 'اسم المستخدم أو كلمة المرور غير مطابقة للبيانات المخزنة'}), 401
 
-        # التحقق من أن الحساب نشط (إن وجد الحقل)
+        # التحقق الصريح من حالة نشاط الحساب إذا وجد الحقل في الجدول
         if hasattr(admin_user, 'is_active') and not admin_user.is_active:
-            logger.warning(f"⚠️ محاولة دخول على حساب إداري معطل: {valid_username}")
-            return jsonify({'status': 'error', 'message': 'هذا الحساب الإداري معطل. يرجى مراجعة الإدارة العليا.'}), 403
+            logger.warning(f"⚠️ محاولة وصول لحساب إداري موقوف: {valid_input}")
+            return jsonify({'status': 'error', 'message': 'هذا الحساب الإداري غير موصول أو تم إيقافه.'}), 403
 
-        # تسجيل الدخول وتحديد نوع الجلسة كـ admin ليتوافق مع load_user في التطبيق
+        # اعتماد جلسة الدخول البرمجية للمشرف
         login_user(admin_user, remember=True)
         session['user_type'] = 'admin'
         session['login_time'] = datetime.now().isoformat()
 
+        # تحديث حقل وقت آخر تسجيل دخول صراحةً إن وجد في الجدول
         if hasattr(admin_user, 'last_login'):
             admin_user.last_login = datetime.now()
             db.session.commit()
 
-        logger.info(f"🛡️ تم تسجيل دخول المشرف السيادي بنجاح: {admin_user.username}")
+        logger.info(f"🛡️ تمت مطابقة البيانات بنجاح ودخول المشرف السيادي: {admin_user.username}")
         
         return jsonify({
             'status': 'success',
-            'message': 'تم التحقق بنجاح. جاري توجيهك إلى النظام السيادي...',
+            'message': 'تم مطابقة البيانات بنجاح. جاري فتح لوحة التحكم السيادية...',
             'redirect': url_for('auth_portal_bp.dashboard')
         })
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ خطأ غير متوقع أثناء معالجة تسجيل دخول الآدمن: {str(e)}", exc_info=True)
-        return jsonify({'status': 'error', 'message': f'خطأ داخلي في الخادم: {str(e)}'}), 500
+        logger.error(f"❌ خطأ استثنائي أثناء معالجة مطابقة بيانات الآدمن: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': f'خطأ داخلي في مطابقة البيانات: {str(e)}'}), 500
 
 
 @auth_portal_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """لوحة التحكم السيادية الإدارية الرئيسية"""
+    """لوحة التحكم السيادية الإدارية"""
     try:
         if session.get('user_type') != 'admin' or not isinstance(current_user, AdminUser):
             logout_user()
@@ -145,19 +137,19 @@ def dashboard():
             admin_user=current_user
         )
     except Exception as e:
-        logger.error(f"❌ خطأ في عرض لوحة التحكم السيادية: {str(e)}", exc_info=True)
+        logger.error(f"❌ خطأ في تحميل لوحة التحكم السيادية: {str(e)}", exc_info=True)
         return f"Internal Server Error: {str(e)}", 500
 
 
 @auth_portal_bp.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
-    """تسجيل الخروج وإنهاء الجلسة السيادية للأدمن"""
+    """إنهاء الجلسة السيادية وتسجيل الخروج"""
     try:
         admin_name = getattr(current_user, 'username', 'Unknown')
         logout_user()
         session.clear()
-        logger.info(f"🔒 تم تسجيل خروج المشرف السيادي: {admin_name}")
+        logger.info(f"🔒 تم إنهاء الجلسة السيادية للمشرف: {admin_name}")
     except Exception as e:
         logger.error(f"❌ خطأ أثناء تسجيل الخروج: {str(e)}", exc_info=True)
         
@@ -165,16 +157,15 @@ def logout():
 
 
 def init_app(app):
-    """تسجيل الـ Blueprint ضمن تطبيق Flask الرئيسي ومعالجة الحماية"""
+    """تهيئة وتسجيل المسارات صراحةً في تطبيق الفلاسك"""
     if not app.blueprints.get('auth_portal_bp'):
         app.register_blueprint(auth_portal_bp)
     
-    # استثناء مسار البوابة من قيود الحماية المفرطة إذا لزم الأمر
     from apps.extensions import csrf
     try:
         csrf.exempt(auth_portal_bp)
     except Exception:
         pass
 
-    logger.info("✅ تم تسجيل وتهيئة مسارات البوابة السيادية الإدارية بنجاح.")
+    logger.info("✅ تم إتمام مطابقة وتهيئة مسارات بوابة الأدمن الصريحة بنجاح.")
     return app
