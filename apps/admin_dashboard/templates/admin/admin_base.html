@@ -338,7 +338,7 @@
             {% endif %}
             
             <hr class="text-white my-3 opacity-25">
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link-custom text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
+            <a href="{{ url_for('auth_portal.logout', next=url_for('auth_portal.login')) }}" class="nav-link-custom text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
                 <i class="fas fa-sign-out-alt"></i> <span>خروج آمن</span>
             </a>
         </nav>
