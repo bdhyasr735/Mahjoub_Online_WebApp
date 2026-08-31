@@ -19,19 +19,22 @@ wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', 
 @wallet_bp.route('/')
 @login_required
 def wallet_dashboard():
-    """لوحة تحكم المحفظة الخاصة بالمورد"""
+    """لوحة تحكم المحفظة الخاصة بالمورد مع معالجة آمنة للأخطاء والتأكد من وجود المحفظة"""
     supplier_id = get_current_supplier_id()
     if not supplier_id:
         NotificationService.notify_error("تعذر تحديد حساب المورد الحالي")
         return redirect(url_for('main.index'))
     
-    # جلب المحفظة أو إنشائها تلقائياً للمورد الحالي
-    wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
-    db.session.commit()
+    try:
+        # جلب المحفظة أو إنشائها تلقائياً للمورد الحالي
+        wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        NotificationService.notify_error("حدث خطأ أثناء تحميل بيانات المحفظة")
+        return redirect(url_for('main.index'))
 
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
-    
-    # [تصحيح الخطأ هنا]: تحديد عمود created_at للترتيب التنازلي بشكل صحيح
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
 
     return render_template(
@@ -45,7 +48,7 @@ def wallet_dashboard():
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
-    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع جلب كافة الطلبات للبحث والفلترة اللحظية (Client-side)"""
+    """عرض نموذج السحب (GET) ومعالجة طلب السحب (POST) مع التحقق من الرصيد والبيانات المدخلة بدقة"""
     supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
@@ -55,11 +58,19 @@ def withdraw():
 
     if request.method == 'POST':
         try:
-            amount = Decimal(request.form.get('amount', '0'))
+            raw_amount = request.form.get('amount', '0').strip()
+            amount = Decimal(raw_amount) if raw_amount else Decimal('0')
+            
+            if amount <= 0:
+                raise ValueError("مبلغ السحب يجب أن يكون أكبر من الصفر")
+                
+            if amount > wallet.balance_sar:
+                raise ValueError("المبلغ المطلوب يتجاوز رصيد المحفظة المتاح")
+
             bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)')
             notes = request.form.get('notes', '')
 
-            # إنشاء طلب سحب بحالة (قيد الانتظار) دون خصم نهائي من الرصيد المتاح حتى يتم اعتماده
+            # إنشاء طلب السحب وحفظ التغييرات
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
 
@@ -74,14 +85,9 @@ def withdraw():
 
         return redirect(url_for('supplier_wallet.withdraw'))
 
-    # جلب كافة طلبات السحب الخاصة بالمورد مرتبة تنازلياً لتفعيل الفلترة والبحث اللحظي السلس في الواجهة
     page = request.args.get('page', 1, type=int)
-    
-    # استعلام جلب كافة السجلات لكي تعمل الفلاتر اللحظية (Client-side filtering) بكفاءة عالية
     query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
-    
-    # لتوافق الكود مع متغيرات الـ pagination في القالب (في حال احتجت المرجع الكلي pagination.total)
-    pagination = query.paginate(page=page, per_page=1000, error_out=False)
+    pagination = query.paginate(page=page, per_page=15, error_out=False)
 
     active_bank = {
         'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة (SA03 8000 **** **** 4921)',
@@ -99,7 +105,7 @@ def withdraw():
 @wallet_bp.route('/transactions')
 @login_required
 def transactions():
-    """عرض كشف الحساب وسندات الحركات المالية مع الفلترة (Zero-JS)"""
+    """عرض كشف الحساب وسندات الحركات المالية مع الفلترة الذكية والآمنة"""
     supplier_id = get_current_supplier_id()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
@@ -122,7 +128,6 @@ def transactions():
             )
         )
 
-    # استخدام الـ helper الخاص بنوع المعاملة إن وجد لتلافي أي اختلاف في أسماء الأعمدة
     trx_column = get_trx_type_attr()
     if trans_type and trx_column is not None:
         query = query.filter(trx_column == trans_type)
