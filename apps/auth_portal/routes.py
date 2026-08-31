@@ -1,170 +1,135 @@
-# -*- coding: utf-8 -*-
-# apps/admin_auth_portal/routes.py
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البوابة السيادية الإدارية | محجوب أونلاين</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        royal: {
+                            900: '#1a0b2e',
+                            800: '#32145a',
+                            700: '#570575',
+                            600: '#632C8F',
+                        },
+                        gold: {
+                            500: '#D4AF37',
+                            600: '#b89728',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #1a0b2e 0%, #32145a 50%, #000000 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-"""
-مسارات المصادقة والتحكم الخاصة بمديري النظام (Admin Portal)
-يعتمد على النماذج الموحدة والآمنة في منصة محجوب أونلاين
-"""
-
-import logging
-import re
-import os
-from datetime import datetime
-
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
-from flask_login import login_user, logout_user, login_required, current_user
-
-from apps.extensions import db
-from apps.models.admin_db import Admin  # افترض أن نموذج الآدمن موجود بهذا المسار أو يتم تعديله حسب هيكلتك
-
-# إعداد التسجيل
-logger = logging.getLogger(__name__)
-
-# إنشاء Blueprint الخاص بالآدمن
-admin_auth_bp = Blueprint(
-    'admin_auth_bp',
-    __name__,
-    template_folder='templates',
-    static_folder='static',
-    url_prefix='/admin-portal'
-)
-
-
-# ============================================================
-# دوال مساعدة للتحقق
-# ============================================================
-
-def validate_email(email):
-    """التحقق من صحة البريد الإلكتروني للآدمن"""
-    if not email:
-        return None
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    if re.match(email_regex, email):
-        return email.lower()
-    return None
-
-
-# ============================================================
-# مسارات المصادقة الخاصة بالآدمن
-# ============================================================
-
-@admin_auth_bp.route('/login', methods=['GET'])
-def admin_login_page():
-    """عرض صفحة تسجيل دخول الآدمن"""
-    try:
-        if current_user.is_authenticated and getattr(current_user, 'is_admin', False):
-            return redirect(url_for('admin_auth_bp.admin_dashboard'))
-        return render_template('admin_auth_portal/login.html', page_title='تسجيل دخول المشرفين | محجوب أونلاين')
-    except Exception as e:
-        logger.error(f"❌ خطأ أثناء عرض صفحة دخول الآدمن: {str(e)}", exc_info=True)
-        return f"Internal Server Error: {str(e)}", 500
-
-
-@admin_auth_bp.route('/login', methods=['POST'])
-def admin_login():
-    """معالجة تسجيل دخول الآدمن (JSON / Form)"""
-    try:
-        data = request.get_json(silent=True) or request.form
-        if not data:
-            return jsonify({'success': False, 'message': 'بيانات غير صالحة'}), 400
-
-        identifier = str(data.get('identifier', '')).strip()
-        password = str(data.get('password', ''))
-        remember_me = bool(data.get('remember_me', False))
-
-        if not identifier or not password:
-            return jsonify({'success': False, 'message': 'يرجى إدخال البريد الإلكتروني أو اسم المستخدم وكلمة المرور'}), 400
-
-        # البحث عن المشرف (سواء بالبريد أو اسم المستخدم)
-        admin_user = None
-        email = validate_email(identifier)
-        if email:
-            admin_user = Admin.query.filter_by(email=email).first()
+    <div class="w-full max-w-md bg-royal-900/80 backdrop-blur-md border border-gold-500/30 rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden">
         
-        if not admin_user:
-            admin_user = Admin.query.filter(
-                (Admin.username == identifier) | (Admin.email == identifier)
-            ).first()
+        <!-- تأثير جمالي علوي -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-500 to-transparent"></div>
 
-        if not admin_user:
-            logger.warning(f"⚠️ محاولة تسجيل دخول فاشلة لمشرف غير موجود: {identifier}")
-            return jsonify({'success': False, 'message': 'بيانات الدخول غير صحيحة'}), 401
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gold-500 mb-2">البوابة السيادية للإدارة</h1>
+            <p class="text-xs text-gray-300">محجوب أونلاين - منطقة آمنة ومحمية</p>
+        </div>
 
-        # التحقق من كلمة المرور
-        password_valid = False
-        if hasattr(admin_user, 'check_password'):
-            password_valid = admin_user.check_password(password)
-        elif hasattr(admin_user, 'password_hash'):
-            from werkzeug.security import check_password_hash
-            password_valid = check_password_hash(admin_user.password_hash, password)
+        <!-- رسالة التنبيه -->
+        <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm border"></div>
 
-        if not password_valid:
-            logger.warning(f"⚠️ كلمة مرور خاطئة لمحاولة تسجيل دخول الآدمن: {identifier}")
-            return jsonify({'success': False, 'message': 'بيانات الدخول غير صحيحة'}), 401
+        <!-- نموذج تسجيل الدخول المباشر -->
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+            <div>
+                <label class="block text-xs font-semibold text-gold-500 mb-2">اسم المستخدم الإداري</label>
+                <input type="text" id="username" required 
+                    class="w-full px-4 py-3 bg-black/40 border border-royal-600 rounded-xl focus:outline-none focus:border-gold-500 text-white placeholder-gray-500 transition"
+                    placeholder="أدخل اسم المستخدم">
+            </div>
 
-        # التأكد من أن الحساب نشط ولديه صلاحيات مشرف
-        if hasattr(admin_user, 'is_active') and not admin_user.is_active:
-            return jsonify({'success': False, 'message': 'حساب المشرف هذا معطل. يراجع مسؤول النظام.'}), 403
+            <div>
+                <label class="block text-xs font-semibold text-gold-500 mb-2">كلمة المرور المشفرة</label>
+                <input type="password" id="password" required 
+                    class="w-full px-4 py-3 bg-black/40 border border-royal-600 rounded-xl focus:outline-none focus:border-gold-500 text-white placeholder-gray-500 transition"
+                    placeholder="••••••••••••">
+            </div>
 
-        # إتمام عملية تسجيل الدخول عبر Flask-Login
-        login_user(admin_user, remember=remember_me)
-        session['user_type'] = 'admin'
-        session['login_time'] = datetime.now().isoformat()
+            <button type="submit" id="submit-btn"
+                class="w-full py-3 px-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-500 text-royal-900 font-bold rounded-xl shadow-lg transition transform active:scale-95">
+                دخول النظام السيادي
+            </button>
+        </form>
 
-        if hasattr(admin_user, 'last_login'):
-            admin_user.last_login = datetime.now()
-            db.session.commit()
+        <div class="mt-8 text-center text-[10px] text-gray-500">
+            جميع الحقوق محفوظة لمنصة محجوب أونلاين السيادية &copy; 2026
+        </div>
+    </div>
 
-        logger.info(f"🛡️ تم تسجيل دخول المشرف بنجاح: {admin_user.username}")
-        return jsonify({
-            'success': True,
-            'message': 'تم تسجيل الدخول بنجاح',
-            'redirect_url': url_for('admin_auth_bp.admin_dashboard')
-        })
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+            const alertBox = document.getElementById('alert-box');
+            alertBox.classList.add('hidden');
 
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"❌ خطأ غير متوقع أثناء تسجيل دخول الآدمن: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': f'خطأ داخلي في الخادم: {str(e)}'}), 500
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('submit-btn');
+            
+            btn.disabled = true;
+            btn.innerText = 'جاري المصادقة...';
 
+            try {
+                const response = await fetch(window.location.pathname, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("استجابة الخادم غير صالحة.");
+                }
 
-@admin_auth_bp.route('/dashboard')
-@login_required
-def admin_dashboard():
-    """لوحة التحكم الرئيسية للآدمن"""
-    try:
-        # التأكد من أن المستخدم الحالي هو آدمن فعلياً
-        if session.get('user_type') != 'admin' and not getattr(current_user, 'is_admin', False):
-            logout_user()
-            return redirect(url_for('admin_auth_bp.admin_login_page'))
+                const data = await response.json();
 
-        return render_template(
-            'admin/dashboard.html',
-            page_title='لوحة التحكم الإدارية | محجوب أونلاين',
-            admin_user=current_user
-        )
-    except Exception as e:
-        logger.error(f"❌ خطأ في عرض لوحة تحكم الآدمن: {str(e)}", exc_info=True)
-        return f"Internal Server Error: {str(e)}", 500
+                if (response.ok && data.status === 'success') {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    showAlert(data.message || 'بيانات الدخول غير صحيحة.', 'error');
+                }
+            } catch (err) {
+                showAlert('تعذر الاتصال بالخادم السيادي.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'دخول النظام السيادي';
+            }
+        }
 
-
-@admin_auth_bp.route('/logout', methods=['GET', 'POST'])
-@login_required
-def admin_logout():
-    """تسجيل خروج الآدمن"""
-    logout_user()
-    session.clear()
-    return redirect(url_for('admin_auth_bp.admin_login_page'))
-
-
-# ============================================================
-# التهيئة العامة
-# ============================================================
-
-def init_admin_app(app):
-    """تهيئة تطبيق الآدمن وتسجيل الـ Blueprint"""
-    if not app.blueprints.get('admin_auth_bp'):
-        app.register_blueprint(admin_auth_bp)
-    
-    logger.info("✅ تم تهيئة بوابة المشرفين (Admin Portal) بنجاح مع معايير الأمان المتقدمة.")
-    return app
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alert-box');
+            alertBox.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300', 'bg-rose-950/80', 'border-rose-500', 'text-rose-300');
+            
+            if (type === 'success') {
+                alertBox.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300');
+            } else {
+                alertBox.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-300');
+            }
+            alertBox.innerText = message;
+        }
+    </script>
+</body>
+</html>
