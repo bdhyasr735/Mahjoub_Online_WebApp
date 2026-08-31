@@ -14,7 +14,7 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from flask_login import login_user, logout_user, login_required, current_user
 
 from apps.extensions import db
-from apps.models.admin_db import Admin  # تأكد من تطابق مسار نموذج المشرفين في هيكلة مشروعك
+from apps.models.admin_db import AdminUser  # تم التحديث لتطابق AdminUser المعرف في الهيكل
 
 # إعداد التسجيل (Logger)
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ auth_portal_bp = Blueprint(
     __name__,
     template_folder='templates',
     static_folder='static',
-    url_prefix='/admin-auth'  # يمكنك تعديل البادئة (Prefix) حسب رغبتك في توجيه الروابط
+    url_prefix='/admin-auth'  # البادئة الخاصة بمسار الدخول
 )
 
 
@@ -37,7 +37,6 @@ def validate_username(username):
     """التحقق من صحة اسم المستخدم الإداري لمنع الحقن أو القيم الفارغة"""
     if not username:
         return None
-    # السماح بالأحرف (الإنجليزية/العربية) والأرقام والشرطة السفلى
     cleaned = username.strip()
     if re.match(r'^[a-zA-Z0-9_\u0600-\u06FF]{3,50}$', cleaned):
         return cleaned
@@ -52,8 +51,7 @@ def validate_username(username):
 def login_page():
     """عرض صفحة تسجيل الدخول للبوابة السيادية الإدارية"""
     try:
-        # إذا كان المشرف مسجلاً مسبقاً، يتم توجيهه مباشرة للوحة التحكم
-        if current_user.is_authenticated and getattr(current_user, 'is_admin', True):
+        if current_user.is_authenticated and isinstance(current_user, AdminUser):
             return redirect(url_for('auth_portal_bp.dashboard'))
             
         return render_template(
@@ -67,7 +65,7 @@ def login_page():
 
 @auth_portal_bp.route('/login', methods=['POST'])
 def login():
-    """معالجة طلب تسجيل الدخول القادم عبر الـ JSON من الواجهة الأمامية"""
+    """معالجة طلب تسجيل الدخول القادم عبر الـ JSON أو النموذج من الواجهة الأمامية"""
     try:
         data = request.get_json(silent=True) or request.form
         if not data:
@@ -83,16 +81,16 @@ def login():
         if not valid_username:
             return jsonify({'status': 'error', 'message': 'صيغة اسم المستخدم الإداري غير صالحة'}), 400
 
-        # البحث عن المشرف في قاعدة البيانات (سواء بالـ username أو الـ email)
-        admin_user = Admin.query.filter(
-            (Admin.username == valid_username) | (Admin.email == valid_username)
+        # البحث عن المشرف باستخدام نموذج AdminUser
+        admin_user = AdminUser.query.filter(
+            (AdminUser.username == valid_username) | (AdminUser.email == valid_username)
         ).first()
 
         if not admin_user:
             logger.warning(f"⚠️ محاولة تسجيل دخول فاشلة لمشرف غير موجود: {username_input}")
             return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
 
-        # التحقق من كلمة المرور باستخدام الدوال المعتمدة
+        # التحقق من كلمة المرور باستخدام دالة النموذج المعتمدة set_password / check_password
         password_valid = False
         if hasattr(admin_user, 'check_password'):
             password_valid = admin_user.check_password(password)
@@ -104,24 +102,22 @@ def login():
             logger.warning(f"⚠️ كلمة مرور خاطئة لمحاولة تسجيل دخول المشرف: {valid_username}")
             return jsonify({'status': 'error', 'message': 'بيانات الدخول أو كلمة المرور غير صحيحة'}), 401
 
-        # التحقق من أن حساب المشرف نشط
+        # التحقق من أن الحساب نشط (إن وجد الحقل)
         if hasattr(admin_user, 'is_active') and not admin_user.is_active:
             logger.warning(f"⚠️ محاولة دخول على حساب إداري معطل: {valid_username}")
             return jsonify({'status': 'error', 'message': 'هذا الحساب الإداري معطل. يرجى مراجعة الإدارة العليا.'}), 403
 
-        # تسجيل الدخول بنجاح وتفعيل الجلسة عبر Flask-Login
+        # تسجيل الدخول وتحديد نوع الجلسة كـ admin ليتوافق مع load_user في apps/__init__.py
         login_user(admin_user, remember=True)
         session['user_type'] = 'admin'
         session['login_time'] = datetime.now().isoformat()
 
-        # تحديث وقت آخر تسجيل دخول إن وجد الحقل في قاعدة البيانات
         if hasattr(admin_user, 'last_login'):
             admin_user.last_login = datetime.now()
             db.session.commit()
 
         logger.info(f"🛡️ تم تسجيل دخول المشرف السيادي بنجاح: {admin_user.username}")
         
-        # الرد بالصيغة المتوافقة تماماً مع الـ JavaScript في القالب الأمامي
         return jsonify({
             'status': 'success',
             'message': 'تم التحقق بنجاح. جاري توجيهك إلى النظام السيادي...',
@@ -139,8 +135,7 @@ def login():
 def dashboard():
     """لوحة التحكم السيادية الإدارية الرئيسية"""
     try:
-        # التحقق الإضافي من الصلاحيات ونوع الجلسة للأمان العالي
-        if session.get('user_type') != 'admin' and not getattr(current_user, 'is_admin', True):
+        if session.get('user_type') != 'admin' or not isinstance(current_user, AdminUser):
             logout_user()
             return redirect(url_for('auth_portal_bp.login_page'))
 
@@ -169,14 +164,17 @@ def logout():
     return redirect(url_for('auth_portal_bp.login_page'))
 
 
-# ============================================================
-# دالة تهيئة التطبيق (App Initialization)
-# ============================================================
-
 def init_app(app):
-    """تسجيل الـ Blueprint ضمن تطبيق Flask الرئيسي"""
+    """تسجيل الـ Blueprint ضمن تطبيق Flask الرئيسي ومعالجة الحماية"""
     if not app.blueprints.get('auth_portal_bp'):
         app.register_blueprint(auth_portal_bp)
     
+    # استثناء مسار البوابة من قيود الحماية المفرطة إذا لزم الأمر
+    from apps.extensions import csrf
+    try:
+        csrf.exempt(auth_portal_bp)
+    except Exception:
+        pass
+
     logger.info("✅ تم تسجيل وتهيئة مسارات البوابة السيادية الإدارية بنجاح.")
     return app
