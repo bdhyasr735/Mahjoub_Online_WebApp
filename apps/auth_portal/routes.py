@@ -16,7 +16,7 @@ def sovereign_login():
     # إذا كان المستخدم مسجلاً دخوله مسبقاً، يتم توجيهه إلى لوحة التحكم مباشرة
     if current_user.is_authenticated:
         if isinstance(current_user, (AdminUser, AdminStaff)):
-            return redirect(url_for('admin_dashboard.index') if 'admin_dashboard.index' in [p.endpoint for p in auth_bp.app.view_functions.values() or []] else '/dashboard')
+            return redirect('/dashboard')
         return redirect('/dashboard')
 
     if request.method == 'POST':
@@ -27,29 +27,35 @@ def sovereign_login():
             flash('الرجاء إدخال اسم المستخدم وكلمة المرور', 'danger')
             return render_template('auth/login.html')
 
-        # 1. البحث في جدول مسؤولي النظام (AdminUser)
-        user = AdminUser.query.filter_by(username=username).first()
-        user_type = 'admin'
+        try:
+            # 1. البحث في جدول مسؤولي النظام (AdminUser)
+            user = AdminUser.query.filter_by(username=username).first()
+            user_type = 'admin'
 
-        # 2. إذا لم يوجد، البحث في جدول موظفي الإدارة (AdminStaff)
-        if not user:
-            user = AdminStaff.query.filter_by(username=username).first()
-            user_type = 'admin_staff'
+            # 2. إذا لم يوجد، البحث في جدول موظفي الإدارة (AdminStaff)
+            if not user:
+                user = AdminStaff.query.filter_by(username=username).first()
+                user_type = 'admin_staff'
 
-        if user and user.check_password(password):
-            # التحقق مما إذا كان حساب الموظف مفَعلاً (إن وجد الحقل)
-            if user_type == 'admin_staff' and hasattr(user, 'is_active') and not user.is_active:
-                flash('هذا الحساب معطل، يرجى مراجعة الإدارة', 'danger')
-                return render_template('auth/login.html')
+            if user and user.check_password(password):
+                # التحقق مما إذا كان حساب الموظف مفَعلاً (إن وجد الحقل)
+                if user_type == 'admin_staff' and hasattr(user, 'is_active') and not user.is_active:
+                    flash('هذا الحساب معطل، يرجى مراجعة الإدارة', 'danger')
+                    return render_template('auth/login.html')
 
-            # تسجيل الدخول عبر Flask-Login
-            login_user(user, remember=True)
-            session['user_type'] = user_type
-            session.permanent = True
-            
-            return redirect('/dashboard')
+                # تسجيل الدخول عبر Flask-Login
+                login_user(user, remember=True)
+                session['user_type'] = user_type
+                session.permanent = True
+                
+                return redirect('/dashboard')
 
-        flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
+            flash('اسم المستخدم أو كلمة المرور غير صحيحة', 'danger')
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ [خطأ في تسجيل الدخول]: {e}")
+            flash('حدث خطأ في النظام، يرجى المحاولة لاحقاً', 'danger')
 
     return render_template('auth/login.html')
 
