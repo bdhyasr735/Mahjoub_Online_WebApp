@@ -8,12 +8,12 @@ MODULE_NAME = "لوحة التحكم الإدارية"
 MODULE_ICON = "fa-tachometer-alt"
 SHOW_IN_SUPPLIER = False
 
-# إنشاء الـ Blueprint الخاص بلوحة التحكم مع تحديد مجلد القوالب
+# إنشاء الـ Blueprint الخاص بلوحة التحكم مع تحديد مجلد القوالب وتحديث المسار السيادي
 admin_dashboard_bp = Blueprint(
     'admin_dashboard',
     __name__,
     template_folder='templates',
-    url_prefix='/dashboard'
+    url_prefix='/admin/dashboard'
 )
 
 @admin_dashboard_bp.route('/')
