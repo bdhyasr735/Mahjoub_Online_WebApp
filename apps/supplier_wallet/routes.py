@@ -13,9 +13,10 @@ import re
 import traceback
 from decimal import Decimal
 
+# ✅ تعريف الـ Blueprint بنفس اسم الـ LINKS في registry.py
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
-# ✅ Context Processor مباشر (بدون استيراد من context_processors.py)
+# ✅ Context Processor مباشر
 @wallet_bp.context_processor
 def inject_supplier_modules():
     """حقن الموديولات في القائمة الجانبية"""
