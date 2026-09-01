@@ -34,8 +34,13 @@ def inject_supplier_modules():
 
 def get_current_wallet_identifier():
     supplier_id = get_current_supplier_id()
+    
+    # إذا لم يتم العثور على supplier_id بالطريقة المعتادة، نأخذ معرف المستخدم الحالي
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+        
     if not supplier_id:
-        return 'general'
+        return '1'  # معرف افتراضي آمن يمنع ظهور كلمة general
     
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if wallet:
@@ -66,6 +71,9 @@ def wallet_dashboard_redirect():
 @login_required
 def wallet_dashboard(wallet_id):
     supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+        
     if not supplier_id:
         return redirect(url_for('main.index'))
     
@@ -94,6 +102,9 @@ def wallet_dashboard(wallet_id):
 def withdraw(wallet_id):
     """عرض نموذج السحب ومعالجته"""
     supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+        
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     if not wallet:
@@ -149,6 +160,9 @@ def withdraw(wallet_id):
 @login_required
 def withdrawal_receipt(request_number):
     supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+        
     if not supplier_id:
         return redirect(url_for('main.index'))
 
@@ -172,6 +186,9 @@ def withdrawal_receipt(request_number):
 def transactions(wallet_id):
     """عرض كشف الحساب"""
     supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+        
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     if not wallet:
