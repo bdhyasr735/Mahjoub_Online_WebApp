@@ -744,10 +744,14 @@ def create_app():
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
+        # ✅ حذف المفتاح المكرر 'supplier_wallet' إذا كان موجوداً
+        if 'supplier_wallet' in combined_supplier_modules:
+            del combined_supplier_modules['supplier_wallet']
+
         return {
             'registered_modules': ADMIN_MODULES,
             'admin_modules': ADMIN_MODULES,
-            'supplier_modules': combined_supplier_modules,  # ✅ استخدام المدمج
+            'supplier_modules': combined_supplier_modules,
             'safe_url_for': safe_url_for,
             **supplier_context
         }
