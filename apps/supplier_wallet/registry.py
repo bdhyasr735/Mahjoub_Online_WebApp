@@ -1,6 +1,9 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/registry.py
 
+# ✅ استيراد البلوبرنت من ملف المسارات بالاسم الصحيح (wallet_bp) وتصديره باسم (supplier_wallet_bp)
+from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
+
 MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
@@ -32,8 +35,6 @@ MENU_ITEMS = [
 ]
 
 def register_module(app):
-    from apps.supplier_wallet.routes import supplier_wallet_bp
-    
     # ✅ حماية تسجيل الـ Blueprint لتجنب أي تكرار أو أخطاء
     if 'supplier_wallet' not in app.blueprints:
         app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
