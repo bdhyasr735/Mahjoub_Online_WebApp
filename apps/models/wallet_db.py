@@ -235,7 +235,7 @@ class WithdrawalRequest(db.Model):
         }
 
 
-# الدوال المساعدة وأحداث الإدخال (تم نقلها لتكون بعد تعريف النماذج بالكامل)
+# الدوال المساعدة وأحداث الإدخال التلقائية المتناسقة
 
 def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
     characters = string.ascii_uppercase + string.digits
@@ -251,7 +251,7 @@ def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
 
 
 def generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-"):
-    """توليد رقم طلب سحب فريد بنمط WDR-MAH ومزيج من 6 أحرف وأرقام مع ضمان عدم التكرار تحت الضغط العالي"""
+    """توليد رقم طلب سحب فريد بنمط WDR-MAH ومزيج من 6 أحرف وأرقام مع ضمان عدم التكرار"""
     characters = string.ascii_uppercase + string.digits
     while True:
         random_str = ''.join(secrets.choice(characters) for _ in range(length))
@@ -262,6 +262,13 @@ def generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-"):
         ).scalar()
         if not existing:
             return candidate_number
+
+
+@event.listens_for(SupplierWallet, 'before_insert')
+def process_supplier_wallet_before_insert(mapper, connection, target):
+    """ضمان توليد وتعيين رمز المحفظة بنمط متطابق مع معرف المورد تلقائياً"""
+    if target.supplier_id and not target.wallet_code:
+        target.wallet_code = f"WEL-{target.supplier_id}"
 
 
 @event.listens_for(WalletTransaction, 'before_insert')
