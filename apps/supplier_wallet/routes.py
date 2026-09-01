@@ -153,11 +153,17 @@ def withdrawal_receipt(request_number):
     receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
     supplier = Supplier.query.get(supplier_id)
 
+    # ✅ تمرير الموديولات لضمان ظهور القائمة الجانبية كاملة في صفحة السند
+    supplier_modules = {}
+    if hasattr(current_app, 'supplier_modules'):
+        supplier_modules = current_app.supplier_modules.copy()
+
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
         receipt=receipt,
         wallet=wallet,
-        supplier=supplier
+        supplier=supplier,
+        supplier_modules=supplier_modules
     )
 
 
