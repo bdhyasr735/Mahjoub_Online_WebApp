@@ -1,56 +1,53 @@
-# -*- coding: utf-8 -*-
-from flask import Blueprint
+# coding: utf-8
+# 📂 apps/supplier_wallet/registry.py
 
-supplier_wallet_bp = Blueprint(
-    'supplier_wallet',
-    __name__,
-    template_folder='templates',
-    url_prefix='/supplier/wallet'
-)
-
-MODULE_NAME = 'الإدارة المالية'
-ICON = 'fas fa-wallet'
+MODULE_NAME = "الإدارة المالية"
+MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# الروابط بصيغتها المزدوجة لضمان توافقها مع أي قالب عرض (قاموس أو قائمة)
+# ✅ الروابط المعرفة بدقة لتتوافق مع نظام الـ Registry وقالب العرض
 LINKS = {
     'supplier_wallet.wallet_dashboard_redirect': 'لوحة المحفظة',
     'supplier_wallet.transactions': 'سجل الحركات المالية',
     'supplier_wallet.withdraw': 'طلب سحب الرصيد'
 }
 
+# دعم إضافي بصيغة MENU_ITEMS لضمان التوافق المطلق مع القوالب التي تبحث عنها
 MENU_ITEMS = [
     {
         'endpoint': 'supplier_wallet.wallet_dashboard_redirect',
         'title': 'لوحة المحفظة',
-        'name': 'لوحة المحفظة',
         'icon': 'fas fa-chart-pie'
     },
     {
         'endpoint': 'supplier_wallet.transactions',
         'title': 'سجل الحركات المالية',
-        'name': 'سجل الحركات المالية',
         'icon': 'fas fa-exchange-alt'
     },
     {
         'endpoint': 'supplier_wallet.withdraw',
         'title': 'طلب سحب الرصيد',
-        'name': 'طلب سحب الرصيد',
         'icon': 'fas fa-money-bill-wave'
     }
 ]
 
 def register_module(app):
-    """تسجيل الـ Blueprint وإضافة الموديول للسجل العام ليقرأه القالب الجانبي"""
-    app.register_blueprint(supplier_wallet_bp)
+    from apps.supplier_wallet.routes import supplier_wallet_bp
     
-    # تسجيل الموديول في السجل العام للتطبيق إذا كان مدعوماً
+    # ✅ حماية تسجيل الـ Blueprint لتجنب أي تكرار أو أخطاء
+    if 'supplier_wallet' not in app.blueprints:
+        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
+        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
+    else:
+        print("ℹ️ [Registry]: موديول 'supplier_wallet' مسجل مسبقاً.")
+
+    # ✅ ربط الموديول بالقاموس العام للنظام لكي تظهر القائمة المنسدلة وروابطها فوراً
     if not hasattr(app, 'supplier_modules'):
         app.supplier_modules = {}
         
     app.supplier_modules['supplier_wallet'] = {
         'name': MODULE_NAME,
-        'icon': ICON,
+        'icon': MODULE_ICON,
         'links': LINKS,
         'menu_items': MENU_ITEMS,
         'show_in_supplier': SHOW_IN_SUPPLIER
