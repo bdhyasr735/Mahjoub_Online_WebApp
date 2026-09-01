@@ -33,15 +33,10 @@ def get_menu_items():
     return MENU_ITEMS
 
 def register_module(app):
-    """تسجيل بلوبرنت الإدارة المالية بشكل آمن وتلافي أي أخطاء استيراد"""
+    """تسجيل بلوبرنت الإدارة المالية بشكل آمن وتلافي أي أخطاء"""
     try:
         from apps.supplier_wallet.routes import wallet_bp
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(wallet_bp)
-    except ImportError:
-        try:
-            from apps.supplier_wallet.routes import supplier_wallet_bp
-            if 'supplier_wallet' not in app.blueprints:
-                app.register_blueprint(supplier_wallet_bp)
-        except Exception as e:
-            print(f"⚠️ [تحذير تسجيل موديول المحفظة]: {e}")
+    except Exception as e:
+        print(f"⚠️ [خطأ تسجيل موديول المحفظة]: {e}")
