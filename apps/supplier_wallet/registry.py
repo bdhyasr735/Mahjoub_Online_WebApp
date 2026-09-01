@@ -5,12 +5,19 @@ MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
+# ✅ تعريف الروابط مع مسارات افتراضية أو عامة لضمان ظهورها في القائمة الجانبية فوراً
 LINKS = {
+    'supplier_wallet.wallet_dashboard_redirect': 'حركة المحفظة وسحب الرصيد',
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
 }
 
 MENU_ITEMS = [
+    {
+        'endpoint': 'supplier_wallet.wallet_dashboard_redirect',
+        'title': 'الإدارة المالية والمحفظة',
+        'icon': 'fas fa-wallet'
+    },
     {
         'endpoint': 'supplier_wallet.transactions',
         'title': 'حركة المحفظة',
@@ -24,7 +31,7 @@ MENU_ITEMS = [
 ]
 
 def register_module(app):
-    # ✅ استيراد وتسجيل البلوبرنت لضمان عمل الروابط وإتاحة الـ Endpoints
+    # ✅ استيراد وتسجيل البلوبرنت لضمان إتاحة الـ Endpoints
     from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
     
     if 'supplier_wallet' not in app.blueprints:
@@ -36,7 +43,7 @@ def register_module(app):
     if not hasattr(app, 'supplier_modules'):
         app.supplier_modules = {}
         
-    # تسجيل الموديول بالهيكلية الكاملة والشاملة لتوافق أي قالب جانبي
+    # تسجيل الموديول بالهيكلية الشاملة التي تتوافق مع نظام القوائم الجانبية
     app.supplier_modules['supplier_wallet'] = {
         'name': MODULE_NAME,
         'title': MODULE_NAME,
@@ -44,5 +51,5 @@ def register_module(app):
         'links': LINKS,
         'menu_items': MENU_ITEMS,
         'show_in_supplier': SHOW_IN_SUPPLIER,
-        'url': 'supplier_wallet.withdraw'  # رابط افتراضي رئيسي عند الضغط على العنوان
+        'url': 'supplier_wallet.wallet_dashboard_redirect'
     }
