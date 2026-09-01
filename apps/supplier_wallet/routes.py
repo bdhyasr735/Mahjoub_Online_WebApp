@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/routes.py
 
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -9,17 +9,20 @@ from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
-from apps.supplier_wallet.context_processors import inject_supplier_modules
 import re
 import traceback
 from decimal import Decimal
 
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
-# ✅ Context Processor
+# ✅ Context Processor مباشر (بدون استيراد من context_processors.py)
 @wallet_bp.context_processor
-def context_processor():
-    return inject_supplier_modules()
+def inject_supplier_modules():
+    """حقن الموديولات في القائمة الجانبية"""
+    supplier_modules = {}
+    if hasattr(current_app, 'supplier_modules'):
+        supplier_modules = current_app.supplier_modules.copy()
+    return {'supplier_modules': supplier_modules}
 
 
 def get_current_wallet_identifier():
@@ -79,7 +82,6 @@ def wallet_dashboard(wallet_id):
     )
 
 
-# ✅ هذه هي الـ endpoints التي تستخدمها الروابط
 @wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw(wallet_id):
@@ -158,7 +160,6 @@ def withdrawal_receipt(request_number):
     )
 
 
-# ✅ هذه هي الـ endpoint المستخدمة لـ "حركة المحفظة"
 @wallet_bp.route('/<string:wallet_id>/transactions')
 @login_required
 def transactions(wallet_id):
