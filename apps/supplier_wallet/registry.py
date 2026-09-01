@@ -3,8 +3,9 @@
 
 MODULE_NAME = "إدارة المالية"
 MODULE_ICON = "fas fa-coins"
-SHOW_IN_SUPPLIER = True  # ✅ أعد إضافة هذا السطر
+SHOW_IN_SUPPLIER = True  # ✅ مهم للتسجيل في SUPPLIER_MODULES
 
+# ✅ هذه هي الروابط التي ستظهر في القائمة الجانبية
 LINKS = {
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
@@ -41,9 +42,9 @@ def register_module(app):
             'title': MODULE_NAME,
             'icon': MODULE_ICON,
             'url': '/supplier/wallet/general/transactions',
-            'links': LINKS,
+            'links': LINKS,  # ✅ هذه هي الروابط
             'menu_items': MENU_ITEMS,
-            'show_in_supplier': SHOW_IN_SUPPLIER  # ✅ هذا مهم للتسجيل في SUPPLIER_MODULES
+            'show_in_supplier': SHOW_IN_SUPPLIER
         }
         
         print("🟢 [التسجيل الديناميكي]: ✅ تم تسجيل 'إدارة المالية' مع الروابط:")
