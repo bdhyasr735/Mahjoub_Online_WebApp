@@ -416,6 +416,9 @@
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' %}
+                        {# ============================================ #}
+                        {# ✅ معالجة موديول إدارة المالية #}
+                        {# ============================================ #}
                         {% if key == 'إدارة المالية' or key == 'supplier_wallet' %}
                             {% set ns = namespace(is_active_module=false) %}
                             
@@ -439,7 +442,8 @@
                             <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-finance">
                                 {% if module.links is mapping %}
                                     {% for endpoint, link_title in module.links.items() %}
-                                        {% set url = url_for(endpoint, wallet_id='general') %}
+                                        {# ✅ استخدام safe_url_for مع wallet_id='general' #}
+                                        {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
                                         <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                             <i class="fas fa-circle text-[6px]"></i> 
                                             <span>{{ link_title }}</span>
@@ -448,6 +452,9 @@
                                 {% endif %}
                             </div>
                         
+                        {# ============================================ #}
+                        {# ✅ معالجة باقي الموديولات #}
+                        {# ============================================ #}
                         {% elif module.links is mapping %}
                             {% if module.links|length > 1 %}
                                 {% set ns = namespace(is_active_module=false) %}
@@ -467,7 +474,7 @@
                                 </a>
                                 <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ loop.index }}">
                                     {% for endpoint, link_title in module.links.items() %}
-                                        {% set url = url_for(endpoint) %}
+                                        {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
                                         <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                             <i class="fas fa-circle text-[6px]"></i> 
                                             <span>{{ link_title }}</span>
@@ -476,7 +483,7 @@
                                 </div>
                             {% else %}
                                 {% for endpoint, link_title in module.links.items() %}
-                                    {% set url = url_for(endpoint) %}
+                                    {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
                                     <a href="{{ url }}" 
                                        class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                         <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
