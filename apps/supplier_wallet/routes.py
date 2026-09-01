@@ -18,7 +18,7 @@ wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', 
 
 
 def get_sidebar_modules():
-    """دالة مساعدة لجلب الموديولات والقوائم الجانبية للوحة التحكم"""
+    """دالة مساعدة لجلب الموديولات والقوائم الجانبية الخاصة بلوحة تحكم المورد حصرياً"""
     supplier_modules = {}
     try:
         from apps.suppliers_dashboard.registry import MODULES_REGISTRY
@@ -29,6 +29,13 @@ def get_sidebar_modules():
         
     if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules = current_app.supplier_modules.copy()
+        
+    # قائمة احتياطية آمنة تضمن عدم ظهور قائمة الرقابة المالية في حال عدم توفر السجل
+    if not supplier_modules:
+        supplier_modules = {
+            'wallet': {'name': 'المحفظة والمالية', 'endpoint': 'supplier_wallet.wallet_dashboard'},
+            'dashboard': {'name': 'لوحة التحكم', 'endpoint': 'suppliers_dashboard.index'}
+        }
         
     return supplier_modules
 
