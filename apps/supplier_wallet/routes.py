@@ -16,20 +16,21 @@ from decimal import Decimal
 # ✅ تعريف الـ Blueprint بنفس اسم الـ LINKS في registry.py
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
-# ✅ Context Processor معدل ومضمون لجلب كافة الموديولات وثبات القائمة الجانبية
-@wallet_bp.context_processor
-def inject_supplier_modules():
-    """حقن جميع الموديولات في القائمة الجانبية بشكل ثابت ومضمون"""
+
+def get_sidebar_modules():
+    """دالة مساعدة لجلب الموديولات والقوائم الجانبية للوحة التحكم"""
     supplier_modules = {}
-    if hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
+    try:
+        from apps.suppliers_dashboard.registry import MODULES_REGISTRY
+        if MODULES_REGISTRY:
+            supplier_modules = MODULES_REGISTRY.copy()
+    except ImportError:
+        pass
+        
+    if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules = current_app.supplier_modules.copy()
-    else:
-        try:
-            from apps.suppliers_dashboard.registry import MODULES_REGISTRY
-            supplier_modules = MODULES_REGISTRY
-        except ImportError:
-            supplier_modules = {}
-    return {'supplier_modules': supplier_modules}
+        
+    return supplier_modules
 
 
 def get_current_wallet_identifier():
@@ -89,11 +90,15 @@ def wallet_dashboard(wallet_id):
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
 
+    modules = get_sidebar_modules()
+
     return render_template(
         'supplier_wallet/dashboard.html',
         wallet=wallet,
         transactions=transactions,
-        withdrawal_requests=withdrawal_requests
+        withdrawal_requests=withdrawal_requests,
+        supplier_modules=modules,
+        modules_registry=modules
     )
 
 
@@ -148,11 +153,15 @@ def withdraw(wallet_id):
         'id': 1
     }
 
+    modules = get_sidebar_modules()
+
     return render_template(
         'supplier_wallet/withdrawal_form.html',
         wallet=wallet,
         active_bank=active_bank,
-        pagination=pagination
+        pagination=pagination,
+        supplier_modules=modules,
+        modules_registry=modules
     )
 
 
@@ -172,12 +181,15 @@ def withdrawal_receipt(request_number):
 
     receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
     supplier = Supplier.query.get(supplier_id)
+    modules = get_sidebar_modules()
 
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
         receipt=receipt,
         wallet=wallet,
-        supplier=supplier
+        supplier=supplier,
+        supplier_modules=modules,
+        modules_registry=modules
     )
 
 
@@ -217,11 +229,14 @@ def transactions(wallet_id):
         query = query.filter_by(status=status)
 
     transactions = query.order_by(WalletTransaction.created_at.desc()).all()
+    modules = get_sidebar_modules()
 
     return render_template(
         'supplier_wallet/wallet_transactions.html',
         wallet=wallet,
-        transactions=transactions
+        transactions=transactions,
+        supplier_modules=modules,
+        modules_registry=modules
     )
 
 
@@ -229,9 +244,12 @@ def transactions(wallet_id):
 def public_store_view(supplier_code):
     supplier = Supplier.query.filter_by(supplier_code=supplier_code, status='active').first_or_404()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+    modules = get_sidebar_modules()
     
     return render_template(
         'supplier_wallet/public_store.html',
         supplier=supplier,
-        wallet=wallet
+        wallet=wallet,
+        supplier_modules=modules,
+        modules_registry=modules
     )
