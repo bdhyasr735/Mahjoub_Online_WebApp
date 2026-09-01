@@ -12,7 +12,7 @@ from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
-from apps.supplier_wallet.registry import LINKS, MODULE_NAME, MODULE_ICON
+from apps.supplier_wallet.registry import LINKS, MENU_ITEMS, MODULE_NAME, MODULE_ICON
 import re
 import traceback
 from decimal import Decimal
@@ -32,7 +32,8 @@ def inject_supplier_modules():
             'supplier_wallet': {
                 'name': MODULE_NAME,
                 'icon': MODULE_ICON,
-                'links': LINKS
+                'links': LINKS,
+                'menu_items': MENU_ITEMS
             }
         }
     except Exception as e:
