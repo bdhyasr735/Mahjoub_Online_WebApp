@@ -5,7 +5,6 @@ MODULE_NAME = "إدارة المالية"
 MODULE_ICON = "fas fa-coins"
 SHOW_IN_SUPPLIER = True
 
-# ✅ تأكد من أن هذه الـ endpoints صحيحة
 LINKS = {
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
@@ -36,6 +35,7 @@ def register_module(app):
         if not hasattr(app, 'supplier_modules'):
             app.supplier_modules = {}
         
+        # ✅ تسجيل الموديول
         app.supplier_modules['إدارة المالية'] = {
             'name': MODULE_NAME,
             'title': MODULE_NAME,
@@ -46,6 +46,7 @@ def register_module(app):
             'show_in_supplier': SHOW_IN_SUPPLIER
         }
         
+        # ✅ حذف المفتاح القديم إن وجد
         if 'supplier_wallet' in app.supplier_modules:
             del app.supplier_modules['supplier_wallet']
         
