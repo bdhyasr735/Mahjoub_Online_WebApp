@@ -7,17 +7,11 @@ SHOW_IN_SUPPLIER = True
 
 # ✅ الروابط المعرفة مباشرة بدون استيرادات خارجية في أعلى الملف لتجنب الاستيراد الدائري
 LINKS = {
-    'supplier_wallet.wallet_dashboard_redirect': 'لوحة المحفظة',
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
 }
 
 MENU_ITEMS = [
-    {
-        'endpoint': 'supplier_wallet.wallet_dashboard_redirect',
-        'title': 'لوحة المحفظة',
-        'icon': 'fas fa-chart-pie'
-    },
     {
         'endpoint': 'supplier_wallet.transactions',
         'title': 'حركة المحفظة',
