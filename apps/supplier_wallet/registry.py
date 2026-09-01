@@ -2,7 +2,7 @@
 
 MODULE_NAME = "الإدارة المالية"
 ICON = "fas fa-wallet"
-SHOW_IN_SUPPLIER = True  # <--- أضف هذا السطر لكي يتم توجيهه إلى لوحة الموردين
+SHOW_IN_SUPPLIER = True
 
 MENU_ITEMS = {
     'supplier_wallet.wallet_dashboard_redirect': 'حركة المحفظة',
