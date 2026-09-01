@@ -5,20 +5,21 @@ MODULE_NAME = "إدارة المالية"
 MODULE_ICON = "fas fa-coins"
 SHOW_IN_SUPPLIER = True
 
+# الروابط يجب أن تطابق الـ Endpoints المعرفة في بلوبرنت المحفظة لديك
 LINKS = {
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
 }
 
-# ✅ أضف هذا
+# إذا كنت تحتاج MENU_ITEMS، اجعلها متوافقة ولا تستخدم مسارات ثابتة مطلقة قد تكسر نظام الـ Endpoints
 MENU_ITEMS = [
     {
-        'url': '/supplier/wallet/general/transactions',
+        'endpoint': 'supplier_wallet.transactions',
         'title': 'حركة المحفظة',
         'icon': 'fas fa-exchange-alt'
     },
     {
-        'url': '/supplier/wallet/general/withdraw',
+        'endpoint': 'supplier_wallet.withdraw',
         'title': 'سحب الرصيد',
         'icon': 'fas fa-money-bill-wave'
     }
@@ -48,12 +49,11 @@ def register_module(app):
         
         print("🟢 [التسجيل الديناميكي]: ✅ تم تسجيل 'إدارة المالية' مع الروابط:")
         for endpoint, title in LINKS.items():
-            print(f"   - {title} ({endpoint})")
+            print(f"    - {title} ({endpoint})")
             
     except Exception as e:
         print(f"❌ [خطأ التسجيل الديناميكي]: {str(e)}")
         import traceback
         traceback.print_exc()
 
-# ✅ أضف MENU_ITEMS إلى __all__
 __all__ = ['register_module', 'LINKS', 'MENU_ITEMS', 'MODULE_NAME', 'MODULE_ICON', 'SHOW_IN_SUPPLIER']
