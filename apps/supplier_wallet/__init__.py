@@ -4,5 +4,4 @@
 حزمة موديول محفظة المورد (Supplier Wallet Package Initialization)
 """
 
-from .registry import register_module, MODULE_NAME, MODULE_ICON, LINKS, MENU_ITEMS
-from .routes import wallet_bp
+from .registry import register_module
