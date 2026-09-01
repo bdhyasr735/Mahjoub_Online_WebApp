@@ -52,8 +52,8 @@ def get_current_wallet_identifier():
     
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if wallet:
-        if hasattr(wallet, 'account_number') and wallet.account_number:
-            return str(wallet.account_number)
+        if hasattr(wallet, 'wallet_code') and wallet.wallet_code:
+            return str(wallet.wallet_code)
         return str(wallet.id)
         
     trade_name = getattr(current_user, 'trade_name', None)
@@ -189,8 +189,7 @@ def transactions(wallet_id):
             db.or_(
                 WalletTransaction.voucher_number.ilike(f'%{search_query}%'),
                 WalletTransaction.transfer_number.ilike(f'%{search_query}%'),
-                WalletTransaction.reference_number.ilike(f'%{search_query}%'),
-                WalletTransaction.description.ilike(f'%{search_query}%')
+                WalletTransaction.reference_number.ilike(f'%{search_query}%')
             )
         )
 
