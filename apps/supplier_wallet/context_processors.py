@@ -1,35 +1,30 @@
-# apps/supplier_wallet/context_processors.py
+# -*- coding: utf-8 -*-
+# 📂 apps/supplier_wallet/context_processors.py
+
+from flask import current_app
 
 def inject_supplier_modules():
     """
-    هذه الدالة تُستدعى في كل صفحة
-    وتقوم بحقن المتغيرات في القوالب
+    حقن الموديولات في القائمة الجانبية
+    يستخدم البيانات المسجلة من registry.py
     """
     supplier_modules = {}
     
-    # 1. نحدد المورد الحالي
-    supplier_id = get_current_supplier_id()
+    # 🔥 استخدام البيانات المسجلة من registry.py
+    if hasattr(current_app, 'supplier_modules'):
+        supplier_modules = current_app.supplier_modules
+        print("🔍 [DEBUG] Context Processor - Using app.supplier_modules")
+        print("🔍 [DEBUG] Keys:", list(supplier_modules.keys()))
+        
+        # التحقق من وجود 'إدارة المالية'
+        if 'إدارة المالية' in supplier_modules:
+            print("🔍 [DEBUG] 'إدارة المالية' found with links:", 
+                  supplier_modules['إدارة المالية'].get('links', {}))
+        else:
+            print("⚠️ [DEBUG] 'إدارة المالية' NOT found in supplier_modules!")
+    else:
+        print("⚠️ [DEBUG] app.supplier_modules not found!")
     
-    # 2. نحدد معرف المحفظة
-    w_id = get_wallet_id(supplier_id)
-    
-    # 3. نبني الروابط
-    custom_links = {
-        'supplier_wallet.transactions': 'حركة المحفظة',
-        'supplier_wallet.withdraw': 'سحب الرصيد'
+    return {
+        'supplier_modules': supplier_modules
     }
-    
-    # 4. نبني هيكل الموديول
-    module_payload = {
-        'name': 'إدارة المالية',
-        'title': 'إدارة المالية',
-        'icon': 'fas fa-coins',
-        'links': custom_links,
-        'show_in_supplier': True
-    }
-    
-    # 5. نضيفه إلى قاموس الموديولات
-    supplier_modules['إدارة المالية'] = module_payload
-    
-    # 6. نرجعه ليتم استخدامه في القوالب
-    return {'supplier_modules': supplier_modules}
