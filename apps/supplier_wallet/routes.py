@@ -23,11 +23,56 @@ wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', 
 @wallet_bp.context_processor
 def inject_supplier_modules():
     """
-    حقن موديولات لوحة تحكم الموردين والقوائم الجانبية تلقائياً في سياق قوالب هذا البلوبرنت
-    لضمان ظهور القائمة والمحفظة والإدارة المالية في واجهة الموردين دون انقطاع.
+    حقن موديولات لوحة تحكم الموردين والقوائم الجانبية تلقائياً مع توليد الروابط الكاملة 
+    التي تتضمن معرّف المحفظة (wallet_id) لتظهر الروابط مستقلة وصحيحة في القائمة الجانبية.
     """
     supplier_modules = {}
     try:
+        supplier_id = get_current_supplier_id()
+        w_id = 'general'
+        if supplier_id:
+            wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+            if wallet:
+                w_id = str(getattr(wallet, 'wallet_code', None) or wallet.id)
+            else:
+                trade_name = getattr(current_user, 'trade_name', None)
+                if trade_name:
+                    slug = re.sub(r'[^\w\s-]', '', trade_name).strip().lower()
+                    slug = re.sub(r'[-\s]+', '-', slug)
+                    if slug:
+                        w_id = slug
+
+        # توليد الروابط المباشرة والمستقلة لكل صفحة مع الـ wallet_id الخاص بها
+        custom_links = {
+            url_for('supplier_wallet.transactions', wallet_id=w_id): 'حركة المحفظة',
+            url_for('supplier_wallet.withdraw', wallet_id=w_id): 'سحب الرصيد'
+        }
+
+        custom_menu_items = [
+            {
+                'endpoint': url_for('supplier_wallet.transactions', wallet_id=w_id),
+                'title': 'حركة المحفظة',
+                'icon': 'fas fa-exchange-alt'
+            },
+            {
+                'endpoint': url_for('supplier_wallet.withdraw', wallet_id=w_id),
+                'title': 'سحب الرصيد',
+                'icon': 'fas fa-money-bill-wave'
+            }
+        ]
+
+        supplier_modules = {
+            'supplier_wallet': {
+                'name': MODULE_NAME,
+                'title': MODULE_NAME,
+                'icon': MODULE_ICON,
+                'links': custom_links,
+                'menu_items': custom_menu_items
+            }
+        }
+    except Exception as e:
+        print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
+        # Fallback في حال حدوث أي خطأ طارئ
         supplier_modules = {
             'supplier_wallet': {
                 'name': MODULE_NAME,
@@ -36,8 +81,6 @@ def inject_supplier_modules():
                 'menu_items': MENU_ITEMS
             }
         }
-    except Exception as e:
-        print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
         
     return {
         'supplier_modules': supplier_modules
