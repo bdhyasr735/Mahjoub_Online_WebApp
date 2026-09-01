@@ -16,13 +16,19 @@ from decimal import Decimal
 # ✅ تعريف الـ Blueprint بنفس اسم الـ LINKS في registry.py
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
-# ✅ Context Processor مباشر
+# ✅ Context Processor معدل ومضمون لجلب كافة الموديولات وثبات القائمة الجانبية
 @wallet_bp.context_processor
 def inject_supplier_modules():
-    """حقن الموديولات في القائمة الجانبية"""
+    """حقن جميع الموديولات في القائمة الجانبية بشكل ثابت ومضمون"""
     supplier_modules = {}
-    if hasattr(current_app, 'supplier_modules'):
+    if hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules = current_app.supplier_modules.copy()
+    else:
+        try:
+            from apps.suppliers_dashboard.registry import MODULES_REGISTRY
+            supplier_modules = MODULES_REGISTRY
+        except ImportError:
+            supplier_modules = {}
     return {'supplier_modules': supplier_modules}
 
 
@@ -153,17 +159,11 @@ def withdrawal_receipt(request_number):
     receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
     supplier = Supplier.query.get(supplier_id)
 
-    # ✅ تمرير الموديولات لضمان ظهور القائمة الجانبية كاملة في صفحة السند
-    supplier_modules = {}
-    if hasattr(current_app, 'supplier_modules'):
-        supplier_modules = current_app.supplier_modules.copy()
-
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
         receipt=receipt,
         wallet=wallet,
-        supplier=supplier,
-        supplier_modules=supplier_modules
+        supplier=supplier
     )
 
 
