@@ -3,11 +3,11 @@
 
 from flask import url_for
 
-MODULE_NAME = "الإدارة المالية"
+MODULE_NAME = "محفظة الموردين"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# تعريف القوالب الافتراضية، ويمكن للقالب الجانبي الاعتماد على الـ Context Processor المحدث في routes.py
+# تعريف القوالب الافتراضية
 LINKS = {
     '/supplier/wallet/general/transactions': 'حركة المحفظة',
     '/supplier/wallet/general/withdraw': 'سحب الرصيد'
@@ -28,7 +28,7 @@ MENU_ITEMS = [
 
 def register_module(app):
     """
-    تسجيل موديول المحفظة مع الروابط الأساسية
+    تسجيل موديول المحفظة كقائمة فرعية تحت إدارة المالية
     """
     from apps.supplier_wallet.routes import wallet_bp
     
@@ -36,20 +36,41 @@ def register_module(app):
         app.register_blueprint(wallet_bp, url_prefix='/supplier/wallet')
         print("✅ [Registry]: تم تسجيل بلوبرنت 'supplier_wallet' بنجاح.")
 
+    # التأكد من وجود قاموس الموديولات
     if not hasattr(app, 'supplier_modules'):
         app.supplier_modules = {}
-        
-    module_payload = {
+    
+    # ✅ تغيير المفتاح ليكون تحت إدارة المالية
+    # إذا كان هناك موديول رئيسي اسمه "إدارة المالية"، نضيف المحفظة كقائمة فرعية
+    if 'إدارة المالية' not in app.supplier_modules:
+        # إذا لم تكن موجودة، ننشئها مع قائمة فرعية
+        app.supplier_modules['إدارة المالية'] = {
+            'name': 'إدارة المالية',
+            'title': 'إدارة المالية',
+            'icon': 'fas fa-coins',
+            'url': '#',  # لا يوجد رابط رئيسي
+            'submenu': []  # قائمة فارغة للقوائم الفرعية
+        }
+    
+    # إضافة المحفظة كقائمة فرعية تحت إدارة المالية
+    wallet_submenu = {
         'name': MODULE_NAME,
         'title': MODULE_NAME,
         'icon': MODULE_ICON,
-        'url': '/supplier/wallet/general/',
+        'url': '/supplier/wallet/general/transactions',  # الصفحة الافتراضية
         'links': LINKS,
         'menu_items': MENU_ITEMS,
         'show_in_supplier': SHOW_IN_SUPPLIER
     }
-
-    # تسجيل الموديول تحت كلا المفتاحين لضمان ظهوره بغض النظر عن المفتاح الذي يناديه القالب
-    app.supplier_modules['supplier_wallet'] = module_payload
-    app.supplier_modules['suppliers_product'] = module_payload
-    print("🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول 'supplier_wallet' بنجاح.")
+    
+    # إضافة القائمة الفرعية إذا لم تكن موجودة مسبقاً
+    if 'submenu' in app.supplier_modules['إدارة المالية']:
+        # نتأكد من عدم تكرار الإضافة
+        existing = [item for item in app.supplier_modules['إدارة المالية']['submenu'] 
+                   if item.get('name') == MODULE_NAME]
+        if not existing:
+            app.supplier_modules['إدارة المالية']['submenu'].append(wallet_submenu)
+    else:
+        app.supplier_modules['إدارة المالية']['submenu'] = [wallet_submenu]
+    
+    print("🟢 [التسجيل الديناميكي]: ✅ تم تسجيل 'محفظة الموردين' كقائمة فرعية تحت 'إدارة المالية'.")
