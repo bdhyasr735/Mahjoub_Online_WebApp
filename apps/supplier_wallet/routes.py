@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-📂 apps/supplier_wallet/routes.py
-مسارات واجهات محفظة المورد (Supplier Wallet Routes)
-"""
+# 📂 apps/supplier_wallet/routes.py
+# مسارات واجهات محفظة المورد (Supplier Wallet Routes)
 
-from flask import Blueprint, render_template, request, redirect, url_for, g
+from flask import Blueprint, render_template, request, redirect, url_for, g, abort
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -72,7 +70,6 @@ def inject_supplier_modules():
         }
     except Exception as e:
         print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
-        # Fallback في حال حدوث أي خطأ طارئ
         supplier_modules = {
             'supplier_wallet': {
                 'name': MODULE_NAME,
@@ -208,6 +205,29 @@ def withdraw(wallet_id):
         wallet=wallet,
         active_bank=active_bank,
         pagination=pagination
+    )
+
+
+@wallet_bp.route('/receipt/<string:request_number>')
+@login_required
+def withdrawal_receipt(request_number):
+    """عرض سند الصرف الرسمي الخاص بطلب سحب المستحقات المالية للمورد"""
+    supplier_id = get_current_supplier_id()
+    if not supplier_id:
+        return redirect(url_for('main.index'))
+
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if not wallet:
+        return redirect(url_for('main.index'))
+
+    receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
+    supplier = Supplier.query.get(supplier_id)
+
+    return render_template(
+        'supplier_wallet/withdrawal_receipt.html',
+        receipt=receipt,
+        wallet=wallet,
+        supplier=supplier
     )
 
 
