@@ -3,11 +3,124 @@
 {% block title %}سند صرف مستحقات مالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
+<div style="padding: 30px 20px; width: 100%; box-sizing: border-box; display: flex; justify-content: center; align-items: center;">
+    <div class="receipt-container" style="width: 100%; max-width: 800px;">
+        
+        <!-- علامة مائية -->
+        <div class="receipt-watermark">MAHJOUB</div>
+        
+        <!-- رأس السند -->
+        <div class="receipt-header">
+            <div class="receipt-logo">
+                منصة محجوب
+                <span>بوابة الموردين</span>
+            </div>
+            <div class="receipt-title">
+                <i class="fas fa-file-invoice" style="color: #10b981; margin-left: 8px;"></i>
+                سند صرف مستحقات مالية
+            </div>
+            <div style="margin-top: 8px;">
+                <span class="receipt-badge">
+                    <i class="fas fa-check-circle"></i> معتمد
+                </span>
+            </div>
+        </div>
+        
+        <!-- معلومات السند -->
+        <div class="receipt-info-grid">
+            <div class="receipt-info-item">
+                <span class="label">📌 رقم السند</span>
+                <span class="value gold">{{ receipt.voucher_number or 'VCH-' ~ receipt.request_number }}</span>
+            </div>
+            <div class="receipt-info-item">
+                <span class="label">📋 رقم الطلب</span>
+                <span class="value">{{ receipt.request_number }}</span>
+            </div>
+            <div class="receipt-info-item">
+                <span class="label">👤 المورد</span>
+                <span class="value">{{ supplier.trade_name or supplier.store_name or 'المورد' }}</span>
+            </div>
+            <div class="receipt-info-item">
+                <span class="label">📅 تاريخ الصرف</span>
+                <span class="value">
+                    {% if receipt.approved_at %}
+                        {{ receipt.approved_at.strftime('%Y-%m-%d | %I:%M %p') }}
+                    {% elif receipt.created_at %}
+                        {{ receipt.created_at.strftime('%Y-%m-%d | %I:%M %p') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span>
+            </div>
+            <div class="receipt-info-item" style="grid-column: span 1;">
+                <span class="label">🏦 الحساب المصرفي</span>
+                <span class="value" style="font-size: 13px; direction: ltr;">{{ receipt.bank_account }}</span>
+            </div>
+        </div>
+        
+        <hr class="receipt-divider">
+        
+        <!-- مبلغ السند -->
+        <div class="receipt-amount-box">
+            <div class="amount-label">
+                <i class="fas fa-money-bill-wave" style="margin-left: 6px;"></i>
+                المبلغ المسحوب
+            </div>
+            <div class="amount-value">
+                <span class="currency">{{ receipt.currency or 'SAR' }}</span>
+                {{ "%.2f"|format(receipt.amount) }}
+            </div>
+        </div>
+        
+        <!-- حالة السند -->
+        <div class="receipt-status-box">
+            <div class="status-dot"></div>
+            <span class="status-text">
+                {% if receipt.status == 'pending' %}
+                    ⏳ قيد الانتظار
+                {% elif receipt.status in ['completed', 'approved'] %}
+                    ✅ مكتمل ومعتمد
+                {% elif receipt.status == 'rejected' %}
+                    ❌ مرفوض
+                {% else %}
+                    {{ receipt.status }}
+                {% endif %}
+            </span>
+        </div>
+        
+        <hr class="receipt-divider">
+        
+        <!-- تذييل السند -->
+        <div class="receipt-footer">
+            <div class="footer-text">
+                <strong>منصة محجوب</strong> • بوابة الموردين<br>
+                تم إنشاء هذا السند تلقائياً بواسطة النظام<br>
+                رقم السند: <strong>{{ receipt.voucher_number or 'VCH-' ~ receipt.request_number }}</strong>
+                {% if receipt.reference_number %}
+                <br>رقم المرجع: <strong>{{ receipt.reference_number }}</strong>
+                {% endif %}
+            </div>
+            
+            <!-- أزرار الإجراء -->
+            <div class="no-print" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px;">
+                <button onclick="window.print()" class="btn-print">
+                    <i class="fas fa-print"></i>
+                    طباعة السند
+                </button>
+                <a href="{{ url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-back">
+                    <i class="fas fa-arrow-right"></i>
+                    العودة للوحة التحكم
+                </a>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
 <style>
-    /* تنسيق السند */
+    /* تنسيق السند الداخلي */
     .receipt-container {
         max-width: 800px;
-        margin: 0 auto;
         background: linear-gradient(145deg, #1a0b2e, #12071f);
         border: 1px solid rgba(212, 175, 55, 0.2);
         border-radius: 24px;
@@ -17,7 +130,6 @@
         overflow: hidden;
     }
     
-    /* خلفية زخرفية */
     .receipt-container::before {
         content: '';
         position: absolute;
@@ -309,128 +421,4 @@
         }
     }
 </style>
-
-<div class="receipt-container">
-    
-    <!-- علامة مائية -->
-    <div class="receipt-watermark">MAHJOUB</div>
-    
-    <!-- رأس السند -->
-    <div class="receipt-header">
-        <div class="receipt-logo">
-            منصة محجوب
-            <span>بوابة الموردين</span>
-        </div>
-        <div class="receipt-title">
-            <i class="fas fa-file-invoice" style="color: #10b981; margin-left: 8px;"></i>
-            سند صرف مستحقات مالية
-        </div>
-        <div style="margin-top: 8px;">
-            <span class="receipt-badge">
-                <i class="fas fa-check-circle"></i> معتمد
-            </span>
-        </div>
-    </div>
-    
-    <!-- معلومات السند -->
-    <div class="receipt-info-grid">
-        <div class="receipt-info-item">
-            <span class="label">📌 رقم السند</span>
-            <span class="value gold">{{ receipt.voucher_number or 'VCH-' ~ receipt.request_number }}</span>
-        </div>
-        <div class="receipt-info-item">
-            <span class="label">📋 رقم الطلب</span>
-            <span class="value">{{ receipt.request_number }}</span>
-        </div>
-        <div class="receipt-info-item">
-            <span class="label">👤 المورد</span>
-            <span class="value">{{ supplier.trade_name or supplier.store_name or 'المورد' }}</span>
-        </div>
-        <div class="receipt-info-item">
-            <span class="label">📅 تاريخ الصرف</span>
-            <span class="value">
-                {% if receipt.approved_at %}
-                    {{ receipt.approved_at.strftime('%Y-%m-%d | %I:%M %p') }}
-                {% elif receipt.created_at %}
-                    {{ receipt.created_at.strftime('%Y-%m-%d | %I:%M %p') }}
-                {% else %}
-                    -
-                {% endif %}
-            </span>
-        </div>
-        <div class="receipt-info-item" style="grid-column: span 1;">
-            <span class="label">🏦 الحساب المصرفي</span>
-            <span class="value" style="font-size: 13px; direction: ltr;">{{ receipt.bank_account or 'مصرف الراجحي - شركة الأناقة للتجارة' }}</span>
-        </div>
-    </div>
-    
-    <hr class="receipt-divider">
-    
-    <!-- مبلغ السند -->
-    <div class="receipt-amount-box">
-        <div class="amount-label">
-            <i class="fas fa-money-bill-wave" style="margin-left: 6px;"></i>
-            المبلغ المسحوب
-        </div>
-        <div class="amount-value">
-            <span class="currency">{{ receipt.currency or 'SAR' }}</span>
-            {{ "%.2f"|format(receipt.amount) }}
-        </div>
-    </div>
-    
-    <!-- حالة السند -->
-    <div class="receipt-status-box">
-        <div class="status-dot"></div>
-        <span class="status-text">
-            {% if receipt.status == 'pending' %}
-                ⏳ قيد الانتظار
-            {% elif receipt.status in ['completed', 'approved'] %}
-                ✅ مكتمل ومعتمد
-            {% elif receipt.status == 'rejected' %}
-                ❌ مرفوض
-            {% else %}
-                {{ receipt.status }}
-            {% endif %}
-        </span>
-    </div>
-    
-    <hr class="receipt-divider">
-    
-    <!-- تذييل السند -->
-    <div class="receipt-footer">
-        <div class="footer-text">
-            <strong>منصة محجوب</strong> • بوابة الموردين<br>
-            تم إنشاء هذا السند تلقائياً بواسطة النظام<br>
-            رقم السند: <strong>{{ receipt.voucher_number or 'VCH-' ~ receipt.request_number }}</strong>
-            {% if receipt.reference_number %}
-            <br>رقم المرجع: <strong>{{ receipt.reference_number }}</strong>
-            {% endif %}
-        </div>
-        
-        <!-- أزرار الإجراء -->
-        <div class="no-print" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px;">
-            <button onclick="window.print()" class="btn-print">
-                <i class="fas fa-print"></i>
-                طباعة السند
-            </button>
-            <a href="{{ url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-back">
-                <i class="fas fa-arrow-right"></i>
-                العودة للوحة التحكم
-            </a>
-        </div>
-    </div>
-    
-</div>
-
-<script>
-// دالة الطباعة
-document.addEventListener('DOMContentLoaded', function() {
-    // إضافة اختصار طباعة (Ctrl+P)
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-            // السماح بالطباعة العادية
-        }
-    });
-});
-</script>
 {% endblock %}
