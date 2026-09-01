@@ -29,7 +29,7 @@ MENU_ITEMS = [
     }
 ]
 
-# لتغطية كافة المتغيرات التي قد يبحث عنها القالب الجانبي (Sidebar) للنظام
+# دعم كافة المتغيرات المحتملة لقراءة القائمة المنسدلة في القالب العام
 NAV_ITEMS = MENU_ITEMS
 LINKS = MENU_ITEMS
 sub_items = MENU_ITEMS
