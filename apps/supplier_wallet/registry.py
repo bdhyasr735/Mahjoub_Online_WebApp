@@ -1,9 +1,11 @@
-MODULE_CONFIG = {
-    "NAME": "supplier_wallet",
-    "DISPLAY_NAME": "الإدارة المالية",
-    "icon": "fas fa-wallet",
-    "links": {
-        "supplier_wallet_bp.transactions": "حركة المحفظة",
-        "supplier_wallet_bp.payouts": "سحب الرصيد"
-    }
+# -*- coding: utf-8 -*-
+from flask import url_for
+
+MODULE_NAME = "الإدارة المالية"
+ICON = "fas fa-wallet"
+
+# تعريف الروابط بحيث تتطابق مع أسماء الدوال في الـ routes.py
+MENU_ITEMS = {
+    'supplier_wallet.wallet_dashboard_redirect': 'حركة المحفظة',
+    'supplier_wallet.withdraw': 'سحب الرصيد'
 }
