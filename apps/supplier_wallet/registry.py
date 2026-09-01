@@ -5,21 +5,20 @@ MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# الروابط المباشرة التي يتعامل معها القالب الجانبي كقاموس (Links Dictionary)
+# الروابط المباشرة بصيغة مسارات تمنع أي خطأ في توليد الـ url_for داخل القالب
 LINKS = {
-    'supplier_wallet.transactions': 'حركة المحفظة',
-    'supplier_wallet.withdraw': 'سحب الرصيد'
+    '/supplier/wallet/general/transactions': 'حركة المحفظة',
+    '/supplier/wallet/general/withdraw': 'سحب الرصيد'
 }
 
-# عناصر القائمة المنسدلة بدون أي عناصر فارغة أو مربكة
 MENU_ITEMS = [
     {
-        'endpoint': 'supplier_wallet.transactions',
+        'url': '/supplier/wallet/general/transactions',
         'title': 'حركة المحفظة',
         'icon': 'fas fa-exchange-alt'
     },
     {
-        'endpoint': 'supplier_wallet.withdraw',
+        'url': '/supplier/wallet/general/withdraw',
         'title': 'سحب الرصيد',
         'icon': 'fas fa-money-bill-wave'
     }
@@ -27,7 +26,7 @@ MENU_ITEMS = [
 
 def register_module(app):
     """
-    تسجيل موديول المحفظة بالهيكلية القياسية النظيفة لمنع ظهور أي نصوص أو أزرار وهمية
+    تسجيل موديول المحفظة مع روابط مسارات مباشرة لتفادي مشاكل الـ BuildError في القالب الجانبي
     """
     from apps.supplier_wallet.routes import wallet_bp
     
@@ -42,12 +41,13 @@ def register_module(app):
         'name': MODULE_NAME,
         'title': MODULE_NAME,
         'icon': MODULE_ICON,
+        'url': '/supplier/wallet/general/',
         'links': LINKS,
         'menu_items': MENU_ITEMS,
         'show_in_supplier': SHOW_IN_SUPPLIER
     }
 
-    # تسجيل الموديول تحت المفتاحين لمنع ظهور النصوص الخام
+    # تسجيل الموديول تحت كلا المفتاحين لضمان ظهوره بغض النظر عن المفتاح الذي يناديه القالب
     app.supplier_modules['supplier_wallet'] = module_payload
     app.supplier_modules['suppliers_product'] = module_payload
     print("🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول 'supplier_wallet' بنجاح.")
