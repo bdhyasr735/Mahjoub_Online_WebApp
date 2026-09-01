@@ -1,13 +1,60 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}كشف الحساب وسندات الحركات المالية - منصة محجوب أونلاين{% endblock %}
+{% block title %}لوحة المحفظة وسندات الحركات المالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div style="display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-direction: column; gap: 24px;">
 
-    <!-- 1. شريط البحث والفلترة المتقدم (زر واحد فقط) -->
+    <!-- 1. ترويسة المتجر والأرصدة الثلاثية المدمجة -->
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, #D4AF37); border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 20px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.4);">
+                    محفظة نشطة وموثقة
+                </span>
+                <h1 style="font-size: 22px; font-weight: 900; margin-top: 8px; color: white;">{{ wallet.store_name if wallet else 'متجر الأناقة الفاخرة' }}</h1>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;" class="font-mono">
+                    رمز المورد: <span style="color: #D4AF37; font-weight: bold;">{{ wallet.supplier_code if wallet else 'SUP-9634' }}</span> |
+                    رمز المحفظة: <span style="color: white; font-weight: bold;">{{ wallet.wallet_code if wallet else 'WEL-9634' }}</span>
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{{ url_for('supplier_wallet.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; padding: 10px 20px; border-radius: 10px; font-weight: 800; text-decoration: none; font-size: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
+                    <span>طلب سحب أرباح</span>
+                    <span>←</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- شبكة بطاقات الأرصدة الثلاثية -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px;">
+            <div style="background: #2a1545; border: 1px solid var(--royal-border, #D4AF37); border-radius: 16px; padding: 18px;">
+                <div style="font-size: 12px; color: #D4AF37; font-weight: 700;">الرصيد المتاح للسحب الفوري</div>
+                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
+                    {{ "%.2f"|format(wallet.balance_sar if wallet else 42850.00) }} <span style="font-size: 14px;">SAR</span>
+                </div>
+            </div>
+
+            <div style="background: #2a1545; border: 1px solid var(--royal-border, #D4AF37); border-radius: 16px; padding: 18px;">
+                <div style="font-size: 12px; color: #D4AF37; font-weight: 700;">الرصيد المعلق (قيد المراجعة)</div>
+                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
+                    {{ "%.2f"|format(wallet.balance_pending if wallet else 3500.00) }} <span style="font-size: 14px;">SAR</span>
+                </div>
+            </div>
+
+            <div style="background: #2a1545; border: 1px solid var(--royal-border, #D4AF37); border-radius: 16px; padding: 18px;">
+                <div style="font-size: 12px; color: #D4AF37; font-weight: 700;">إجمالي الأرباح المسحوبة</div>
+                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
+                    {{ "%.2f"|format(wallet.total_withdrawn if wallet else 89400.00) }} <span style="font-size: 14px;">SAR</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. شريط البحث والفلترة المتقدم -->
     <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-        <form method="GET" action="{{ url_for('supplier_wallet.transactions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
+        <form method="GET" action="{{ url_for('supplier_wallet.transactions', wallet_id=wallet.wallet_code or wallet.id) }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
             <div>
                 <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">بحث بالكلمة المفتاحية أو السند:</label>
                 <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="VCH-XXXXXX، رقم الحوالة..."
@@ -47,8 +94,12 @@
         </form>
     </div>
 
-    <!-- 2. جدول المعاملات والسندات الرسمية -->
+    <!-- 3. جدول المعاملات والسندات الرسمية -->
     <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        <div style="padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: #D4AF37; font-size: 18px; margin: 0; font-weight: 800;">سجل الحركات والسندات المالية</h2>
+            <span style="font-size: 12px; color: #9ca3af;" class="font-mono">إجمالي العرض المالي المباشر</span>
+        </div>
         <div style="overflow-x: auto;">
             <table style="width: 100%; text-align: right; border-collapse: collapse; font-size: 12px; color: white;">
                 <thead>
