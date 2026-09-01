@@ -73,6 +73,7 @@ def inject_supplier_modules():
         supplier_modules = {
             'supplier_wallet': {
                 'name': MODULE_NAME,
+                'title': MODULE_NAME,
                 'icon': MODULE_ICON,
                 'links': LINKS,
                 'menu_items': MENU_ITEMS
