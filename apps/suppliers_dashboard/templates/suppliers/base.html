@@ -413,7 +413,7 @@
                 <i class="fas fa-chart-pie"></i> <span>الرئيسية</span>
             </a>
             
-            <!-- ✅ إضافة إدارة المالية يدوياً -->
+            <!-- ✅ إدارة المالية -->
             <a class="nav-link dropdown-toggle" href="#menu-finance" role="button" aria-expanded="false">
                 <i class="fas fa-coins"></i> 
                 <span>إدارة المالية</span>
@@ -455,7 +455,11 @@
                                 </a>
                                 <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ loop.index }}">
                                     {% for endpoint, link_title in module.links.items() %}
-                                        {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
+                                        {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
+                                            {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
+                                        {% else %}
+                                            {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                        {% endif %}
                                         <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                             <i class="fas fa-circle text-[6px]"></i> 
                                             <span>{{ link_title }}</span>
@@ -464,7 +468,11 @@
                                 </div>
                             {% else %}
                                 {% for endpoint, link_title in module.links.items() %}
-                                    {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
+                                    {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
+                                        {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
+                                    {% else %}
+                                        {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                    {% endif %}
                                     <a href="{{ url }}" 
                                        class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                         <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
