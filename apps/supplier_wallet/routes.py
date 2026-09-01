@@ -21,8 +21,7 @@ wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', 
 @wallet_bp.context_processor
 def inject_supplier_modules():
     """
-    حقن موديولات لوحة تحكم الموردين والقوائم الجانبية تلقائياً مع توليد الروابط الكاملة 
-    التي تتضمن معرّف المحفظة (wallet_id) لتظهر الروابط مستقلة وصحيحة في القائمة الجانبية.
+    حقن الموديولات بالهيكلية الجذرية المزدوجة لتغطية أي مفتاح تبحث عنه القائمة الجانبية (supplier_wallet أو suppliers_product)
     """
     supplier_modules = {}
     try:
@@ -40,44 +39,56 @@ def inject_supplier_modules():
                     if slug:
                         w_id = slug
 
-        # توليد الروابط المباشرة والمستقلة لكل صفحة مع الـ wallet_id الخاص بها
-        custom_links = {
-            url_for('supplier_wallet.transactions', wallet_id=w_id): 'حركة المحفظة',
-            url_for('supplier_wallet.withdraw', wallet_id=w_id): 'سحب الرصيد'
-        }
-
+        # تجهيز عناصر القائمة بأسماء الـ Endpoints والمعاملات لضمان توافقها مع القالب الجانبي
         custom_menu_items = [
             {
-                'endpoint': url_for('supplier_wallet.transactions', wallet_id=w_id),
+                'endpoint': 'supplier_wallet.transactions',
+                'kwargs': {'wallet_id': w_id},
                 'title': 'حركة المحفظة',
                 'icon': 'fas fa-exchange-alt'
             },
             {
-                'endpoint': url_for('supplier_wallet.withdraw', wallet_id=w_id),
+                'endpoint': 'supplier_wallet.withdraw',
+                'kwargs': {'wallet_id': w_id},
                 'title': 'سحب الرصيد',
                 'icon': 'fas fa-money-bill-wave'
             }
         ]
 
-        supplier_modules = {
-            'supplier_wallet': {
-                'name': MODULE_NAME,
-                'title': MODULE_NAME,
-                'icon': MODULE_ICON,
-                'links': custom_links,
-                'menu_items': custom_menu_items
-            }
+        custom_links = {
+            url_for('supplier_wallet.transactions', wallet_id=w_id): 'حركة المحفظة',
+            url_for('supplier_wallet.withdraw', wallet_id=w_id): 'سحب الرصيد'
         }
+
+        # هيكل الموديول الموحد
+        module_payload = {
+            'name': MODULE_NAME,
+            'title': MODULE_NAME,
+            'icon': MODULE_ICON,
+            'links': custom_links,
+            'menu_items': custom_menu_items,
+            'show_in_supplier': True
+        }
+
+        # تسجيل الموديول تحت كلا المفتاحين لمنع ظهور أي خطأ في القائمة الجانبية بغض النظر عن المفتاح المطلوب
+        supplier_modules = {
+            'supplier_wallet': module_payload,
+            'suppliers_product': module_payload
+        }
+        
     except Exception as e:
         print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
+        fallback_payload = {
+            'name': MODULE_NAME,
+            'title': MODULE_NAME,
+            'icon': MODULE_ICON,
+            'links': LINKS,
+            'menu_items': MENU_ITEMS,
+            'show_in_supplier': True
+        }
         supplier_modules = {
-            'supplier_wallet': {
-                'name': MODULE_NAME,
-                'title': MODULE_NAME,
-                'icon': MODULE_ICON,
-                'links': LINKS,
-                'menu_items': MENU_ITEMS
-            }
+            'supplier_wallet': fallback_payload,
+            'suppliers_product': fallback_payload
         }
         
     return {
