@@ -35,7 +35,7 @@ def register_module(app):
         if not hasattr(app, 'supplier_modules'):
             app.supplier_modules = {}
         
-        # ✅ تسجيل الموديول
+        # ✅ تسجيل فقط تحت مفتاح 'إدارة المالية'
         app.supplier_modules['إدارة المالية'] = {
             'name': MODULE_NAME,
             'title': MODULE_NAME,
@@ -46,7 +46,7 @@ def register_module(app):
             'show_in_supplier': SHOW_IN_SUPPLIER
         }
         
-        # ✅ حذف المفتاح القديم إن وجد
+        # ✅ حذف المفتاح القديم إن وجد (لتجنب التكرار)
         if 'supplier_wallet' in app.supplier_modules:
             del app.supplier_modules['supplier_wallet']
         
