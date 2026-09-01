@@ -1,30 +1,68 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_wallet/context_processors.py
+# 📂 apps/supplier_wallet/registry.py
 
-from flask import current_app
-
-def inject_supplier_modules():
+def register_module(app):
     """
-    حقن الموديولات في القائمة الجانبية
-    يستخدم البيانات المسجلة من registry.py
+    دالة تسجيل موديول المحفظة - يتم استدعاؤها من التطبيق الرئيسي
     """
-    supplier_modules = {}
-    
-    # 🔥 استخدام البيانات المسجلة من registry.py
-    if hasattr(current_app, 'supplier_modules'):
-        supplier_modules = current_app.supplier_modules
-        print("🔍 [DEBUG] Context Processor - Using app.supplier_modules")
-        print("🔍 [DEBUG] Keys:", list(supplier_modules.keys()))
+    try:
+        from flask import current_app
+        from apps.supplier_wallet.routes import wallet_bp
         
-        # التحقق من وجود 'إدارة المالية'
-        if 'إدارة المالية' in supplier_modules:
-            print("🔍 [DEBUG] 'إدارة المالية' found with links:", 
-                  supplier_modules['إدارة المالية'].get('links', {}))
-        else:
-            print("⚠️ [DEBUG] 'إدارة المالية' NOT found in supplier_modules!")
-    else:
-        print("⚠️ [DEBUG] app.supplier_modules not found!")
-    
-    return {
-        'supplier_modules': supplier_modules
-    }
+        print("=" * 60)
+        print("🔄 [تسجيل موديول]: بدء تسجيل 'supplier_wallet'")
+        
+        # ✅ 1. تسجيل الـ Blueprint
+        if 'supplier_wallet' not in app.blueprints:
+            app.register_blueprint(wallet_bp, url_prefix='/supplier/wallet')
+            print("✅ [Registry]: تم تسجيل بلوبرنت 'supplier_wallet' بنجاح.")
+        
+        # ✅ 2. تسجيل الموديول في app.supplier_modules
+        if not hasattr(app, 'supplier_modules'):
+            app.supplier_modules = {}
+        
+        # ✅ 3. بناء هيكل الموديول
+        app.supplier_modules['إدارة المالية'] = {
+            'name': 'إدارة المالية',
+            'title': 'إدارة المالية',
+            'icon': 'fas fa-coins',
+            'url': '/supplier/wallet/general/transactions',
+            'links': {
+                'supplier_wallet.transactions': 'حركة المحفظة',
+                'supplier_wallet.withdraw': 'سحب الرصيد'
+            },
+            'menu_items': [
+                {
+                    'url': '/supplier/wallet/general/transactions',
+                    'title': 'حركة المحفظة',
+                    'icon': 'fas fa-exchange-alt'
+                },
+                {
+                    'url': '/supplier/wallet/general/withdraw',
+                    'title': 'سحب الرصيد',
+                    'icon': 'fas fa-money-bill-wave'
+                }
+            ],
+            'show_in_supplier': True
+        }
+        
+        # ✅ 4. حذف المفتاح القديم إن وجد
+        if 'supplier_wallet' in app.supplier_modules:
+            del app.supplier_modules['supplier_wallet']
+        
+        print("🟢 [التسجيل الديناميكي]: ✅ تم تسجيل 'إدارة المالية' مع الروابط:")
+        for endpoint, title in app.supplier_modules['إدارة المالية']['links'].items():
+            print(f"   - {title} ({endpoint})")
+        print("=" * 60)
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول 'supplier_wallet'")
+        print(f"   السبب: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+# ✅ تصدير الدالة والمتغيرات للاستيراد
+__all__ = ['register_module']
