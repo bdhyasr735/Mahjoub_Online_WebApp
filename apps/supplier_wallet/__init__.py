@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-📂 apps/supplier_wallet/__init__.py
-تهيئة حزمة محفظة المورد وتصدير المكونات الأساسية لنظام التسجيل الديناميكي
-"""
+from flask import Blueprint
 
-from apps.supplier_wallet.registry import register_module, MODULE_NAME, ICON, MENU_ITEMS
-from apps.supplier_wallet.routes import wallet_bp
+supplier_wallet_bp = Blueprint(
+    'supplier_wallet',
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
 
-__all__ = ['register_module', 'wallet_bp', 'MODULE_NAME', 'ICON', 'MENU_ITEMS']
+from . import routes
