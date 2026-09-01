@@ -413,9 +413,29 @@
                 <i class="fas fa-chart-pie"></i> <span>الرئيسية</span>
             </a>
             
+            <!-- ✅ إضافة إدارة المالية يدوياً -->
+            <a class="nav-link dropdown-toggle" href="#menu-finance" role="button" aria-expanded="false">
+                <i class="fas fa-coins"></i> 
+                <span>إدارة المالية</span>
+                <i class="fas fa-chevron-left dropdown-arrow"></i>
+            </a>
+            <div class="submenu" id="menu-finance">
+                <a href="{{ safe_url_for('supplier_wallet.transactions', wallet_id='general') if safe_url_for is defined else url_for('supplier_wallet.transactions', wallet_id='general') }}" 
+                   class="nav-link {% if request.endpoint == 'supplier_wallet.transactions' %}active{% endif %}">
+                    <i class="fas fa-circle text-[6px]"></i> 
+                    <span>حركة المحفظة</span>
+                </a>
+                <a href="{{ safe_url_for('supplier_wallet.withdraw', wallet_id='general') if safe_url_for is defined else url_for('supplier_wallet.withdraw', wallet_id='general') }}" 
+                   class="nav-link {% if request.endpoint == 'supplier_wallet.withdraw' %}active{% endif %}">
+                    <i class="fas fa-circle text-[6px]"></i> 
+                    <span>سحب الرصيد</span>
+                </a>
+            </div>
+            
+            <!-- باقي الموديولات -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
-                    {% if key != 'suppliers_dashboard' %}
+                    {% if key != 'suppliers_dashboard' and key != 'supplier_wallet' and key != 'إدارة المالية' %}
                         {% if module.links is mapping %}
                             {% if module.links|length > 1 %}
                                 {% set ns = namespace(is_active_module=false) %}
