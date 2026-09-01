@@ -699,9 +699,6 @@ def create_app():
                 except Exception as e:
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
-    # ============================================================
-    # 📝 معالج السياق (Context Processor)
-    # ============================================================
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
@@ -738,5 +735,18 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules
-        combined_supplier
+        return {
+            'registered_modules': ADMIN_MODULES,
+            'admin_modules': ADMIN_MODULES,
+            'supplier_modules': SUPPLIER_MODULES,
+            'safe_url_for': safe_url_for,
+            **supplier_context
+        }
+
+    @app.after_request
+    def set_csrf_header(response):
+        if not response.headers.get('X-CSRF-Token'):
+            response.headers['X-CSRF-Token'] = generate_csrf()
+        return response
+
+    return app
