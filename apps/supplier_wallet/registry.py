@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/registry.py
 
 MODULE_NAME = "الإدارة المالية"
