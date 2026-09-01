@@ -700,7 +700,7 @@ def create_app():
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
     # ============================================================
-    # 📝 معالج السياق (Context Processor) - الحل الجذري
+    # 📝 معالج السياق (Context Processor)
     # ============================================================
     @app.context_processor
     def inject_vars():
@@ -738,20 +738,18 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        # ✅ الحل الجذري: دمج SUPPLIER_MODULES مع app.supplier_modules
+        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules (مع منع التكرار)
         combined_supplier_modules = SUPPLIER_MODULES.copy()
         
-        # 🔥 إضافة الموديولات المسجلة من registry.py
         if hasattr(app, 'supplier_modules'):
             for key, value in app.supplier_modules.items():
+                # ✅ إذا كان المفتاح موجوداً، استبدله (لا نضيف نسخة مكررة)
                 combined_supplier_modules[key] = value
-        
-        # ✅ تم إزالة الـ Debug logs لتقليل الضغط على الخادم
 
         return {
             'registered_modules': ADMIN_MODULES,
             'admin_modules': ADMIN_MODULES,
-            'supplier_modules': combined_supplier_modules,  # ✅ استخدام المدمج
+            'supplier_modules': combined_supplier_modules,
             'safe_url_for': safe_url_for,
             **supplier_context
         }
