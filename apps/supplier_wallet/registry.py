@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-📂 apps/supplier_wallet/registry.py
-تسجيل موديول محفظة المورد والقوائم التابعة له
-"""
-
 from flask import Blueprint
 
 supplier_wallet_bp = Blueprint(
@@ -13,32 +8,34 @@ supplier_wallet_bp = Blueprint(
     url_prefix='/supplier/wallet'
 )
 
-MODULE_NAME = 'الإدارة المالية والمحفظة'
+MODULE_NAME = 'الإدارة المالية'
 ICON = 'fas fa-wallet'
 SHOW_IN_SUPPLIER = True
 
-# الصيغة الأولى: القاموس (إذا كان قالب القائمة الجانبية يعتمد على .items())
+# الروابط الأساسية لتظهر النصوص العربية بدقة عند النزول أو الضغط
 LINKS = {
-    'supplier_wallet.wallet_dashboard_redirect': 'لوحة المحفظة الرئيسية',
+    'supplier_wallet.wallet_dashboard_redirect': 'لوحة المحفظة',
     'supplier_wallet.transactions': 'سجل الحركات المالية',
-    'supplier_wallet.withdraw': 'طلب سحب أرباح'
+    'supplier_wallet.withdraw': 'طلب سحب الرصيد'
 }
 
-# الصيغة الثانية: القائمة (إذا كان قالب القائمة الجانبية يعتمد على التكرار بقائمة كائن)
 MENU_ITEMS = [
     {
         'endpoint': 'supplier_wallet.wallet_dashboard_redirect',
-        'title': 'لوحة المحفظة الرئيسية',
+        'title': 'لوحة المحفظة',
+        'name': 'لوحة المحفظة',
         'icon': 'fas fa-chart-pie'
     },
     {
         'endpoint': 'supplier_wallet.transactions',
         'title': 'سجل الحركات المالية',
+        'name': 'سجل الحركات المالية',
         'icon': 'fas fa-exchange-alt'
     },
     {
         'endpoint': 'supplier_wallet.withdraw',
-        'title': 'طلب سحب أرباح',
+        'title': 'طلب سحب الرصيد',
+        'name': 'طلب سحب الرصيد',
         'icon': 'fas fa-money-bill-wave'
     }
 ]
