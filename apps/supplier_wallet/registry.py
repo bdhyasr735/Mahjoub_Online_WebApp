@@ -7,8 +7,8 @@ MODULE_NAME = "الإدارة المالية"
 ICON = "wallet"
 SHOW_IN_SUPPLIER = True
 
-# القائمة الفرعية التي تظهر عند النقر على القائمة المنسدلة
-SUB_ITEMS = [
+# القوائم الفرعية التي ستظهر منسدلة تحت قسم الإدارة المالية
+MENU_ITEMS = [
     {
         "title": "لوحة المحفظة",
         "name": "لوحة المحفظة",
@@ -29,14 +29,14 @@ SUB_ITEMS = [
     }
 ]
 
-# دعم المتغيرات المختلفة التي قد يطلبها قالب الشريط الجانبي في النظام
-MENU_ITEMS = SUB_ITEMS
-NAV_ITEMS = SUB_ITEMS
-LINKS = SUB_ITEMS
-sub_items = SUB_ITEMS
+# لتغطية كافة المتغيرات التي قد يبحث عنها القالب الجانبي (Sidebar) للنظام
+NAV_ITEMS = MENU_ITEMS
+LINKS = MENU_ITEMS
+sub_items = MENU_ITEMS
+children = MENU_ITEMS
 
 def get_menu_items():
-    return SUB_ITEMS
+    return MENU_ITEMS
 
 def register_module(app):
     """تسجيل بلوبرنت الإدارة المالية بشكل آمن وتلافي أي أخطاء"""
