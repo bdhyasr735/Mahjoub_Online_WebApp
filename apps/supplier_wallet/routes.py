@@ -39,7 +39,13 @@ def inject_supplier_modules():
                     if slug:
                         w_id = slug
 
-        # تجهيز عناصر القائمة بأسماء الـ Endpoints والمعاملات لضمان توافقها مع القالب الجانبي
+        # ✅ التصحيح: استخدام أسماء الـ Endpoints بدلاً من الروابط الكاملة
+        custom_links = {
+            'supplier_wallet.transactions': 'حركة المحفظة',  # اسم الـ endpoint
+            'supplier_wallet.withdraw': 'سحب الرصيد'          # اسم الـ endpoint
+        }
+
+        # عناصر القائمة مع الـ endpoints
         custom_menu_items = [
             {
                 'endpoint': 'supplier_wallet.transactions',
@@ -55,40 +61,33 @@ def inject_supplier_modules():
             }
         ]
 
-        custom_links = {
-            url_for('supplier_wallet.transactions', wallet_id=w_id): 'حركة المحفظة',
-            url_for('supplier_wallet.withdraw', wallet_id=w_id): 'سحب الرصيد'
-        }
-
         # هيكل الموديول الموحد
         module_payload = {
-            'name': MODULE_NAME,
-            'title': MODULE_NAME,
-            'icon': MODULE_ICON,
-            'links': custom_links,
+            'name': 'إدارة المالية',  # ✅ تغيير الاسم ليظهر بشكل صحيح
+            'title': 'إدارة المالية',
+            'icon': 'fas fa-coins',   # ✅ أيقونة مناسبة
+            'links': custom_links,    # ✅ الآن يحتوي على أسماء endpoints وليس URLs
             'menu_items': custom_menu_items,
             'show_in_supplier': True
         }
 
-        # تسجيل الموديول تحت كلا المفتاحين لمنع ظهور أي خطأ في القائمة الجانبية بغض النظر عن المفتاح المطلوب
+        # ✅ تسجيل الموديول تحت المفتاح الصحيح 'إدارة المالية'
         supplier_modules = {
-            'supplier_wallet': module_payload,
-            'suppliers_product': module_payload
+            'إدارة المالية': module_payload,  # 🔥 هذا هو المفتاح الذي يتوقعه القالب
         }
         
     except Exception as e:
         print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
         fallback_payload = {
-            'name': MODULE_NAME,
-            'title': MODULE_NAME,
-            'icon': MODULE_ICON,
+            'name': 'إدارة المالية',
+            'title': 'إدارة المالية',
+            'icon': 'fas fa-coins',
             'links': LINKS,
             'menu_items': MENU_ITEMS,
             'show_in_supplier': True
         }
         supplier_modules = {
-            'supplier_wallet': fallback_payload,
-            'suppliers_product': fallback_payload
+            'إدارة المالية': fallback_payload
         }
         
     return {
