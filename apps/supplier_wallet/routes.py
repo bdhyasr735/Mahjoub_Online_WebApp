@@ -66,18 +66,13 @@ def get_current_wallet_identifier():
     return str(supplier_id)
 
 
-@wallet_bp.url_defaults
-def add_wallet_identifier_to_urls(endpoint, values):
-    """إضافة معرّف المحفظة تلقائياً لكل روابط البلوبرنت لتجنب التعديل اليدوي في القوالب"""
-    if current_user.is_authenticated and 'wallet_id' not in values:
-        values['wallet_id'] = get_current_wallet_identifier()
-
-
-@wallet_bp.url_value_processor
-def pull_wallet_identifier_from_url(endpoint, values):
-    """استخلاص معرّف المحفظة من الرابط عند الطلب"""
-    if values and 'wallet_id' in values:
-        g.wallet_id = values.pop('wallet_id')
+@wallet_bp.route('/')
+@wallet_bp.route('/dashboard')
+@login_required
+def wallet_dashboard_redirect():
+    """إعادة توجيه تلقائية لاستخدام معرّف المحفظة الصحيح"""
+    wallet_id = get_current_wallet_identifier()
+    return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
 
 @wallet_bp.route('/<string:wallet_id>/')
@@ -120,7 +115,7 @@ def withdraw(wallet_id):
     
     if not wallet:
         NotificationService.notify_error("المحفظة غير موجودة")
-        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+        return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
     if request.method == 'POST':
         try:
@@ -142,7 +137,7 @@ def withdraw(wallet_id):
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
             NotificationService.notify_success("تم تقديم طلب السحب بنجاح وهو قيد المراجعة والاعتماد")
             
-            return redirect(url_for('supplier_wallet.withdraw', success='true'))
+            return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id, success='true'))
             
         except ValueError as e:
             db.session.rollback()
@@ -154,7 +149,7 @@ def withdraw(wallet_id):
             traceback.print_exc()
             NotificationService.notify_error(f"حدث خطأ غير متوقع أثناء معالجة طلب السحب: {str(e)}")
 
-        return redirect(url_for('supplier_wallet.withdraw'))
+        return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id))
 
     page = request.args.get('page', 1, type=int)
     query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
@@ -181,7 +176,7 @@ def transactions(wallet_id):
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     if not wallet:
-        return redirect(url_for('supplier_wallet.wallet_dashboard'))
+        return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
     query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
 
