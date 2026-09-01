@@ -11,6 +11,25 @@ MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
+# تعريف المتغيرات الثابتة كمرجع احتياطي (Fallback) لمنع حدوث خطأ Import Error
+LINKS = {
+    'supplier_wallet.transactions': 'حركة المحفظة',
+    'supplier_wallet.withdraw': 'سحب الرصيد'
+}
+
+MENU_ITEMS = [
+    {
+        'endpoint': 'supplier_wallet.transactions',
+        'title': 'حركة المحفظة',
+        'icon': 'fas fa-exchange-alt'
+    },
+    {
+        'endpoint': 'supplier_wallet.withdraw',
+        'title': 'سحب الرصيد',
+        'icon': 'fas fa-money-bill-wave'
+    }
+]
+
 def get_dynamic_wallet_id():
     """استخراج معرّف المحفظة بالطريقة الآمنة للروابط"""
     try:
@@ -78,6 +97,7 @@ def register_module(app):
         'show_in_supplier': SHOW_IN_SUPPLIER
     }
 
-    # تسجيل الموديول تحت كلا المفتاحين لضمان التطابق التام مع أي قالب جانبي
+    # تسجيل الموديول تحت كلا المفتاحين لضمان التطابق التام
     app.supplier_modules['supplier_wallet'] = module_payload
     app.supplier_modules['suppliers_product'] = module_payload
+    print("🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول 'supplier_wallet' بنجاح.")
