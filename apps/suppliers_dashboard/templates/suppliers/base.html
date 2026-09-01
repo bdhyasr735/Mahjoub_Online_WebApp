@@ -78,6 +78,25 @@
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
         
+        /* طبقة التعتيم للخلفية عند فتح القائمة على الموبايل */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 1045;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* ===== الشعار ===== */
         .logo-container {
             padding: 32px 20px 24px;
@@ -386,6 +405,9 @@
 </head>
 <body>
 
+    <!-- طبقة التعتيم للخلفية في الموبايل -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
@@ -505,11 +527,25 @@
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
+            const overlay = document.getElementById('sidebar-overlay');
 
-            if (toggleBtn && sidebar) {
+            function toggleSidebar() {
+                if (sidebar && overlay) {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                }
+            }
+
+            if (toggleBtn) {
                 toggleBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    sidebar.classList.toggle('active');
+                    toggleSidebar();
+                });
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    toggleSidebar();
                 });
             }
 
@@ -517,6 +553,7 @@
                 if (window.innerWidth < 992 && sidebar && sidebar.classList.contains('active')) {
                     if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
                         sidebar.classList.remove('active');
+                        if (overlay) overlay.classList.remove('active');
                     }
                 }
             });
