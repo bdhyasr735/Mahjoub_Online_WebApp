@@ -4,7 +4,7 @@
 
 {% block content %}
 <style>
-    /* إزالة أزرار الزيادة والنقصان (الأسهم) الخاصة بحقل الرقم لجميع المتصفحات */
+    /* إزالة أزرار الزيادة والنقصان الخاصة بحقل الرقم لجميع المتصفحات */
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button {
         -webkit-appearance: none;
@@ -14,7 +14,7 @@
         -moz-appearance: textfield;
     }
 
-    /* تنسيقات النافذة المنبثقة (Modal) */
+    /* تنسيقات النافذة المنبثقة (Modal) الثابتة */
     .modal-overlay {
         position: fixed;
         top: 0;
@@ -36,46 +36,6 @@
         visibility: visible;
     }
     .modal-container {
-        background: var(--royal-purple-card, #1a0b2e);
-        border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.3));
-        border-radius: 20px;
-        width: 100%;
-        max-width: 500px;
-        padding: 30px;
-        box-shadow: 0 15px 50px rgba(0,0,0,0.7);
-        transform: translateY(20px);
-        transition: transform 0.3s ease;
-        position: relative;
-        box-sizing: border-box;
-    }
-    .modal-overlay.active .modal-container {
-        transform: translateY(0);
-    }
-    
-    /* أنيميشن علامة الصح للنجاح */
-    @keyframes scaleUp {
-        0% { transform: scale(0); opacity: 0; }
-        70% { transform: scale(1.1); opacity: 1; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-    .success-checkmark {
-        width: 70px;
-        height: 70px;
-        margin: 0 auto 20px;
-        background: rgba(16, 185, 129, 0.15);
-        border: 2px solid #10b981;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #10b981;
-        font-size: 32px;
-        animation: scaleUp 0.4s ease-out forwards;
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-    }
-
-    /* ✅ تحسين شكل الحاوية */
-    .modal-container {
         background: linear-gradient(145deg, #1a0b2e, #12071f);
         border: 1px solid rgba(212, 175, 55, 0.15);
         border-radius: 24px;
@@ -88,12 +48,16 @@
         position: relative;
         box-sizing: border-box;
     }
-
     .modal-overlay.active .modal-container {
         transform: translateY(0) scale(1);
     }
-
-    /* ✅ تحسين دائرة النجاح */
+    
+    /* أنيميشن علامة الصح للنجاح */
+    @keyframes scaleUp {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
     .success-checkmark {
         width: 80px;
         height: 80px;
@@ -108,20 +72,15 @@
         box-shadow: 0 0 50px rgba(16, 185, 129, 0.15), inset 0 0 30px rgba(16, 185, 129, 0.05);
     }
 
-    .success-checkmark svg {
-        animation: scaleUp 0.6s ease-out forwards;
-    }
-
-    /* ✅ مؤشر النبض للحالة */
     @keyframes pulse {
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: 0.5; transform: scale(0.8); }
     }
 </style>
 
-<div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;">
+<div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px; box-sizing: border-box;">
 
-    <!-- بطاقات الإحصائيات الصغيرة (إجمالي الطلبات، قيد الانتظار، المقبولة، المرفوضة) -->
+    <!-- بطاقات الإحصائيات الصغيرة -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
         <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #D4AF37;">
             <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">إجمالي الطلبات</div>
@@ -146,7 +105,7 @@
     <!-- نموذج طلب السحب -->
     <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
         
-        <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
             <div>
                 <span style="font-size: 11px; color: var(--royal-gold, #D4AF37); font-weight: 700; letter-spacing: 0.5px;">خدمة التحويل المصرفي الفوري</span>
                 <h1 style="font-size: 20px; font-weight: 900; color: white; margin-top: 4px;">طلب سحب مستحقات المبيعات إلى الحساب المصرفي</h1>
@@ -154,7 +113,6 @@
                     الرصيد المتاح للسحب حالياً: <span style="color: var(--royal-gold, #D4AF37); font-weight: 900;" class="font-mono">{{ "%.2f"|format(wallet.balance_sar if wallet else 0.00) }} SAR</span>
                 </p>
             </div>
-            <!-- دائرة حالة الطلب التوضيحية -->
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.08); border: 1px dashed rgba(212, 175, 55, 0.4); border-radius: 14px; padding: 10px 14px; min-width: 110px; flex-shrink: 0;">
                 <div style="width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; box-shadow: 0 0 10px #f59e0b; margin-bottom: 6px; animation: pulse 2s infinite;"></div>
                 <span style="font-size: 10px; color: #d1d5db; font-weight: 700; text-align: center;">حالة الطلب المتوقعة</span>
@@ -175,8 +133,8 @@
                 <span style="display: block; font-size: 11px; color: #9ca3af; margin-top: 6px; line-height: 1.5;">الحد الأدنى للسحب 50.00 ريال سعودي. سيتم تحويل المبلغ إلى حسابك المصرفي ويدخل قيد الانتظار للمراجعة.</span>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-top: 10px; width: 100%;">
-                <button type="submit" class="btn-gold" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
+            <div style="display: flex; gap: 12px; margin-top: 10px; width: 100%; flex-wrap: wrap;">
+                <button type="submit" style="flex: 1; min-width: 160px; justify-content: center; padding: 14px; font-size: 14px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
                         onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
                     تأكيد وإرسال طلب السحب
                 </button>
@@ -188,7 +146,7 @@
         </form>
     </div>
 
-    <!-- جدول طلبات السحب السابقة مع البحث اللحظي والفلاتر -->
+    <!-- جدول طلبات السحب السابقة -->
     <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
@@ -196,7 +154,6 @@
             <span style="font-size: 12px; color: var(--royal-gold, #D4AF37);">المجموع: <span id="table-total-count">{{ pagination.total if pagination else 0 }}</span> طلب</span>
         </div>
 
-        <!-- شريط البحث اللحظي والفلاتر بالحالة -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
             <div style="flex: 1; min-width: 200px; position: relative;">
                 <input type="text" id="live-search" placeholder="بحث لحظي برقم الطلب..." 
@@ -288,15 +245,13 @@
 
 </div>
 
-<!-- ✅ نافذة عرض تفاصيل الطلب - تصميم احترافي مع رابط السند -->
+<!-- نافذة عرض تفاصيل الطلب -->
 <div id="withdrawal-modal" class="modal-overlay {% if request.args.get('success') == 'true' or show_success_modal %}active{% endif %}">
     <div class="modal-container" style="text-align: center; position: relative; overflow: hidden;">
         
-        <!-- خلفية زخرفية -->
         <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%); border-radius: 50%;"></div>
         <div style="position: absolute; bottom: -50px; left: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%); border-radius: 50%;"></div>
         
-        <!-- ✅ أيقونة علامة الصح للنجاح -->
         <div class="success-checkmark">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -307,7 +262,6 @@
         <p style="font-size: 15px; color: #f59e0b; font-weight: 700; margin-bottom: 6px;" id="modal-subtitle-text">⏳ طلبك قيد الإنتظار للمراجعة والتحويل</p>
         <p style="font-size: 13px; color: #9ca3af; margin-bottom: 24px;">سيتم إشعارك عند اكتمال العملية</p>
         
-        <!-- ✅ تفاصيل السند أو الطلب -->
         <div id="modal-details-box" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; margin-bottom: 24px; text-align: right;">
             
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
@@ -334,31 +288,24 @@
             </div>
         </div>
 
-        <!-- ✅ أزرار الإجراء -->
         <div style="display: flex; gap: 12px; flex-direction: column; width: 100%;">
-            
-            <!-- ✅ زر عرض السند الرسمي -->
             <a id="modal-receipt-link" href="#" 
-               style="width: 100%; background: linear-gradient(135deg, #D4AF37 0%, #b8941f 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; padding: 14px; cursor: pointer; font-size: 15px; box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25); transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 10px;"
+               style="width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #D4AF37 0%, #b8941f 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; padding: 14px; cursor: pointer; font-size: 15px; box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25); transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 10px;"
                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 30px rgba(212, 175, 55, 0.35)';"
                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(212, 175, 55, 0.25)';">
-                <i class="fas fa-file-invoice"></i>
                 عرض سند الصرف الرسمي
-                <i class="fas fa-arrow-left"></i>
             </a>
             
-            <!-- ✅ زر إغلاق -->
             <button type="button" id="close-modal" 
-                    style="width: 100%; background: rgba(255,255,255,0.06); color: #d1d5db; font-weight: 600; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; cursor: pointer; font-size: 14px; transition: all 0.2s ease;"
+                    style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); color: #d1d5db; font-weight: 600; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; cursor: pointer; font-size: 14px; transition: all 0.2s ease;"
                     onmouseover="this.style.background='rgba(255,255,255,0.12)';"
                     onmouseout="this.style.background='rgba(255,255,255,0.06)';">
-                <i class="fas fa-times"></i> إغلاق
+                إغلاق
             </button>
         </div>
     </div>
 </div>
 
-<!-- سكريبت التفاعل والتحكم بالنافذة المنبثقة -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const searchInput = document.getElementById('live-search');
@@ -368,11 +315,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const noResultsMsg = document.getElementById('no-results-message');
     const tableTotalCount = document.getElementById('table-total-count');
 
-    // عناصر النافذة المنبثقة (Modal)
     const modal = document.getElementById('withdrawal-modal');
     const closeModalBtn = document.getElementById('close-modal');
     const openModalBtns = document.querySelectorAll('.open-modal-btn');
-    const withdrawForm = document.getElementById('withdraw-form');
 
     const modalReqNumber = document.getElementById('modal-req-number');
     const modalReqAmount = document.getElementById('modal-req-amount');
@@ -383,7 +328,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const modalDetailsBox = document.getElementById('modal-details-box');
     const receiptLink = document.getElementById('modal-receipt-link');
 
-    // فتح النافذة المنبثقة لعرض تفاصيل الطلبات غير المكتملة
     openModalBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const requestNumber = this.getAttribute('data-number');
@@ -391,7 +335,7 @@ document.addEventListener("DOMContentLoaded", function() {
             modalTitleText.textContent = "✅ تم الطلب بنجاح";
             modalSubtitleText.style.display = 'block';
             modalSubtitleText.textContent = "⏳ طلبك قيد الإنتظار للمراجعة والتحويل";
-            if(modalDetailsBox) modalDetailsBox.style.display = 'flex';
+            if(modalDetailsBox) modalDetailsBox.style.display = 'block';
 
             modalReqNumber.textContent = requestNumber;
             modalReqAmount.textContent = this.getAttribute('data-amount');
@@ -407,7 +351,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
             modalReqDate.textContent = this.getAttribute('data-date');
             
-            // ✅ تحديث رابط السند
             if (receiptLink && requestNumber) {
                 receiptLink.href = "{{ url_for('supplier_wallet.withdrawal_receipt', request_number='') }}" + requestNumber;
                 receiptLink.style.display = 'inline-flex';
@@ -417,7 +360,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // إغلاق النافذة المنبثقة
     function closeModal() {
         modal.classList.remove('active');
         if (window.location.search.includes('success=true')) {
