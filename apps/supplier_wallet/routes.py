@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/routes.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -9,76 +9,20 @@ from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
+from apps.supplier_wallet.context_processors import inject_supplier_modules
 import re
 import traceback
 from decimal import Decimal
 
-# ✅ تعريف الـ Blueprint
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
-# ✅ Context Processor - حقن الموديولات في القائمة الجانبية
+# ✅ Context Processor
 @wallet_bp.context_processor
-def inject_supplier_modules():
-    """حقن الموديولات في القائمة الجانبية"""
-    supplier_modules = {}
-    try:
-        # ✅ أولاً: جلب الموديولات المسجلة من التطبيق (من registry.py)
-        if hasattr(current_app, 'supplier_modules'):
-            supplier_modules = current_app.supplier_modules.copy()
-            print("🔍 [DEBUG] Loaded from app.supplier_modules:", list(supplier_modules.keys()))
-        
-        # ✅ ثانياً: تحديث الروابط مع معرف المحفظة الصحيح
-        supplier_id = get_current_supplier_id()
-        w_id = 'general'
-        if supplier_id:
-            wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-            if wallet:
-                w_id = str(getattr(wallet, 'wallet_code', None) or wallet.id)
-            else:
-                trade_name = getattr(current_user, 'trade_name', None)
-                if trade_name:
-                    slug = re.sub(r'[^\w\s-]', '', trade_name).strip().lower()
-                    slug = re.sub(r'[-\s]+', '-', slug)
-                    if slug:
-                        w_id = slug
-
-        # ✅ بناء الروابط مع المعرف الصحيح
-        custom_links = {
-            'supplier_wallet.transactions': 'حركة المحفظة',
-            'supplier_wallet.withdraw': 'سحب الرصيد'
-        }
-
-        # ✅ تحديث أو إضافة موديول إدارة المالية
-        if 'إدارة المالية' in supplier_modules:
-            # تحديث الموديول الموجود
-            supplier_modules['إدارة المالية']['links'] = custom_links
-            print("🔍 [DEBUG] Updated 'إدارة المالية' with custom links")
-        else:
-            # إنشاء موديول جديد إذا لم يكن موجوداً
-            module_payload = {
-                'name': 'إدارة المالية',
-                'title': 'إدارة المالية',
-                'icon': 'fas fa-coins',
-                'links': custom_links,
-                'show_in_supplier': True
-            }
-            supplier_modules['إدارة المالية'] = module_payload
-            print("🔍 [DEBUG] Created new 'إدارة المالية' module")
-        
-        print("🔍 [DEBUG] Final supplier_modules keys:", list(supplier_modules.keys()))
-        print("🔍 [DEBUG] Links in 'إدارة المالية':", supplier_modules.get('إدارة المالية', {}).get('links', {}))
-        
-    except Exception as e:
-        print(f"⚠️ [Context Processor Error]: {str(e)}")
-        traceback.print_exc()
-        
-    return {
-        'supplier_modules': supplier_modules
-    }
+def context_processor():
+    return inject_supplier_modules()
 
 
 def get_current_wallet_identifier():
-    """الحصول على رقم المحفظة أو اسم المتجر"""
     supplier_id = get_current_supplier_id()
     if not supplier_id:
         return 'general'
@@ -103,7 +47,6 @@ def get_current_wallet_identifier():
 @wallet_bp.route('/dashboard')
 @login_required
 def wallet_dashboard_redirect():
-    """إعادة توجيه تلقائية لاستخدام معرّف المحفظة الصحيح"""
     wallet_id = get_current_wallet_identifier()
     return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
@@ -112,7 +55,6 @@ def wallet_dashboard_redirect():
 @wallet_bp.route('/<string:wallet_id>/dashboard')
 @login_required
 def wallet_dashboard(wallet_id):
-    """لوحة تحكم المحفظة"""
     supplier_id = get_current_supplier_id()
     if not supplier_id:
         return redirect(url_for('main.index'))
@@ -137,6 +79,7 @@ def wallet_dashboard(wallet_id):
     )
 
 
+# ✅ هذه هي الـ endpoints التي تستخدمها الروابط
 @wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw(wallet_id):
@@ -196,7 +139,6 @@ def withdraw(wallet_id):
 @wallet_bp.route('/receipt/<string:request_number>')
 @login_required
 def withdrawal_receipt(request_number):
-    """عرض سند الصرف"""
     supplier_id = get_current_supplier_id()
     if not supplier_id:
         return redirect(url_for('main.index'))
@@ -216,6 +158,7 @@ def withdrawal_receipt(request_number):
     )
 
 
+# ✅ هذه هي الـ endpoint المستخدمة لـ "حركة المحفظة"
 @wallet_bp.route('/<string:wallet_id>/transactions')
 @login_required
 def transactions(wallet_id):
@@ -259,7 +202,6 @@ def transactions(wallet_id):
 
 @wallet_bp.route('/store/<string:supplier_code>')
 def public_store_view(supplier_code):
-    """عرض صفحة متجر المورد العامة"""
     supplier = Supplier.query.filter_by(supplier_code=supplier_code, status='active').first_or_404()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
     
