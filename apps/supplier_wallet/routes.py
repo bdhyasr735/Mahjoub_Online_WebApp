@@ -13,10 +13,10 @@ import re
 import traceback
 from decimal import Decimal
 
-# ✅ تأكد من وجود هذا السطر - تعريف الـ Blueprint
+# ✅ تعريف الـ Blueprint
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
-# ✅ Context Processor
+# ✅ Context Processor - حقن الموديولات في القائمة الجانبية
 @wallet_bp.context_processor
 def inject_supplier_modules():
     """حقن الموديولات في القائمة الجانبية"""
@@ -36,11 +36,13 @@ def inject_supplier_modules():
                     if slug:
                         w_id = slug
 
+        # ✅ الروابط الصحيحة
         custom_links = {
             'supplier_wallet.transactions': 'حركة المحفظة',
             'supplier_wallet.withdraw': 'سحب الرصيد'
         }
 
+        # ✅ هيكل الموديول
         module_payload = {
             'name': 'إدارة المالية',
             'title': 'إدارة المالية',
@@ -49,9 +51,14 @@ def inject_supplier_modules():
             'show_in_supplier': True
         }
 
+        # ✅ تسجيل تحت المفتاح الصحيح
         supplier_modules = {
             'إدارة المالية': module_payload,
         }
+        
+        # 🔍 للتصحيح
+        print("🔍 [DEBUG] Context Processor - supplier_modules keys:", list(supplier_modules.keys()))
+        print("🔍 [DEBUG] Links:", custom_links)
         
     except Exception as e:
         print(f"⚠️ [Context Processor Error]: {str(e)}")
