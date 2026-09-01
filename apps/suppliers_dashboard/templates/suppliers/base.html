@@ -438,7 +438,9 @@
                                aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}">
                                 <i class="{{ module.icon | default(module.ICON) | default('fas fa-folder') }}"></i> 
                                 <span>
-                                    {% if key == 'supplier_wallet' %}
+                                    {% if key == 'إدارة المالية' %}
+                                        الإدارة المالية
+                                    {% elif key == 'supplier_wallet' %}
                                         الإدارة المالية
                                     {% else %}
                                         {{ module.title | default(module.title) | default(module.DISPLAY_NAME) | default(module.NAME) | default(module.MODULE_NAME) | default(key) }}
