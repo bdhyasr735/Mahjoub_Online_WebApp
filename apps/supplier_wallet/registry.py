@@ -5,7 +5,7 @@ MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ تعريف الروابط المباشرة لكل صفحة مستقلة
+# تعريف الروابط باستخدام أسماء الـ Endpoints الصحيحة التي يتوقعها القالب الجانبي
 LINKS = {
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
@@ -25,13 +25,14 @@ MENU_ITEMS = [
 ]
 
 def register_module(app):
-    from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
+    """
+    تسجيل موديول المحفظة في التطبيق الرئيسي مع توفير القوائم للقالب الجانبي
+    """
+    from apps.supplier_wallet.routes import wallet_bp
     
     if 'supplier_wallet' not in app.blueprints:
-        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
-    else:
-        print("ℹ️ [Registry]: موديول 'supplier_wallet' مسجل مسبقاً.")
+        app.register_blueprint(wallet_bp, url_prefix='/supplier/wallet')
+        print("✅ [Registry]: تم تسجيل بلوبرنت 'supplier_wallet' بنجاح.")
 
     if not hasattr(app, 'supplier_modules'):
         app.supplier_modules = {}
