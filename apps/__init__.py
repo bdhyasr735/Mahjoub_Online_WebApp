@@ -745,10 +745,8 @@ def create_app():
         if hasattr(app, 'supplier_modules'):
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
-            print("🔍 [DEBUG] Merged app.supplier_modules into SUPPLIER_MODULES")
-            print("🔍 [DEBUG] Combined keys:", list(combined_supplier_modules.keys()))
-        else:
-            print("⚠️ [DEBUG] app.supplier_modules not found!")
+        
+        # ✅ تم إزالة الـ Debug logs لتقليل الضغط على الخادم
 
         return {
             'registered_modules': ADMIN_MODULES,
