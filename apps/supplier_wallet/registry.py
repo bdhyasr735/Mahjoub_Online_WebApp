@@ -32,6 +32,15 @@ LINKS = MENU_ITEMS
 def get_menu_items():
     return MENU_ITEMS
 
+def get_modules():
+    """إرجاع بيانات الموديول ليتم توافقها مع أي نظام استدعاء مركزي"""
+    return {
+        "module_name": MODULE_NAME,
+        "icon": ICON,
+        "show_in_supplier": SHOW_IN_SUPPLIER,
+        "menu_items": MENU_ITEMS
+    }
+
 def register_module(app):
     """تسجيل بلوبرنت الإدارة المالية بشكل آمن وتلافي أي أخطاء استيراد"""
     try:
@@ -39,7 +48,6 @@ def register_module(app):
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(wallet_bp)
     except ImportError:
-        # احتياطاً في حال كان اسم البلوبرنت مختلفاً في ملف الـ routes
         try:
             from apps.supplier_wallet.routes import supplier_wallet_bp
             if 'supplier_wallet' not in app.blueprints:
