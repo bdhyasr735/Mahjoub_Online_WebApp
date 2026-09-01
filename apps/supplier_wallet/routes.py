@@ -12,7 +12,7 @@ from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
-from apps.registry import registry
+from apps.supplier_wallet.registry import MENU_ITEMS, MODULE_NAME, ICON
 import re
 import traceback
 from decimal import Decimal
@@ -26,15 +26,21 @@ def inject_supplier_modules():
     حقن موديولات لوحة تحكم الموردين والقوائم الجانبية تلقائياً في سياق قوالب هذا البلوبرنت
     لضمان ظهور القائمة والمحفظة والإدارة المالية في واجهة الموردين دون انقطاع.
     """
-    modules = {}
+    supplier_modules = {}
     try:
-        if registry and hasattr(registry, 'get_modules'):
-            modules = registry.get_modules()
+        supplier_modules = {
+            'supplier_wallet': {
+                'name': MODULE_NAME,
+                'icon': ICON,
+                'menu_items': MENU_ITEMS,
+                'links': MENU_ITEMS
+            }
+        }
     except Exception as e:
         print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
         
     return {
-        'supplier_modules': modules
+        'supplier_modules': supplier_modules
     }
 
 
