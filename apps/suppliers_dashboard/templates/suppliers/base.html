@@ -414,12 +414,12 @@
                                href="#menu-{{ key }}" 
                                role="button" 
                                aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}">
-                                <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
+                                <i class="{{ module.icon | default(module.ICON) | default('fas fa-folder') }}"></i> 
                                 <span>
                                     {% if key == 'supplier_wallet' %}
                                         الإدارة المالية
                                     {% else %}
-                                        {{ module.title | default(module.DISPLAY_NAME) | default(module.NAME) | default(key) }}
+                                        {{ module.title | default(module.title) | default(module.DISPLAY_NAME) | default(module.NAME) | default(module.MODULE_NAME) | default(key) }}
                                     {% endif %}
                                 </span>
                                 <i class="fas fa-chevron-left dropdown-arrow"></i>
@@ -440,7 +440,7 @@
                                 {% if url != '#' %}
                                     <a href="{{ url }}" 
                                        class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                        <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
+                                        <i class="{{ module.icon | default(module.ICON) | default('fas fa-folder') }}"></i> 
                                         <span>{{ link_title }}</span>
                                     </a>
                                 {% endif %}
