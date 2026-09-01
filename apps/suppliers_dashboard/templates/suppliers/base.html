@@ -425,95 +425,25 @@
             
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
-                    {# ============================================ #}
-                    {# تخطي لوحة التحكم الرئيسية                    #}
-                    {# ============================================ #}
-                    {% if key == 'suppliers_dashboard' %}
-                        {% continue %}
-                    {% endif %}
-                    
-                    {# ============================================ #}
-                    {# معالجة موديول إدارة المالية مع القوائم الفرعية #}
-                    {# ============================================ #}
-                    {% if key == 'إدارة المالية' or module.is_finance %}
-                        {% set ns = namespace(is_active_module=false) %}
-                        
-                        {# التحقق من أي قائمة فرعية نشطة #}
-                        {% if module.submenu %}
-                            {% for sub_item in module.submenu %}
-                                {# التحقق من المسار #}
-                                {% if request.path == sub_item.url %}
-                                    {% set ns.is_active_module = true %}
-                                {% endif %}
-                                
-                                {# التحقق من الروابط الداخلية #}
-                                {% if sub_item.links is mapping %}
-                                    {% for endpoint, link_title in sub_item.links.items() %}
-                                        {% if request.endpoint == endpoint %}
-                                            {% set ns.is_active_module = true %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                        
-                        <!-- عرض إدارة المالية كقائمة رئيسية -->
-                        <a class="nav-link dropdown-toggle {% if ns.is_active_module %}active{% endif %}" 
-                           href="#menu-finance" 
-                           role="button" 
-                           aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}">
-                            <i class="{{ module.icon | default('fas fa-coins') }}"></i> 
-                            <span>{{ module.title | default('إدارة المالية') }}</span>
-                            <i class="fas fa-chevron-left dropdown-arrow"></i>
-                        </a>
-                        
-                        <!-- القوائم الفرعية لإدارة المالية -->
-                        <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-finance">
-                            {% if module.submenu %}
-                                {% for sub_item in module.submenu %}
-                                    {% set sub_is_active = false %}
-                                    
-                                    {# التحقق من النشاط للقائمة الفرعية #}
-                                    {% if request.path == sub_item.url %}
-                                        {% set sub_is_active = true %}
-                                    {% endif %}
-                                    
-                                    {% if sub_item.links is mapping %}
-                                        {% for endpoint, link_title in sub_item.links.items() %}
-                                            {% if request.endpoint == endpoint %}
-                                                {% set sub_is_active = true %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endif %}
-                                    
-                                    <a href="{{ sub_item.url }}" 
-                                       class="nav-link {% if sub_is_active %}active{% endif %}">
-                                        <i class="{{ sub_item.icon | default('fas fa-circle') }} text-[6px]"></i> 
-                                        <span>{{ sub_item.title }}</span>
-                                    </a>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                    
-                    {# ============================================ #}
-                    {# معالجة الموديولات العادية (بقية القوائم)     #}
-                    {# ============================================ #}
-                    {% elif module.links is mapping %}
+                    {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% if module.links|length > 1 %}
-                            {# موديول بقوائم فرعية متعددة #}
                             {% set ns = namespace(is_active_module=false) %}
                             {% for endpoint, link_title in module.links.items() %}
-                                {% if request.endpoint == endpoint %}
-                                    {% set ns.is_active_module = true %}
-                                {% endif %}
+                                {% if request.endpoint == endpoint %}{% set ns.is_active_module = true %}{% endif %}
                             {% endfor %}
                             
                             <a class="nav-link dropdown-toggle {% if ns.is_active_module %}active{% endif %}" 
                                href="#menu-{{ key }}" 
                                role="button" 
                                aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}">
-                                <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                                <span>{{ module.title | default(key) }}</span>
+                                <i class="{{ module.icon | default(module.ICON) | default('fas fa-folder') }}"></i> 
+                                <span>
+                                    {% if key == 'supplier_wallet' %}
+                                        الإدارة المالية
+                                    {% else %}
+                                        {{ module.title | default(module.title) | default(module.DISPLAY_NAME) | default(module.NAME) | default(module.MODULE_NAME) | default(key) }}
+                                    {% endif %}
+                                </span>
                                 <i class="fas fa-chevron-left dropdown-arrow"></i>
                             </a>
                             <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ key }}">
@@ -527,13 +457,12 @@
                                 {% endfor %}
                             </div>
                         {% else %}
-                            {# موديول برابط واحد فقط #}
                             {% for endpoint, link_title in module.links.items() %}
                                 {% set url = safe_url_for(endpoint) if safe_url_for is defined else '#' %}
                                 {% if url != '#' %}
                                     <a href="{{ url }}" 
                                        class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                        <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
+                                        <i class="{{ module.icon | default(module.ICON) | default('fas fa-folder') }}"></i> 
                                         <span>{{ link_title }}</span>
                                     </a>
                                 {% endif %}
