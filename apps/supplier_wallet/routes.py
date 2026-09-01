@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/routes.py
 
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -22,6 +22,12 @@ def inject_supplier_modules():
     """حقن الموديولات في القائمة الجانبية"""
     supplier_modules = {}
     try:
+        # ✅ أولاً: جلب الموديولات المسجلة من التطبيق (من registry.py)
+        if hasattr(current_app, 'supplier_modules'):
+            supplier_modules = current_app.supplier_modules.copy()
+            print("🔍 [DEBUG] Loaded from app.supplier_modules:", list(supplier_modules.keys()))
+        
+        # ✅ ثانياً: تحديث الروابط مع معرف المحفظة الصحيح
         supplier_id = get_current_supplier_id()
         w_id = 'general'
         if supplier_id:
@@ -36,29 +42,31 @@ def inject_supplier_modules():
                     if slug:
                         w_id = slug
 
-        # ✅ الروابط الصحيحة
+        # ✅ بناء الروابط مع المعرف الصحيح
         custom_links = {
             'supplier_wallet.transactions': 'حركة المحفظة',
             'supplier_wallet.withdraw': 'سحب الرصيد'
         }
 
-        # ✅ هيكل الموديول
-        module_payload = {
-            'name': 'إدارة المالية',
-            'title': 'إدارة المالية',
-            'icon': 'fas fa-coins',
-            'links': custom_links,
-            'show_in_supplier': True
-        }
-
-        # ✅ تسجيل تحت المفتاح الصحيح
-        supplier_modules = {
-            'إدارة المالية': module_payload,
-        }
+        # ✅ تحديث أو إضافة موديول إدارة المالية
+        if 'إدارة المالية' in supplier_modules:
+            # تحديث الموديول الموجود
+            supplier_modules['إدارة المالية']['links'] = custom_links
+            print("🔍 [DEBUG] Updated 'إدارة المالية' with custom links")
+        else:
+            # إنشاء موديول جديد إذا لم يكن موجوداً
+            module_payload = {
+                'name': 'إدارة المالية',
+                'title': 'إدارة المالية',
+                'icon': 'fas fa-coins',
+                'links': custom_links,
+                'show_in_supplier': True
+            }
+            supplier_modules['إدارة المالية'] = module_payload
+            print("🔍 [DEBUG] Created new 'إدارة المالية' module")
         
-        # 🔍 للتصحيح
-        print("🔍 [DEBUG] Context Processor - supplier_modules keys:", list(supplier_modules.keys()))
-        print("🔍 [DEBUG] Links:", custom_links)
+        print("🔍 [DEBUG] Final supplier_modules keys:", list(supplier_modules.keys()))
+        print("🔍 [DEBUG] Links in 'إدارة المالية':", supplier_modules.get('إدارة المالية', {}).get('links', {}))
         
     except Exception as e:
         print(f"⚠️ [Context Processor Error]: {str(e)}")
