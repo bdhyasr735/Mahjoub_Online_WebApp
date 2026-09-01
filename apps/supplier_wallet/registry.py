@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/registry.py
 
 MODULE_NAME = "الإدارة المالية"
@@ -8,8 +8,8 @@ SHOW_IN_SUPPLIER = True
 # ✅ الروابط المعرفة مباشرة بدون استيرادات خارجية في أعلى الملف لتجنب الاستيراد الدائري
 LINKS = {
     'supplier_wallet.wallet_dashboard_redirect': 'لوحة المحفظة',
-    'supplier_wallet.transactions': 'سجل الحركات المالية',
-    'supplier_wallet.withdraw': 'طلب سحب الرصيد'
+    'supplier_wallet.transactions': 'حركة المحفظة',
+    'supplier_wallet.withdraw': 'سحب الرصيد'
 }
 
 MENU_ITEMS = [
@@ -20,12 +20,12 @@ MENU_ITEMS = [
     },
     {
         'endpoint': 'supplier_wallet.transactions',
-        'title': 'سجل الحركات المالية',
+        'title': 'حركة المحفظة',
         'icon': 'fas fa-exchange-alt'
     },
     {
         'endpoint': 'supplier_wallet.withdraw',
-        'title': 'طلب سحب الرصيد',
+        'title': 'سحب الرصيد',
         'icon': 'fas fa-money-bill-wave'
     }
 ]
