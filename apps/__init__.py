@@ -699,6 +699,9 @@ def create_app():
                 except Exception as e:
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
+    # ============================================================
+    # 📝 معالج السياق (Context Processor) - الحل الجذري
+    # ============================================================
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
@@ -735,10 +738,22 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
+        # ✅ الحل الجذري: دمج SUPPLIER_MODULES مع app.supplier_modules
+        combined_supplier_modules = SUPPLIER_MODULES.copy()
+        
+        # 🔥 إضافة الموديولات المسجلة من registry.py
+        if hasattr(app, 'supplier_modules'):
+            for key, value in app.supplier_modules.items():
+                combined_supplier_modules[key] = value
+            print("🔍 [DEBUG] Merged app.supplier_modules into SUPPLIER_MODULES")
+            print("🔍 [DEBUG] Combined keys:", list(combined_supplier_modules.keys()))
+        else:
+            print("⚠️ [DEBUG] app.supplier_modules not found!")
+
         return {
             'registered_modules': ADMIN_MODULES,
             'admin_modules': ADMIN_MODULES,
-            'supplier_modules': SUPPLIER_MODULES,
+            'supplier_modules': combined_supplier_modules,  # ✅ استخدام المدمج
             'safe_url_for': safe_url_for,
             **supplier_context
         }
