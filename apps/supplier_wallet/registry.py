@@ -9,15 +9,21 @@ supplier_wallet_bp = Blueprint(
     url_prefix='/supplier/wallet'
 )
 
-# المتغيرات المطلوبة للتسجيل الديناميكي في النظام
+# بيانات ومسميات الموديول المعروضة في النظام
 MODULE_NAME = 'الإدارة المالية والمحفظة'
 ICON = 'fas fa-wallet'
 SHOW_IN_SUPPLIER = True
 
-# تعريف الروابط بالهيكل الذي يتوقعه النظام الديناميكي (قائمة من القواميس أو القواميس المباشرة حسب نظام مشروعك)
+# دعم النمطين معاً لضمان عدم حدوث أي خطأ مهما كانت طريقة قراءة القائمة في النظام الأساسي
+LINKS = {
+    'supplier_wallet.wallet_dashboard_redirect': 'لوحة المحفظة الرئيسية',
+    'supplier_wallet.transactions': 'سجل الحركات المالية',
+    'supplier_wallet.withdraw': 'طلب سحب أرباح'
+}
+
 MENU_ITEMS = [
-    {'endpoint': 'supplier_wallet.dashboard', 'title': 'لوحة المحفظة', 'icon': 'fas fa-chart-pie'},
-    {'endpoint': 'supplier_wallet.transactions', 'title': 'سجل الحركات', 'icon': 'fas fa-exchange-alt'},
+    {'endpoint': 'supplier_wallet.wallet_dashboard_redirect', 'title': 'لوحة المحفظة الرئيسية', 'icon': 'fas fa-chart-pie'},
+    {'endpoint': 'supplier_wallet.transactions', 'title': 'سجل الحركات المالية', 'icon': 'fas fa-exchange-alt'},
     {'endpoint': 'supplier_wallet.withdraw', 'title': 'طلب سحب أرباح', 'icon': 'fas fa-money-bill-wave'}
 ]
 
