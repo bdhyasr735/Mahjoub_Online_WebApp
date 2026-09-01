@@ -5,7 +5,6 @@ MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ الروابط المعرفة مباشرة بدون استيرادات خارجية في أعلى الملف لتجنب الاستيراد الدائري
 LINKS = {
     'supplier_wallet.transactions': 'حركة المحفظة',
     'supplier_wallet.withdraw': 'سحب الرصيد'
@@ -25,7 +24,7 @@ MENU_ITEMS = [
 ]
 
 def register_module(app):
-    # ✅ يتم استيراد البلوبرنت هنا محلياً داخل الدالة لكسر حلقة الاستيراد الدائري نهائياً
+    # ✅ استيراد وتسجيل البلوبرنت لضمان عمل الروابط وإتاحة الـ Endpoints
     from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
     
     if 'supplier_wallet' not in app.blueprints:
@@ -37,10 +36,13 @@ def register_module(app):
     if not hasattr(app, 'supplier_modules'):
         app.supplier_modules = {}
         
+    # تسجيل الموديول بالهيكلية الكاملة والشاملة لتوافق أي قالب جانبي
     app.supplier_modules['supplier_wallet'] = {
         'name': MODULE_NAME,
+        'title': MODULE_NAME,
         'icon': MODULE_ICON,
         'links': LINKS,
         'menu_items': MENU_ITEMS,
-        'show_in_supplier': SHOW_IN_SUPPLIER
+        'show_in_supplier': SHOW_IN_SUPPLIER,
+        'url': 'supplier_wallet.withdraw'  # رابط افتراضي رئيسي عند الضغط على العنوان
     }
