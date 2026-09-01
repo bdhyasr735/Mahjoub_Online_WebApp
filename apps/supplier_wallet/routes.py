@@ -14,6 +14,7 @@ from apps.supplier_wallet.services.notification_service import NotificationServi
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 from apps.registry import registry
 import re
+import traceback
 from decimal import Decimal
 
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
@@ -25,8 +26,15 @@ def inject_supplier_modules():
     حقن موديولات لوحة تحكم الموردين والقوائم الجانبية تلقائياً في سياق قوالب هذا البلوبرنت
     لضمان ظهور القائمة والمحفظة والإدارة المالية في واجهة الموردين دون انقطاع.
     """
+    modules = {}
+    try:
+        if registry and hasattr(registry, 'get_modules'):
+            modules = registry.get_modules()
+    except Exception as e:
+        print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
+        
     return {
-        'supplier_modules': registry.get_modules()
+        'supplier_modules': modules
     }
 
 
@@ -81,6 +89,8 @@ def wallet_dashboard(wallet_id):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
+        print(f"⚠️ [Wallet Dashboard Error]: {str(e)}")
+        traceback.print_exc()
         NotificationService.notify_error("حدث خطأ أثناء تحميل بيانات المحفظة")
         return redirect(url_for('main.index'))
 
@@ -108,7 +118,7 @@ def withdraw(wallet_id):
 
     if request.method == 'POST':
         try:
-            raw_amount = request.form.get('amount', '0').strip()
+            raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
             
             if amount <= 0:
@@ -130,9 +140,12 @@ def withdraw(wallet_id):
             
         except ValueError as e:
             db.session.rollback()
+            print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
             NotificationService.notify_error(str(e))
         except Exception as e:
             db.session.rollback()
+            print(f"⚠️ [Withdrawal Exception]: {str(e)}")
+            traceback.print_exc()
             NotificationService.notify_error(f"حدث خطأ غير متوقع أثناء معالجة طلب السحب: {str(e)}")
 
         return redirect(url_for('supplier_wallet.withdraw'))
