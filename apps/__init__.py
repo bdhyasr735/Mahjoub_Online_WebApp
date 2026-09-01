@@ -738,26 +738,5 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules (مع منع التكرار)
-        combined_supplier_modules = SUPPLIER_MODULES.copy()
-        
-        if hasattr(app, 'supplier_modules'):
-            for key, value in app.supplier_modules.items():
-                # ✅ إذا كان المفتاح موجوداً، استبدله (لا نضيف نسخة مكررة)
-                combined_supplier_modules[key] = value
-
-        return {
-            'registered_modules': ADMIN_MODULES,
-            'admin_modules': ADMIN_MODULES,
-            'supplier_modules': combined_supplier_modules,
-            'safe_url_for': safe_url_for,
-            **supplier_context
-        }
-
-    @app.after_request
-    def set_csrf_header(response):
-        if not response.headers.get('X-CSRF-Token'):
-            response.headers['X-CSRF-Token'] = generate_csrf()
-        return response
-
-    return app
+        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules
+        combined_supplier
