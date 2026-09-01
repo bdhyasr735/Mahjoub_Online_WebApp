@@ -7,10 +7,10 @@ MODULE_NAME = "إدارة المالية"
 MODULE_ICON = "fas fa-coins"
 SHOW_IN_SUPPLIER = True
 
-# تعريف الروابط الداخلية للمحفظة - بنفس تنسيق LINKS الذي يتوقعه القالب
+# ✅ تصحيح أسماء الـ endpoints لتطابق الموجودة في routes.py
 LINKS = {
-    'supplier_wallet.wallet_transactions': 'حركة المحفظة',
-    'supplier_wallet.withdraw_request': 'سحب الرصيد'
+    'supplier_wallet.transactions': 'حركة المحفظة',  # ✅ صحيح
+    'supplier_wallet.withdraw': 'سحب الرصيد'          # ✅ صحيح
 }
 
 MENU_ITEMS = [
@@ -41,21 +41,21 @@ def register_module(app):
     if not hasattr(app, 'supplier_modules'):
         app.supplier_modules = {}
     
-    # ✅ تسجيل الموديول بنفس هيكل LINKS الذي يتوقعه القالب
+    # ✅ تسجيل الموديول مع LINKS المصححة
     module_payload = {
         'name': MODULE_NAME,
         'title': MODULE_NAME,
         'icon': MODULE_ICON,
         'url': '/supplier/wallet/general/transactions',
-        'links': LINKS,  # 🔥 هذا هو المهم! القالب يبحث عن links
+        'links': LINKS,  # ✅ الآن تحتوي على endpoints صحيحة
         'menu_items': MENU_ITEMS,
         'show_in_supplier': SHOW_IN_SUPPLIER
     }
     
-    # ✅ تسجيل الموديول تحت المفتاح 'إدارة المالية' (بدلاً من supplier_wallet)
+    # ✅ تسجيل تحت مفتاح 'إدارة المالية'
     app.supplier_modules['إدارة المالية'] = module_payload
     
-    # 🔥 حذف المفتاح القديم supplier_wallet إن وجد لتجنب التكرار
+    # حذف المفتاح القديم
     if 'supplier_wallet' in app.supplier_modules:
         del app.supplier_modules['supplier_wallet']
     
