@@ -1,174 +1,411 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}لوحة المحفظة وسندات الحركات المالية - منصة محجوب أونلاين{% endblock %}
+{% block title %}طلب سحب مستحقات مالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div style="display: flex; flex-direction: column; gap: 24px;">
+<style>
+    /* إزالة أزرار الزيادة والنقصان (الأسهم) الخاصة بحقل الرقم لجميع المتصفحات */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
 
-    <!-- 1. ترويسة المتجر والأرصدة الثلاثية المدمجة -->
-    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, #D4AF37); border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-            <div>
-                <span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 4px 10px; border-radius: 20px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.4);">
-                    محفظة نشطة وموثقة
-                </span>
-                <h1 style="font-size: 22px; font-weight: 900; margin-top: 8px; color: white;">{{ wallet.store_name if wallet else 'متجر الأناقة الفاخرة' }}</h1>
-                <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;" class="font-mono">
-                    رمز المورد: <span style="color: #D4AF37; font-weight: bold;">{{ wallet.supplier_code if wallet else 'SUP-9634' }}</span> |
-                    رمز المحفظة: <span style="color: white; font-weight: bold;">{{ wallet.wallet_code if wallet else 'WEL-9634' }}</span>
-                </p>
-            </div>
+    /* تنسيقات النافذة المنبثقة (Modal) */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(10, 5, 20, 0.85);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .modal-container {
+        background: var(--royal-purple-card, #1a0b2e);
+        border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.3));
+        border-radius: 20px;
+        width: 100%;
+        max-width: 500px;
+        padding: 30px;
+        box-shadow: 0 15px 50px rgba(0,0,0,0.7);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+        position: relative;
+        box-sizing: border-box;
+    }
+    .modal-overlay.active .modal-container {
+        transform: translateY(0);
+    }
+    
+    /* أنيميشن علامة الصح للنجاح */
+    @keyframes scaleUp {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .success-checkmark {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 20px;
+        background: rgba(16, 185, 129, 0.15);
+        border: 2px solid #10b981;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #10b981;
+        font-size: 32px;
+        animation: scaleUp 0.4s ease-out forwards;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+</style>
 
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <a href="{{ url_for('supplier_wallet.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; padding: 10px 20px; border-radius: 10px; font-weight: 800; text-decoration: none; font-size: 12px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
-                    <span>طلب سحب أرباح</span>
-                    <span>←</span>
-                </a>
+<div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px;">
+
+    <!-- بطاقات الإحصائيات الصغيرة (إجمالي الطلبات، قيد الانتظار، المقبولة، المرفوضة) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #D4AF37;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">إجمالي الطلبات</div>
+            <div style="font-size: 22px; font-weight: 900; color: white; margin-top: 6px;" id="stat-total">
+                {{ pagination.total if pagination else 0 }}
             </div>
         </div>
-
-        <!-- شبكة بطاقات الأرصدة الثلاثية -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px;">
-            <div style="background: #2a1545; border: 1px solid var(--royal-border, #D4AF37); border-radius: 16px; padding: 18px;">
-                <div style="font-size: 12px; color: #D4AF37; font-weight: 700;">الرصيد المتاح للسحب الفوري</div>
-                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
-                    {{ "%.2f"|format(wallet.balance_sar if wallet else 42850.00) }} <span style="font-size: 14px;">SAR</span>
-                </div>
-            </div>
-
-            <div style="background: #2a1545; border: 1px solid var(--royal-border, #D4AF37); border-radius: 16px; padding: 18px;">
-                <div style="font-size: 12px; color: #D4AF37; font-weight: 700;">الرصيد المعلق (قيد المراجعة)</div>
-                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
-                    {{ "%.2f"|format(wallet.balance_pending if wallet else 3500.00) }} <span style="font-size: 14px;">SAR</span>
-                </div>
-            </div>
-
-            <div style="background: #2a1545; border: 1px solid var(--royal-border, #D4AF37); border-radius: 16px; padding: 18px;">
-                <div style="font-size: 12px; color: #D4AF37; font-weight: 700;">إجمالي الأرباح المسحوبة</div>
-                <div style="font-size: 24px; font-weight: 900; color: #ffffff; margin-top: 6px;" class="font-mono">
-                    {{ "%.2f"|format(wallet.total_withdrawn if wallet else 89400.00) }} <span style="font-size: 14px;">SAR</span>
-                </div>
-            </div>
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #f59e0b;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">قيد الانتظار</div>
+            <div style="font-size: 22px; font-weight: 900; color: #f59e0b; margin-top: 6px;" id="stat-pending">0</div>
+        </div>
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #10b981;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">المقبولة / المكتملة</div>
+            <div style="font-size: 22px; font-weight: 900; color: #10b981; margin-top: 6px;" id="stat-approved">0</div>
+        </div>
+        <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-right: 4px solid #ef4444;">
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 700;">المرفوضة</div>
+            <div style="font-size: 22px; font-weight: 900; color: #ef4444; margin-top: 6px;" id="stat-rejected">0</div>
         </div>
     </div>
 
-    <!-- 2. شريط البحث والفلترة المتقدم -->
-    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-        <form method="GET" action="{{ url_for('supplier_wallet.transactions', wallet_id=wallet.wallet_code or wallet.id) }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
+    <!-- نموذج طلب السحب -->
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
+        
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
             <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">بحث بالكلمة المفتاحية أو السند:</label>
-                <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="VCH-XXXXXX، رقم الحوالة..."
-                       style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none;"
+                <span style="font-size: 11px; color: var(--royal-gold, #D4AF37); font-weight: 700; letter-spacing: 0.5px;">خدمة التحويل المصرفي الفوري</span>
+                <h1 style="font-size: 20px; font-weight: 900; color: white; margin-top: 4px;">طلب سحب مستحقات المبيعات إلى الحساب المصرفي</h1>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    الرصيد المتاح للسحب حالياً: <span style="color: var(--royal-gold, #D4AF37); font-weight: 900;" class="font-mono">{{ "%.2f"|format(wallet.balance_sar if wallet else 0.00) }} SAR</span>
+                </p>
+            </div>
+            <!-- دائرة حالة الطلب التوضيحية -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.08); border: 1px dashed rgba(212, 175, 55, 0.4); border-radius: 14px; padding: 10px 14px; min-width: 110px; flex-shrink: 0;">
+                <div style="width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; box-shadow: 0 0 10px #f59e0b; margin-bottom: 6px; animation: pulse 2s infinite;"></div>
+                <span style="font-size: 10px; color: #d1d5db; font-weight: 700; text-align: center;">حالة الطلب المتوقعة</span>
+                <span style="font-size: 11px; color: #f59e0b; font-weight: 900; margin-top: 2px; text-align: center;">قيد الانتظار</span>
+            </div>
+        </div>
+
+        <form id="withdraw-form" method="POST" action="{{ url_for('supplier_wallet.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div style="width: 100%; box-sizing: border-box;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #e5e7eb; margin-bottom: 8px;">
+                    المبلغ المراد سحبه (SAR) <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="number" step="0.01" min="50" max="{{ wallet.balance_sar if wallet else 0.00 }}" name="amount" required placeholder="50.00"
+                       style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 12px; padding: 12px 16px; color: white; font-size: 16px; font-weight: bold; outline: none; transition: border-color 0.2s;" class="font-mono"
                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
+                <span style="display: block; font-size: 11px; color: #9ca3af; margin-top: 6px; line-height: 1.5;">الحد الأدنى للسحب 50.00 ريال سعودي. سيتم تحويل المبلغ إلى حسابك المصرفي ويدخل قيد الانتظار للمراجعة.</span>
             </div>
 
-            <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">نوع الحركة المالية:</label>
-                <select name="trans_type" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none; cursor: pointer;"
-                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
-                    <option value="">جميع الحركات</option>
-                    <option value="deposit" {% if request.args.get('trans_type') == 'deposit' %}selected{% endif %}>تعزيز مبيعات (Deposit)</option>
-                    <option value="withdraw" {% if request.args.get('trans_type') == 'withdraw' %}selected{% endif %}>سحب رصيد (Withdraw)</option>
-                    <option value="commission" {% if request.args.get('trans_type') == 'commission' %}selected{% endif %}>عمولة منصة (Commission)</option>
-                    <option value="adjustment" {% if request.args.get('trans_type') == 'adjustment' %}selected{% endif %}>تسوية مالية (Adjustment)</option>
-                </select>
-            </div>
-
-            <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 6px;">حالة المعاملة:</label>
-                <select name="status" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 9px 12px; color: white; font-size: 12px; outline: none; cursor: pointer;"
-                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
-                    <option value="">جميع الحالات</option>
-                    <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتملة</option>
-                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
-                    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوضة</option>
-                </select>
-            </div>
-
-            <div>
-                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 12px; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
+            <div style="display: flex; gap: 12px; margin-top: 10px; width: 100%;">
+                <button type="submit" class="btn-gold" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
                         onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
-                    بحث وتصفية
+                    تأكيد وإرسال طلب السحب
                 </button>
+                <a href="{{ url_for('supplier_wallet.transactions', wallet_id=wallet.wallet_code or wallet.id) }}" style="padding: 14px 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #d1d5db; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;"
+                   onmouseover="this.style.background='rgba(255, 255, 255, 0.1)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)';">
+                    رجوع للحركات المالية
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- 3. جدول المعاملات والسندات الرسمية -->
-    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-        <div style="padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="color: #D4AF37; font-size: 18px; margin: 0; font-weight: 800;">سجل الحركات والسندات المالية</h2>
-            <span style="font-size: 12px; color: #9ca3af;" class="font-mono">إجمالي العرض المالي المباشر</span>
+    <!-- جدول طلبات السحب السابقة مع البحث اللحظي والفلاتر -->
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 20px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="font-size: 16px; font-weight: 900; color: white; margin: 0;">سجل طلبات السحب الخاصة بك</h2>
+            <span style="font-size: 12px; color: var(--royal-gold, #D4AF37);">المجموع: <span id="table-total-count">{{ pagination.total if pagination else 0 }}</span> طلب</span>
         </div>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; text-align: right; border-collapse: collapse; font-size: 12px; color: white;">
-                <thead>
-                    <tr style="background: #0f0717; color: #9ca3af; border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: 700;">
-                        <th style="padding: 14px 16px;">رقم السند</th>
-                        <th style="padding: 14px 16px;">الجهة (البنك / الشركة)</th>
-                        <th style="padding: 14px 16px;">نوع الحركة</th>
-                        <th style="padding: 14px 16px;">المبلغ</th>
-                        <th style="padding: 14px 16px;">الرصيد بعد</th>
-                        <th style="padding: 14px 16px;">البيان المحاسبي</th>
-                        <th style="padding: 14px 16px;">التوقيت (+3)</th>
-                        <th style="padding: 14px 16px;">الحالة</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for tx in transactions %}
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)';" onmouseout="this.style.background='transparent';">
-                        <td style="padding: 14px 16px; color: var(--royal-gold, #D4AF37); font-weight: bold;" class="font-mono">
-                            {{ tx.voucher_number }}
-                        </td>
-                        <td style="padding: 14px 16px; color: var(--royal-gold, #D4AF37); font-weight: 600;">
-                            {{ tx.bank_name or tx.company_name or wallet.bank_name or wallet.company_name or 'محجوب أونلاين' }}
-                        </td>
-                        <td style="padding: 14px 16px;">
-                            {% if tx.trans_type == 'deposit' %}
-                                <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);">تعزيز مبيعات</span>
-                            {% elif tx.trans_type == 'withdraw' %}
-                                <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(168, 85, 247, 0.3);">سحب رصيد</span>
-                            {% elif tx.trans_type == 'commission' %}
-                                <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">عمولة منصة</span>
-                            {% else %}
-                                <span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 4px 10px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(59, 130, 246, 0.3);">تسوية</span>
-                            {% endif %}
-                        </td>
-                        <td style="padding: 14px 16px; font-weight: bold; font-size: 13px;" class="font-mono">
-                            <span style="color: {% if tx.amount > 0 %}#34d399{% else %}white{% endif %};">
-                                {{ "%.2f"|format(tx.amount) }} SAR
-                            </span>
-                        </td>
-                        <td style="padding: 14px 16px; color: #d1d5db;" class="font-mono">
-                            {{ "%.2f"|format(tx.balance_after) }} SAR
-                        </td>
-                        <td style="padding: 14px 16px; color: #e5e7eb; max-width: 250px;">
-                            {{ tx.description }}
-                        </td>
-                        <td style="padding: 14px 16px; color: #9ca3af; font-size: 11px;" class="font-mono">
-                            {{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '' }}
-                        </td>
-                        <td style="padding: 14px 16px;">
-                            {% if tx.status == 'completed' %}
-                                <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">● مكتملة</span>
-                            {% elif tx.status == 'pending' %}
-                                <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">● قيد المراجعة</span>
-                            {% else %}
-                                <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">● مرفوضة</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8" style="padding: 36px; text-align: center; color: #9ca3af; font-size: 13px;">
-                            لا توجد سندات أو حركات مالية مطابقة لمعايير البحث المحددة.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        <!-- شريط البحث اللحظي والفلاتر بالحالة -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px; position: relative;">
+                <input type="text" id="live-search" placeholder="بحث لحظي برقم الطلب..." 
+                       style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 10px 14px; color: white; font-size: 13px; outline: none;"
+                       onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
+            </div>
+
+            <div style="min-width: 150px;">
+                <select id="status-filter" style="width: 100%; box-sizing: border-box; background: #0f0717; border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 10px; padding: 10px 14px; color: white; font-size: 13px; outline: none; cursor: pointer;"
+                        onfocus="this.style.borderColor='var(--royal-gold, #D4AF37)';" onblur="this.style.borderColor='var(--royal-border, rgba(212, 175, 55, 0.2))';">
+                    <option value="">جميع الحالات</option>
+                    <option value="pending">قيد الانتظار</option>
+                    <option value="completed">مكتمل / مقبول</option>
+                    <option value="rejected">مرفوض</option>
+                </select>
+            </div>
+
+            <button type="button" id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">إعادة ضبط</button>
         </div>
+
+        {% if pagination and pagination.items %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 13px; color: #e5e7eb;" id="requests-table">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #9ca3af; font-size: 12px;">
+                            <th style="padding: 12px 10px; font-weight: 700;">رقم الطلب</th>
+                            <th style="padding: 12px 10px; font-weight: 700;">المبلغ</th>
+                            <th style="padding: 12px 10px; font-weight: 700;">الحالة</th>
+                            <th style="padding: 12px 10px; font-weight: 700;">تاريخ ووقت الإنشاء</th>
+                            <th style="padding: 12px 10px; font-weight: 700; text-align: center;">التفاصيل / السند</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pagination.items %}
+                        <tr class="request-row" data-status="{{ req.status }}" data-number="{{ req.request_number|lower }}" style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)';" onmouseout="this.style.background='transparent';">
+                            <td style="padding: 14px 10px; font-weight: bold;" class="font-mono text-white">{{ req.request_number }}</td>
+                            <td style="padding: 14px 10px; font-weight: bold; color: var(--royal-gold, #D4AF37);" class="font-mono">{{ "%.2f"|format(req.amount) }} {{ req.currency if req.currency else 'SAR' }}</td>
+                            <td style="padding: 14px 10px;">
+                                {% if req.status == 'pending' %}
+                                    <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">قيد الانتظار</span>
+                                {% elif req.status in ['completed', 'approved'] %}
+                                    <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">مكتمل</span>
+                                {% else %}
+                                    <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold;">مرفوض</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 14px 10px; color: #9ca3af; font-size: 12px;" class="font-mono">
+                                {% if req.created_at %}
+                                    {{ req.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td style="padding: 14px 10px; text-align: center;">
+                                {% if req.status in ['completed', 'approved'] %}
+                                    <!-- رابط احترافي وخاص يفتح صفحة قالب السند مباشرة بعد الموافقة -->
+                                    <a href="{{ url_for('supplier_wallet.withdrawal_receipt', request_number=req.request_number) }}" 
+                                       style="display: inline-flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #10b981; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background 0.2s;"
+                                       onmouseover="this.style.background='rgba(16, 185, 129, 0.25)';" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
+                                        عرض السند الرسمي
+                                    </a>
+                                {% else %}
+                                    <!-- زر عرض التفاصيل عبر النافذة المنبثقة للطلبات التي لم تتم الموافقة عليها بعد -->
+                                    <button type="button" class="open-modal-btn" 
+                                        data-number="{{ req.request_number }}"
+                                        data-amount="{{ '%.2f'|format(req.amount) }} {{ req.currency if req.currency else 'SAR' }}"
+                                        data-status="{% if req.status == 'pending' %}قيد الانتظار{% else %}مرفوض{% endif %}"
+                                        data-date="{% if req.created_at %}{{ req.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}{% else %}-{% endif %}"
+                                        style="display: inline-flex; align-items: center; justify-content: center; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--royal-gold, #D4AF37); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: background 0.2s;" 
+                                        onmouseover="this.style.background='rgba(212, 175, 55, 0.2)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)';">
+                                        عرض التفاصيل
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="no-results-message" style="display: none; text-align: center; padding: 30px; color: #9ca3af; font-size: 13px;">
+                لا توجد طلبات سحب مطابقة للبحث أو الفلتر الحالي.
+            </div>
+
+        {% else %}
+            <div style="text-align: center; padding: 30px; color: #9ca3af; font-size: 13px;">
+                لا توجد طلبات سحب سابقة مسجلة حتى الآن.
+            </div>
+        {% endif %}
     </div>
 
 </div>
+
+<!-- نافذة عرض تفاصيل الطلب غير الموافق عليه (Modal) -->
+<div id="withdrawal-modal" class="modal-overlay {% if request.args.get('success') == 'true' or show_success_modal %}active{% endif %}">
+    <div class="modal-container" style="text-align: center;">
+        
+        <!-- أيقونة علامة الصح للنجاح -->
+        <div class="success-checkmark">
+            ✓
+        </div>
+
+        <h3 style="font-size: 18px; font-weight: 900; color: white; margin-bottom: 8px;" id="modal-title-text">تم الطلب بنجاح</h3>
+        <p style="font-size: 13px; color: #f59e0b; font-weight: 700; margin-bottom: 24px;" id="modal-subtitle-text">قيد الإنتظار للمراجعة والتحويل</p>
+        
+        <!-- تفاصيل السند أو الطلب -->
+        <div id="modal-details-box" style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: #e5e7eb; text-align: right; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">رقم الطلب:</span>
+                <span id="modal-req-number" class="font-mono text-white" style="font-weight: bold;">-</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">المبلغ المسحوب:</span>
+                <span id="modal-req-amount" class="font-mono" style="color: var(--royal-gold, #D4AF37); font-weight: bold;">-</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">حالة الطلب:</span>
+                <span id="modal-req-status" style="font-weight: bold; color: #f59e0b;">قيد الانتظار</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 10px;">
+                <span style="color: #9ca3af;">تاريخ ووقت الإنشاء:</span>
+                <span id="modal-req-date" class="font-mono" style="color: #d1d5db;">-</span>
+            </div>
+        </div>
+
+        <div>
+            <button type="button" id="close-modal" style="width: 100%; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; padding: 12px; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- سكريبت التفاعل والتحكم بالنافذة المنبثقة -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById('live-search');
+    const statusFilter = document.getElementById('status-filter');
+    const resetBtn = document.getElementById('reset-filters');
+    const rows = document.querySelectorAll('.request-row');
+    const noResultsMsg = document.getElementById('no-results-message');
+    const tableTotalCount = document.getElementById('table-total-count');
+
+    // عناصر النافذة المنبثقة (Modal)
+    const modal = document.getElementById('withdrawal-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const openModalBtns = document.querySelectorAll('.open-modal-btn');
+    const withdrawForm = document.getElementById('withdraw-form');
+
+    const modalReqNumber = document.getElementById('modal-req-number');
+    const modalReqAmount = document.getElementById('modal-req-amount');
+    const modalReqStatus = document.getElementById('modal-req-status');
+    const modalReqDate = document.getElementById('modal-req-date');
+    const modalTitleText = document.getElementById('modal-title-text');
+    const modalSubtitleText = document.getElementById('modal-subtitle-text');
+    const modalDetailsBox = document.getElementById('modal-details-box');
+
+    // فتح النافذة المنبثقة لعرض تفاصيل الطلبات غير المكتملة
+    openModalBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            modalTitleText.textContent = "تفاصيل طلب سحب المستحقات";
+            modalSubtitleText.style.display = 'none';
+            if(modalDetailsBox) modalDetailsBox.style.display = 'flex';
+
+            modalReqNumber.textContent = this.getAttribute('data-number');
+            modalReqAmount.textContent = this.getAttribute('data-amount');
+            
+            const statusText = this.getAttribute('data-status');
+            modalReqStatus.textContent = statusText;
+            
+            if(statusText === 'قيد الانتظار') {
+                modalReqStatus.style.color = '#f59e0b';
+            } else {
+                modalReqStatus.style.color = '#ef4444';
+            }
+
+            modalReqDate.textContent = this.getAttribute('data-date');
+            modal.classList.add('active');
+        });
+    });
+
+    // إغلاق النافذة المنبثقة
+    function closeModal() {
+        modal.classList.remove('active');
+        if (window.location.search.includes('success=true')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    
+    if(modal) {
+        modal.addEventListener('click', function(e) {
+            if(e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    function updateLiveView() {
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedStatus = statusFilter ? statusFilter.value : '';
+
+        let visibleCount = 0;
+        let pendingCount = 0;
+        let approvedCount = 0;
+        let rejectedCount = 0;
+
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status');
+            const number = row.getAttribute('data-number');
+
+            if (status === 'pending') pendingCount++;
+            if (status === 'completed' || status === 'approved') approvedCount++;
+            if (status === 'rejected') rejectedCount++;
+
+            const matchesSearch = number.includes(query);
+            let matchesStatus = true;
+
+            if (selectedStatus === 'completed') {
+                matchesStatus = (status === 'completed' || status === 'approved');
+            } else if (selectedStatus) {
+                matchesStatus = (status === selectedStatus);
+            }
+
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if(document.getElementById('stat-pending')) document.getElementById('stat-pending').textContent = pendingCount;
+        if(document.getElementById('stat-approved')) document.getElementById('stat-approved').textContent = approvedCount;
+        if(document.getElementById('stat-rejected')) document.getElementById('stat-rejected').textContent = rejectedCount;
+        if(tableTotalCount) tableTotalCount.textContent = visibleCount;
+
+        if (noResultsMsg) {
+            noResultsMsg.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+        }
+    }
+
+    if(searchInput) searchInput.addEventListener('input', updateLiveView);
+    if(statusFilter) statusFilter.addEventListener('change', updateLiveView);
+    
+    if(resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if(searchInput) searchInput.value = '';
+            if(statusFilter) statusFilter.value = '';
+            updateLiveView();
+        });
+    }
+
+    updateLiveView();
+});
+</script>
 {% endblock %}
