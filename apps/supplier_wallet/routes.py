@@ -39,10 +39,10 @@ def inject_supplier_modules():
                     if slug:
                         w_id = slug
 
-        # ✅ التصحيح: استخدام أسماء الـ Endpoints بدلاً من الروابط الكاملة
+        # ✅ استخدام أسماء الـ Endpoints بدلاً من الروابط الكاملة
         custom_links = {
-            'supplier_wallet.transactions': 'حركة المحفظة',  # اسم الـ endpoint
-            'supplier_wallet.withdraw': 'سحب الرصيد'          # اسم الـ endpoint
+            'supplier_wallet.transactions': 'حركة المحفظة',
+            'supplier_wallet.withdraw': 'سحب الرصيد'
         }
 
         # عناصر القائمة مع الـ endpoints
@@ -63,27 +63,48 @@ def inject_supplier_modules():
 
         # هيكل الموديول الموحد
         module_payload = {
-            'name': 'إدارة المالية',  # ✅ تغيير الاسم ليظهر بشكل صحيح
+            'name': 'إدارة المالية',
             'title': 'إدارة المالية',
-            'icon': 'fas fa-coins',   # ✅ أيقونة مناسبة
-            'links': custom_links,    # ✅ الآن يحتوي على أسماء endpoints وليس URLs
+            'icon': 'fas fa-coins',
+            'links': custom_links,
             'menu_items': custom_menu_items,
             'show_in_supplier': True
         }
 
         # ✅ تسجيل الموديول تحت المفتاح الصحيح 'إدارة المالية'
         supplier_modules = {
-            'إدارة المالية': module_payload,  # 🔥 هذا هو المفتاح الذي يتوقعه القالب
+            'إدارة المالية': module_payload,
         }
+        
+        # 🔍 للتصحيح: طباعة محتويات supplier_modules للتأكد
+        print("🔍 [DEBUG] supplier_modules keys:", list(supplier_modules.keys()))
+        print("🔍 [DEBUG] module_payload links:", module_payload.get('links', {}))
         
     except Exception as e:
         print(f"⚠️ [Registry Error in Context Processor]: {str(e)}")
+        traceback.print_exc()
         fallback_payload = {
             'name': 'إدارة المالية',
             'title': 'إدارة المالية',
             'icon': 'fas fa-coins',
-            'links': LINKS,
-            'menu_items': MENU_ITEMS,
+            'links': {
+                'supplier_wallet.transactions': 'حركة المحفظة',
+                'supplier_wallet.withdraw': 'سحب الرصيد'
+            },
+            'menu_items': [
+                {
+                    'endpoint': 'supplier_wallet.transactions',
+                    'kwargs': {'wallet_id': 'general'},
+                    'title': 'حركة المحفظة',
+                    'icon': 'fas fa-exchange-alt'
+                },
+                {
+                    'endpoint': 'supplier_wallet.withdraw',
+                    'kwargs': {'wallet_id': 'general'},
+                    'title': 'سحب الرصيد',
+                    'icon': 'fas fa-money-bill-wave'
+                }
+            ],
             'show_in_supplier': True
         }
         supplier_modules = {
