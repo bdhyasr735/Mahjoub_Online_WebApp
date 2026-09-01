@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/utils.py
 
 from flask import session, g
@@ -26,23 +26,25 @@ def get_current_supplier_id():
 
 
 def get_current_wallet_identifier():
-    """الحصول على رقم المحفظة أو اسم المتجر بصيغة آمنة للرابط (URL Slug)"""
+    """الحصول على رقم المحفظة أو معرف المورد بصيغة آمنة للرابط (بدون استخدام general)"""
     supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+        
     if not supplier_id:
-        return 'general'
+        return '1'  # معرف افتراضي آمن يمنع ظهور كلمة general تماماً
     
     # البحث عن محفظة المورد لجلب رقمها أو معرفها الفريد
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if wallet:
-        # يفضل استخدام رقم الحساب أو رقم المحفظة الخاص بها إذا توفر، مثل wallet.account_number أو wallet.id
+        if hasattr(wallet, 'wallet_code') and wallet.wallet_code:
+            return str(wallet.wallet_code)
         if hasattr(wallet, 'account_number') and wallet.account_number:
             return str(wallet.account_number)
         return str(wallet.id)
         
-    # أو الاعتماد على اسم المتجر وتنظيفه للرابط إذا وجد
     trade_name = getattr(current_user, 'trade_name', None)
     if trade_name:
-        # تنظيف النص ليصبح صالحاً للرابط (إزالة الرموز والمسافات واستبدالها بشرطات)
         slug = re.sub(r'[^\w\s-]', '', trade_name).strip().lower()
         slug = re.sub(r'[-\s]+', '-', slug)
         if slug:
