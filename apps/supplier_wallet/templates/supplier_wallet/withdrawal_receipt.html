@@ -1,0 +1,82 @@
+{% extends "suppliers/base.html" %}
+
+{% block title %}سند صرف مستحقات - {{ receipt.request_number if receipt else '' }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 750px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- رأس الصفحة وأزرار التحكم -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.2)); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div>
+            <span style="font-size: 11px; color: var(--royal-gold, #D4AF37); font-weight: 700;">السند الرسمي للتحويل</span>
+            <h1 style="font-size: 18px; font-weight: 900; color: white; margin-top: 4px;">تفاصيل سند صرف المستحقات المالية</h1>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print();" style="background: rgba(212, 175, 55, 0.15); border: 1px solid rgba(212, 175, 55, 0.4); color: var(--royal-gold, #D4AF37); padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                🖨️ طباعة السند
+            </button>
+            <a href="{{ url_for('supplier_wallet.withdraw') }}" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #d1d5db; padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center;">
+                رجوع للطلبات
+            </a>
+        </div>
+    </div>
+
+    <!-- وثيقة السند الرسمية -->
+    <div style="background: var(--royal-purple-card, #1a0b2e); border: 1px solid var(--royal-border, rgba(212, 175, 55, 0.3)); border-radius: 20px; padding: 35px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); position: relative; overflow: hidden;">
+        
+حالة الطلب أو السند المقابلة
+        <div style="text-align: center; border-bottom: 2px dashed rgba(212, 175, 55, 0.2); padding-bottom: 25px; margin-bottom: 25px;">
+            <div style="font-size: 14px; font-weight: 800; color: var(--royal-gold, #D4AF37); letter-spacing: 1px;">منصة محجوب أونلاين التجارية</div>
+            <h2 style="font-size: 22px; font-weight: 900; color: white; margin-top: 8px;">سند صرف مستحقات مبيعات</h2>
+            <div style="font-size: 12px; color: #9ca3af; margin-top: 5px;" class="font-mono">رقم السند / الطلب: {{ receipt.request_number if receipt else '-' }}</div>
+        </div>
+
+        <!-- معلومات السند -->
+        <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                <span style="color: #9ca3af; font-size: 13px;">المستفيد (المورد):</span>
+                <span style="color: white; font-weight: bold; font-size: 13px;">{{ supplier.name if supplier else current_user.name }}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                <span style="color: #9ca3af; font-size: 13px;">المبلغ المدفوع / المسحوب:</span>
+                <span style="color: var(--royal-gold, #D4AF37); font-weight: 900; font-size: 16px;" class="font-mono">{{ "%.2f"|format(receipt.amount) if receipt else '0.00' }} {{ receipt.currency if receipt and receipt.currency else 'SAR' }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                <span style="color: #9ca3af; font-size: 13px;">حالة السند:</span>
+                <span>
+                    {% if receipt and receipt.status in ['completed', 'approved'] %}
+                        <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: bold;">معتمد ومكتمل</span>
+                    {% else %}
+                        <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: bold;">قيد المراجعة</span>
+                    {% endif %}
+                </span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                <span style="color: #9ca3af; font-size: 13px;">تاريخ ووقت الإصدار:</span>
+                <span style="color: #d1d5db; font-size: 13px;" class="font-mono">
+                    {% if receipt and receipt.created_at %}
+                        {{ receipt.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- التوقيع أو الختم الرقمي أسفل السند -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px; margin-top: 10px;">
+            <div style="font-size: 11px; color: #9ca3af; line-height: 1.6;">
+                هذا المستند صادر إلكترونياً من النظام المالي لمنصة محجوب أونلاين <br>ولا يحتاج إلى ختم أو توقيع يدوي.
+            </div>
+            <div style="text-align: center; border: 1px dashed rgba(212, 175, 55, 0.3); padding: 10px 20px; border-radius: 10px; background: rgba(212, 175, 55, 0.03);">
+                <span style="font-size: 11px; color: var(--royal-gold, #D4AF37); font-weight: bold; display: block;">معتمد رقمياً</span>
+                <span style="font-size: 10px; color: #10b981;" class="font-mono">✓ Verified</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
