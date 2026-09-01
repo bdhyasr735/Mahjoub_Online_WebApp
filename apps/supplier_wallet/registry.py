@@ -3,7 +3,7 @@
 
 MODULE_NAME = "إدارة المالية"
 MODULE_ICON = "fas fa-coins"
-SHOW_IN_SUPPLIER = True
+SHOW_IN_SUPPLIER = True  # ✅ أعد إضافة هذا السطر
 
 LINKS = {
     'supplier_wallet.transactions': 'حركة المحفظة',
@@ -35,7 +35,7 @@ def register_module(app):
         if not hasattr(app, 'supplier_modules'):
             app.supplier_modules = {}
         
-        # ✅ تسجيل فقط تحت مفتاح 'إدارة المالية'
+        # ✅ تسجيل تحت مفتاح 'إدارة المالية'
         app.supplier_modules['إدارة المالية'] = {
             'name': MODULE_NAME,
             'title': MODULE_NAME,
@@ -43,12 +43,8 @@ def register_module(app):
             'url': '/supplier/wallet/general/transactions',
             'links': LINKS,
             'menu_items': MENU_ITEMS,
-            'show_in_supplier': SHOW_IN_SUPPLIER
+            'show_in_supplier': SHOW_IN_SUPPLIER  # ✅ هذا مهم للتسجيل في SUPPLIER_MODULES
         }
-        
-        # ✅ حذف المفتاح القديم إن وجد (لتجنب التكرار)
-        if 'supplier_wallet' in app.supplier_modules:
-            del app.supplier_modules['supplier_wallet']
         
         print("🟢 [التسجيل الديناميكي]: ✅ تم تسجيل 'إدارة المالية' مع الروابط:")
         for endpoint, title in LINKS.items():
