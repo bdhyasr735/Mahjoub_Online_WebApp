@@ -453,13 +453,12 @@
                             <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-finance">
                                 {% if module.links is mapping %}
                                     {% for endpoint, link_title in module.links.items() %}
-                                        {% set url = safe_url_for(endpoint) if safe_url_for is defined else '#' %}
-                                        {% if url != '#' %}
-                                            <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                                <i class="fas fa-circle text-[6px]"></i> 
-                                                <span>{{ link_title }}</span>
-                                            </a>
-                                        {% endif %}
+                                        {# ✅ استخدام url_for مباشرة مع wallet_id='general' #}
+                                        {% set url = url_for(endpoint, wallet_id='general') %}
+                                        <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                                            <i class="fas fa-circle text-[6px]"></i> 
+                                            <span>{{ link_title }}</span>
+                                        </a>
                                     {% endfor %}
                                 {% endif %}
                             </div>
@@ -487,26 +486,22 @@
                                 </a>
                                 <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ key }}">
                                     {% for endpoint, link_title in module.links.items() %}
-                                        {% set url = safe_url_for(endpoint) if safe_url_for is defined else '#' %}
-                                        {% if url != '#' %}
-                                            <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                                <i class="fas fa-circle text-[6px]"></i> 
-                                                <span>{{ link_title }}</span>
-                                            </a>
-                                        {% endif %}
+                                        {% set url = url_for(endpoint) %}
+                                        <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                                            <i class="fas fa-circle text-[6px]"></i> 
+                                            <span>{{ link_title }}</span>
+                                        </a>
                                     {% endfor %}
                                 </div>
                             {% else %}
                                 {# موديول برابط واحد #}
                                 {% for endpoint, link_title in module.links.items() %}
-                                    {% set url = safe_url_for(endpoint) if safe_url_for is defined else '#' %}
-                                    {% if url != '#' %}
-                                        <a href="{{ url }}" 
-                                           class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                            <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                                            <span>{{ link_title }}</span>
-                                        </a>
-                                    {% endif %}
+                                    {% set url = url_for(endpoint) %}
+                                    <a href="{{ url }}" 
+                                       class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                                        <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
+                                        <span>{{ link_title }}</span>
+                                    </a>
                                 {% endfor %}
                             {% endif %}
                         {% endif %}
