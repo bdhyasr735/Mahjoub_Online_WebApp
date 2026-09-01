@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/registry.py
 
+from flask import url_for
+
 MODULE_NAME = "الإدارة المالية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# الروابط المباشرة بصيغة مسارات تمنع أي خطأ في توليد الـ url_for داخل القالب
+# تعريف القوالب الافتراضية، ويمكن للقالب الجانبي الاعتماد على الـ Context Processor المحدث في routes.py
 LINKS = {
     '/supplier/wallet/general/transactions': 'حركة المحفظة',
     '/supplier/wallet/general/withdraw': 'سحب الرصيد'
@@ -26,7 +28,7 @@ MENU_ITEMS = [
 
 def register_module(app):
     """
-    تسجيل موديول المحفظة مع روابط مسارات مباشرة لتفادي مشاكل الـ BuildError في القالب الجانبي
+    تسجيل موديول المحفظة مع الروابط الأساسية
     """
     from apps.supplier_wallet.routes import wallet_bp
     
