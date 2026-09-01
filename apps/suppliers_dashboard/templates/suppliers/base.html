@@ -452,9 +452,12 @@
                             
                             <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-finance">
                                 {% if module.links is mapping %}
+                                    {# ✅ الحصول على wallet_id من current_supplier #}
+                                    {% set wallet_id = current_supplier.wallet_code if current_supplier and current_supplier.wallet_code else 'general' %}
+                                    
                                     {% for endpoint, link_title in module.links.items() %}
-                                        {# ✅ استخدام url_for مباشرة مع wallet_id='general' #}
-                                        {% set url = url_for(endpoint, wallet_id='general') %}
+                                        {# ✅ استخدام wallet_id الحقيقي #}
+                                        {% set url = url_for(endpoint, wallet_id=wallet_id) %}
                                         <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                             <i class="fas fa-circle text-[6px]"></i> 
                                             <span>{{ link_title }}</span>
