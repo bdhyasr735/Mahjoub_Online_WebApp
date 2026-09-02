@@ -218,3 +218,7 @@ class OTP(db.Model):
             'is_blocked': self.is_blocked,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
+
+# توفير اسم مستعار متوافق إذا طلب الاستيراد بالاسم القديم
+OTPModel = OTP
