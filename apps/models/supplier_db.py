@@ -31,7 +31,7 @@ class Supplier(db.Model, UserMixin):
     # المعرفات الأساسية
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)  # حقل البريد الإلكتروني للتسجيل
+    email = db.Column(db.String(120), unique=True, nullable=True)  # تم التأكد من وجود حقل البريد الإلكتروني
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
