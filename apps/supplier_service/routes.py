@@ -9,16 +9,19 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from apps.supplier_service.service import SupplierService
 from apps.models.supplier_db import Supplier
 
-supplier_bp = Blueprint(
+supplier_service_bp = Blueprint(
     'supplier_portal',
     __name__,
     template_folder='templates',
     url_prefix='/supplier'
 )
 
+# توافق مسار الاستدعاء القديم
+supplier_bp = supplier_service_bp
+
 supplier_service = SupplierService()
 
-@supplier_bp.route('/login', methods=['GET', 'POST'])
+@supplier_service_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """صفحة تسجيل الدخول للمورد"""
     if request.method == 'POST':
@@ -44,7 +47,7 @@ def login():
 
     return render_template('supplier/login.html')
 
-@supplier_bp.route('/verify-otp', methods=['POST'])
+@supplier_service_bp.route('/verify-otp', methods=['POST'])
 def verify_otp():
     """التحقق من رمز الـ OTP لإتمام العمليات (تسجيل/استعادة)"""
     data = request.get_json(silent=True) or request.form.to_dict() or {}
@@ -70,7 +73,7 @@ def verify_otp():
 
     return jsonify(result), 400
 
-@supplier_bp.route('/reset-password', methods=['POST'])
+@supplier_service_bp.route('/reset-password', methods=['POST'])
 def reset_password_submit():
     """استقبال الكود الجديد وكلمة المرور الجديدة لإتمام الاستعادة"""
     data = request.get_json(silent=True) or request.form.to_dict() or {}
@@ -87,7 +90,7 @@ def reset_password_submit():
 
     return jsonify(result), 400
 
-@supplier_bp.route('/dashboard', methods=['GET'])
+@supplier_service_bp.route('/dashboard', methods=['GET'])
 def dashboard():
     """لوحة تحكم المورد المحمية بجلسة العمل"""
     supplier_id = session.get('supplier_id')
@@ -101,7 +104,7 @@ def dashboard():
 
     return render_template('supplier/dashboard.html', supplier=supplier)
 
-@supplier_bp.route('/logout', methods=['GET', 'POST'])
+@supplier_service_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
     """تسجيل خروج المورد وإنهاء الجلسة"""
     session.clear()
