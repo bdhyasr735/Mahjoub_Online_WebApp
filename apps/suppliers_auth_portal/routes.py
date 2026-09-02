@@ -3,16 +3,14 @@
 
 """
 مسارات المصادقة والتحكم في بوابة الموردين وموظفيهم
-يعتمد على النماذج الموجودة في apps/models
+يعتمد على النماذج الموجودة في apps/models وخدمات الـ OTP المستقلة
 """
 
 import logging
 import re
 import random
 import string
-import os
-import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user
@@ -23,6 +21,9 @@ from apps.models.supplier_profile_db import SupplierProfile
 from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.product_supplier_map import ProductSupplierMapping
+
+# استيراد خدمة الـ OTP المستقلة التي أنشأناها
+from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
 # إعداد التسجيل
 logger = logging.getLogger(__name__)
@@ -66,10 +67,6 @@ def validate_username(username):
     if re.match(r'^[a-zA-Z0-9_\u0600-\u06FF]{3,30}$', username):
         return username
     return None
-
-def generate_otp():
-    """توليد رمز تحقق عشوائي مكون من 6 أرقام"""
-    return ''.join(random.choices(string.digits, k=6))
 
 def mask_phone(phone):
     """إخفاء أرقام الهاتف"""
@@ -133,54 +130,6 @@ def find_user(identifier):
         return employee, 'employee'
     
     return None, None
-
-def send_whatsapp_otp(phone, otp_code):
-    """إرسال رمز التحقق عبر واتساب باستخدام Meta Cloud API الرسمي"""
-    try:
-        formatted_phone = validate_phone(phone)
-        if not formatted_phone:
-            return False
-            
-        phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '1336881386166971')
-        access_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
-        
-        if not access_token:
-            logger.error("❌ رمز الوصول WHATSAPP_ACCESS_TOKEN غير متوفر في متغيرات البيئة")
-            return False
-
-        url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
-        
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-        
-        if not formatted_phone.startswith('967') and len(formatted_phone) == 9:
-            recipient_phone = f"967{formatted_phone}"
-        else:
-            recipient_phone = formatted_phone
-
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": recipient_phone,
-            "type": "text",
-            "text": {
-                "body": f"رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 10 دقائق."
-            }
-        }
-
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
-        
-        if response.status_code == 200:
-            logger.info(f"📲 تم إرسال رمز الواتساب بنجاح عبر ميتا إلى الرقم: {recipient_phone}")
-            return True
-        else:
-            logger.error(f"❌ فشل إرسال واتساب من ميتا: {response.status_code} - {response.text}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"❌ خطأ غير متوقع أثناء إرسال واتساب: {str(e)}", exc_info=True)
-        return False
 
 
 # ============================================================
@@ -325,7 +274,6 @@ def register():
         if Supplier.query.filter_by(phone=valid_phone).first() or Supplier.query.filter_by(search_phone=valid_phone).first():
             return jsonify({'success': False, 'message': 'رقم الهاتف مستخدم بالفعل'}), 409
 
-        # توليد اسم مستخدم واسم معروض افتراضي فريد بناءً على رقم الهاتف
         random_suffix = ''.join(random.choices(string.digits, k=4))
         generated_username = f"sup_{valid_phone}_{random_suffix}"
         default_display_name = f"مورد رقم {valid_phone}"
@@ -350,7 +298,6 @@ def register():
         db.session.add(new_supplier)
         db.session.flush()
 
-        # إنشاء سجل البروفايل المبدئي الفارغ لاستكماله لاحقاً
         profile = SupplierProfile(
             supplier_id=new_supplier.id,
             full_address='',
@@ -359,7 +306,6 @@ def register():
         )
         db.session.add(profile)
 
-        # تفعيل المحفظة المالية الذكية للمورد تلقائياً
         wallet = SupplierWallet(
             supplier_id=new_supplier.id,
             currency='YER',
@@ -397,7 +343,7 @@ def forgot_password_page():
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 @suppliers_auth_bp.route('/supplier/forgot-password/request-otp', methods=['POST'])
 def request_otp():
-    """طلب رمز التحقق OTP عبر الواتساب"""
+    """طلب رمز التحقق OTP عبر الواتساب باستخدام خدمة SupplierOTPService المستقلة"""
     try:
         data = request.get_json(silent=True) or request.form
         identifier = str(data.get('identifier', '')).strip()
@@ -412,18 +358,18 @@ def request_otp():
         if not target_phone:
             return jsonify({'success': False, 'message': 'لا يوجد رقم هاتف مسجل لهذا الحساب لإرسال رمز الواتساب'}), 400
 
-        otp_code = generate_otp()
-        whatsapp_sent = send_whatsapp_otp(target_phone, otp_code)
+        # استدعاء الخدمة المستقلة لتوليد وإرسال الرمز وحفظه
+        result = SupplierOTPService.generate_and_send_otp(target_phone)
         
-        if not whatsapp_sent:
-            return jsonify({'success': False, 'message': 'فشل إرسال رمز التحقق عبر واتساب، يرجى المحاولة لاحقاً'}), 500
+        if not result.get("success"):
+            return jsonify({'success': False, 'message': result.get("error", 'فشل إرسال رمز التحقق عبر واتساب')}), 500
 
-        session['reset_otp'] = {
-            'code': otp_code,
+        # تخزين بيانات الجلسة للتحقق لاحقاً
+        session['reset_otp_data'] = {
             'identifier': identifier,
             'user_type': user_type,
             'user_id': user.id,
-            'expires_at': (datetime.now() + timedelta(minutes=10)).isoformat()
+            'phone': target_phone
         }
 
         return jsonify({
@@ -459,20 +405,19 @@ def reset_password():
         if len(new_password) < 8:
             return jsonify({'success': False, 'message': 'كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف'}), 400
 
-        stored_otp_data = session.get('reset_otp')
-        if not stored_otp_data:
+        stored_session_data = session.get('reset_otp_data')
+        if not stored_session_data:
             return jsonify({'success': False, 'message': 'انتهت صلاحية الجلسة أو لم يتم طلب رمز تحقق'}), 400
 
-        expires_at = datetime.fromisoformat(stored_otp_data['expires_at'])
-        if datetime.now() > expires_at:
-            session.pop('reset_otp', None)
-            return jsonify({'success': False, 'message': 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد'}), 400
+        target_phone = stored_session_data.get('phone')
 
-        if stored_otp_data['code'] != otp_code:
-            return jsonify({'success': False, 'message': 'رمز التحقق غير صحيح'}), 400
+        # التحقق من صحة الرمز عبر الخدمة المستقلة
+        is_valid = SupplierOTPService.verify_otp(target_phone, otp_code)
+        if not is_valid:
+            return jsonify({'success': False, 'message': 'رمز التحقق غير صحيح أو انتهت صلاحيته'}), 400
 
-        user_id = stored_otp_data['user_id']
-        u_type = stored_otp_data['user_type']
+        user_id = stored_session_data['user_id']
+        u_type = stored_session_data['user_type']
 
         if u_type == 'supplier':
             user = Supplier.query.get(user_id)
@@ -489,7 +434,7 @@ def reset_password():
             user.password_hash = generate_password_hash(new_password)
 
         db.session.commit()
-        session.pop('reset_otp', None)
+        session.pop('reset_otp_data', None)
 
         return jsonify({
             'success': True,
@@ -563,5 +508,5 @@ def init_app(app):
             return redirect(url_for('suppliers_auth_bp.dashboard'))
         return redirect(url_for('suppliers_auth_bp.login_page'))
     
-    logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح مع تفعيل نظام التقاط الأخطاء ومسارات الاستعادة")
+    logger.info("✅ تم تهيئة بوابة مصادقة الموردين بنجاح مع ربط خدمة الـ OTP المستقلة")
     return app
