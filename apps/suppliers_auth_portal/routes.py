@@ -9,9 +9,9 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 from apps.models.supplier_db import Supplier
 
-# تعريف الـ Blueprint الخاص ببوابة الموردين
+# تعريف الـ Blueprint الخاص ببوابة الموردين مع مطابقة الاسم لـ url_for
 suppliers_auth_bp = Blueprint(
-    'suppliers_auth_portal',
+    'suppliers_auth_bp',
     __name__,
     template_folder='templates',
     url_prefix='/suppliers'
@@ -19,7 +19,7 @@ suppliers_auth_bp = Blueprint(
 
 
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
-def supplier_login():
+def login():
     """صفحة تسجيل دخول الموردين عبر رقم الهاتف أو معرف الاتصال"""
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict() or {}
@@ -29,7 +29,7 @@ def supplier_login():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({"success": False, "error": "يرجى إدخال رقم الهاتف أو المعرف"}), 400
             flash('يرجى إدخال رقم الهاتف أو المعرف', 'danger')
-            return render_template('suppliers/login.html')
+            return render_template('suppliers_auth_portal/login.html')
             
         # التحقق من وجود المورد في قاعدة البيانات
         clean_id = identifier.replace("+", "").strip()
@@ -42,7 +42,7 @@ def supplier_login():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({"success": False, "error": error_msg}), 404
             flash(error_msg, 'danger')
-            return render_template('suppliers/login.html')
+            return render_template('suppliers_auth_portal/login.html')
             
         # توليد وإرسال رمز التحقق (OTP) عبر خدمة الواتساب
         ip_address = request.remote_addr
@@ -60,7 +60,7 @@ def supplier_login():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify(result), 500
             flash(result.get("error", "فشل إرسال رمز التحقق"), 'danger')
-            return render_template('suppliers/login.html')
+            return render_template('suppliers_auth_portal/login.html')
             
         # تخزين المعرف مؤقتاً في الجلسة للانتقال لخطوة التحقق من الرمز
         session['otp_identifier'] = clean_id
@@ -70,12 +70,12 @@ def supplier_login():
             return jsonify({
                 "success": True,
                 "message": "تم إرسال رمز التحقق بنجاح إلى هاتفك عبر الواتساب",
-                "redirect_url": url_for('suppliers_auth_portal.supplier_verify')
+                "redirect_url": url_for('suppliers_auth_bp.supplier_verify')
             }), 200
             
-        return redirect(url_for('suppliers_auth_portal.supplier_verify'))
+        return redirect(url_for('suppliers_auth_bp.supplier_verify'))
 
-    return render_template('suppliers/login.html')
+    return render_template('suppliers_auth_portal/login.html')
 
 
 @suppliers_auth_bp.route('/verify', methods=['GET', 'POST'])
@@ -86,7 +86,7 @@ def supplier_verify():
     
     if not identifier:
         flash('انتهت صلاحية الجلسة أو لم تقم بإدخال رقم الهاتف', 'warning')
-        return redirect(url_for('suppliers_auth_portal.supplier_login'))
+        return redirect(url_for('suppliers_auth_bp.login'))
         
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict() or {}
@@ -97,7 +97,7 @@ def supplier_verify():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({"success": False, "error": error_msg}), 400
             flash(error_msg, 'danger')
-            return render_template('suppliers/verify.html', identifier=identifier)
+            return render_template('suppliers_auth_portal/verify.html', identifier=identifier)
             
         # التحقق من صحة الرمز باستخدام خدمة OTP
         verification_res = SupplierOTPService.verify_otp(identifier, entered_otp)
@@ -107,7 +107,7 @@ def supplier_verify():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({"success": False, "error": error_msg}), 400
             flash(error_msg, 'danger')
-            return render_template('suppliers/verify.html', identifier=identifier)
+            return render_template('suppliers_auth_portal/verify.html', identifier=identifier)
             
         # تسجيل الدخول بنجاح وتثبيت الجلسة للمورد
         session['supplier_logged_in'] = True
@@ -123,13 +123,13 @@ def supplier_verify():
             return jsonify({
                 "success": True,
                 "message": success_msg,
-                "redirect_url": url_for('suppliers_auth_portal.supplier_dashboard')
+                "redirect_url": url_for('suppliers_auth_bp.supplier_dashboard')
             }), 200
             
         flash(success_msg, 'success')
-        return redirect(url_for('suppliers_auth_portal.supplier_dashboard'))
+        return redirect(url_for('suppliers_auth_bp.supplier_dashboard'))
 
-    return render_template('suppliers/verify.html', identifier=identifier)
+    return render_template('suppliers_auth_portal/verify.html', identifier=identifier)
 
 
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
@@ -137,16 +137,35 @@ def supplier_dashboard():
     """لوحة تحكم المورد الرئيسية بعد تسجيل الدخول الناجح"""
     if not session.get('supplier_logged_in') or not session.get('supplier_id'):
         flash('يرجى تسجيل الدخول أولاً للوصول إلى لوحة الموردين', 'warning')
-        return redirect(url_for('suppliers_auth_portal.supplier_login'))
+        return redirect(url_for('suppliers_auth_bp.login'))
         
     supplier_id = session.get('supplier_id')
     supplier = Supplier.query.get(supplier_id)
     
     if not supplier:
         session.clear()
-        return redirect(url_for('suppliers_auth_portal.supplier_login'))
+        return redirect(url_for('suppliers_auth_bp.login'))
         
-    return render_template('suppliers/dashboard.html', supplier=supplier)
+    return render_template('suppliers_auth_portal/dashboard.html', supplier=supplier)
+
+
+@suppliers_auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password_page():
+    """صفحة استعادة كلمة المرور للموردين"""
+    if request.method == 'POST':
+        # منطق طلب استعادة كلمة المرور
+        flash('تم إرسال تعليمات الاستعادة إلى وسائل الاتصال الخاصة بك إن كانت مسجلة.', 'info')
+        return redirect(url_for('suppliers_auth_bp.login'))
+    return render_template('suppliers_auth_portal/forgot_password.html')
+
+
+@suppliers_auth_bp.route('/register', methods=['GET', 'POST'])
+def register_page():
+    """صفحة تسجيل وانضمام مورد جديد للمنصة"""
+    if request.method == 'POST':
+        # منطق تسجيل المورد الجديد
+        pass
+    return render_template('suppliers_auth_portal/register.html')
 
 
 @suppliers_auth_bp.route('/logout', methods=['POST', 'GET'])
@@ -157,4 +176,4 @@ def supplier_logout():
     session.pop('supplier_phone', None)
     
     flash('تم تسجيل الخروج بنجاح من بوابة الموردين', 'info')
-    return redirect(url_for('suppliers_auth_portal.supplier_login'))
+    return redirect(url_for('suppliers_auth_bp.login'))
