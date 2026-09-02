@@ -358,8 +358,14 @@ def request_otp():
         if not target_phone:
             return jsonify({'success': False, 'message': 'لا يوجد رقم هاتف مسجل لهذا الحساب لإرسال رمز الواتساب'}), 400
 
-        # استدعاء الخدمة المستقلة لتوليد وإرسال الرمز وحفظه
-        result = SupplierOTPService.generate_and_send_otp(target_phone)
+        # تم تصحيح استدعاء الخدمة لتمرير كافة المعاملات المتوقعة تماماً (target_id, target_type, إلخ)
+        result = SupplierOTPService.generate_and_send_otp(
+            identifier=target_phone,
+            target_id=user.id,
+            target_type=user_type,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
         
         if not result.get("success"):
             return jsonify({'success': False, 'message': result.get("error", 'فشل إرسال رمز التحقق عبر واتساب')}), 500
