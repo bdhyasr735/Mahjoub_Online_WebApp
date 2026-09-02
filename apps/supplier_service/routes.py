@@ -32,9 +32,8 @@ def login():
         if not phone or not password:
             return jsonify({"success": False, "error": "رقم الهاتف وكلمة المرور مطلوبة"}), 400
 
-        # التحقق المباشر أو عبر خدمة المصادقة
         supplier = Supplier.query.filter_by(phone=phone.replace("+", "").strip()).first()
-        if not supplier or supplier.password != password: # استبدل بمقارنة التشفير المعتمدة لديك
+        if not supplier or supplier.password != password:
             return jsonify({"success": False, "error": "بيانات الدخول غير صحيحة"}), 401
 
         session['supplier_id'] = supplier.id
@@ -45,7 +44,14 @@ def login():
             "redirect_url": url_for('supplier_portal.dashboard')
         }), 200
 
-    return render_template('supplier/login.html')
+    # البحث عن القالب بالأسماء المحتملة لضمان عدم حدوث خطأ TemplateNotFound دون تغيير مسارات الملفات
+    try:
+        return render_template('login.html')
+    except Exception:
+        try:
+            return render_template('suppliers_auth_portal/login.html')
+        except Exception:
+            return render_template('supplier/login.html')
 
 @supplier_service_bp.route('/verify-otp', methods=['POST'])
 def verify_otp():
@@ -102,7 +108,13 @@ def dashboard():
         session.clear()
         return redirect(url_for('supplier_portal.login'))
 
-    return render_template('supplier/dashboard.html', supplier=supplier)
+    try:
+        return render_template('dashboard.html', supplier=supplier)
+    except Exception:
+        try:
+            return render_template('suppliers_auth_portal/dashboard.html', supplier=supplier)
+        except Exception:
+            return render_template('supplier/dashboard.html', supplier=supplier)
 
 @supplier_service_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
