@@ -29,6 +29,28 @@ try:
 except ImportError:
     from app import db
 
+
+def format_phone_number(phone: str) -> str:
+    """تنسيق رقم الهاتف بشكل دولي موحد ومنطقي لضمان عدم تكرار الجهات"""
+    if not phone:
+        return ""
+    
+    # تنظيف الرقم وإزالة أي رموز غريبة ما عدا الأرقام وعلامة الزائد
+    clean = "".join([c for c in str(phone) if c.isdigit() or c == '+'])
+    
+    if not clean.startswith('+'):
+        if clean.startswith('967'):
+            clean = '+' + clean
+        else:
+            clean = '+967' + clean.lstrip('0')
+            
+    # تنسيق شكل العرض للأرقام اليمنية إذا تطابق الطول
+    if clean.startswith('+967') and len(clean) == 13:
+        return f"{clean[:4]} {clean[4:6]} {clean[6:9]} {clean[9:]}"
+        
+    return clean
+
+
 class WhatsAppService:
     def __init__(self):
         # إعدادات الربط مع Meta Cloud API v26.0 (آمن - تقرأ من Railway فقط)
@@ -90,7 +112,6 @@ class WhatsAppService:
         """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API"""
         clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
 
-        # استبدال المتغيرات في الرسالة إذا كانت البيانات متوفرة
         if contact_data:
             text = self._process_message_variables(text, contact_data)
 
@@ -105,7 +126,6 @@ class WhatsAppService:
             }
         }
 
-        # حفظ الرسالة محلياً (outbound لا يزيد unread_count)
         self._record_message(clean_phone, text, direction="outbound", status="sent")
 
         if not self.access_token:
@@ -219,14 +239,12 @@ class WhatsAppService:
 
         sent_count = 0
         for contact in target_contacts:
-            # تصفية حسب الفئة المستهدفة
             if target_category != 'all' and contact.get('category') != target_category:
                 continue
 
-            # استبدال المتغيرات في الرسالة
             personalized_message = self._process_message_variables(message_text, contact)
 
-            result = self.send_message(contact['phone'], personalized_message, contact)
+            result = self.send_message(contact['raw_phone'], personalized_message, contact)
             if result.get('status') in ['sent', 'simulated']:
                 sent_count += 1
 
@@ -304,37 +322,32 @@ class WhatsAppService:
                             elif msg_type == "location":
                                 msg_text = "موقع جغرافي"
 
-                            # ✅ تسجيل جهة الاتصال (هنا يتم زيادة unread_count)
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
-
-                            # ✅ تسجيل الرسالة كـ inbound
                             self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id, media_url=media_url)
 
-                            # ❌ تم تعطيل الرد الآلي
-                            # self._handle_smart_ai_reply(sender_phone, msg_text)
-
-                    # 2. حالة تحديث حالة التسليم والقراءة
+                    # 2. حالة تحديث حالة التسليم والقراءة (تحديث الشخطين الزرقاء)
                     if "statuses" in value:
                         for status_update in value["statuses"]:
                             recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
-                            status = status_update.get("status")
+                            status = status_update.get("status")  # sent, delivered, read
                             self._update_message_status(recipient_id, status)
 
         except Exception as e:
             self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
 
     def _update_message_status(self, phone: str, status: str) -> None:
-        """تحديث حالة الرسائل المرسلة (sent, delivered, read)"""
+        """تحديث حالة الرسائل المرسلة (sent, delivered, read) وعكسها لتظهر الشخطين بلون أزرق عند القراءة"""
         try:
-            message = WhatsAppMessageLog.query.filter_by(
-                recipient_number=phone,
+            clean_phone = phone.replace("+", "").strip()
+            messages = WhatsAppMessageLog.query.filter_by(
+                recipient_number=clean_phone,
                 direction='outbound'
-            ).order_by(WhatsAppMessageLog.timestamp.desc()).first()
+            ).order_by(WhatsAppMessageLog.timestamp.desc()).limit(5).all()
 
-            if message:
+            for message in messages:
                 message.status = status
-                db.session.commit()
+            db.session.commit()
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [خطأ تحديث حالة الرسالة]: {e}")
@@ -347,15 +360,14 @@ class WhatsAppService:
         """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها مع زيادة العداد"""
         if not phone:
             return
-        phone = phone.replace("+", "").strip()
+        clean_phone = phone.replace("+", "").strip()
 
-        # ✅ الحفظ في قاعدة البيانات
         try:
-            contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
             if not contact:
                 contact = WhatsAppCustomerContact(
-                    phone=phone,
-                    name=name if name != "عميل واتساب" else f"عميل (+{phone})",
+                    phone=clean_phone,
+                    name=name if name != "عميل واتساب" else f"عميل (+{clean_phone})",
                     whatsapp_profile_name=name,
                     last_message=last_message,
                     last_timestamp=datetime.utcnow(),
@@ -376,41 +388,19 @@ class WhatsAppService:
             db.session.rollback()
             print(f"⚠️ [خطأ حفظ جهة الاتصال في الجدول]: {e}")
 
-        # ✅ الحفظ في الذاكرة (القاموس)
-        if phone not in self.contacts_db:
-            self.contacts_db[phone] = {
-                "phone": phone,
-                "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
-                "last_message": last_message,
-                "last_message_time": datetime.utcnow().strftime("%H:%M"),
-                "unread_count": 1
-            }
-        else:
-            if name and name != "عميل واتساب":
-                self.contacts_db[phone]["name"] = name
-            if last_message:
-                self.contacts_db[phone]["last_message"] = last_message
-                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
-                self.contacts_db[phone]["unread_count"] = (self.contacts_db[phone].get("unread_count", 0) or 0) + 1
-
     # =========================================================================
-    # 4. تم تعطيل الرد الآلي
+    # 4. الرد الآلي
     # =========================================================================
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
-        """❌ تم تعطيل الرد الآلي بناءً على طلب العميل"""
         return
 
     def _generate_gemini_reply(self, prompt: str) -> str:
-        """استدعاء نموذج Gemini AI لتوليد الردود الفورية"""
         if not self.gemini_api_key:
             return "أهلاً بك في سوق محجوب أونلاين! تم استلام رسالتك وسيتواصل معك أحد ممثلي الخدمة في أقرب وقت."
-
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
             res = requests.post(url, json=payload, timeout=8)
             res_json = res.json()
             return res_json['candidates'][0]['content']['parts'][0]['text']
@@ -423,7 +413,6 @@ class WhatsAppService:
 
     def _record_message(self, phone: str, content: str, direction: str, media_id: str = "", media_url: str = "", status: str = "received") -> None:
         clean_phone = phone.replace("+", "").strip()
-
         self._ensure_contact_exists(clean_phone, last_message=content)
 
         try:
@@ -443,18 +432,6 @@ class WhatsAppService:
             db.session.rollback()
             print(f"⚠️ [خطأ حفظ الرسالة في الجدول]: {e}")
 
-        if clean_phone not in self.messages_db:
-            self.messages_db[clean_phone] = []
-        self.messages_db[clean_phone].append({
-            "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
-            "direction": direction,
-            "content": content,
-            "media_id": media_id,
-            "media_url": media_url,
-            "status": status,
-            "timestamp": datetime.utcnow().strftime("%H:%M")
-        })
-
     def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
         self.webhook_logs.insert(0, {
             "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
@@ -466,25 +443,28 @@ class WhatsAppService:
             self.webhook_logs.pop()
 
     # =========================================================================
-    # 6. دوال جلب البيانات
+    # 6. دوال جلب البيانات (مع توحيد الأرقام ومنع التكرار)
     # =========================================================================
 
     def get_all_contacts(self) -> List[Dict[str, Any]]:
-        """جلب جميع جهات الاتصال: العملاء، التجار، الموردين، والمسوقين"""
+        """جلب جميع جهات الاتصال ودمج الأرقام المتطابقة لمنع التكرار"""
         try:
-            # 1. جلب العملاء من WhatsAppCustomerContact
+            unique_contacts = {}
+
+            # 1. جلب العملاء من قاعدة البيانات
             customers = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
-
-            result = []
-
             for c in customers:
-                # قراءة extra_data إذا كان موجوداً
+                if not c.phone:
+                    continue
+                raw_phone = c.phone.replace("+", "").strip()
+                formatted_phone = format_phone_number(raw_phone)
                 extra_data = c.extra_data if isinstance(c.extra_data, dict) else {}
 
-                data = {
+                unique_contacts[raw_phone] = {
                     'id': c.id,
-                    'phone': c.phone,
-                    'name': c.name or c.whatsapp_profile_name or f"عميل ({c.phone})",
+                    'phone': formatted_phone,
+                    'raw_phone': raw_phone,
+                    'name': c.name or c.whatsapp_profile_name or f"عميل ({formatted_phone})",
                     'last_message': c.last_message,
                     'last_timestamp': c.last_timestamp.isoformat() if c.last_timestamp else None,
                     'unread_count': c.unread_count or 0,
@@ -498,75 +478,74 @@ class WhatsAppService:
                     'notes': c.notes or '',
                 }
 
+                # فحص حالة الاتصال (متصل خلال آخر 5 دقائق)
                 if c.last_timestamp:
-                    if isinstance(c.last_timestamp, datetime):
-                        c.last_timestamp = c.last_timestamp.replace(tzinfo=None)
-                        time_diff = datetime.utcnow() - c.last_timestamp
-                        if time_diff.total_seconds() < 300:
-                            data['is_online'] = True
-                            data['last_seen'] = 'متصل الآن'
-                        else:
-                            data['is_online'] = False
-                            if c.last_timestamp.date() == datetime.utcnow().date():
-                                data['last_seen'] = f"آخر ظهور اليوم {c.last_timestamp.strftime('%H:%M')}"
-                            elif c.last_timestamp.date() == (datetime.utcnow() - timedelta(days=1)).date():
-                                data['last_seen'] = f"آخر ظهور أمس {c.last_timestamp.strftime('%H:%M')}"
-                            else:
-                                data['last_seen'] = f"آخر ظهور {c.last_timestamp.strftime('%d/%m/%Y %H:%M')}"
+                    dt = c.last_timestamp.replace(tzinfo=None) if isinstance(c.last_timestamp, datetime) else None
+                    if dt and (datetime.utcnow() - dt).total_seconds() < 300:
+                        unique_contacts[raw_phone]['is_online'] = True
+                        unique_contacts[raw_phone]['last_seen'] = 'متصل الآن'
 
-                result.append(data)
-
-            # 2. جلب التجار والموردين من Supplier
-            suppliers = Supplier.query.order_by(Supplier.created_at.desc()).all()
+            # 2. جلب التجار والموردين ودمجهم إذا كان الرقم موجوداً
+            suppliers = Supplier.query.all()
             for s in suppliers:
-                supplier_data = {
-                    'id': f"supplier_{s.id}",
-                    'phone': s.phone,
-                    'name': s.store_name or s.trade_name or s.owner_name or s.username,
-                    'company': s.trade_name or s.store_name,
-                    'city': getattr(s, 'city', ''),
-                    'category': 'suppliers',
-                    'discount_code': '',
-                    'email': '',
-                    'notes': '',
-                    'last_message': '',
-                    'last_timestamp': s.created_at.isoformat() if s.created_at else None,
-                    'unread_count': 0,
-                    'is_online': False,
-                    'last_seen': 'آخر ظهور اليوم',
-                }
-                result.append(supplier_data)
+                if not s.phone:
+                    continue
+                raw_phone = s.phone.replace("+", "").strip()
+                formatted_phone = format_phone_number(raw_phone)
+                
+                if raw_phone in unique_contacts:
+                    unique_contacts[raw_phone]['category'] = 'suppliers'
+                    unique_contacts[raw_phone]['company'] = s.store_name or s.trade_name
+                else:
+                    unique_contacts[raw_phone] = {
+                        'id': f"supplier_{s.id}",
+                        'phone': formatted_phone,
+                        'raw_phone': raw_phone,
+                        'name': s.store_name or s.trade_name or s.owner_name or s.username,
+                        'company': s.trade_name or s.store_name,
+                        'city': getattr(s, 'city', ''),
+                        'category': 'suppliers',
+                        'unread_count': 0,
+                        'is_online': False,
+                        'last_seen': 'آخر ظهور اليوم',
+                        'last_message': '',
+                        'last_timestamp': s.created_at.isoformat() if s.created_at else None,
+                    }
 
-            # 3. جلب المسوقين من Marketer
-            marketers = Marketer.query.order_by(Marketer.created_at.desc()).all()
+            # 3. جلب المسوقين
+            marketers = Marketer.query.all()
             for m in marketers:
-                marketer_data = {
-                    'id': f"marketer_{m.id}",
-                    'phone': m.phone,
-                    'name': m.full_name,
-                    'company': '',
-                    'city': '',
-                    'category': 'marketers',
-                    'discount_code': '',
-                    'email': '',
-                    'notes': '',
-                    'last_message': '',
-                    'last_timestamp': m.created_at.isoformat() if m.created_at else None,
-                    'unread_count': 0,
-                    'is_online': False,
-                    'last_seen': 'آخر ظهور اليوم',
-                }
-                result.append(marketer_data)
+                if not m.phone:
+                    continue
+                raw_phone = m.phone.replace("+", "").strip()
+                formatted_phone = format_phone_number(raw_phone)
 
-            # إرجاع القائمة كاملة (تم فرزها حسب الأحدث - يمكن تعديل الترتيب لاحقاً)
-            return result
+                if raw_phone in unique_contacts:
+                    unique_contacts[raw_phone]['category'] = 'marketers'
+                else:
+                    unique_contacts[raw_phone] = {
+                        'id': f"marketer_{m.id}",
+                        'phone': formatted_phone,
+                        'raw_phone': raw_phone,
+                        'name': m.full_name,
+                        'company': '',
+                        'city': '',
+                        'category': 'marketers',
+                        'unread_count': 0,
+                        'is_online': False,
+                        'last_seen': 'آخر ظهور اليوم',
+                        'last_message': '',
+                        'last_timestamp': m.created_at.isoformat() if m.created_at else None,
+                    }
+
+            return list(unique_contacts.values())
 
         except Exception as e:
             print(f"⚠️ [خطأ جلب جهات الاتصال من الجداول]: {e}")
-            return list(self.contacts_db.values())
+            return []
 
     def get_chat_history(self, phone: str) -> List[Dict[str, Any]]:
-        """جلب سجل المحادثة (من قاعدة البيانات أولاً)"""
+        """جلب سجل المحادثة"""
         try:
             clean_phone = phone.replace("+", "").strip()
             messages = WhatsAppMessageLog.query.filter(
@@ -591,24 +570,18 @@ class WhatsAppService:
             return result
         except Exception as e:
             print(f"⚠️ [خطأ جلب المحادثة من الجداول]: {e}")
-            return self.messages_db.get(phone.replace("+", "").strip(), [])
+            return []
 
     def _get_media_url(self, media_id: str) -> str:
-        """الحصول على رابط مؤقت للوسائط من Meta"""
         try:
             url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
-            res = requests.get(
-                url,
-                headers={"Authorization": f"Bearer {self.access_token}"},
-                timeout=10
-            )
+            res = requests.get(url, headers={"Authorization": f"Bearer {self.access_token}"}, timeout=10)
             data = res.json()
             return data.get("url", "")
         except Exception:
             return ""
 
     def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
-        """رفع ملف إلى Cloudinary وإرجاع الرابط الدائم"""
         try:
             upload_result = cloudinary.uploader.upload(
                 file_path,
@@ -621,7 +594,7 @@ class WhatsAppService:
             return ""
 
     # =========================================================================
-    # 7. دوال إضافية
+    # 7. دوال إضافية وإدارة التكوين
     # =========================================================================
 
     def get_webhook_logs(self) -> List[Dict[str, Any]]:
@@ -634,21 +607,7 @@ class WhatsAppService:
                 "category": "خدمات وطلبات (Utility)",
                 "language": "ar",
                 "status": "APPROVED",
-                "body_text": "مرحباً {{1}}، تم تأكيد طلبك رقم #{{2}} بقيمة {{3}} ر.س من سوق محجوب أونلاين بنجاح. سنوافيك برابط التتبع فور انطلاق الشحنة."
-            },
-            {
-                "name": "mahjoob_shipping_update",
-                "category": "الشحن والتوصيل (Utility)",
-                "language": "ar",
-                "status": "APPROVED",
-                "body_text": "أهلاً {{1}}، شحنتك رقم #{{2}} خرجت للتوصيل الآن مع شركة الشحن. رقم البوليصة: {{3}}."
-            },
-            {
-                "name": "mahjoob_merchant_alert",
-                "category": "تنبيهات التجار (Alert)",
-                "language": "ar",
-                "status": "APPROVED",
-                "body_text": "عزيزي التاجر {{1}}، ورد طلب جملة جديد رقم #{{2}} على منتجاتك. يرجى تجهيز الشحنة."
+                "body_text": "مرحباً {{1}}، تم تأكيد طلبك رقم #{{2}} بقيمة {{3}} ر.س من سوق محجوب أونلاين بنجاح."
             }
         ]
 
@@ -668,18 +627,12 @@ class WhatsAppService:
         self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
 
     def clear_demo_data(self) -> Dict[str, Any]:
-        """تفريغ كافة البيانات الوهمية والمحادثات"""
         self.contacts_db.clear()
         self.messages_db.clear()
         self.webhook_logs.clear()
         return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح."}
 
-    # =========================================================================
-    # 8. دالة تعديل اسم العميل
-    # =========================================================================
-
     def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
-        """تعديل اسم جهة اتصال في قاعدة البيانات"""
         try:
             clean_phone = phone.replace("+", "").strip()
             contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
@@ -690,21 +643,12 @@ class WhatsAppService:
             contact.name = name
             contact.whatsapp_profile_name = name
             db.session.commit()
-
-            if clean_phone in self.contacts_db:
-                self.contacts_db[clean_phone]["name"] = name
-
             return {"success": True, "message": "تم تعديل الاسم بنجاح", "name": name}
         except Exception as e:
             db.session.rollback()
             return {"error": str(e), "status": "failed"}
 
-    # =========================================================================
-    # 9. دالة تصفير عداد الرسائل غير المقروءة
-    # =========================================================================
-
     def mark_contact_as_read(self, phone: str) -> Dict[str, Any]:
-        """تصفير عداد الرسائل غير المقروءة عند فتح المحادثة"""
         try:
             clean_phone = phone.replace("+", "").strip()
             contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
@@ -712,8 +656,6 @@ class WhatsAppService:
             if contact:
                 contact.unread_count = 0
                 db.session.commit()
-                if clean_phone in self.contacts_db:
-                    self.contacts_db[clean_phone]["unread_count"] = 0
 
             return {"success": True, "status": "success"}
         except Exception as e:
