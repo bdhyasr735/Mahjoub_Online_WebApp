@@ -1,327 +1,223 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/models/wallet_db.py
+# 📂 apps/suppliers_auth_portal/routes.py
+"""
+مسارات المصادقة والتسجيل وإدارة لوحة تحكم الموردين - محجوب أونلاين
+"""
 
-import os
-import base64
-import secrets
-import string
-from datetime import datetime, timedelta
-from decimal import Decimal
-from cryptography.fernet import Fernet
-from sqlalchemy import event, select, update
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, logout_user, login_required, current_user
+
 from apps.extensions import db
+from apps.models.supplier_db import Supplier
+from apps.models.wallet_db import SupplierWallet  # تم تحديث مسار استيراد المحفظة ليطابق wallet_db.py
+from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
+suppliers_auth_bp = Blueprint(
+    'suppliers_auth_bp', 
+    __name__, 
+    template_folder='templates',
+    static_folder='static'
+)
 
-class SupplierWallet(db.Model):
-    """محفظة الموردين: الأرصدة والبيانات المشفرة بأعلى معايير الأمان (ريال سعودي SAR فقط)."""
-    __tablename__ = 'supplier_wallets'
+@suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """مسار تسجيل دخول الموردين برقم الهاتف وكلمة المرور أو التحقق الثنائي"""
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        data = request.get_json() or {}
+        phone = data.get('phone', '').strip().replace("+", "")
+        password = data.get('password', '')
 
-    __table_args__ = (
-        db.Index('idx_wall_lookup', 'supplier_id', 'wallet_code'),
-        db.Index('idx_wall_activity', 'updated_at'),
-        {'extend_existing': True}
-    )
+        if not phone or not password:
+            return jsonify({"success": False, "message": "الرجاء إدخال رقم الهاتف وكلمة المرور."}), 400
 
-    id = db.Column(db.Integer, primary_key=True)
-    wallet_code = db.Column(db.String(50), unique=True, nullable=False)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
-    
-    status = db.Column(db.String(20), default='active', nullable=False)
+        # البحث عن المورد برقم الهاتف
+        supplier = Supplier.query.filter_by(phone=phone).first()
+        if not supplier or not check_password_hash(supplier.password_hash, password):
+            return jsonify({"success": False, "message": "رقم الهاتف أو كلمة المرور غير صحيحة."}), 401
 
-    balance_sar = db.Column(db.Numeric(18, 2), default=0.00, nullable=False)
-    balance_pending = db.Column(db.Numeric(18, 2), default=0.00)
-    total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)
+        # التحقق مما إذا كان الحساب موقوفاً بسبب ميثاق حوكمة الأسعار
+        if getattr(supplier, 'is_suspended', False):
+            return jsonify({"success": False, "message": "تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة."}), 403
 
-    @property
-    def balance(self):
-        """خاصية متوافقة مع القوالب التي تستخدم balance بدلاً من balance_sar"""
-        return self.balance_sar
+        # تسجيل الدخول عبر Flask-Login
+        login_user(supplier, remember=True)
+        session['supplier_id'] = supplier.id
+        session['supplier_phone'] = supplier.phone
 
-    @balance.setter
-    def balance(self, value):
-        self.balance_sar = value
+        return jsonify({
+            "success": True, 
+            "message": "تم تسجيل الدخول بنجاح. جاري تحويلك إلى لوحة التحكم...", 
+            "redirect_url": url_for('suppliers_auth_bp.dashboard')
+        })
 
-    _bank_details_enc = db.Column(db.String(500), nullable=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    if request.method == 'POST':
+        phone = request.form.get('phone', '').strip().replace("+", "")
+        password = request.form.get('password', '')
 
-    supplier = db.relationship('Supplier', back_populates='wallet', lazy='joined')
-    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan", lazy='selectin')
+        supplier = Supplier.query.filter_by(phone=phone).first()
+        if supplier and check_password_hash(supplier.password_hash, password):
+            if getattr(supplier, 'is_suspended', False):
+                flash('تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة.', 'danger')
+                return redirect(url_for('suppliers_auth_bp.login'))
 
-    @staticmethod
-    def _get_fernet():
-        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
-        try:
-            return Fernet(key.encode('utf-8'))
-        except Exception:
-            b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
-            return Fernet(b64_key)
-
-    @property
-    def bank_details(self):
-        if not self._bank_details_enc:
-            return None
-        try:
-            return self._get_fernet().decrypt(self._bank_details_enc.encode('utf-8')).decode('utf-8')
-        except Exception:
-            return None
-
-    @bank_details.setter
-    def bank_details(self, value):
-        if value:
-            self._bank_details_enc = self._get_fernet().encrypt(str(value).encode('utf-8')).decode('utf-8')
+            login_user(supplier, remember=True)
+            session['supplier_id'] = supplier.id
+            session['supplier_phone'] = supplier.phone
+            flash('تم تسجيل الدخول بنجاح.', 'success')
+            return redirect(url_for('suppliers_auth_bp.dashboard'))
         else:
-            self._bank_details_enc = None
+            flash('رقم الهاتف أو كلمة المرور غير صحيحة.', 'danger')
 
-    @property
-    def formatted_time(self):
-        if self.updated_at:
-            local_time = self.updated_at + timedelta(hours=3)
-            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
-        return "-"
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'wallet_code': self.wallet_code,
-            'status': self.status,
-            'supplier_id': self.supplier_id,
-            'balance_sar': float(self.balance_sar or 0.0),
-            'balance': float(self.balance_sar or 0.0),
-            'bank_details': self.bank_details,
-            'formatted_time': self.formatted_time,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
+    return render_template('suppliers_auth_portal/login.html')
 
 
-class WalletTransaction(db.Model):
-    """سجل الحركات المالية الموحد بالريال السعودي مع التوثيق المالي المشفر."""
-    __tablename__ = 'wallet_transactions'
+@suppliers_auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """مسار تسجيل مورد جديد برقم الهاتف وإنشاء المحفظة المالية الذكية تلقائياً"""
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        data = request.get_json() or {}
+        phone = data.get('phone', '').strip().replace("+", "")
+        password = data.get('password', '')
+        confirm_password = data.get('confirm_password', '')
 
-    __table_args__ = (
-        db.Index('idx_trans_wallet_history', 'wallet_id', 'created_at'),
-        db.Index('idx_trans_lookup', 'voucher_number', 'reference_number'),
-        db.Index('idx_trans_status_type', 'status', 'trans_type'),
-        {'extend_existing': True}
-    )
+        if not phone or len(phone) != 9:
+            return jsonify({"success": False, "message": "رقم الهاتف يجب أن يتكون من 9 أرقام صحيحة."}), 400
 
-    id = db.Column(db.Integer, primary_key=True)
-    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
-    
-    trans_type = db.Column(db.String(30), nullable=False)
-    status = db.Column(db.String(30), default='completed') 
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
-    currency = db.Column(db.String(5), nullable=False, default='SAR')
-    balance_before = db.Column(db.Numeric(18, 2), nullable=False)
-    balance_after = db.Column(db.Numeric(18, 2), nullable=False)
-    
-    # [بيانات التوثيق المالي]
-    transfer_number = db.Column(db.String(100), nullable=True)
-    approval_ref = db.Column(db.String(100), nullable=True)
-    payout_bank = db.Column(db.String(100), nullable=True)
-    
-    _description_enc = db.Column(db.String(500), nullable=True)
-    
-    reference_number = db.Column(db.String(80), unique=True, nullable=True)
-    voucher_number = db.Column(db.String(50), unique=True, nullable=True)
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
+        if not password or len(password) < 8:
+            return jsonify({"success": False, "message": "كلمة المرور يجب أن تكون 8 أحرف على الأقل."}), 400
 
-    @property
-    def description(self):
-        if not self._description_enc:
-            return None
+        if password != confirm_password:
+            return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين."}), 400
+
+        # التأكد من عدم مسبقية تسجيل رقم الهاتف
+        existing_supplier = Supplier.query.filter_by(phone=phone).first()
+        if existing_supplier:
+            return jsonify({"success": False, "message": "رقم الهاتف مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة."}), 400
+
         try:
-            key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
-            return Fernet(key.encode('utf-8')).decrypt(self._description_enc.encode('utf-8')).decode('utf-8')
-        except Exception:
-            return None
+            # 1. إنشاء سجل المورد الجديد وتشفير كلمة المرور
+            hashed_password = generate_password_hash(password)
+            new_supplier = Supplier(
+                phone=phone,
+                password_hash=hashed_password,
+                is_active=True
+            )
+            db.session.add(new_supplier)
+            db.session.flushforkeys if hasattr(db.session, 'flushforkeys') else db.session.flush()
 
-    @description.setter
-    def description(self, value):
-        if value:
-            key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
-            self._description_enc = Fernet(key.encode('utf-8')).encrypt(str(value).encode('utf-8')).decode('utf-8')
-        else:
-            self._description_enc = None
+            # 2. إنشاء وتفعيل المحفظة المالية الذكية التلقائية (SupplierWallet)
+            new_wallet = SupplierWallet(
+                supplier_id=new_supplier.id,
+                balance=0.00,
+                currency="YER",
+                is_active=True
+            )
+            db.session.add(new_wallet)
+            db.session.commit()
 
-    @property
-    def formatted_time(self):
-        if self.created_at:
-            local_time = self.created_at + timedelta(hours=3)
-            return local_time.strftime('%Y-%m-%d | %I:%M:%S %p')
-        return "-"
+            # 3. إرسال إشعار ترحبي أو رمز تحقق عبر الواتساب اختياري إن أمكن
+            client_ip = request.remote_addr
+            user_agent = request.headers.get('User-Agent')
+            SupplierOTPService.generate_and_send_otp(
+                identifier=phone, 
+                target_id=new_supplier.id, 
+                target_type='supplier', 
+                ip_address=client_ip, 
+                user_agent=user_agent
+            )
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'trans_type': self.trans_type,
-            'status': self.status,
-            'amount': float(self.amount or 0.0),
-            'currency': self.currency,
-            'reference_number': self.reference_number,
-            'voucher_number': self.voucher_number,
-            'transfer_number': self.transfer_number,
-            'approval_ref': self.approval_ref,
-            'payout_bank': self.payout_bank,
-            'description': self.description,
-            'formatted_time': self.formatted_time,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
+            return jsonify({
+                "success": True,
+                "message": "تم إنشاء الحساب والمحفظة المالية الذكية بنجاح!",
+                "redirect_url": url_for('suppliers_auth_bp.login')
+            })
 
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"success": False, "message": f"حدث خطأ داخلي أثناء عملية التسجيل: {str(e)}"}), 500
 
-class WithdrawalRequest(db.Model):
-    """جدول طلبات سحب الأرباح للموردين بالريال السعودي مع دعم الفهارس والتشفير والتحقق الصارم."""
-    __tablename__ = 'withdrawal_requests'
-
-    __table_args__ = (
-        db.Index('idx_withdrawal_supplier', 'supplier_id', 'status'),
-        db.Index('idx_withdrawal_lookup', 'request_number'),
-        {'extend_existing': True}
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    request_number = db.Column(db.String(50), unique=True, nullable=False)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
-    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
-    
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
-    currency = db.Column(db.String(5), nullable=False, default='SAR')
-    
-    _payout_method_enc = db.Column(db.String(500), nullable=True)
-    status = db.Column(db.String(30), default='pending', nullable=False)
-    notes = db.Column(db.Text, nullable=True)
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    wallet = db.relationship('SupplierWallet', backref=db.backref('withdrawal_requests', lazy='selectin'))
-
-    @staticmethod
-    def _get_fernet():
-        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8V=')
-        try:
-            return Fernet(key.encode('utf-8'))
-        except Exception:
-            b64_key = base64.urlsafe_b64encode(key.encode('utf-8')[:32].ljust(32, b'0'))
-            return Fernet(b64_key)
-
-    @property
-    def payout_method(self):
-        if not self._payout_method_enc:
-            return None
-        try:
-            return self._get_fernet().decrypt(self._payout_method_enc.encode('utf-8')).decode('utf-8')
-        except Exception:
-            return None
-
-    @payout_method.setter
-    def payout_method(self, value):
-        if value:
-            self._payout_method_enc = self._get_fernet().encrypt(str(value).encode('utf-8')).decode('utf-8')
-        else:
-            self._payout_method_enc = None
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'request_number': self.request_number,
-            'amount': float(self.amount or 0.0),
-            'currency': self.currency,
-            'payout_method': self.payout_method,
-            'status': self.status,
-            'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
+    return render_template('suppliers_auth_portal/register.html')
 
 
-# الدوال المساعدة وأحداث الإدخال التلقائية المتناسقة
-
-def generate_unique_voucher_number(connection, length=6, prefix="VCH-"):
-    characters = string.ascii_uppercase + string.digits
-    while True:
-        random_str = ''.join(secrets.choice(characters) for _ in range(length))
-        candidate_voucher = f"{prefix}{random_str}"
-        existing = connection.execute(
-            select(WalletTransaction.voucher_number)
-            .where(WalletTransaction.voucher_number == candidate_voucher)
-        ).scalar()
-        if not existing:
-            return candidate_voucher
-
-
-def generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-"):
-    """توليد رقم طلب سحب فريد بنمط WDR-MAH ومزيج من 6 أحرف وأرقام مع ضمان عدم التكرار"""
-    characters = string.ascii_uppercase + string.digits
-    while True:
-        random_str = ''.join(secrets.choice(characters) for _ in range(length))
-        candidate_number = f"{prefix}{random_str}"
-        existing = connection.execute(
-            select(WithdrawalRequest.request_number)
-            .where(WithdrawalRequest.request_number == candidate_number)
-        ).scalar()
-        if not existing:
-            return candidate_number
-
-
-@event.listens_for(SupplierWallet, 'before_insert')
-def process_supplier_wallet_before_insert(mapper, connection, target):
-    """ضمان توليد وتعيين رمز المحفظة بنمط متطابق مع معرف المورد تلقائياً"""
-    if target.supplier_id and not target.wallet_code:
-        target.wallet_code = f"WEL-{target.supplier_id}"
-
-
-@event.listens_for(WalletTransaction, 'before_insert')
-def process_wallet_transaction_before_insert(mapper, connection, target):
-    wallet_table = SupplierWallet.__table__
-    wallet_row = connection.execute(
-        select(wallet_table).where(wallet_table.c.id == target.wallet_id)
-    ).mappings().first()
-
-    sup_code = f"SUPP{target.wallet_id}"
-    
-    if wallet_row:
-        supplier_id = wallet_row.get('supplier_id')
-        supplier_table = db.metadata.tables.get('suppliers')
-        if supplier_table is not None:
-            sup_code_val = connection.execute(
-                select(supplier_table.c.supplier_code).where(supplier_table.c.id == supplier_id)
-            ).scalar()
-            if sup_code_val:
-                sup_code = sup_code_val
-
-    if not target.reference_number:
-        characters = string.ascii_uppercase + string.digits
-        while True:
-            random_6_code = ''.join(secrets.choice(characters) for _ in range(6))
-            candidate_ref = f"TRX-{sup_code}-{random_6_code}"
-            existing_ref = connection.execute(
-                select(WalletTransaction.reference_number)
-                .where(WalletTransaction.reference_number == candidate_ref)
-            ).scalar()
-            if not existing_ref:
-                target.reference_number = candidate_ref
-                break
-
-    if not target.voucher_number:
-        target.voucher_number = generate_unique_voucher_number(connection, length=6, prefix="VCH-")
-
-    if wallet_row:
-        current_bal = Decimal(str(wallet_row.get('balance_sar', 0)))
+@suppliers_auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """مسار استعادة كلمة المرور عبر رقم الهاتف ورمز التحقق OTP"""
+    if request.method == 'POST':
+        phone = request.form.get('phone', '').strip().replace("+", "")
+        supplier = Supplier.query.filter_by(phone=phone).first()
         
-        target.balance_before = current_bal
-        is_credit = target.trans_type in ['credit', 'sale_revenue', 'deposit', 'refund', 'adjustment_credit']
-        target.balance_after = (current_bal + Decimal(str(target.amount))) if is_credit else (current_bal - Decimal(str(target.amount)))
+        if not supplier:
+            flash('رقم الهاتف غير مسجل في النظام.', 'danger')
+            return redirect(url_for('suppliers_auth_bp.forgot_password'))
 
-        connection.execute(
-            update(wallet_table)
-            .where(wallet_table.c.id == target.wallet_id)
-            .values({'balance_sar': target.balance_after, 'updated_at': datetime.utcnow()})
+        # توليد وإرسال رمز التحقق عبر الواتساب
+        otp_res = SupplierOTPService.generate_and_send_otp(
+            identifier=phone,
+            target_id=supplier.id,
+            target_type='supplier_password_reset',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
 
+        if otp_res.get("success"):
+            session['reset_phone'] = phone
+            flash('تم إرسال رمز التحقق (OTP) إلى رقم واتساب الخاص بك بنجاح.', 'success')
+            return redirect(url_for('suppliers_auth_bp.verify_reset_otp'))
+        else:
+            flash(otp_res.get("error", "فشل إرسال رمز التحقق."), 'danger')
 
-@event.listens_for(WithdrawalRequest, 'before_insert')
-def process_withdrawal_request_before_insert(mapper, connection, target):
-    """ضمان توليد وتعيين رقم طلب سحب فريد بصيغة WDR-MAH تلقائياً قبل الحفظ وتحمل الضغط العالي"""
-    if not target.request_number:
-        target.request_number = generate_unique_withdrawal_number(connection, length=6, prefix="WDR-MAH-")
+    return render_template('suppliers_auth_portal/forgot_password.html')
+
+
+@suppliers_auth_bp.route('/verify-reset-otp', methods=['GET', 'POST'])
+def verify_reset_otp():
+    """التحقق من رمز الاستعادة وتحديث كلمة المرور"""
+    phone = session.get('reset_phone')
+    if not phone:
+        return redirect(url_for('suppliers_auth_bp.forgot_password'))
+
+    if request.method == 'POST':
+        entered_code = request.form.get('otp_code', '').strip()
+        new_password = request.form.get('new_password', '')
+
+        verify_res = SupplierOTPService.verify_otp(phone, entered_code)
+        if not verify_res.get("success"):
+            flash(verify_res.get("message", "رمز التحقق غير صحيح أو منتهي الصلاحية."), 'danger')
+            return render_template('suppliers_auth_portal/verify_reset_otp.html')
+
+        if not new_password or len(new_password) < 8:
+            flash('كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.', 'danger')
+            return render_template('suppliers_auth_portal/verify_reset_otp.html')
+
+        supplier = Supplier.query.filter_by(phone=phone).first()
+        if supplier:
+            supplier.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            session.pop('reset_phone', None)
+            flash('تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن.', 'success')
+            return redirect(url_for('suppliers_auth_bp.login'))
+
+    return render_template('suppliers_auth_portal/verify_reset_otp.html')
+
+
+@suppliers_auth_bp.route('/dashboard')
+@login_required
+def dashboard():
+    """لوحة تحكم المورد المحمية"""
+    wallet = SupplierWallet.query.filter_by(supplier_id=current_user.id).first()
+    return render_template('suppliers_auth_portal/dashboard.html', wallet=wallet)
+
+
+@suppliers_auth_bp.route('/logout')
+def logout():
+    """تسجيل خروج المورد وتنظيف الجلسة"""
+    logout_user()
+    session.clear()
+    flash('تم تسجيل الخروج بنجاح.', 'success')
+    return redirect(url_for('suppliers_auth_bp.login'))
+
+
+def init_app(app):
+    """دالة تسجيل الـ Blueprint الخاص ببوابة الموردين في التطبيق الرئيسي"""
+    app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
