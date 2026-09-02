@@ -274,7 +274,7 @@ def webhook_logs_view():
 
 @whatsapp_bp.route('/contacts-bulk', methods=['GET'])
 def contacts_bulk_view():
-    """عرض صفحة جهات الاتصال والإرسال الجماعي (مطابقة للصور من Gemini)"""
+    """عرض صفحة جهات الاتصال والإرسال الجماعي"""
     from apps.whatsapp_service.service import WhatsAppService
     wa_service = WhatsAppService()
     
@@ -283,7 +283,7 @@ def contacts_bulk_view():
     
     # إحصائيات للعرض
     stats = {
-        'customers_count': 124,   # يمكن استبدالها بعدد العملاء الحقيقي
+        'customers_count': 124,
         'merchants_count': 48,
         'suppliers_count': 32,
         'marketers_count': 55
@@ -372,16 +372,19 @@ def send_broadcast_view():
     target_phones = []
     
     if target_category == 'all' or target_category == 'customers':
-        customers = WhatsAppCustomerContact.query.all()
-        target_phones.extend([c.phone for c in customers])
+        if WhatsAppCustomerContact:
+            customers = WhatsAppCustomerContact.query.all()
+            target_phones.extend([c.phone for c in customers])
     
     if target_category == 'all' or target_category == 'suppliers':
-        suppliers = Supplier.query.all()
-        target_phones.extend([s.phone for s in suppliers if s.phone])
+        if Supplier:
+            suppliers = Supplier.query.all()
+            target_phones.extend([s.phone for s in suppliers if s.phone])
     
     if target_category == 'all' or target_category == 'marketers':
-        marketers = Marketer.query.all()
-        target_phones.extend([m.phone for m in marketers if m.phone])
+        if Marketer:
+            marketers = Marketer.query.all()
+            target_phones.extend([m.phone for m in marketers if m.phone])
     
     sent_count = 0
     for phone in target_phones:
@@ -390,5 +393,5 @@ def send_broadcast_view():
         if result.get('status') in ['sent', 'simulated']:
             sent_count += 1
     
-    flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال!', 'success')
+    flash(f'تم إرسال الحملة "{campaign_name}" بنجاح إلى {sent_count} جهة اتصال!', 'success')
     return redirect(url_for('whatsapp_service.contacts_bulk_view'))
