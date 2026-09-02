@@ -9,12 +9,12 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 from apps.models.supplier_db import Supplier
 
-# تعريف الـ Blueprint الخاص ببوابة الموردين مع مطابقة الاسم لـ url_for
+# تصحيح بادئة المسار لتتطابق مع /supplier بدلاً من /suppliers لتجنب أخطاء 404
 suppliers_auth_bp = Blueprint(
     'suppliers_auth_bp',
     __name__,
     template_folder='templates',
-    url_prefix='/suppliers'
+    url_prefix='/supplier'
 )
 
 
