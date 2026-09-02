@@ -95,14 +95,15 @@ def seed_database():
             db.session.commit()
             print("✅ [الزراعة]: تم تحديث بيانات المورد وكلمة المرور بنجاح.")
 
-        # إنشاء المحفظة
+        # إنشاء المحفظة (تم التحديث لاستخدام balance و currency بدلاً من balance_sar و status)
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         if not wallet:
             wallet = SupplierWallet(
                 supplier_id=supplier.id,
-                wallet_code=f"MAH-WEL963{supplier.id}",
-                balance_sar=1000000.00,
-                status='active'
+                wallet_code=f"WEL-963{supplier.id}",
+                balance=1000000.00,
+                currency="SAR",
+                is_active=True
             )
             db.session.add(wallet)
             db.session.flush()
@@ -113,7 +114,7 @@ def seed_database():
         # التحقق من وجود معاملة الرصيد الافتتاحي
         existing_tx = WalletTransaction.query.filter_by(
             wallet_id=wallet.id,
-            trans_type='deposit',
+            transaction_type='deposit',
             amount=1000000.00
         ).first()
 
@@ -130,7 +131,7 @@ def seed_database():
                 candidate_ref = f"TRX-SUP9631-{date_str}-{time_stamp}-{random_6_code}"
                 exists_ref = db.session.scalar(
                     select(WalletTransaction.id).where(
-                        WalletTransaction.reference_number == candidate_ref
+                        WalletTransaction.description == candidate_ref
                     )
                 )
                 if not exists_ref:
@@ -138,39 +139,34 @@ def seed_database():
                     break
 
             # توليد رقم سند فريد
-            seed_voucher_number = generate_unique_voucher_number(
-                db.session.connection(),
-                length=6,
-                prefix="VCH-"
-            )
+            seed_voucher_number = generate_unique_voucher_number()
 
             # إنشاء معاملة الإيداع
             initial_transaction = WalletTransaction(
                 wallet_id=wallet.id,
-                trans_type='deposit',
-                status='completed',
+                transaction_type='deposit',
                 amount=1000000.00,
-                currency='SAR',
-                reference_number=seed_ref_number,
-                voucher_number=seed_voucher_number,
-                description="رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة"
+                description=f"رصيد افتتاحي للمورد التجريبي عند إعداد المحفظة - مرجع: {seed_ref_number} - سند: {seed_voucher_number}"
             )
             db.session.add(initial_transaction)
             print("✅ [الزراعة]: تم إنشاء معاملة الإيداع الافتتاحية.")
 
-            # إنشاء سند الخزينة
-            treasury_entry = TreasuryEntry(
-                reference_number=seed_ref_number,
-                voucher_number=seed_voucher_number,
-                entry_type='deposit',
-                amount=1000000.00,
-                currency='SAR',
-                owner_type='supplier',
-                owner_id=supplier.id,
-                description="سند إيداع رصيد افتتاحي للمورد التجريبي (الخزينة العامة)"
-            )
-            db.session.add(treasury_entry)
-            print("✅ [الزراعة]: تم إنشاء سند الخزينة.")
+            # إنشاء سند الخزينة (إذا كان النمودج يدعمه)
+            try:
+                treasury_entry = TreasuryEntry(
+                    reference_number=seed_ref_number,
+                    voucher_number=seed_voucher_number,
+                    entry_type='deposit',
+                    amount=1000000.00,
+                    currency='SAR',
+                    owner_type='supplier',
+                    owner_id=supplier.id,
+                    description="سند إيداع رصيد افتتاحي للمورد التجريبي (الخزينة العامة)"
+                )
+                db.session.add(treasury_entry)
+                print("✅ [الزراعة]: تم إنشاء سند الخزينة.")
+            except Exception as te:
+                print(f"ℹ️ [تخطي سند الخزينة]: {te}")
 
             db.session.commit()
             print("=" * 60)
