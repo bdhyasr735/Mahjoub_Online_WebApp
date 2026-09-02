@@ -298,7 +298,6 @@ def register():
         db.session.add(new_supplier)
         db.session.flush()
 
-        # إنشاء ملف شخصي فارغ يتوافق مع هيكل النموذج (بدون تمرير حقول خاطئة مثل full_address)
         profile = SupplierProfile(
             supplier_id=new_supplier.id
         )
@@ -474,7 +473,7 @@ def dashboard():
         staff_count = SupplierStaff.query.filter_by(supplier_id=supplier.id).count() if supplier else 0
 
         return render_template(
-            'suppliers/dashboard.html',
+            'suppliers_auth_portal/dashboard.html',
             page_title='لوحة تحكم المورد | محجوب أونلاين',
             supplier=supplier,
             profile=profile,
