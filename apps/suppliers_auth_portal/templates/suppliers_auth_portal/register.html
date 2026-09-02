@@ -20,12 +20,12 @@
                 <span class="text-xs px-2.5 py-0.5 rounded-full bg-royalGold/20 text-royalGoldLight border border-royalGold/30 align-middle mr-1.5 font-normal">سوقك الذكي</span>
             </h2>
             <p class="text-xs sm:text-sm text-royalGold/80 font-semibold mt-1">منصة اللامركزية لحوكمة التجارة اليمنية</p>
-            <p class="text-xs text-slate-400 mt-1">طلب اشتراك مورد جديد • توثيق العنوان الكامل • لوحة تحكم مجانية بالكامل</p>
+            <p class="text-xs text-slate-400 mt-1">طلب اشتراك برقم الهاتف • توثيق العنوان الكامل • لوحة تحكم مجانية بالكامل</p>
 
             <!-- تنويه الحوكمة والتسعير -->
             <div class="mt-4 p-3.5 rounded-xl bg-[#1d0e02] border border-royalGold/40 text-xs text-amber-200 text-right leading-relaxed">
                 <strong class="text-royalGoldLight block font-bold mb-0.5">ميثاق حوكمة الأسعار وسعر التكلفة:</strong>
-                للعلْم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
+                للعلم: التعامل <span class="text-royalGold font-bold">بسعر التكلفة وبأسعار تنافسية</span>. في حالة رؤية الأسعار غير مناسبة <span class="text-rose-400 font-bold">سيتم توقيف لوحة التحكم</span> مع العلم أنها <span class="text-emerald-400 font-bold">مجاناً بالكامل</span>..
             </div>
         </div>
 
@@ -87,11 +87,11 @@
                 </div>
             </div>
 
-            <!-- القسم 2: بيانات المالك (Supplier) -->
+            <!-- القسم 2: بيانات المالك والاعتماد برقم الهاتف -->
             <div class="space-y-4">
                 <div class="flex items-center gap-2 text-royalGold text-sm font-bold border-b border-royalGold/20 pb-2">
                     <span class="w-6 h-6 rounded-full bg-royalGold/15 border border-royalGold/40 flex items-center justify-center text-xs">٢</span>
-                    <span>بيانات المالك والمفوض الإداري</span>
+                    <span>بيانات المالك والاعتماد برقم الهاتف</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -106,36 +106,14 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">اسم المستخدم (username) *</label>
-                        <div class="relative">
-                            <input type="text" id="username" name="username" required placeholder="أدخل اسم مستخدم فريد" oninput="validateField('username')" dir="ltr"
-                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all text-right"
-                                   autocomplete="username">
-                            <span id="usernameIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
-                        </div>
-                        <div id="usernameError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
-                        <p class="text-[10px] text-slate-500 mt-1">3-30 حرفاً (حروف، أرقام، _)</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">البريد الإلكتروني (email) *</label>
-                        <div class="relative">
-                            <input type="email" id="email" name="email" required placeholder="contact@company.ye" oninput="validateField('email')" dir="ltr"
-                                   class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all text-right">
-                            <span id="emailIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
-                        </div>
-                        <div id="emailError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5">رقم الهاتف (phone) *</label>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5">رقم الهاتف الأساسي (phone) *</label>
                         <div class="relative">
                             <input type="tel" id="phone" name="phone" required placeholder="77xxxxxxx" maxlength="9" oninput="validateField('phone')" dir="ltr"
                                    class="w-full px-4 py-2.5 bg-royalDark/90 border border-royalGold/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-royalGold transition-all text-right font-mono">
                             <span id="phoneIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold hidden"></span>
                         </div>
                         <div id="phoneError" class="text-[10px] text-rose-400 mt-1 hidden"></div>
-                        <p class="text-[10px] text-slate-500 mt-1">أدخل رقم الهاتف بدون رمز الدولة (آخر 9 أرقام)</p>
+                        <p class="text-[10px] text-slate-500 mt-1">يُستخدم لتسجيل الدخول والتحقق (آخر 9 أرقام بدون رمز الدولة)</p>
                     </div>
                 </div>
             </div>
@@ -197,8 +175,8 @@
                 <div>
                     <h4 class="text-sm font-bold text-royalGold">إنشاء المحفظة المالية الذكية تلقائياً</h4>
                     <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                        بمجرد اكتمال تسجيل المنشأة، سيقوم النظام تلقائياً بإنشاء وتفعيل محفظة رقمية معتمدة (SupplierWallet) 
-                        برقم حساب بنكي مخصص لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
+                        بمجرد اكتمال تسجيل المنشأة برقم الهاتف، سيقوم النظام تلقائياً بإنشاء وتفعيل محفظة رقمية معتمدة (SupplierWallet) 
+                        برقم حساب مخصص لتسوية مستحقات التوريد، الضمانات، وإصدار الفواتير الفورية.
                     </p>
                 </div>
             </div>
@@ -230,7 +208,7 @@
                 </a>
 
                 <button type="submit" id="submitBtn" class="w-full sm:w-auto px-8 py-3.5 gold-btn rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-xl">
-                    <span id="btnText">إتمام الاشتراك وتفعيل المحفظة المالية</span>
+                    <span id="btnText">إتمام الاشتراك برقم الهاتف وتفعيل المحفظة المالية</span>
                     <svg id="btnSpinner" class="hidden animate-spin w-4 h-4 text-black" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -272,14 +250,6 @@
             ownerName: document.getElementById('ownerName'),
             ownerNameIcon: document.getElementById('ownerNameIcon'),
             ownerNameError: document.getElementById('ownerNameError'),
-
-            username: document.getElementById('username'),
-            usernameIcon: document.getElementById('usernameIcon'),
-            usernameError: document.getElementById('usernameError'),
-
-            email: document.getElementById('email'),
-            emailIcon: document.getElementById('emailIcon'),
-            emailError: document.getElementById('emailError'),
 
             phone: document.getElementById('phone'),
             phoneIcon: document.getElementById('phoneIcon'),
@@ -330,14 +300,6 @@
             } else if (fieldKey === 'ownerName') {
                 isValid = val.length >= 3;
                 errorMsg = 'اسم المالك يجب أن يكون 3 أحرف على الأقل.';
-            } else if (fieldKey === 'username') {
-                const userRegex = /^[a-zA-Z0-9_]{3,30}$/;
-                isValid = userRegex.test(val);
-                errorMsg = 'اسم المستخدم يجب أن يكون بالإنجليزية وأكثر من 3 خانات بدون مسافات.';
-            } else if (fieldKey === 'email') {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                isValid = emailRegex.test(val);
-                errorMsg = 'يرجى إدخال بريد إلكتروني صالح.';
             } else if (fieldKey === 'phone') {
                 const cleanPhone = val.replace(/[^0-9]/g, '');
                 isValid = cleanPhone.length === 9;
@@ -410,7 +372,7 @@
             }
         };
 
-        // ====== إضافة موظف ======
+        // ====== إضافة موظف (يدعم إدخال الهاتف بدلاً من البريد الإجباري) ======
         window.addEmployeeRow = function() {
             const container = document.getElementById('employeesContainer');
             const emptyNotice = document.getElementById('emptyEmployeesNotice');
@@ -425,10 +387,10 @@
                     <input type="text" placeholder="الاسم الكامل" class="emp-fullname w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
                 </div>
                 <div>
-                    <input type="email" placeholder="البريد الإلكتروني" class="emp-email w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
+                    <input type="tel" placeholder="رقم الهاتف" class="emp-phone w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold" required>
                 </div>
                 <div>
-                    <input type="tel" placeholder="رقم الهاتف" class="emp-phone w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
+                    <input type="email" placeholder="البريد (اختياري)" class="emp-email w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
                 </div>
                 <div class="flex items-center gap-2">
                     <select class="emp-role w-full px-3 py-2 bg-royalSurface border border-royalGold/30 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-royalGold">
@@ -488,7 +450,7 @@
             const form = e.target;
 
             // التحقق من كافة الحقول الأساسية
-            ['tradeName', 'storeName', 'fullAddress', 'ownerName', 'username', 'email', 'phone', 'regPassword', 'regConfirmPassword'].forEach(k => validateField(k));
+            ['tradeName', 'storeName', 'fullAddress', 'ownerName', 'phone', 'regPassword', 'regConfirmPassword'].forEach(k => validateField(k));
 
             const pass = document.getElementById('regPassword').value;
             const confirm = document.getElementById('regConfirmPassword').value;
@@ -508,27 +470,26 @@
             const rows = document.querySelectorAll('#employeesContainer > [id^="emp-row-"]');
             rows.forEach(r => {
                 const full_name = r.querySelector('.emp-fullname')?.value.trim();
-                const email = r.querySelector('.emp-email')?.value.trim();
                 const phone = r.querySelector('.emp-phone')?.value.trim();
+                const email = r.querySelector('.emp-email')?.value.trim();
                 const role = r.querySelector('.emp-role')?.value;
-                if (full_name && email) {
-                    employees.push({ full_name, email, phone, role });
+                if (full_name && phone) {
+                    employees.push({ full_name, phone, email, role });
                 }
             });
 
             const payload = {
-                username: DOM.username.value.trim(),
-                email: DOM.email.value.trim(),
-                phone: DOM.phone.value.trim(),
                 trade_name: DOM.tradeName.value.trim(),
                 store_name: DOM.storeName.value.trim(),
                 full_address: DOM.fullAddress.value.trim(),
                 city: document.getElementById('city').value.trim(),
                 district: document.getElementById('district').value.trim(),
                 owner_name: DOM.ownerName.value.trim(),
+                phone: DOM.phone.value.trim(),
                 password: pass,
                 confirm_password: confirm,
-                employees: employees
+                employees: employees,
+                csrf_token: form.querySelector('[name="csrf_token"]')?.value || ''
             };
 
             const submitBtn = document.getElementById('submitBtn');
@@ -540,12 +501,10 @@
             btnSpinner.classList.remove('hidden');
 
             try {
-                const csrfToken = form.querySelector('[name="csrf_token"]')?.value || '';
                 const response = await fetch(window.location.href, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify(payload)
@@ -554,22 +513,19 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    showAlert(result.message || 'تم إنشاء الحساب والمحفظة المالية بنجاح. جاري تحويلك...', true);
+                    showAlert(result.message || 'تم إنشاء الحساب والمحفظة المالية الذكية بنجاح!', true);
                     setTimeout(() => {
                         window.location.href = result.redirect_url || "{{ url_for('suppliers_auth_bp.login') }}";
                     }, 1500);
                 } else {
-                    showAlert(result.message || 'حدث خطأ أثناء معالجة الطلب، يرجى التحقق من المدخلات.');
+                    showAlert(result.message || 'حدث خطأ أثناء عملية التسجيل. يرجى التحقق من البيانات المدخلة.');
                     submitBtn.disabled = false;
-                    btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
+                    btnText.textContent = 'إتمام الاشتراك برقم الهاتف وتفعيل المحفظة المالية';
                     btnSpinner.classList.add('hidden');
                 }
-            } catch (error) {
-                console.error('Registration Error:', error);
-                showAlert('حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقاً.');
-                submitBtn.disabled = false;
-                btnText.textContent = 'إتمام الاشتراك وتفعيل المحفظة المالية';
-                btnSpinner.classList.add('hidden');
+            } catch (err) {
+                // في حال كان الطلب تقليدياً (Form Submit عادي) دون خادم API بصيغة JSON
+                form.submit();
             }
         };
 
