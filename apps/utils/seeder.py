@@ -83,7 +83,7 @@ def seed_database():
                 store_name='متجر محجوب أونلاين',
                 status='active'
             )
-            supplier.phone = '779077746'
+            supplier.phone = '779077746'  # ✅ يتم تشفيره تلقائياً عبر setter
             supplier.set_password('123')
             db.session.add(supplier)
             db.session.flush()
@@ -91,10 +91,11 @@ def seed_database():
         else:
             print("ℹ️ [الزراعة]: المورد التجريبي موجود مسبقاً.")
             if not supplier.phone:
-                supplier.phone = '779077746'
+                supplier.phone = '779077746'  # ✅ يتم تشفيره تلقائياً عبر setter
                 db.session.commit()
                 print("✅ [الزراعة]: تم تحديث رقم هاتف المورد.")
 
+        # إنشاء المحفظة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         if not wallet:
             wallet = SupplierWallet(
