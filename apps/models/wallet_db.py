@@ -31,8 +31,10 @@ class SupplierWallet(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقة مع نموذج المورد (تحميل كسول lazy='select' وتجنب الاستيراد الدائري)
+    # العلاقات (تحميل كسول lazy='select' وتجنب الاستيراد الدائري)
     supplier = db.relationship('Supplier', back_populates='wallet', uselist=False, lazy='select')
+    transactions = db.relationship('WalletTransaction', back_populates='wallet', lazy='select', cascade="all, delete-orphan")
+    withdrawal_requests = db.relationship('WithdrawalRequest', back_populates='wallet', lazy='select', cascade="all, delete-orphan")
 
     def __init__(self, **kwargs):
         """تثبيت العملة حصراً على الريال السعودي SAR بغض النظر عن المدخلات"""
@@ -54,3 +56,72 @@ class SupplierWallet(db.Model):
 
     def __repr__(self):
         return f"<SupplierWallet {self.wallet_code or self.id}: {self.balance} {self.currency}>"
+
+
+class WalletTransaction(db.Model):
+    """نموذج حركات المحفظة المالية"""
+    __tablename__ = 'wallet_transactions'
+
+    __table_args__ = (
+        db.Index('idx_txn_wallet_id', 'wallet_id'),
+        db.Index('idx_txn_created', 'created_at'),
+        {'extend_existing': True}
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id', ondelete='CASCADE'), nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    transaction_type = db.Column(db.String(50), nullable=False)  # credit, debit
+    description = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='select')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'wallet_id': self.wallet_id,
+            'amount': float(self.amount) if self.amount is not None else 0.00,
+            'transaction_type': self.transaction_type,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<WalletTransaction {self.id}: {self.transaction_type} {self.amount}>"
+
+
+class WithdrawalRequest(db.Model):
+    """نموذج طلبات سحب الأرباح"""
+    __tablename__ = 'withdrawal_requests'
+
+    __table_args__ = (
+        db.Index('idx_withdrawal_wallet_id', 'wallet_id'),
+        db.Index('idx_withdrawal_status', 'status'),
+        db.Index('idx_withdrawal_created', 'created_at'),
+        {'extend_existing': True}
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id', ondelete='CASCADE'), nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    status = db.Column(db.String(50), default='pending', nullable=False)  # pending, approved, rejected
+    notes = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    wallet = db.relationship('SupplierWallet', back_populates='withdrawal_requests', lazy='select')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'wallet_id': self.wallet_id,
+            'amount': float(self.amount) if self.amount is not None else 0.00,
+            'status': self.status,
+            'notes': self.notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f"<WithdrawalRequest {self.id}: {self.amount} - {self.status}>"
