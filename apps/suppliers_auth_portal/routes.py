@@ -213,7 +213,7 @@ def login():
         remember_me = bool(data.get('remember_me', False))
 
         if not identifier or not password:
-            return jsonify({'success': False, 'message': 'يرجى إدخال اسم المستخدم أو البريد أو الهاتف وكلمة المرور'}), 400
+            return jsonify({'success': False, 'message': 'يرجى إدخال رقم الهاتف أو المعرف وكلمة المرور'}), 400
 
         user, found_type = find_user(identifier)
         
@@ -261,11 +261,11 @@ def login():
 
 @suppliers_auth_bp.route('/register', methods=['GET'])
 def register_page():
-    """صفحة تسجيل مورد جديد"""
+    """صفحة تسجيل مورد جديد برقم الهاتف فقط"""
     try:
         if current_user.is_authenticated:
             return redirect(url_for('suppliers_auth_bp.dashboard'))
-        return render_template('suppliers_auth_portal/register.html', page_title='اشتراك مورد جديد')
+        return render_template('suppliers_auth_portal/register.html', page_title='اشتراك مورد جديد برقم الهاتف')
     except Exception as e:
         logger.error(f"❌ خطأ في عرض صفحة التسجيل: {str(e)}", exc_info=True)
         return f"Internal Server Error: {str(e)}", 500
@@ -273,7 +273,7 @@ def register_page():
 
 @suppliers_auth_bp.route('/check-availability', methods=['POST'])
 def check_availability():
-    """التحقق اللحظي من قاعدة البيانات لتوفر (اسم المستخدم، البريد، أو الهاتف)"""
+    """التحقق اللحظي من قاعدة البيانات لتوفر (رقم الهاتف)"""
     try:
         data = request.get_json(silent=True) or {}
         field = data.get('field')
@@ -282,17 +282,7 @@ def check_availability():
         if not field or not value:
             return jsonify({'available': True})
 
-        if field == 'username':
-            valid_val = validate_username(value)
-            if not valid_val:
-                return jsonify({'available': False, 'message': 'اسم المستخدم غير صالح'})
-            exists = Supplier.query.filter_by(username=valid_val).first() or SupplierStaff.query.filter_by(username=valid_val).first()
-        elif field == 'email':
-            valid_val = validate_email(value)
-            if not valid_val:
-                return jsonify({'available': False, 'message': 'البريد الإلكتروني غير صالح'})
-            exists = Supplier.query.filter_by(email=valid_val).first() or SupplierStaff.query.filter_by(email=valid_val).first()
-        elif field == 'phone':
+        if field == 'phone':
             valid_val = validate_phone(value)
             if not valid_val:
                 return jsonify({'available': False, 'message': 'رقم الهاتف غير صالح'})
@@ -309,25 +299,18 @@ def check_availability():
 
 @suppliers_auth_bp.route('/register', methods=['POST'])
 def register():
-    """معالجة تسجيل مورد جديد"""
+    """معالجة تسجيل مورد جديد برقم الهاتف وكلمة المرور فقط وتفعيل المحفظة تلقائياً"""
     try:
         data = request.get_json(silent=True) or request.form
         if not data:
             return jsonify({'success': False, 'message': 'بيانات غير صالحة'}), 400
 
-        username = str(data.get('username', '')).strip()
-        email = str(data.get('email', '')).strip()
         phone = str(data.get('phone', '')).strip()
         password = str(data.get('password', ''))
         confirm_password = str(data.get('confirm_password', ''))
-        trade_name = str(data.get('trade_name', '')).strip()
-        store_name = str(data.get('store_name', '')).strip()
-        full_address = str(data.get('full_address', '')).strip()
-        city = str(data.get('city', '')).strip()
-        district = str(data.get('district', '')).strip()
 
-        if not all([username, email, phone, password, confirm_password]):
-            return jsonify({'success': False, 'message': 'جميع الحقول الأساسية مطلوبة'}), 400
+        if not phone or not password or not confirm_password:
+            return jsonify({'success': False, 'message': 'رقم الهاتف وكلمة المرور وتأكيدها حقول أساسية مطلوبة'}), 400
 
         if password != confirm_password:
             return jsonify({'success': False, 'message': 'كلمتا المرور غير متطابقتين'}), 400
@@ -335,33 +318,29 @@ def register():
         if len(password) < 8:
             return jsonify({'success': False, 'message': 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'}), 400
 
-        valid_email = validate_email(email)
         valid_phone = validate_phone(phone)
-        valid_username = validate_username(username)
-
-        if not valid_email or not valid_phone or not valid_username:
-            return jsonify({'success': False, 'message': 'أحد المدخلات (البريد، الهاتف، أو اسم المستخدم) غير صالح'}), 400
-
-        if Supplier.query.filter_by(email=valid_email).first():
-            return jsonify({'success': False, 'message': 'البريد الإلكتروني مستخدم بالفعل'}), 409
+        if not valid_phone:
+            return jsonify({'success': False, 'message': 'رقم الهاتف المدخل غير صالح'}), 400
 
         if Supplier.query.filter_by(phone=valid_phone).first() or Supplier.query.filter_by(search_phone=valid_phone).first():
             return jsonify({'success': False, 'message': 'رقم الهاتف مستخدم بالفعل'}), 409
 
-        if Supplier.query.filter_by(username=valid_username).first():
-            return jsonify({'success': False, 'message': 'اسم المستخدم مستخدم بالفعل'}), 409
+        # توليد اسم مستخدم واسم معروض افتراضي فريد بناءً على رقم الهاتف
+        random_suffix = ''.join(random.choices(string.digits, k=4))
+        generated_username = f"sup_{valid_phone}_{random_suffix}"
+        default_display_name = f"مورد رقم {valid_phone}"
 
         new_supplier = Supplier(
-            username=valid_username,
-            email=valid_email,
-            phone=phone,
+            username=generated_username,
+            phone=valid_phone,
             search_phone=valid_phone,
-            owner_name=trade_name or store_name or valid_username,
-            trade_name=trade_name,
-            store_name=store_name or trade_name or valid_username,
+            owner_name=default_display_name,
+            trade_name=default_display_name,
+            store_name=default_display_name,
             status='active',
             rank='bronze'
         )
+        
         if hasattr(new_supplier, 'set_password'):
             new_supplier.set_password(password)
         else:
@@ -371,14 +350,16 @@ def register():
         db.session.add(new_supplier)
         db.session.flush()
 
+        # إنشاء سجل البروفايل المبدئي الفارغ لاستكماله لاحقاً
         profile = SupplierProfile(
             supplier_id=new_supplier.id,
-            full_address=full_address,
-            city=city,
-            district=district
+            full_address='',
+            city='',
+            district=''
         )
         db.session.add(profile)
 
+        # تفعيل المحفظة المالية الذكية للمورد تلقائياً
         wallet = SupplierWallet(
             supplier_id=new_supplier.id,
             currency='YER',
@@ -393,7 +374,7 @@ def register():
 
         return jsonify({
             'success': True,
-            'message': 'تم إنشاء حساب المورد بنجاح',
+            'message': 'تم إنشاء حساب المورد والمحفظة المالية الذكية بنجاح',
             'redirect_url': url_for('suppliers_auth_bp.login_page')
         })
 
@@ -421,7 +402,7 @@ def request_otp():
         data = request.get_json(silent=True) or request.form
         identifier = str(data.get('identifier', '')).strip()
         if not identifier:
-            return jsonify({'success': False, 'message': 'يرجى إدخال المعرف'}), 400
+            return jsonify({'success': False, 'message': 'يرجى إدخال رقم الهاتف'}), 400
 
         user, user_type = find_user(identifier)
         if not user:
@@ -536,7 +517,6 @@ def logout():
 def dashboard():
     """عرض لوحة التحكم الخاصة بالمورد مباشرة"""
     try:
-        # جلب البيانات الأساسية للمورد لعرضها في لوحة التحكم
         supplier = current_user if session.get('user_type') == 'supplier' else getattr(current_user, 'supplier', None)
         profile = SupplierProfile.query.filter_by(supplier_id=supplier.id).first() if supplier else None
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first() if supplier else None
