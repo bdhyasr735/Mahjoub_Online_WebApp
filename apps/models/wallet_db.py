@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/models/wallet_db.py
 
+import random
 from datetime import datetime
 from apps.extensions import db
+
+
+def generate_unique_voucher_number():
+    """توليد رقم سند فريد بالبادئة VCH-MAH متبوعة بـ 6 أرقام عشوائية مع ضمان عدم التكرار"""
+    while True:
+        random_digits = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        voucher_code = f"VCH-MAH{random_digits}"
+        
+        # التحقق من عدم وجود الكود مسبقاً في قاعدة البيانات (في جدول الحركات أو نموذج يعتمد عليه)
+        exists = WalletTransaction.query.filter_by(description=voucher_code).first() # أو التحقق حسب الجدول المرتبط
+        if not exists:
+            return voucher_code
 
 
 class SupplierWallet(db.Model):
