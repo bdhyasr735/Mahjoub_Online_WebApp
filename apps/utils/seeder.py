@@ -1,5 +1,5 @@
-# apps/utils/seeder.py
 # -*- coding: utf-8 -*-
+# 📂 apps/utils/seeder.py
 
 """
 وحدة الزراعة (Seeder)
@@ -89,11 +89,11 @@ def seed_database():
             db.session.flush()
             print("✅ [الزراعة]: تم إنشاء المورد التجريبي.")
         else:
-            print("ℹ️ [الزراعة]: المورد التجريبي موجود مسبقاً.")
-            if not supplier.phone:
-                supplier.phone = '779077746'  # ✅ يتم تشفيره تلقائياً عبر setter
-                db.session.commit()
-                print("✅ [الزراعة]: تم تحديث رقم هاتف المورد.")
+            print("ℹ️ [الزراعة]: المورد التجريبي موجود مسبقاً، يتم تحديث بياناته الأساسية...")
+            supplier.phone = '779077746'
+            supplier.set_password('123')
+            db.session.commit()
+            print("✅ [الزراعة]: تم تحديث بيانات المورد وكلمة المرور بنجاح.")
 
         # إنشاء المحفظة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
