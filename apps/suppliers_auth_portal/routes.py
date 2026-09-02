@@ -9,8 +9,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
 
 from apps.extensions import db
-from apps.models.supplier_db import Supplier  # تم تعديل اسم الملف ليكون بدون حرف s
-from apps.models.wallet import SupplierWallet  # نموذج محفظة المورد المالية
+from apps.models.supplier_db import Supplier
+from apps.models.wallet import SupplierWallet
 from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
 suppliers_auth_bp = Blueprint(
@@ -216,3 +216,8 @@ def logout():
     session.clear()
     flash('تم تسجيل الخروج بنجاح.', 'success')
     return redirect(url_for('suppliers_auth_bp.login'))
+
+
+def init_app(app):
+    """دالة تسجيل الـ Blueprint الخاص ببوابة الموردين في التطبيق الرئيسي"""
+    app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
