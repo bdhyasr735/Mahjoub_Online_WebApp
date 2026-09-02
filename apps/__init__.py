@@ -651,8 +651,8 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
-                    'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                    'suppliers_auth_portal', 'supplier_service', 'admin', 'zsa_engine']
+                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                     'suppliers_auth_portal', 'supplier_service', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -746,22 +746,14 @@ def create_app():
                                 'supplier_wallet': wallet_obj
                             })
             except Exception as e:
-                db.session.rollback()
-                print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
+                print(f"⚠️ [خطأ context_processor للموردين]: {e}")
 
-        combined_supplier_modules = SUPPLIER_MODULES.copy()
-        if hasattr(app, 'supplier_modules'):
-            for key, value in app.supplier_modules.items():
-                combined_supplier_modules[key] = value
-
-        return {
-            'safe_url_for': safe_url_for,
-            'admin_modules': ADMIN_MODULES,
-            'supplier_modules': combined_supplier_modules,
-            'active_admin_modules': ADMIN_MODULES,
-            'active_supplier_modules': combined_supplier_modules,
-            'csrf_token': generate_csrf,
+        return dict(
+            admin_modules=ADMIN_MODULES,
+            supplier_modules=SUPPLIER_MODULES,
+            safe_url_for=safe_url_for,
+            generate_csrf=generate_csrf,
             **supplier_context
-        }
+        )
 
     return app
