@@ -298,11 +298,9 @@ def register():
         db.session.add(new_supplier)
         db.session.flush()
 
+        # إنشاء ملف شخصي فارغ يتوافق مع هيكل النموذج (بدون تمرير حقول خاطئة مثل full_address)
         profile = SupplierProfile(
-            supplier_id=new_supplier.id,
-            full_address='',
-            city='',
-            district=''
+            supplier_id=new_supplier.id
         )
         db.session.add(profile)
 
@@ -358,7 +356,6 @@ def request_otp():
         if not target_phone:
             return jsonify({'success': False, 'message': 'لا يوجد رقم هاتف مسجل لهذا الحساب لإرسال رمز الواتساب'}), 400
 
-        # تم تصحيح استدعاء الخدمة لتمرير كافة المعاملات المتوقعة تماماً (target_id, target_type, إلخ)
         result = SupplierOTPService.generate_and_send_otp(
             identifier=target_phone,
             target_id=user.id,
@@ -370,7 +367,6 @@ def request_otp():
         if not result.get("success"):
             return jsonify({'success': False, 'message': result.get("error", 'فشل إرسال رمز التحقق عبر واتساب')}), 500
 
-        # تخزين بيانات الجلسة للتحقق لاحقاً
         session['reset_otp_data'] = {
             'identifier': identifier,
             'user_type': user_type,
@@ -417,7 +413,6 @@ def reset_password():
 
         target_phone = stored_session_data.get('phone')
 
-        # التحقق من صحة الرمز عبر الخدمة المستقلة مع تعديل التعامل مع النتيجة كقاموس (dict)
         verification_result = SupplierOTPService.verify_otp(target_phone, otp_code)
         if not verification_result.get('success'):
             return jsonify({
@@ -471,7 +466,7 @@ def logout():
 def dashboard():
     """عرض لوحة التحكم الخاصة بالمورد مباشرة"""
     try:
-        supplier = current_user if session.get('user_type') == 'supplier' else getattr(current_user, 'supplier', None)
+        supplier = current_user if session.get('user_type'] == 'supplier' else getattr(current_user, 'supplier', None)
         profile = SupplierProfile.query.filter_by(supplier_id=supplier.id).first() if supplier else None
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first() if supplier else None
         balance = wallet.balance if wallet else 0.0
