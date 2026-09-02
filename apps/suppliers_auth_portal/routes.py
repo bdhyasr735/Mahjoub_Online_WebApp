@@ -177,3 +177,8 @@ def supplier_logout():
     
     flash('تم تسجيل الخروج بنجاح من بوابة الموردين', 'info')
     return redirect(url_for('suppliers_auth_bp.login'))
+
+
+def init_app(app):
+    """دالة تهيئة وتسجيل الـ Blueprint مع التطبيق الرئيسي"""
+    app.register_blueprint(suppliers_auth_bp)
