@@ -11,7 +11,7 @@ from apps.extensions import db
 
 
 class Supplier(db.Model, UserMixin):
-    """نموذج المورد - يدعم التشفير السيادي المحكم والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X"""
+    """نموذج المورد - يدعم التشفير السيادي المحكم والعلاقات والترقيم النمطي المتطابق SUP-963X / WEL-963X مع المصادقة بالهاتف"""
     __tablename__ = 'suppliers'
     
     # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
@@ -31,15 +31,15 @@ class Supplier(db.Model, UserMixin):
     # المعرفات الأساسية
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)  # تم التأكد من وجود حقل البريد الإلكتروني
+    email = db.Column(db.String(120), unique=True, nullable=True)  # البريد الإلكتروني
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
-    store_name = db.Column(db.String(150), nullable=True)  # حقل اسم المتجر
+    store_name = db.Column(db.String(150), nullable=True)  # اسم المتجر
     
     # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
     _phone_enc = db.Column(db.String(255), nullable=False) 
-    search_phone = db.Column(db.String(20), unique=True, nullable=True) # تم إضافة unique لضمان عدم تكرار الرقم على مستوى قاعدة البيانات
+    search_phone = db.Column(db.String(20), unique=True, nullable=True) # رقم موحد للبحث السريع بدون تكرار
     
     # الأمن وإدارة الحساب
     password_hash = db.Column(db.String(255), nullable=True)
@@ -64,11 +64,9 @@ class Supplier(db.Model, UserMixin):
     product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
 
     def __init__(self, **kwargs):
-        """مُنشئ الكائن مع تنظيف ومعالجة الكلمات المفتاحية الزائدة (مثل store_address) وتشفير الهاتف وتوليد search_phone الموحد بـ 9 أرقام."""
-        # تنظيف وتجاهل أو مطابقة الكلمات المفتاحية الغير موجودة كأعمدة لمنع خطأ invalid keyword argument
+        """مُنشئ الكائن مع تنظيف ومعالجة الكلمات المفتاحية وتشفير الهاتف وتوليد search_phone الموحد"""
         kwargs.pop('store_address', None)
         
-        # إذا تم تمرير full_address ولم يكن store_name موجوداً، نجعله يطابقه لتجنب الضياع
         if 'full_address' in kwargs and not kwargs.get('store_name'):
             kwargs['store_name'] = kwargs.get('full_address')
         kwargs.pop('full_address', None)
@@ -112,7 +110,6 @@ class Supplier(db.Model, UserMixin):
         if value:
             str_val = str(value)
             digits_only = "".join(filter(str.isdigit, str_val))
-            # اعتماد المعيار الموحد: آخر 9 أرقام بدون مفاتيح أو أصفار دولية زائدة
             clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
             
             self._phone_enc = self._encrypt(str_val)
@@ -128,6 +125,23 @@ class Supplier(db.Model, UserMixin):
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
+
+    @classmethod
+    def authenticate(cls, identifier, password):
+        """دالة مصادقة ذكية تتيح تسجيل الدخول إما عبر اسم المستخدم أو رقم الهاتف مع كلمة المرور"""
+        if not identifier or not password:
+            return None
+            
+        digits_only = "".join(filter(str.isdigit, str(identifier)))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+
+        supplier = cls.query.filter(
+            (cls.username == identifier) | (cls.search_phone == clean_9)
+        ).first()
+
+        if supplier and supplier.check_password(password):
+            return supplier
+        return None
 
     def to_dict(self):
         """تحويل المورد إلى قاموس آمن للاستخدام في APIs"""
