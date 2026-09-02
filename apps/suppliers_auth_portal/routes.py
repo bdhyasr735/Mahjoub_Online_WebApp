@@ -411,10 +411,13 @@ def reset_password():
 
         target_phone = stored_session_data.get('phone')
 
-        # التحقق من صحة الرمز عبر الخدمة المستقلة
-        is_valid = SupplierOTPService.verify_otp(target_phone, otp_code)
-        if not is_valid:
-            return jsonify({'success': False, 'message': 'رمز التحقق غير صحيح أو انتهت صلاحيته'}), 400
+        # التحقق من صحة الرمز عبر الخدمة المستقلة مع تعديل التعامل مع النتيجة كقاموس (dict)
+        verification_result = SupplierOTPService.verify_otp(target_phone, otp_code)
+        if not verification_result.get('success'):
+            return jsonify({
+                'success': False, 
+                'message': verification_result.get('message', 'رمز التحقق غير صحيح أو انتهت صلاحيته')
+            }), 400
 
         user_id = stored_session_data['user_id']
         u_type = stored_session_data['user_type']
