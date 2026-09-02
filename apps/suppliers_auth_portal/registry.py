@@ -1,5 +1,4 @@
-# apps/suppliers_auth_portal/registry.py
-
+# -*- coding: utf-8 -*-
 """
 ملف التسجيل لبوابة مصادقة الموردين
 يستخدم لتسجيل البوابة وملحقاتها في التطبيق الرئيسي
@@ -10,7 +9,7 @@ from apps.suppliers_auth_portal.routes import init_app
 
 logger = logging.getLogger(__name__)
 
-def register_suppliers_auth_portal(app):
+def register_module(app):
     """تسجيل بوابة الموردين في تطبيق الفلاسك الرئيسي"""
     try:
         init_app(app)
