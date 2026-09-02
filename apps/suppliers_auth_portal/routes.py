@@ -7,6 +7,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy import or_
 
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
@@ -22,25 +23,26 @@ suppliers_auth_bp = Blueprint(
 
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """مسار تسجيل دخول الموردين برقم الهاتف وكلمة المرور أو التحقق الثنائي"""
+    """مسار تسجيل دخول الموردين برقم الهاتف أو اسم المستخدم وكلمة المرور"""
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         data = request.get_json() or {}
-        phone = data.get('phone', '').strip().replace("+", "")
+        login_input = data.get('phone', '').strip().replace("+", "")
         password = data.get('password', '')
 
-        if not phone or not password:
-            return jsonify({"success": False, "message": "الرجاء إدخال رقم الهاتف وكلمة المرور."}), 400
+        if not login_input or not password:
+            return jsonify({"success": False, "message": "الرجاء إدخال رقم الهاتف/اسم المستخدم وكلمة المرور."}), 400
 
-        # البحث عن المورد برقم الهاتف
-        supplier = Supplier.query.filter_by(phone=phone).first()
+        # البحث المرن برقم الهاتف أو اسم المستخدم
+        supplier = Supplier.query.filter(
+            or_(Supplier.phone == login_input, Supplier.username == login_input)
+        ).first()
+
         if not supplier or not check_password_hash(supplier.password_hash, password):
-            return jsonify({"success": False, "message": "رقم الهاتف أو كلمة المرور غير صحيحة."}), 401
+            return jsonify({"success": False, "message": "بيانات الاعتماد (رقم الهاتف/اسم المستخدم أو كلمة المرور) غير صحيحة."}), 401
 
-        # التحقق مما إذا كان الحساب موقوفاً بسبب ميثاق حوكمة الأسعار
         if getattr(supplier, 'is_suspended', False):
             return jsonify({"success": False, "message": "تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة."}), 403
 
-        # تسجيل الدخول عبر Flask-Login
         login_user(supplier, remember=True)
         session['supplier_id'] = supplier.id
         session['supplier_phone'] = supplier.phone
@@ -52,10 +54,13 @@ def login():
         })
 
     if request.method == 'POST':
-        phone = request.form.get('phone', '').strip().replace("+", "")
+        login_input = request.form.get('phone', '').strip().replace("+", "")
         password = request.form.get('password', '')
 
-        supplier = Supplier.query.filter_by(phone=phone).first()
+        supplier = Supplier.query.filter(
+            or_(Supplier.phone == login_input, Supplier.username == login_input)
+        ).first()
+
         if supplier and check_password_hash(supplier.password_hash, password):
             if getattr(supplier, 'is_suspended', False):
                 flash('تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة.', 'danger')
@@ -67,7 +72,7 @@ def login():
             flash('تم تسجيل الدخول بنجاح.', 'success')
             return redirect(url_for('suppliers_auth_bp.dashboard'))
         else:
-            flash('رقم الهاتف أو كلمة المرور غير صحيحة.', 'danger')
+            flash('رقم الهاتف/اسم المستخدم أو كلمة المرور غير صحيحة.', 'danger')
 
     return render_template('suppliers_auth_portal/login.html')
 
@@ -90,13 +95,11 @@ def register():
         if password != confirm_password:
             return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين."}), 400
 
-        # التأكد من عدم مسبقية تسجيل رقم الهاتف
         existing_supplier = Supplier.query.filter_by(phone=phone).first()
         if existing_supplier:
             return jsonify({"success": False, "message": "رقم الهاتف مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة."}), 400
 
         try:
-            # 1. إنشاء سجل المورد الجديد وتشفير كلمة المرور
             hashed_password = generate_password_hash(password)
             new_supplier = Supplier(
                 phone=phone,
@@ -104,9 +107,8 @@ def register():
                 is_active=True
             )
             db.session.add(new_supplier)
-            db.session.flushforkeys if hasattr(db.session, 'flushforkeys') else db.session.flush()
+            db.session.flush() # تم تصحيح الدالة وتجنب الخطأ البرمجي السابق
 
-            # 2. إنشاء وتفعيل المحفظة المالية الذكية التلقائية (SupplierWallet)
             new_wallet = SupplierWallet(
                 supplier_id=new_supplier.id,
                 balance=0.00,
@@ -116,7 +118,6 @@ def register():
             db.session.add(new_wallet)
             db.session.commit()
 
-            # 3. إرسال إشعار ترحبي أو رمز تحقق عبر الواتساب اختياري إن أمكن
             client_ip = request.remote_addr
             user_agent = request.headers.get('User-Agent')
             SupplierOTPService.generate_and_send_otp(
@@ -151,7 +152,6 @@ def forgot_password():
             flash('رقم الهاتف غير مسجل في النظام.', 'danger')
             return redirect(url_for('suppliers_auth_bp.forgot_password'))
 
-        # توليد وإرسال رمز التحقق عبر الواتساب
         otp_res = SupplierOTPService.generate_and_send_otp(
             identifier=phone,
             target_id=supplier.id,
