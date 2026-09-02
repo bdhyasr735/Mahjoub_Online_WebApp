@@ -572,7 +572,7 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # ✅ تسجيل بوابة الموردين
+    # ✅ تسجيل بوابة الموردين الأساسية
     try:
         from apps.suppliers_auth_portal.routes import suppliers_auth_bp
         app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
@@ -603,6 +603,17 @@ def create_app():
             print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+
+    # ✅ تسجيل مسارات خدمة الموردين (Supplier Service / Wallet & Dashboard Routes)
+    try:
+        from apps.supplier_service.routes import supplier_service_bp
+        app.register_blueprint(supplier_service_bp, url_prefix='/supplier')
+        csrf.exempt(supplier_service_bp)
+        print("✅ [خدمة الموردين]: تم تسجيل مسارات خدمة الموردين والمحافظ بنجاح تحت '/supplier'.")
+    except ImportError as ie:
+        print(f"⚠️ [تحذير خدمة الموردين]: تعذر استيراد مسارات supplier_service: {ie}")
+    except Exception as e:
+        print(f"❌ [خطأ خدمة الموردين]: فشل تسجيل مسارات supplier_service: {e}")
 
     # ✅ تسجيل مسارات GraphQL
     try:
@@ -636,12 +647,12 @@ def create_app():
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
     # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
+    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات الأخرى
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                    'suppliers_auth_portal', 'admin', 'zsa_engine']
+                    'suppliers_auth_portal', 'supplier_service', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -738,28 +749,19 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules
         combined_supplier_modules = SUPPLIER_MODULES.copy()
         if hasattr(app, 'supplier_modules'):
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
-        # ✅ حذف المفتاح المكرر 'supplier_wallet' إذا كان موجوداً
-        if 'supplier_wallet' in combined_supplier_modules:
-            del combined_supplier_modules['supplier_wallet']
-
         return {
-            'registered_modules': ADMIN_MODULES,
+            'safe_url_for': safe_url_for,
             'admin_modules': ADMIN_MODULES,
             'supplier_modules': combined_supplier_modules,
-            'safe_url_for': safe_url_for,
+            'active_admin_modules': ADMIN_MODULES,
+            'active_supplier_modules': combined_supplier_modules,
+            'csrf_token': generate_csrf,
             **supplier_context
         }
-
-    @app.after_request
-    def set_csrf_header(response):
-        if not response.headers.get('X-CSRF-Token'):
-            response.headers['X-CSRF-Token'] = generate_csrf()
-        return response
 
     return app
