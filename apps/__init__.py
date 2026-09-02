@@ -640,8 +640,8 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
-                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                     'suppliers_auth_portal', 'admin', 'zsa_engine']
+                    'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                    'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -744,11 +744,22 @@ def create_app():
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
-        return dict(
-            safe_url_for=safe_url_for,
-            admin_modules=ADMIN_MODULES,
-            supplier_modules=combined_supplier_modules,
+        # ✅ حذف المفتاح المكرر 'supplier_wallet' إذا كان موجوداً
+        if 'supplier_wallet' in combined_supplier_modules:
+            del combined_supplier_modules['supplier_wallet']
+
+        return {
+            'registered_modules': ADMIN_MODULES,
+            'admin_modules': ADMIN_MODULES,
+            'supplier_modules': combined_supplier_modules,
+            'safe_url_for': safe_url_for,
             **supplier_context
-        )
+        }
+
+    @app.after_request
+    def set_csrf_header(response):
+        if not response.headers.get('X-CSRF-Token'):
+            response.headers['X-CSRF-Token'] = generate_csrf()
+        return response
 
     return app
