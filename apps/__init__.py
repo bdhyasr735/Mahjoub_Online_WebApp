@@ -299,20 +299,15 @@ def create_app():
         import_all_models()
         
         try:
-            # 🔍 التحقق من الاتصال بقاعدة البيانات
             db.session.execute(text("SELECT 1"))
             print("✅ [اتصال قاعدة البيانات]: تم التحقق من الاتصال بنجاح.")
             
-            # 📋 إعادة تعيين قاعدة البيانات بشكل آمن
             print("🔄 [إعادة البناء]: جاري إعادة تعيين قاعدة البيانات...")
-            
             if reset_database_safe():
-                # ✨ إنشاء الجداول الجديدة
                 print("🔄 [إعادة البناء]: جاري إنشاء الجداول بالهيكل الجديد...")
                 db.create_all()
                 print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
 
-                # 🌱 زراعة البيانات المبدئية
                 seed_database()
                 print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
             else:
@@ -512,9 +507,6 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
-    # ============================================================
-    # 🎭 المسار الخادع (لتمويه المتسللين)
-    # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
         """مسار خادع لتسجيل الدخول الوهمي"""
@@ -546,7 +538,6 @@ def create_app():
     # 🗂️ تسجيل البوابات والموديولات
     # ============================================================
 
-    # ✅ تسجيل بوابة المصادقة الإدارية
     try:
         from apps.auth_portal.routes import auth_bp
         app.register_blueprint(auth_bp)
@@ -572,7 +563,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # ✅ تسجيل بوابة الموردين
     try:
         from apps.suppliers_auth_portal.routes import suppliers_auth_bp
         app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
@@ -604,7 +594,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
-    # ✅ تسجيل مسارات GraphQL
     try:
         from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
@@ -615,9 +604,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
-    # ============================================================
-    # 📱 تسجيل مسار الواتساب العام
-    # ============================================================
     try:
         from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
 
@@ -636,12 +622,12 @@ def create_app():
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
     # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
+    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات (لتظهر في السيدبار كاملة)
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
-                    'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                    'suppliers_auth_portal', 'admin', 'zsa_engine']
+                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                     'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -738,28 +724,21 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules
         combined_supplier_modules = SUPPLIER_MODULES.copy()
         if hasattr(app, 'supplier_modules'):
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
-        # ✅ حذف المفتاح المكرر 'supplier_wallet' إذا كان موجوداً
-        if 'supplier_wallet' in combined_supplier_modules:
-            del combined_supplier_modules['supplier_wallet']
+        combined_admin_modules = ADMIN_MODULES.copy()
+        if hasattr(app, 'admin_modules'):
+            for key, value in app.admin_modules.items():
+                combined_admin_modules[key] = value
 
         return {
-            'registered_modules': ADMIN_MODULES,
-            'admin_modules': ADMIN_MODULES,
-            'supplier_modules': combined_supplier_modules,
             'safe_url_for': safe_url_for,
+            'admin_modules': combined_admin_modules,
+            'supplier_modules': combined_supplier_modules,
             **supplier_context
         }
-
-    @app.after_request
-    def set_csrf_header(response):
-        if not response.headers.get('X-CSRF-Token'):
-            response.headers['X-CSRF-Token'] = generate_csrf()
-        return response
 
     return app
