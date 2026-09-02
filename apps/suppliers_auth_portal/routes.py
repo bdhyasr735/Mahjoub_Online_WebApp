@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
 
 from apps.extensions import db
-from apps.models.supplier import Supplier  # نموذج جدول الموردين
+from apps.models.suppliers_db import Supplier  # نموذج جدول الموردين المصحح
 from apps.models.wallet import SupplierWallet  # نموذج محفظة المورد المالية
 from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
@@ -205,7 +205,6 @@ def verify_reset_otp():
 @login_required
 def dashboard():
     """لوحة تحكم المورد المحمية"""
-    # يمكنك جمرعة بيانات المحفظة الخاصة بالمورد الحالي لعرضها في اللوحة
     wallet = SupplierWallet.query.filter_by(supplier_id=current_user.id).first()
     return render_template('suppliers_auth_portal/dashboard.html', wallet=wallet)
 
