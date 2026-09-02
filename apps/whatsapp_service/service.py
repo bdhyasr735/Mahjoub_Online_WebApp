@@ -1,397 +1,716 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/whatsapp_service/routes.py
+# 📂 apps/whatsapp_service/service.py
 """
-سوق محجوب أونلاين - مسارات الباك إند والـ Webhooks
-Flask / Python Routes for Meta WhatsApp Cloud API v26.0
+سوق محجوب أونلاين - خدمة الواتساب ومحرك الذكاء الاصطناعي
+WhatsApp Service for Meta Cloud API v26.0 & Gemini AI
 """
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
-from datetime import datetime
+import os
+import json
+import hmac
+import hashlib
+import requests
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
 
-# ✅ استيراد النماذج (ضروري للدوال المتعلقة بجهات الاتصال)
+# ✅ استيراد Cloudinary
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# ✅ استيراد النماذج من المكان الصحيح (حيث توجد الجداول فعلاً)
+from apps.models.whatsapp_models import WhatsAppCustomerContact, WhatsAppMessageLog
+from apps.models.supplier_db import Supplier
+from apps.models.marketer_db import Marketer
+
+# استيراد قاعدة البيانات
 try:
-    from apps.models.whatsapp_models import WhatsAppCustomerContact
-    from apps.models.supplier_db import Supplier
-    from apps.models.marketer_db import Marketer
+    from apps.extensions import db
 except ImportError:
-    WhatsAppCustomerContact = Supplier = Marketer = None
+    from app import db
 
-# تعريف الـ Blueprint الإداري
-whatsapp_bp = Blueprint(
-    'whatsapp_service', 
-    __name__, 
-    template_folder='templates',
-    url_prefix='/admin/whatsapp'
-)
+class WhatsAppService:
+    def __init__(self):
+        # إعدادات الربط مع Meta Cloud API v26.0 (آمن - تقرأ من Railway فقط)
+        self.api_version = os.getenv("WHATSAPP_API_VERSION", "v26.0")
+        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
-# تعريف Blueprint عام لمسارات الويب هوك المباشرة بدون بادئة admin
-webhook_public_bp = Blueprint(
-    'whatsapp_webhook_public',
-    __name__
-)
+        # ✅ إعداد Cloudinary
+        cloudinary.config(
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+            api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
+            secure=True
+        )
 
+        # روابط Meta Graph API
+        self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
+        self.media_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
 
-# =========================================================================
-# 1. مسارات الـ Webhook مع Meta Cloud API v26.0 (تدعم كلا المسارين)
-# =========================================================================
+        # مخزن مؤقت للمحادثات وسجلات الويب هوك
+        self.webhook_logs: List[Dict[str, Any]] = []
+        self.contacts_db: Dict[str, Dict[str, Any]] = {}
+        self.messages_db: Dict[str, List[Dict[str, Any]]] = {}
 
-def _handle_verify():
-    """التحقق الأولي من الـ Webhook من خوادم Meta (Challenge Verification)"""
-    # استيراد الخدمة هنا لتفادي Circular Import
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    mode = request.args.get('hub.mode')
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
-    
-    # إذا تم إرسال الـ Challenge الصحيح من ميتا
-    if mode == 'subscribe' and token == wa_service.verify_token:
-        return str(challenge), 200
+    # =========================================================================
+    # 1. إرسال الرسائل والقوالب والوسائط (Outbound Meta API)
+    # =========================================================================
 
-    # إذا قام المطور بفتح الرابط يدوياً للتأكد من عمل السيرفر
-    if not mode and not token:
-        return jsonify({
-            "status": "online",
-            "service": "Mahjoob WhatsApp Webhook Endpoint (v26.0)",
-            "message": "Webhook is running and ready to receive Meta Cloud API events."
-        }), 200
+    def _get_headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
 
-    return "Verification failed: Token mismatch", 403
+    def _process_message_variables(self, text: str, contact_data: Dict[str, Any]) -> str:
+        """استبدال المتغيرات في الرسالة بالبيانات الحقيقية للعميل أو التاجر أو المسوق"""
+        if not contact_data:
+            return text
+        
+        name = contact_data.get('name', '')
+        company = contact_data.get('company', '')
+        discount_code = contact_data.get('discount_code', '')
+        city = contact_data.get('city', '')
+        phone = contact_data.get('phone', '')
 
-def _handle_incoming_event():
-    """استقبال أحداث ورسائل Meta Webhook ومعالجتها فورياً"""
-    # استيراد الخدمة هنا لتفادي Circular Import
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    raw_payload = request.get_data()
-    signature = request.headers.get('X-Hub-Signature-256', '')
-    
-    if not wa_service.verify_webhook_signature(raw_payload, signature):
-        return jsonify({"error": "Invalid signature"}), 401
+        return (
+            text.replace("{name}", name)
+                .replace("{company}", company)
+                .replace("{discount_code}", discount_code)
+                .replace("{city}", city)
+                .replace("{phone}", phone)
+        )
 
-    data = request.get_json(silent=True) or {}
-    wa_service.process_incoming_payload(data)
-    return jsonify({"status": "received"}), 200
+    def send_message(self, recipient_phone: str, text: str, contact_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API"""
+        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
+        
+        # استبدال المتغيرات في الرسالة إذا كانت البيانات متوفرة
+        if contact_data:
+            text = self._process_message_variables(text, contact_data)
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": clean_phone,
+            "type": "text",
+            "text": {
+                "preview_url": False,
+                "body": text
+            }
+        }
 
+        # حفظ الرسالة محلياً (outbound لا يزيد unread_count)
+        self._record_message(clean_phone, text, direction="outbound", status="sent")
 
-# مسارات الويب هوك تحت /admin/whatsapp/webhook
-@whatsapp_bp.route('/webhook', methods=['GET'])
-def verify_webhook_admin():
-    return _handle_verify()
+        if not self.access_token:
+            return {"status": "simulated", "message_id": f"sim_{int(datetime.utcnow().timestamp())}", "to": clean_phone}
 
-@whatsapp_bp.route('/webhook', methods=['POST'])
-def handle_webhook_event_admin():
-    return _handle_incoming_event()
+        try:
+            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
+            return response.json()
+        except Exception as e:
+            return {"error": str(e), "status": "failed"}
 
+    def send_template(
+        self,
+        recipient_phone: str,
+        template_name: str,
+        language_code: str = "ar",
+        components: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """إرسال قالب رسمي معتمد من Meta"""
+        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": language_code},
+                "components": components or []
+            }
+        }
 
-# مسارات الويب هوك المباشرة تحت /whatsapp/webhook (لحل الـ 404)
-@webhook_public_bp.route('/whatsapp/webhook', methods=['GET'])
-def verify_webhook_public():
-    return _handle_verify()
+        self._record_message(clean_phone, f"[قالب رسمي: {template_name}]", direction="outbound", status="sent")
 
-@webhook_public_bp.route('/whatsapp/webhook', methods=['POST'])
-def handle_webhook_event_public():
-    return _handle_incoming_event()
+        if not self.access_token:
+            return {"status": "simulated", "template": template_name, "to": clean_phone}
 
+        try:
+            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
+            return response.json()
+        except Exception as e:
+            return {"error": str(e), "status": "failed"}
 
-# =========================================================================
-# 2. مسارات الـ REST API لإدارة المراسلات من لوحة التحكم
-# =========================================================================
+    def send_media(self, recipient_phone: str, files: list) -> Dict[str, Any]:
+        """إرسال ملفات (صور، فيديو، مستندات) عبر Meta WhatsApp Cloud API"""
+        try:
+            clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
+            results = []
+            
+            for file in files:
+                if not file:
+                    continue
+                    
+                file_type = file.content_type
+                if file_type.startswith('image/'):
+                    media_type = 'image'
+                elif file_type.startswith('video/'):
+                    media_type = 'video'
+                else:
+                    media_type = 'document'
+                
+                upload_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
+                upload_res = requests.post(
+                    upload_url,
+                    headers={"Authorization": f"Bearer {self.access_token}"},
+                    files={
+                        "file": (file.filename, file.stream, file.content_type),
+                        "type": (None, media_type),
+                        "messaging_product": (None, "whatsapp")
+                    },
+                    timeout=30
+                )
+                upload_data = upload_res.json()
+                
+                if "id" not in upload_data:
+                    return {"status": "failed", "error": upload_data.get("error", {}).get("message", "فشل رفع الملف")}
+                
+                media_id = upload_data["id"]
+                
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "to": clean_phone,
+                    "type": media_type,
+                    "media_type": {
+                        "id": media_id
+                    }
+                }
+                
+                send_res = requests.post(
+                    self.base_url,
+                    headers=self._get_headers(),
+                    json=payload,
+                    timeout=10
+                )
+                
+                send_data = send_res.json()
+                self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound", media_id=media_id, status="sent")
+                results.append(send_data)
+            
+            return {"status": "success", "results": results}
+            
+        except Exception as e:
+            return {"error": str(e), "status": "failed"}
 
-@whatsapp_bp.route('/api/send', methods=['POST'])
-def send_message_api():
-    """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    recipient_phone = data.get('recipient_phone')
-    text = data.get('content')
-    
-    if not recipient_phone or not text:
-        return jsonify({"error": "recipient_phone and content are required"}), 400
-        
-    result = wa_service.send_message(recipient_phone, text)
-    return jsonify(result), 200
+    def send_bulk_messages(self, campaign_data: Dict[str, Any]) -> Dict[str, Any]:
+        """إرسال رسائل جماعية مستهدفة مع استبدال المتغيرات بالبيانات الحقيقية"""
+        campaign_name = campaign_data.get('campaign_name', '')
+        target_category = campaign_data.get('target_category', 'all')
+        message_text = campaign_data.get('message_text', '')
+        
+        target_contacts = self.get_all_contacts()
+        
+        sent_count = 0
+        for contact in target_contacts:
+            # تصفية حسب الفئة المستهدفة
+            if target_category != 'all' and contact.get('category') != target_category:
+                continue
+            
+            # استبدال المتغيرات في الرسالة
+            personalized_message = self._process_message_variables(message_text, contact)
+            
+            result = self.send_message(contact['phone'], personalized_message, contact)
+            if result.get('status') in ['sent', 'simulated']:
+                sent_count += 1
+        
+        return {"success": True, "sent_count": sent_count, "campaign_name": campaign_name}
 
-@whatsapp_bp.route('/api/templates/send', methods=['POST'])
-def send_template_api():
-    """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    recipient_phone = data.get('recipient_phone')
-    template_name = data.get('template_name')
-    language_code = data.get('language_code', 'ar')
-    components = data.get('components', [])
-    
-    if not recipient_phone or not template_name:
-        return jsonify({"error": "recipient_phone and template_name are required"}), 400
-        
-    result = wa_service.send_template(
-        recipient_phone=recipient_phone,
-        template_name=template_name,
-        language_code=language_code,
-        components=components
-    )
-    return jsonify(result), 200
+    # =========================================================================
+    # 2. معالجة الـ Webhook الوارد (Inbound Webhook)
+    # =========================================================================
 
-@whatsapp_bp.route('/api/contacts', methods=['GET'])
-def get_contacts():
-    """جلب قائمة جهات الاتصال المسجلة في النظام"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    contacts = wa_service.get_all_contacts()
-    return jsonify({"contacts": contacts}), 200
+    def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
+        """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
+        if not self.app_secret or not signature_header:
+            return True
+        expected_hash = hmac.new(
+            self.app_secret.encode('utf-8'),
+            raw_payload,
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(f"sha256={expected_hash}", signature_header)
 
-@whatsapp_bp.route('/api/messages', methods=['GET'])
-def get_messages():
-    """جلب الرسائل السابقة لمحادثة معينة عبر رقم الهاتف"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    phone = request.args.get('phone', '')
-    if not phone:
-        return jsonify({"error": "phone parameter is required"}), 400
-    messages = wa_service.get_chat_history(phone)
-    return jsonify({"messages": messages}), 200
+    def process_incoming_payload(self, data: Dict[str, Any]) -> None:
+        """تحليل ومعالجة الرسائل والأحداث الواردة من Meta Webhook"""
+        try:
+            entries = data.get("entry", [])
+            for entry in entries:
+                changes = entry.get("changes", [])
+                for change in changes:
+                    value = change.get("value", {})
+                    
+                    contact_profile_name = "عميل محجوب"
+                    if "contacts" in value and len(value["contacts"]) > 0:
+                        contact_profile_name = value["contacts"][0].get("profile", {}).get("name", "عميل محجوب")
 
-@whatsapp_bp.route('/api/contacts/update-name', methods=['POST'])
-def update_contact_name_api():
-    """تعديل اسم جهة اتصال معينة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    phone = data.get('phone', '')
-    name = data.get('name', '')
-    
-    if not phone or not name:
-        return jsonify({"error": "phone and name are required"}), 400
-        
-    result = wa_service.update_contact_name(phone, name)
-    return jsonify(result), 200
+                    # 1. حالة وصول رسالة جديدة من عميل
+                    if "messages" in value:
+                        for msg in value["messages"]:
+                            sender_phone = str(msg.get("from", "")).replace("+", "").strip()
+                            msg_type = msg.get("type")
+                            msg_text = ""
+                            media_id = ""
+                            media_url = ""
 
-@whatsapp_bp.route('/api/contacts/read', methods=['POST'])
-def mark_contact_as_read_api():
-    """تصفير عداد الرسائل غير المقروءة عند فتح المحادثة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    phone = data.get('phone', '')
-    
-    if not phone:
-        return jsonify({"error": "phone is required"}), 400
-        
-    result = wa_service.mark_contact_as_read(phone)
-    return jsonify(result), 200
+                            if msg_type == "text":
+                                msg_text = msg.get("text", {}).get("body", "")
+                            elif msg_type == "button":
+                                msg_text = msg.get("button", {}).get("text", "")
+                            elif msg_type == "interactive":
+                                msg_text = msg.get("interactive", {}).get("button_reply", {}).get("title", "")
+                            elif msg_type == "image":
+                                msg_text = "صورة"
+                                media_id = msg.get("image", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
+                                if media_url:
+                                    try:
+                                        response = requests.get(media_url, timeout=30)
+                                        if response.status_code == 200:
+                                            temp_file = f"temp_{media_id}.jpg"
+                                            with open(temp_file, "wb") as f:
+                                                f.write(response.content)
+                                            permanent_url = self._upload_to_cloudinary(temp_file, media_id)
+                                            if permanent_url:
+                                                media_url = permanent_url
+                                            if os.path.exists(temp_file):
+                                                os.remove(temp_file)
+                                    except Exception as e:
+                                        print(f"⚠️ [خطأ تحميل صورة من Meta]: {e}")
+                            elif msg_type == "video":
+                                msg_text = "فيديو"
+                                media_id = msg.get("video", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
+                            elif msg_type == "document":
+                                msg_text = "ملف مرفق"
+                                media_id = msg.get("document", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
+                            elif msg_type == "location":
+                                msg_text = "موقع جغرافي"
 
-@whatsapp_bp.route('/api/send-media', methods=['POST'])
-def send_media_api():
-    """إرسال صور، فيديو، أو ملفات عبر Meta WhatsApp Cloud API"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    recipient_phone = request.form.get('recipient_phone', '')
-    files = request.files.getlist('files')
-    
-    if not recipient_phone or not files:
-        return jsonify({"error": "recipient_phone and files are required"}), 400
-        
-    result = wa_service.send_media(recipient_phone, files)
-    return jsonify(result), 200
+                            # ✅ تسجيل جهة الاتصال (هنا يتم زيادة unread_count)
+                            self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
+                            self._log_webhook_event("incoming_message", sender_phone, msg_text)
+                            
+                            # ✅ تسجيل الرسالة كـ inbound
+                            self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id, media_url=media_url)
 
-@whatsapp_bp.route('/api/clear-demo-data', methods=['POST'])
-def clear_demo_data_api():
-    """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    result = wa_service.clear_demo_data()
-    return jsonify(result), 200
+                            # ❌ تم تعطيل الرد الآلي
+                            # self._handle_smart_ai_reply(sender_phone, msg_text)
 
+                    # 2. حالة تحديث حالة التسليم والقراءة
+                    if "statuses" in value:
+                        for status_update in value["statuses"]:
+                            recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
+                            status = status_update.get("status")
+                            self._update_message_status(recipient_id, status)
 
-# =========================================================================
-# 3. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة
-# =========================================================================
+        except Exception as e:
+            self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
 
-@whatsapp_bp.route('/dashboard', methods=['GET'])
-@whatsapp_bp.route('/', methods=['GET'])
-def dashboard_view():
-    """عرض لوحة المحادثات المباشرة باستخدام القالب المخصص whatsapp_dashboard.html"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    contacts = wa_service.get_all_contacts()
-    return render_template('admin/whatsapp_dashboard.html', contacts=contacts)
+    def _update_message_status(self, phone: str, status: str) -> None:
+        """تحديث حالة الرسائل المرسلة (sent, delivered, read)"""
+        try:
+            message = WhatsAppMessageLog.query.filter_by(
+                recipient_number=phone,
+                direction='outbound'
+            ).order_by(WhatsAppMessageLog.timestamp.desc()).first()
+            
+            if message:
+                message.status = status
+                db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [خطأ تحديث حالة الرسالة]: {e}")
 
-@whatsapp_bp.route('/templates', methods=['GET'])
-def templates_view():
-    """عرض قائمة قوالب Meta المعتمدة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    templates = wa_service.get_approved_templates()
-    return render_template('admin/templates_list.html', templates=templates)
+    # =========================================================================
+    # 3. دالة إضافة/تحديث جهة الاتصال (مع زيادة unread_count)
+    # =========================================================================
 
-@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
-def settings_view():
-    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    if request.method == 'POST':
-        data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
-        wa_service.update_config(data)
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-            return jsonify({"status": "success", "message": "تم حفظ الإعدادات بنجاح"}), 200
-        
-        config = wa_service.get_current_config()
-        return render_template('admin/settings.html', config=config, success=True)
+    def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
+        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها مع زيادة العداد"""
+        if not phone:
+            return
+        phone = phone.replace("+", "").strip()
+        
+        # ✅ الحفظ في قاعدة البيانات
+        try:
+            contact = WhatsAppCustomerContact.query.filter_by(phone=phone).first()
+            if not contact:
+                contact = WhatsAppCustomerContact(
+                    phone=phone,
+                    name=name if name != "عميل واتساب" else f"عميل (+{phone})",
+                    whatsapp_profile_name=name,
+                    last_message=last_message,
+                    last_timestamp=datetime.utcnow(),
+                    unread_count=1,
+                    extra_data={"category": "customers"}
+                )
+                db.session.add(contact)
+            else:
+                if name and name != "عميل واتساب":
+                    contact.name = name
+                    contact.whatsapp_profile_name = name
+                if last_message:
+                    contact.last_message = last_message
+                    contact.last_timestamp = datetime.utcnow()
+                    contact.unread_count = (contact.unread_count or 0) + 1
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [خطأ حفظ جهة الاتصال في الجدول]: {e}")
+        
+        # ✅ الحفظ في الذاكرة (القاموس)
+        if phone not in self.contacts_db:
+            self.contacts_db[phone] = {
+                "phone": phone,
+                "name": name if name != "عميل واتساب" else f"عميل (+{phone})",
+                "last_message": last_message,
+                "last_message_time": datetime.utcnow().strftime("%H:%M"),
+                "unread_count": 1
+            }
+        else:
+            if name and name != "عميل واتساب":
+                self.contacts_db[phone]["name"] = name
+            if last_message:
+                self.contacts_db[phone]["last_message"] = last_message
+                self.contacts_db[phone]["last_message_time"] = datetime.utcnow().strftime("%H:%M")
+                self.contacts_db[phone]["unread_count"] = (self.contacts_db[phone].get("unread_count", 0) or 0) + 1
 
-    config = wa_service.get_current_config()
-    return render_template('admin/settings.html', config=config)
+    # =========================================================================
+    # 4. تم تعطيل الرد الآلي
+    # =========================================================================
 
-@whatsapp_bp.route('/webhook-logs', methods=['GET'])
-def webhook_logs_view():
-    """عرض سجل تدفق أحداث الـ Webhook المباشر"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    logs = wa_service.get_webhook_logs()
-    return render_template('admin/webhook_logs.html', logs=logs)
+    def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
+        """❌ تم تعطيل الرد الآلي بناءً على طلب العميل"""
+        return
 
+    def _generate_gemini_reply(self, prompt: str) -> str:
+        """استدعاء نموذج Gemini AI لتوليد الردود الفورية"""
+        if not self.gemini_api_key:
+            return "أهلاً بك في سوق محجوب أونلاين! تم استلام رسالتك وسيتواصل معك أحد ممثلي الخدمة في أقرب وقت."
 
-# =========================================================================
-# 4. 🆕 مسارات جهات الاتصال والإرسال الجماعي (مضاف حديثاً)
-# =========================================================================
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            res = requests.post(url, json=payload, timeout=8)
+            res_json = res.json()
+            return res_json['candidates'][0]['content']['parts'][0]['text']
+        except Exception:
+            return "مرحباً بك في سوق محجوب أونلاين! نسعد بخدمتك دائماً، كيف يمكننا مساعدتك اليوم؟"
 
-@whatsapp_bp.route('/contacts-bulk', methods=['GET'])
-def contacts_bulk_view():
-    """عرض صفحة جهات الاتصال والإرسال الجماعي (مطابقة للصور من Gemini)"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    # جلب البيانات من قاعدة البيانات
-    contacts = wa_service.get_all_contacts()
-    
-    # إحصائيات للعرض
-    stats = {
-        'customers_count': 124,   # يمكن استبدالها بعدد العملاء الحقيقي
-        'merchants_count': 48,
-        'suppliers_count': 32,
-        'marketers_count': 55
-    }
-    
-    current_category = request.args.get('category', 'all')
-    
-    return render_template('admin/contacts_bulk.html', 
-                           contacts=contacts, 
-                           stats=stats,
-                           current_category=current_category)
+    # =========================================================================
+    # 5. إدارة قواعد البيانات وسجلات المحادثات
+    # =========================================================================
 
+    def _record_message(self, phone: str, content: str, direction: str, media_id: str = "", media_url: str = "", status: str = "received") -> None:
+        clean_phone = phone.replace("+", "").strip()
+        
+        self._ensure_contact_exists(clean_phone, last_message=content)
+        
+        try:
+            msg = WhatsAppMessageLog(
+                direction=direction,
+                sender_number=clean_phone if direction == 'inbound' else '967784439991',
+                recipient_number='967784439991' if direction == 'inbound' else clean_phone,
+                content=content,
+                message_type='text',
+                status=status,
+                media_id=media_id,
+                media_url=media_url
+            )
+            db.session.add(msg)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [خطأ حفظ الرسالة في الجدول]: {e}")
+        
+        if clean_phone not in self.messages_db:
+            self.messages_db[clean_phone] = []
+        self.messages_db[clean_phone].append({
+            "id": f"msg_{int(datetime.utcnow().timestamp() * 1000)}",
+            "direction": direction,
+            "content": content,
+            "media_id": media_id,
+            "media_url": media_url,
+            "status": status,
+            "timestamp": datetime.utcnow().strftime("%H:%M")
+        })
 
-@whatsapp_bp.route('/add-contact', methods=['POST'])
-def add_contact_view():
-    """إضافة جهة اتصال جديدة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.form.to_dict()
-    result = wa_service.add_contact(
-        name=data.get('name', ''),
-        phone=data.get('phone', ''),
-        category=data.get('category', 'customers'),
-        company=data.get('company', ''),
-        city=data.get('city', ''),
-        email=data.get('email', ''),
-        notes=data.get('notes', '')
-    )
-    
-    if result.get('success'):
-        flash('تمت إضافة جهة الاتصال بنجاح!', 'success')
-    else:
-        flash(result.get('error', 'حدث خطأ أثناء الإضافة'), 'danger')
-        
-    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+    def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
+        self.webhook_logs.insert(0, {
+            "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
+            "event_type": event_type,
+            "phone": phone,
+            "status": status
+        })
+        if len(self.webhook_logs) > 100:
+            self.webhook_logs.pop()
 
+    # =========================================================================
+    # 6. دوال جلب البيانات
+    # =========================================================================
 
-@whatsapp_bp.route('/import-contacts', methods=['POST'])
-def import_contacts_view():
-    """استيراد جهات اتصال من ملف CSV أو Excel"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    file = request.files.get('file')
-    default_category = request.form.get('default_category', 'customers')
-    
-    if not file:
-        flash('يرجى رفع ملف أولاً', 'danger')
-        return redirect(url_for('whatsapp_service.contacts_bulk_view'))
-    
-    try:
-        import csv
-        import io
-        stream = io.StringIO(file.read().decode("UTF-8"))
-        reader = csv.DictReader(stream)
-        
-        imported_count = 0
-        for row in reader:
-            name = row.get('Name') or row.get('name')
-            phone = row.get('Phone') or row.get('phone')
-            category = row.get('Category', default_category)
-            
-            if name and phone:
-                wa_service.add_contact(name=name, phone=phone, category=category)
-                imported_count += 1
-        
-        flash(f'تم استيراد {imported_count} جهة اتصال بنجاح!', 'success')
-    except Exception as e:
-        flash(f'خطأ في الاستيراد: {str(e)}', 'danger')
-        
-    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+    def get_all_contacts(self) -> List[Dict[str, Any]]:
+        """جلب جميع جهات الاتصال: العملاء، التجار، الموردين، والمسوقين"""
+        try:
+            # 1. جلب العملاء من WhatsAppCustomerContact
+            customers = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
+            
+            result = []
+            
+            for c in customers:
+                # قراءة extra_data إذا كان موجوداً
+                extra_data = c.extra_data if isinstance(c.extra_data, dict) else {}
+                
+                data = {
+                    'id': c.id,
+                    'phone': c.phone,
+                    'name': c.name or c.whatsapp_profile_name or f"عميل ({c.phone})",
+                    'last_message': c.last_message,
+                    'last_timestamp': c.last_timestamp.isoformat() if c.last_timestamp else None,
+                    'unread_count': c.unread_count or 0,
+                    'is_online': False,
+                    'last_seen': 'آخر ظهور اليوم',
+                    'category': extra_data.get('category', 'customers'),
+                    'city': extra_data.get('city', ''),
+                    'company': extra_data.get('company', ''),
+                    'discount_code': extra_data.get('discount_code', ''),
+                    'email': extra_data.get('email', ''),
+                    'notes': c.notes or '',
+                }
+                
+                if c.last_timestamp:
+                    if isinstance(c.last_timestamp, datetime):
+                        c.last_timestamp = c.last_timestamp.replace(tzinfo=None)
+                        time_diff = datetime.utcnow() - c.last_timestamp
+                        if time_diff.total_seconds() < 300:
+                            data['is_online'] = True
+                            data['last_seen'] = 'متصل الآن'
+                        else:
+                            data['is_online'] = False
+                            if c.last_timestamp.date() == datetime.utcnow().date():
+                                data['last_seen'] = f"آخر ظهور اليوم {c.last_timestamp.strftime('%H:%M')}"
+                            elif c.last_timestamp.date() == (datetime.utcnow() - timedelta(days=1)).date():
+                                data['last_seen'] = f"آخر ظهور أمس {c.last_timestamp.strftime('%H:%M')}"
+                            else:
+                                data['last_seen'] = f"آخر ظهور {c.last_timestamp.strftime('%d/%m/%Y %H:%M')}"
+                
+                result.append(data)
+            
+            # 2. جلب التجار والموردين من Supplier
+            suppliers = Supplier.query.order_by(Supplier.created_at.desc()).all()
+            for s in suppliers:
+                supplier_data = {
+                    'id': f"supplier_{s.id}",
+                    'phone': s.phone,
+                    'name': s.store_name or s.trade_name or s.owner_name or s.username,
+                    'company': s.trade_name or s.store_name,
+                    'city': getattr(s, 'city', ''),
+                    'category': 'suppliers',
+                    'discount_code': '',
+                    'email': '',
+                    'notes': '',
+                    'last_message': '',
+                    'last_timestamp': s.created_at.isoformat() if s.created_at else None,
+                    'unread_count': 0,
+                    'is_online': False,
+                    'last_seen': 'آخر ظهور اليوم',
+                }
+                result.append(supplier_data)
+            
+            # 3. جلب المسوقين من Marketer
+            marketers = Marketer.query.order_by(Marketer.created_at.desc()).all()
+            for m in marketers:
+                marketer_data = {
+                    'id': f"marketer_{m.id}",
+                    'phone': m.phone,
+                    'name': m.full_name,
+                    'company': '',
+                    'city': '',
+                    'category': 'marketers',
+                    'discount_code': '',
+                    'email': '',
+                    'notes': '',
+                    'last_message': '',
+                    'last_timestamp': m.created_at.isoformat() if m.created_at else None,
+                    'unread_count': 0,
+                    'is_online': False,
+                    'last_seen': 'آخر ظهور اليوم',
+                }
+                result.append(marketer_data)
+            
+            # إرجاع القائمة كاملة (تم فرزها حسب الأحدث - يمكن تعديل الترتيب لاحقاً)
+            return result
+            
+        except Exception as e:
+            print(f"⚠️ [خطأ جلب جهات الاتصال من الجداول]: {e}")
+            return list(self.contacts_db.values())
 
+    def get_chat_history(self, phone: str) -> List[Dict[str, Any]]:
+        """جلب سجل المحادثة (من قاعدة البيانات أولاً)"""
+        try:
+            clean_phone = phone.replace("+", "").strip()
+            messages = WhatsAppMessageLog.query.filter(
+                (WhatsAppMessageLog.sender_number == clean_phone) |
+                (WhatsAppMessageLog.recipient_number == clean_phone)
+            ).order_by(WhatsAppMessageLog.timestamp.asc()).all()
+            
+            result = []
+            for m in messages:
+                item = {
+                    'id': m.id,
+                    'direction': m.direction,
+                    'content': m.content,
+                    'status': m.status,
+                    'timestamp': m.timestamp.strftime("%H:%M") if m.timestamp else '',
+                    'media_url': m.media_url,
+                    'media_type': m.message_type,
+                    'media_filename': m.media_filename,
+                }
+                result.append(item)
+            
+            return result
+        except Exception as e:
+            print(f"⚠️ [خطأ جلب المحادثة من الجداول]: {e}")
+            return self.messages_db.get(phone.replace("+", "").strip(), [])
 
-@whatsapp_bp.route('/send-broadcast', methods=['POST'])
-def send_broadcast_view():
-    """إرسال رسالة جماعية مستهدفة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    campaign_name = request.form.get('campaign_name', '')
-    target_category = request.form.get('target_category', 'all')
-    message_text = request.form.get('message_text', '')
-    
-    # جلب قائمة الأرقام المستهدفة
-    target_phones = []
-    
-    if target_category == 'all' or target_category == 'customers':
-        if WhatsAppCustomerContact:
-            customers = WhatsAppCustomerContact.query.all()
-            target_phones.extend([c.phone for c in customers])
-    
-    if target_category == 'all' or target_category == 'suppliers':
-        if Supplier:
-            suppliers = Supplier.query.all()
-            target_phones.extend([s.phone for s in suppliers if s.phone])
-    
-    if target_category == 'all' or target_category == 'marketers':
-        if Marketer:
-            marketers = Marketer.query.all()
-            target_phones.extend([m.phone for m in marketers if m.phone])
-    
-    sent_count = 0
-    for phone in target_phones:
-        personalized_message = message_text.replace("{phone}", phone)
-        result = wa_service.send_message(recipient_phone=phone, text=personalized_message)
-        if result.get('status') in ['sent', 'simulated']:
-            sent_count += 1
-    
-    flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال!', 'success')
-    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+    def _get_media_url(self, media_id: str) -> str:
+        """الحصول على رابط مؤقت للوسائط من Meta"""
+        try:
+            url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
+            res = requests.get(
+                url,
+                headers={"Authorization": f"Bearer {self.access_token}"},
+                timeout=10
+            )
+            data = res.json()
+            return data.get("url", "")
+        except Exception:
+            return ""
+
+    def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
+        """رفع ملف إلى Cloudinary وإرجاع الرابط الدائم"""
+        try:
+            upload_result = cloudinary.uploader.upload(
+                file_path,
+                public_id=public_id,
+                folder=f"whatsapp/{public_id.split('_')[0]}"
+            )
+            return upload_result.get("secure_url", "")
+        except Exception as e:
+            print(f"⚠️ [خطأ رفع إلى Cloudinary]: {e}")
+            return ""
+
+    # =========================================================================
+    # 7. دوال إضافية
+    # =========================================================================
+
+    def get_webhook_logs(self) -> List[Dict[str, Any]]:
+        return self.webhook_logs
+
+    def get_approved_templates(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "name": "mahjoob_order_confirmation",
+                "category": "خدمات وطلبات (Utility)",
+                "language": "ar",
+                "status": "APPROVED",
+                "body_text": "مرحباً {{1}}، تم تأكيد طلبك رقم #{{2}} بقيمة {{3}} ر.س من سوق محجوب أونلاين بنجاح. سنوافيك برابط التتبع فور انطلاق الشحنة."
+            },
+            {
+                "name": "mahjoob_shipping_update",
+                "category": "الشحن والتوصيل (Utility)",
+                "language": "ar",
+                "status": "APPROVED",
+                "body_text": "أهلاً {{1}}، شحنتك رقم #{{2}} خرجت للتوصيل الآن مع شركة الشحن. رقم البوليصة: {{3}}."
+            },
+            {
+                "name": "mahjoob_merchant_alert",
+                "category": "تنبيهات التجار (Alert)",
+                "language": "ar",
+                "status": "APPROVED",
+                "body_text": "عزيزي التاجر {{1}}، ورد طلب جملة جديد رقم #{{2}} على منتجاتك. يرجى تجهيز الشحنة."
+            }
+        ]
+
+    def get_current_config(self) -> Dict[str, Any]:
+        return {
+            "whatsapp_phone_number_id": self.phone_number_id,
+            "whatsapp_business_account_id": self.waba_id,
+            "whatsapp_access_token": self.access_token,
+            "whatsapp_verify_token": self.verify_token,
+            "whatsapp_api_version": self.api_version
+        }
+
+    def update_config(self, new_config: Dict[str, Any]) -> None:
+        self.phone_number_id = new_config.get("whatsapp_phone_number_id", self.phone_number_id)
+        self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id)
+        self.access_token = new_config.get("whatsapp_access_token", self.access_token)
+        self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
+
+    def clear_demo_data(self) -> Dict[str, Any]:
+        """تفريغ كافة البيانات الوهمية والمحادثات"""
+        self.contacts_db.clear()
+        self.messages_db.clear()
+        self.webhook_logs.clear()
+        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح."}
+
+    # =========================================================================
+    # 8. دالة تعديل اسم العميل
+    # =========================================================================
+
+    def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
+        """تعديل اسم جهة اتصال في قاعدة البيانات"""
+        try:
+            clean_phone = phone.replace("+", "").strip()
+            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+            
+            if not contact:
+                return {"error": "Contact not found", "status": "failed"}
+            
+            contact.name = name
+            contact.whatsapp_profile_name = name
+            db.session.commit()
+            
+            if clean_phone in self.contacts_db:
+                self.contacts_db[clean_phone]["name"] = name
+            
+            return {"success": True, "message": "تم تعديل الاسم بنجاح", "name": name}
+        except Exception as e:
+            db.session.rollback()
+            return {"error": str(e), "status": "failed"}
+
+    # =========================================================================
+    # 9. دالة تصفير عداد الرسائل غير المقروءة
+    # =========================================================================
+
+    def mark_contact_as_read(self, phone: str) -> Dict[str, Any]:
+        """تصفير عداد الرسائل غير المقروءة عند فتح المحادثة"""
+        try:
+            clean_phone = phone.replace("+", "").strip()
+            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+            
+            if contact:
+                contact.unread_count = 0
+                db.session.commit()
+                if clean_phone in self.contacts_db:
+        
