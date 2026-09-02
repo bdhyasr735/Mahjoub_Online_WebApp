@@ -466,7 +466,7 @@ def logout():
 def dashboard():
     """عرض لوحة التحكم الخاصة بالمورد مباشرة"""
     try:
-        supplier = current_user if session.get('user_type'] == 'supplier' else getattr(current_user, 'supplier', None)
+        supplier = current_user if session.get('user_type') == 'supplier' else getattr(current_user, 'supplier', None)
         profile = SupplierProfile.query.filter_by(supplier_id=supplier.id).first() if supplier else None
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first() if supplier else None
         balance = wallet.balance if wallet else 0.0
