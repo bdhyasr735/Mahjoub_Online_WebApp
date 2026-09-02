@@ -306,8 +306,19 @@
                     } else {
                         const remaining = MAX_ATTEMPTS - failedAttempts;
                         submitBtn.disabled = false;
+                        
+                        // تحديد عنوان التنبيه بناءً على محتوى رسالة الخادم
+                        let alertTitle = '❌ خطأ في تسجيل الدخول';
+                        if (data.message && data.message.includes('غير مسجل')) {
+                            alertTitle = '🔍 الحساب غير موجود';
+                        } else if (data.message && data.message.includes('موقوفاً')) {
+                            alertTitle = '🚫 الحساب موقوف';
+                        } else if (data.message && data.message.includes('كلمة المرور')) {
+                            alertTitle = '🔑 كلمة المرور غير صحيحة';
+                        }
+
                         showAlert(
-                            '❌ خطأ في بيانات الاعتماد',
+                            alertTitle,
                             `${data.message || 'اسم المستخدم أو كلمة المرور غير صحيحة.'} (تبقى ${remaining} محاولة${remaining > 1 ? 'ات' : ''})`
                         );
                     }
