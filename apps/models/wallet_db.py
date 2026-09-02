@@ -31,7 +31,7 @@ class SupplierWallet(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقة مع نموذج المورد (تستخدم string reference لتجنب الاستيراد الدائري)
+    # العلاقة مع نموذج المورد (تحميل كسول lazy='select' وتجنب الاستيراد الدائري)
     supplier = db.relationship('Supplier', back_populates='wallet', uselist=False, lazy='select')
 
     def __init__(self, **kwargs):
