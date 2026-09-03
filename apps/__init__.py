@@ -468,18 +468,14 @@ def create_app():
     # 📱 تسجيل مسار الواتساب العام
     # ============================================================
     try:
-        from apps.whatsapp_service.routes import webhook_public_bp, whatsapp_bp
-
-        if webhook_public_bp.name not in app.blueprints:
-            app.register_blueprint(webhook_public_bp)
-            print("✅ [واتساب]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
+        # ✅ استيراد whatsapp_bp فقط (لأنه يحتوي على جميع المسارات بما فيها الـ Webhook)
+        from apps.whatsapp_service.routes import whatsapp_bp
 
         if whatsapp_bp.name not in app.blueprints:
             app.register_blueprint(whatsapp_bp)
-            print("✅ [واتساب]: تم تسجيل مسارات لوحة التحكم '/admin/whatsapp' بنجاح.")
+            print("✅ [واتساب]: تم تسجيل جميع مسارات الواتساب (لوحة التحكم + الـ Webhook) بنجاح.")
 
         csrf.exempt(whatsapp_bp)
-        csrf.exempt(webhook_public_bp)
 
     except Exception as e:
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
