@@ -8,6 +8,12 @@ Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from datetime import datetime
 
+# ✅ استيراد db
+try:
+    from apps.extensions import db
+except ImportError:
+    from app import db
+
 # ✅ استيراد النماذج (ضروري للدوال المتعلقة بجهات الاتصال)
 try:
     from apps.models.whatsapp_models import WhatsAppCustomerContact
@@ -311,7 +317,9 @@ def add_contact_view():
         return redirect(url_for('whatsapp_service.contacts_bulk_view'))
 
     try:
-        clean_phone = phone.replace("+", "").strip()
+        # ✅ استخدام دالة تنظيف الأرقام من service
+        from apps.whatsapp_service.service import clean_phone_number
+        clean_phone = clean_phone_number(phone)
 
         # التحقق مما إذا كانت جهة الاتصال موجودة مسبقاً لتجنب التكرار
         contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
@@ -361,6 +369,8 @@ def import_contacts_view():
     try:
         import csv
         import io
+        from apps.whatsapp_service.service import clean_phone_number
+        
         stream = io.StringIO(file.read().decode("UTF-8"))
         reader = csv.DictReader(stream)
 
@@ -371,7 +381,7 @@ def import_contacts_view():
             category = row.get('Category', default_category)
 
             if name and phone:
-                clean_phone = phone.replace("+", "").strip()
+                clean_phone = clean_phone_number(phone)
                 existing = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
                 if not existing:
                     new_c = WhatsAppCustomerContact(
@@ -410,6 +420,7 @@ def send_broadcast_view():
 
     result = wa_service.send_bulk_messages(campaign_data)
     sent_count = result.get('sent_count', 0)
+    failed_count = result.get('failed_count', 0)
 
-    flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال مستهدفة!', 'success')
+    flash(f'تم إرسال الحملة: {sent_count} رسالة ناجحة، {failed_count} فاشلة!', 'success')
     return redirect(url_for('whatsapp_service.contacts_bulk_view'))
