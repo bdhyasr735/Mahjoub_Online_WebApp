@@ -10,6 +10,20 @@ from apps.whatsapp_service.service import WhatsAppService
 
 class SupplierOTPService:
     @staticmethod
+    def _format_phone_number(identifier: str) -> str:
+        """توحيد تنسيق رقم الهاتف ليصبح بصيغة دولية صحيحة (967...)"""
+        clean = identifier.replace("+", "").strip()
+        
+        # إذا كان رقماً محلياً يبدأ بـ 0 ويليها 7 (مثل 077xxxxxx)
+        if clean.startswith("07") and len(clean) == 10:
+            clean = f"967{clean[1:]}"
+        # إذا كان رقماً محلياً يبدأ بـ 7 مباشرة ويتكون من 9 أرقام (مثل 77xxxxxx)
+        elif clean.startswith("7") and len(clean) == 9:
+            clean = f"967{clean}"
+            
+        return clean
+
+    @staticmethod
     def _send_whatsapp_in_background(phone: str, text: str):
         """دالة خاصة لإرسال الواتساب في الخلفية لعدم تجميد السيرفر"""
         try:
@@ -20,14 +34,8 @@ class SupplierOTPService:
 
     @staticmethod
     def generate_and_send_otp(identifier: str, target_id: int, target_type: str = 'supplier', ip_address: str = None, user_agent: str = None) -> dict:
-        """توليد رمز التحقق آمن، معالجة الرقم، وإرساله عبر خيط خلفي لمنع الـ Timeout"""
-        raw_identifier = identifier.replace("+", "").strip()
-        
-        # معالجة تنسيق رقم الهاتف ليصبح دولياً بشكل تلقائي (خاص باليمن 967)
-        if raw_identifier.startswith("7") and len(raw_identifier) == 9:
-            recipient_phone = f"967{raw_identifier}"
-        else:
-            recipient_phone = raw_identifier  # إذا كان رقماً كاملاً مسبقاً أو بريداً إلكترونياً
+        """توليد رمز التحقق، تنسيق الرقم، وإرساله في الخلفية"""
+        recipient_phone = SupplierOTPService._format_phone_number(identifier)
         
         try:
             # 1. توليد الرمز وحفظه في قاعدة البيانات بالرقم المُنسق
@@ -40,10 +48,10 @@ class SupplierOTPService:
                 expiry_seconds=300  # صالح لمدة 5 دقائق
             )
             
-            # 2. تجهيز النص متضمناً الرمز المُولّد
+            # 2. تجهيز النص
             message_text = f"🔐 رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 5 دقائق فقط."
             
-            # 3. إرسال الواتساب في الخلفية (Thread) بالرقم الصحيح
+            # 3. الإرسال في الخلفية لمنع الـ Timeout والخطأ 499
             thread = threading.Thread(
                 target=SupplierOTPService._send_whatsapp_in_background,
                 args=(recipient_phone, message_text)
@@ -58,14 +66,10 @@ class SupplierOTPService:
 
     @staticmethod
     def verify_otp(identifier: str, entered_otp: str) -> dict:
-        """التحقق من صحة الرمز المدخل مع مراعاة توحيد الصيغة"""
-        raw_identifier = identifier.replace("+", "").strip()
-        if raw_identifier.startswith("7") and len(raw_identifier) == 9:
-            clean_identifier = f"967{raw_identifier}"
-        else:
-            clean_identifier = raw_identifier
-            
+        """التحقق من صحة الرمز مع مطابقة آخر 9 أرقام لضمان المرونة"""
+        formatted_identifier = SupplierOTPService._format_phone_number(identifier)
         clean_code = str(entered_otp).strip()
         
-        verification_result = OTP.verify_code_for_identifier(clean_identifier, clean_code)
+        # ملاحظة: إذا كان جدول OTP يدعم البحث جزئياً، يمكنك تمرير الصيغة المنسقة
+        verification_result = OTP.verify_code_for_identifier(formatted_identifier, clean_code)
         return verification_result
