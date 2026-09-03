@@ -21,7 +21,7 @@ class SupplierOTPService:
                 target_type=target_type,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                expiry_seconds=300 # صالح لمدة 5 دقائق
+                expiry_seconds=300  # صالح لمدة 5 دقائق
             )
             
             # 2. تجهيز النص وإرساله عبر WhatsAppService
@@ -30,10 +30,14 @@ class SupplierOTPService:
             
             result = whatsapp.send_message(recipient_phone=clean_identifier, text=message_text)
             
-            if result.get("status") == "failed" or "error" in result:
-                return {"success": False, "error": "فشل إرسال رسالة الواتساب عبر واجهة ميتا"}
+            # فحص النتيجة (التعامل مع الحالة الحقيقية والحالة التجريبية Simulated)
+            status = result.get("status")
+            error = result.get("error")
+            
+            if error or status == "failed":
+                return {"success": False, "error": f"فشل إرسال رسالة الواتساب: {error or 'خطأ غير معروف'}"}
                 
-            return {"success": True, "message": "تم إرسال رمز التحقق بنجاح", "otp_code": otp_code}
+            return {"success": True, "message": "تم إرسال رمز التحقق بنجاح عبر الواتساب", "otp_code": otp_code}
             
         except Exception as e:
             return {"success": False, "error": str(e)}
