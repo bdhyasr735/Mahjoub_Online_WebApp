@@ -17,24 +17,36 @@ suppliers_auth_bp = Blueprint(
 
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """تسجيل الدخول للموردين"""
+    """تسجيل الدخول للموردين (يدعم JSON و Form)"""
     if current_user.is_authenticated:
         return redirect(url_for('suppliers_auth_bp.dashboard'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        # ✅ استقبال البيانات من JSON أو Form
+        data = request.get_json(silent=True) or request.form.to_dict()
+        identifier = data.get('identifier') or data.get('username')
+        password = data.get('password')
         
-        try:
-            supplier = Supplier.query.filter_by(username=username).first()
-            if supplier and supplier.check_password(password):
-                login_user(supplier)
-                return redirect(url_for('suppliers_auth_bp.dashboard'))
-            else:
-                flash('اسم المستخدم أو كلمة المرور غير صحيحة!', 'danger')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'حدث خطأ: {str(e)}', 'danger')
+        # ✅ البحث الشامل: اسم المستخدم، البريد الإلكتروني، أو رقم الهاتف (آخر 9 أرقام)
+        supplier = Supplier.query.filter(
+            (Supplier.username == identifier) |
+            (Supplier.email == identifier) |
+            (Supplier.search_phone == identifier) |
+            (Supplier.phone == identifier)
+        ).first()
+        
+        if supplier and supplier.check_password(password):
+            login_user(supplier)
+            return jsonify({
+                "success": True,
+                "message": "تم تسجيل الدخول بنجاح",
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "اسم المستخدم أو كلمة المرور غير صحيحة!"
+            }), 401
     
     return render_template('suppliers_auth_portal/login.html')
 
@@ -43,11 +55,12 @@ def login():
 def register():
     """تسجيل الدخول للموردين"""
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        owner_name = request.form.get('owner_name')
-        store_name = request.form.get('store_name')
-        phone = request.form.get('phone')
+        data = request.get_json(silent=True) or request.form.to_dict()
+        username = data.get('username')
+        password = data.get('password')
+        owner_name = data.get('owner_name')
+        store_name = data.get('store_name')
+        phone = data.get('phone')
         
         try:
             supplier = Supplier(
@@ -60,10 +73,17 @@ def register():
             db.session.add(supplier)
             db.session.commit()
             flash('تم تسجيلك بنجاح!', 'success')
-            return redirect(url_for('suppliers_auth_bp.login'))
+            return jsonify({
+                "success": True,
+                "message": "تم تسجيلك بنجاح",
+                "redirect_url": url_for('suppliers_auth_bp.login')
+            })
         except Exception as e:
             db.session.rollback()
-            flash(f'حدث خطأ: {str(e)}', 'danger')
+            return jsonify({
+                "success": False,
+                "message": f"حدث خطأ: {str(e)}"
+            }), 400
     
     return render_template('suppliers_auth_portal/register.html')
 
@@ -91,7 +111,8 @@ def request_otp():
     supplier = Supplier.query.filter(
         (Supplier.phone == identifier) | 
         (Supplier.username == identifier) | 
-        (Supplier.email == identifier)
+        (Supplier.email == identifier) | 
+        (Supplier.search_phone == identifier)
     ).first()
     
     if not supplier:
@@ -135,7 +156,8 @@ def reset_password():
     supplier = Supplier.query.filter(
         (Supplier.phone == identifier) | 
         (Supplier.username == identifier) | 
-        (Supplier.email == identifier)
+        (Supplier.email == identifier) |
+        (Supplier.search_phone == identifier)
     ).first()
     
     if not supplier:
