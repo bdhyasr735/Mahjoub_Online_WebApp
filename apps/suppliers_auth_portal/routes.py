@@ -75,6 +75,29 @@ def dashboard():
     return render_template('suppliers_auth_portal/dashboard.html')
 
 
+@suppliers_auth_bp.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    """استعادة كلمة المرور"""
+    if request.method == 'POST':
+        identifier = request.form.get('identifier')  # رقم الهاتف أو اسم المستخدم
+        if identifier:
+            # افتراضي: ابحث عن المورد
+            supplier = Supplier.query.filter(
+                (Supplier.phone == identifier) | (Supplier.username == identifier)
+            ).first()
+            if supplier:
+                # تسجيل الدخول للمورد (مؤقتاً)
+                login_user(supplier)
+                flash('تم إرسال رمز التحقق بنجاح، يرجى التحقق من واتساب الخاص بك.', 'success')
+                return redirect(url_for('suppliers_auth_bp.dashboard'))
+            else:
+                flash('لا يوجد مورد بهذه البيانات!', 'danger')
+        else:
+            flash('يرجى إدخال رقم الهاتف أو اسم المستخدم!', 'danger')
+    
+    return render_template('suppliers_auth_portal/forgot_password.html')
+
+
 @suppliers_auth_bp.route('/logout', methods=['GET'])
 @login_required
 def logout():
