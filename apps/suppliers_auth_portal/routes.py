@@ -75,7 +75,7 @@ def dashboard():
     return render_template('suppliers_auth_portal/dashboard.html')
 
 
-@suppliers_auth_bp.route('/forgot_password', methods=['GET'])
+@suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password():
     """عرض صفحة استعادة كلمة المرور"""
     return render_template('suppliers_auth_portal/forgot_password.html')
