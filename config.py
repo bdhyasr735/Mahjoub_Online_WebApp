@@ -16,14 +16,11 @@ class Config:
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # 🔌 حماية محرك الاتصال وإجبار SSL لمنع انقطاع الاتصال مع Render / PostgreSQL
+    # 🔌 حماية محرك الاتصال من انقطاع SSL وإعادة الاتصال تلقائياً
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
         "pool_timeout": 30,
-        "connect_args": {
-            "sslmode": "require"  # 👈 إضافة هذا السطر لحل استثناء SSL Closed Unexpectedly
-        }
     }
 
     # 🛡️ إعدادات حماية CSRF
@@ -31,7 +28,7 @@ class Config:
     WTF_CSRF_TIME_LIMIT = None
 
     # ============================================================
-    # 📧 إعدادات البريد الإلكتروني (Flask-Mail)
+    # 📧 إعدادات البريد الإلكتروني (Flask-Mail) - مع دعم البيئة
     # ============================================================
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
@@ -40,6 +37,7 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@mahjoub.online')
+    # ✅ إضافة MAIL_SUPPRESS_SEND لتحديد ما إذا كان سيتم إرسال البريد فعلياً
     MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', 'true').lower() == 'true'
 
     # ============================================================
@@ -94,10 +92,15 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    # ✅ في بيئة التطوير، نمنع إرسال البريد الفعلي
     MAIL_SUPPRESS_SEND = True
+    # ✅ نطبع OTP في السجلات بدلاً من الإرسال
     PRINT_OTP_TO_CONSOLE = True
 
 class ProductionConfig(Config):
     DEBUG = False
+    # ✅ في بيئة الإنتاج، يتم إرسال البريد فعلياً
     MAIL_SUPPRESS_SEND = False
     PRINT_OTP_TO_CONSOLE = False
+
+# ⚠️ لا يوجد أي استيراد لـ create_app أو لموديول apps هنا إطلاقاً لقطع الـ Circular Import
