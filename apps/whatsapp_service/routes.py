@@ -1,415 +1,301 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/whatsapp_service/routes.py
+# 📂 apps/suppliers_auth_portal/routes.py
 """
-سوق محجوب أونلاين - مسارات الباك إند والـ Webhooks
-Flask / Python Routes for Meta WhatsApp Cloud API v26.0
+مسارات المصادقة والتسجيل وإدارة لوحة تحكم الموردين - محجوب أونلاين
 """
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
-from datetime import datetime
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy import or_
 
-# ✅ استيراد النماذج (ضروري للدوال المتعلقة بجهات الاتصال)
-try:
-    from apps.models.whatsapp_models import WhatsAppCustomerContact
-    from apps.models.supplier_db import Supplier
-    from apps.models.marketer_db import Marketer
-except ImportError:
-    WhatsAppCustomerContact = Supplier = Marketer = None
+from apps.extensions import db
+from apps.models.supplier_db import Supplier
+# استيراد نموذج موظف المورد الفعلي المتوافق مع علاقة staff_members
+from apps.models.supplier_staff_db import SupplierStaff  # تأكد من مسار الاستيراد إذا اختلف قليلاً
+from apps.models.wallet_db import SupplierWallet
+from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
-# تعريف الـ Blueprint الإداري
-whatsapp_bp = Blueprint(
-    'whatsapp_service', 
+suppliers_auth_bp = Blueprint(
+    'suppliers_auth_bp', 
     __name__, 
     template_folder='templates',
-    url_prefix='/admin/whatsapp'
+    static_folder='static'
 )
 
-# تعريف Blueprint عام لمسارات الويب هوك المباشرة بدون بادئة admin
-webhook_public_bp = Blueprint(
-    'whatsapp_webhook_public',
-    __name__
-)
-
-
-# =========================================================================
-# 1. مسارات الـ Webhook مع Meta Cloud API v26.0 (تدعم كلا المسارين)
-# =========================================================================
-
-def _handle_verify():
-    """التحقق الأولي من الـ Webhook من خوادم Meta (Challenge Verification)"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    mode = request.args.get('hub.mode')
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
-    
-    if mode == 'subscribe' and token == wa_service.verify_token:
-        return str(challenge), 200
-
-    if not mode and not token:
-        return jsonify({
-            "status": "online",
-            "service": "Mahjoob WhatsApp Webhook Endpoint (v26.0)",
-            "message": "Webhook is running and ready to receive Meta Cloud API events."
-        }), 200
-
-    return "Verification failed: Token mismatch", 403
-
-def _handle_incoming_event():
-    """استقبال أحداث ورسائل Meta Webhook ومعالجتها فورياً"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    raw_payload = request.get_data()
-    signature = request.headers.get('X-Hub-Signature-256', '')
-    
-    if not wa_service.verify_webhook_signature(raw_payload, signature):
-        return jsonify({"error": "Invalid signature"}), 401
-
-    data = request.get_json(silent=True) or {}
-    wa_service.process_incoming_payload(data)
-    return jsonify({"status": "received"}), 200
-
-
-@whatsapp_bp.route('/webhook', methods=['GET'])
-def verify_webhook_admin():
-    return _handle_verify()
-
-@whatsapp_bp.route('/webhook', methods=['POST'])
-def handle_webhook_event_admin():
-    return _handle_incoming_event()
-
-
-@webhook_public_bp.route('/whatsapp/webhook', methods=['GET'])
-def verify_webhook_public():
-    return _handle_verify()
-
-@webhook_public_bp.route('/whatsapp/webhook', methods=['POST'])
-def handle_webhook_event_public():
-    return _handle_incoming_event()
-
-
-# =========================================================================
-# 2. مسارات الـ REST API لإدارة المراسلات من لوحة التحكم
-# =========================================================================
-
-@whatsapp_bp.route('/api/send', methods=['POST'])
-def send_message_api():
-    """إرسال رسالة نصية مباشرة إلى هاتف العميل أو التاجر"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    recipient_phone = data.get('recipient_phone')
-    text = data.get('content')
-    
-    if not recipient_phone or not text:
-        return jsonify({"error": "recipient_phone and content are required"}), 400
+@suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """مسار تسجيل دخول الموردين وموظفيهم مع التوافق التام مع نموذج Supplier والتشفر السيادي"""
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        data = request.get_json() or {}
         
-    result = wa_service.send_message(recipient_phone, text)
-    return jsonify(result), 200
+        login_input = data.get('identifier', '').strip().replace("+", "")
+        password = data.get('password', '')
+        user_type = data.get('user_type', 'supplier') # 'supplier' أو 'employee'
 
-@whatsapp_bp.route('/api/templates/send', methods=['POST'])
-def send_template_api():
-    """إرسال قالب رسمي معتمد (تأكيد طلب، شحنة، فاتورة)"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    recipient_phone = data.get('recipient_phone')
-    template_name = data.get('template_name')
-    language_code = data.get('language_code', 'ar')
-    components = data.get('components', [])
-    
-    if not recipient_phone or not template_name:
-        return jsonify({"error": "recipient_phone and template_name are required"}), 400
-        
-    result = wa_service.send_template(
-        recipient_phone=recipient_phone,
-        template_name=template_name,
-        language_code=language_code,
-        components=components
-    )
-    return jsonify(result), 200
+        if not login_input or not password:
+            return jsonify({"success": False, "message": "الرجاء إدخال اسم المستخدم / رقم الهاتف وكلمة المرور."}), 400
 
-@whatsapp_bp.route('/api/contacts', methods=['GET'])
-def get_contacts():
-    """جلب قائمة جهات الاتصال المسجلة في النظام"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    contacts = wa_service.get_all_contacts()
-    return jsonify({"contacts": contacts}), 200
+        # الحالة الأولى: تسجيل دخول موظف المورد (SupplierStaff)
+        if user_type == 'employee':
+            # استخراج آخر 9 أرقام للبحث المطابق لهاتفه إن وجد
+            digits_only = "".join(filter(str.isdigit, login_input))
+            clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
 
-@whatsapp_bp.route('/api/messages', methods=['GET'])
-def get_messages():
-    """جلب الرسائل السابقة لمحادثة معينة عبر رقم الهاتف"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    phone = request.args.get('phone', '')
-    if not phone:
-        return jsonify({"error": "phone parameter is required"}), 400
-    messages = wa_service.get_chat_history(phone)
-    return jsonify({"messages": messages}), 200
+            employee = SupplierStaff.query.filter(
+                or_(
+                    SupplierStaff.username == login_input,
+                    SupplierStaff.email == login_input,
+                    SupplierStaff.phone == clean_9 if hasattr(SupplierStaff, 'phone') else False
+                )
+            ).first()
 
-@whatsapp_bp.route('/api/contacts/update-name', methods=['POST'])
-def update_contact_name_api():
-    """تعديل اسم جهة اتصال معينة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    phone = data.get('phone', '')
-    name = data.get('name', '')
-    
-    if not phone or not name:
-        return jsonify({"error": "phone and name are required"}), 400
-        
-    result = wa_service.update_contact_name(phone, name)
-    return jsonify(result), 200
+            if not employee:
+                return jsonify({"success": False, "message": "معرف الموظف أو البريد الإلكتروني غير مسجل في المنصة اللامركزية."}), 404
 
-@whatsapp_bp.route('/api/contacts/read', methods=['POST'])
-def mark_contact_as_read_api():
-    """تصفير عداد الرسائل غير المقروءة عند فتح المحادثة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    phone = data.get('phone', '')
-    
-    if not phone:
-        return jsonify({"error": "phone is required"}), 400
-        
-    result = wa_service.mark_contact_as_read(phone)
-    return jsonify(result), 200
+            # التحقق من كلمة المرور (افترضنا وجود check_password أو check_password_hash)
+            is_valid_pass = employee.check_password(password) if hasattr(employee, 'check_password') else check_password_hash(employee.password_hash, password)
+            if not is_valid_pass:
+                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
 
-@whatsapp_bp.route('/api/send-media', methods=['POST'])
-def send_media_api():
-    """إرسال صور، فيديو، أو ملفات عبر Meta WhatsApp Cloud API"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    recipient_phone = request.form.get('recipient_phone', '')
-    files = request.files.getlist('files')
-    
-    if not recipient_phone or not files:
-        return jsonify({"error": "recipient_phone and files are required"}), 400
-        
-    result = wa_service.send_media(recipient_phone, files)
-    return jsonify(result), 200
+            if getattr(employee, 'is_suspended', False) or getattr(employee, 'status', 'active') == 'suspended':
+                return jsonify({"success": False, "message": "تم توقيف حسابك الوظيفي نظراً لمخالفة اللوائح."}), 403
 
-@whatsapp_bp.route('/api/clear-demo-data', methods=['POST'])
-def clear_demo_data_api():
-    """تطهير السجلات وحذف البيانات الوهمية من قاعدة البيانات"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    result = wa_service.clear_demo_data()
-    return jsonify(result), 200
+            login_user(employee, remember=data.get('remember_me', False))
+            session['employee_id'] = employee.id
+            session['supplier_id'] = employee.supplier_id
 
+            return jsonify({
+                "success": True, 
+                "message": "تم تسجيل الدخول بنجاح. جاري تحويلك إلى لوحة التحكم...", 
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
 
-# =========================================================================
-# 3. مسارات صفحات الإدارة بأسماء قوالب مميزة وفريدة
-# =========================================================================
-
-@whatsapp_bp.route('/dashboard', methods=['GET'])
-@whatsapp_bp.route('/', methods=['GET'])
-def dashboard_view():
-    """عرض لوحة المحادثات المباشرة باستخدام القالب المخصص whatsapp_dashboard.html"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    contacts = wa_service.get_all_contacts()
-    return render_template('admin/whatsapp_dashboard.html', contacts=contacts)
-
-@whatsapp_bp.route('/templates', methods=['GET'])
-def templates_view():
-    """عرض قائمة قوالب Meta المعتمدة"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    templates = wa_service.get_approved_templates()
-    return render_template('admin/templates_list.html', templates=templates)
-
-@whatsapp_bp.route('/settings', methods=['GET', 'POST'])
-def settings_view():
-    """عرض وتحديث مفاتيح وإعدادات Meta Cloud API"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    if request.method == 'POST':
-        data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
-        wa_service.update_config(data)
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
-            return jsonify({"status": "success", "message": "تم حفظ الإعدادات بنجاح"}), 200
-        
-        config = wa_service.get_current_config()
-        return render_template('admin/settings.html', config=config, success=True)
-
-    config = wa_service.get_current_config()
-    return render_template('admin/settings.html', config=config)
-
-@whatsapp_bp.route('/webhook-logs', methods=['GET'])
-def webhook_logs_view():
-    """عرض سجل تدفق أحداث الـ Webhook المباشر"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    logs = wa_service.get_webhook_logs()
-    return render_template('admin/webhook_logs.html', logs=logs)
-
-
-# =========================================================================
-# 4. مسارات جهات الاتصال والإرسال الجماعي
-# =========================================================================
-
-@whatsapp_bp.route('/contacts-bulk', methods=['GET'])
-def contacts_bulk_view():
-    """عرض صفحة جهات الاتصال والإرسال الجماعي"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    contacts = wa_service.get_all_contacts()
-    
-    # حساب الإحصائيات الحقيقية ديناميكياً من قاعدة البيانات لضمان دقتها
-    customers_count = WhatsAppCustomerContact.query.count() if WhatsAppCustomerContact else 0
-    suppliers_count = Supplier.query.count() if Supplier else 0
-    marketers_count = Marketer.query.count() if Marketer else 0
-    
-    stats = {
-        'customers_count': customers_count,
-        'merchants_count': suppliers_count,  # التجار يتم تمثيلهم عبر الموردين في النظام
-        'suppliers_count': suppliers_count,
-        'marketers_count': marketers_count
-    }
-    
-    current_category = request.args.get('category', 'all')
-    
-    return render_template('admin/contacts_bulk.html', 
-                           contacts=contacts, 
-                           stats=stats,
-                           current_category=current_category)
-
-
-@whatsapp_bp.route('/add-contact', methods=['POST'])
-def add_contact_view():
-    """إضافة جهة اتصال جديدة وحفظها في قاعدة البيانات مباشرة"""
-    data = request.form.to_dict()
-    name = data.get('name', '').strip()
-    phone = data.get('phone', '').strip()
-    category = data.get('category', 'customers')
-    company = data.get('company', '').strip()
-    city = data.get('city', '').strip()
-    email = data.get('email', '').strip()
-    notes = data.get('notes', '').strip()
-
-    if not name or not phone:
-        flash('الاسم ورقم الهاتف حقول إجبارية!', 'danger')
-        return redirect(url_for('whatsapp_service.contacts_bulk_view'))
-
-    try:
-        clean_phone = phone.replace("+", "").strip()
-        
-        # التحقق مما إذا كانت جهة الاتصال موجودة مسبقاً لتجنب التكرار
-        contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
-        if not contact:
-            contact = WhatsAppCustomerContact(
-                phone=clean_phone,
-                name=name,
-                whatsapp_profile_name=name,
-                notes=notes,
-                extra_data={
-                    "category": category,
-                    "company": company,
-                    "city": city,
-                    "email": email
-                }
-            )
-            db.session.add(contact)
+        # الحالة الثانية: تسجيل دخول حساب المورد الرئيسي (باستخدام دالة authenticate الذكية في نموذج Supplier)
         else:
-            contact.name = name
-            contact.notes = notes
-            contact.extra_data = {
-                "category": category,
-                "company": company,
-                "city": city,
-                "email": email
-            }
-        
-        db.session.commit()
-        flash('تمت إضافة جهة الاتصال بنجاح!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'حدث خطأ أثناء حفظ جهة الاتصال: {str(e)}', 'danger')
-        
-    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+            supplier = Supplier.authenticate(identifier=login_input, password=password)
+
+            if not supplier:
+                # التحقق هل الحساب غير موجود أصلاً أم كلمة المرور خطأ لإعطاء رسالة أدق
+                digits_only = "".join(filter(str.isdigit, login_input))
+                clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+                
+                exists_check = Supplier.query.filter(
+                    (Supplier.username == login_input) | 
+                    (Supplier.email == login_input) | 
+                    (Supplier.search_phone == clean_9)
+                ).first()
+
+                if not exists_check:
+                    return jsonify({"success": False, "message": "رقم الهاتف أو اسم المستخدم أو البريد غير مسجل كمورد في المنصة."}), 404
+                else:
+                    return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
+
+            # التحقق من حالة الحظـر أو التوقيف
+            if getattr(supplier, 'status', 'active') == 'suspended':
+                return jsonify({"success": False, "message": "تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة."}), 403
+
+            login_user(supplier, remember=data.get('remember_me', False))
+            session['supplier_id'] = supplier.id
+            session['supplier_phone'] = supplier.phone
+
+            return jsonify({
+                "success": True, 
+                "message": "تم تسجيل الدخول بنجاح. جاري تحويلك إلى لوحة التحكم...", 
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+
+    # الطلبات التقليدية العادية (Fallback في حال عدم تفعيل JavaScript)
+    if request.method == 'POST':
+        login_input = request.form.get('identifier', '').strip().replace("+", "")
+        password = request.form.get('password', '')
+        user_type = request.form.get('user_type', 'supplier')
+
+        if user_type == 'employee':
+            employee = SupplierStaff.query.filter(
+                or_(SupplierStaff.username == login_input, SupplierStaff.email == login_input)
+            ).first()
+            is_valid_pass = employee.check_password(password) if employee and hasattr(employee, 'check_password') else False
+            if not employee or not is_valid_pass:
+                flash('بيانات دخول الموظف غير صحيحة.', 'danger')
+                return redirect(url_for('suppliers_auth_bp.login'))
+            login_user(employee, remember=True)
+            session['supplier_id'] = employee.supplier_id
+        else:
+            supplier = Supplier.authenticate(identifier=login_input, password=password)
+            if not supplier:
+                flash('رقم الهاتف أو اسم المستخدم أو كلمة المرور غير صحيحة.', 'danger')
+                return redirect(url_for('suppliers_auth_bp.login'))
+            login_user(supplier, remember=True)
+            session['supplier_id'] = supplier.id
+            session['supplier_phone'] = supplier.phone
+
+        flash('تم تسجيل الدخول بنجاح.', 'success')
+        return redirect(url_for('suppliers_auth_bp.dashboard'))
+
+    return render_template('suppliers_auth_portal/login.html')
 
 
-@whatsapp_bp.route('/import-contacts', methods=['POST'])
-def import_contacts_view():
-    """استيراد جهات اتصال من ملف CSV"""
-    file = request.files.get('file')
-    default_category = request.form.get('default_category', 'customers')
-    
-    if not file:
-        flash('يرجى رفع ملف CSV أولاً', 'danger')
-        return redirect(url_for('whatsapp_service.contacts_bulk_view'))
-    
-    try:
-        import csv
-        import io
-        stream = io.StringIO(file.read().decode("UTF-8"))
-        reader = csv.DictReader(stream)
+@suppliers_auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """مسار تسجيل مورد جديد برقم الهاتف وإنشاء المحفظة المالية الذكية تلقائياً"""
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        data = request.get_json() or {}
+        phone = data.get('phone', '').strip().replace("+", "")
+        password = data.get('password', '')
+        confirm_password = data.get('confirm_password', '')
+
+        if not phone or len(phone) != 9:
+            return jsonify({"success": False, "message": "رقم الهاتف يجب أن يتكون من 9 أرقام صحيحة."}), 400
+
+        if not password or len(password) < 8:
+            return jsonify({"success": False, "message": "كلمة المرور يجب أن تكون 8 أحرف على الأقل."}), 400
+
+        if password != confirm_password:
+            return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين."}), 400
+
+        # التحقق عبر search_phone الموحد في نموذج Supplier
+        digits_only = "".join(filter(str.isdigit, phone))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        existing_supplier = Supplier.query.filter_by(search_phone=clean_9).first()
         
-        imported_count = 0
-        for row in reader:
-            name = row.get('Name') or row.get('name')
-            phone = row.get('Phone') or row.get('phone')
-            category = row.get('Category', default_category)
+        if existing_supplier:
+            return jsonify({"success": False, "message": "رقم الهاتف مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة."}), 400
+
+        try:
+            # إنشاء المورد مع استغلال ميزات النموذج (توليد اسم مستخدم مؤقت وتشفير الهاتف تلقائياً عبر المُنشئ أو الخاصية)
+            new_supplier = Supplier(
+                username=f"sup_{clean_9}",
+                phone=phone,
+                status='active',
+                rank='bronze'
+            )
+            new_supplier.set_password(password)
             
-            if name and phone:
-                clean_phone = phone.replace("+", "").strip()
-                existing = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
-                if not existing:
-                    new_c = WhatsAppCustomerContact(
-                        phone=clean_phone,
-                        name=name,
-                        whatsapp_profile_name=name,
-                        extra_data={"category": category}
-                    )
-                    db.session.add(new_c)
-                    imported_count += 1
-        
-        db.session.commit()
-        flash(f'تم استيراد {imported_count} جهة اتصال بنجاح!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'خطأ في الاستيراد: {str(e)}', 'danger')
-        
-    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+            db.session.add(new_supplier)
+            db.session.flush() # للحصول على الـ id ليتم توليد الأكواد النمطية (SUP-963X) تلقائياً عبر الـ Event Listener
+
+            new_wallet = SupplierWallet(
+                supplier_id=new_supplier.id,
+                balance=0.00,
+                currency="YER",
+                is_active=True
+            )
+            db.session.add(new_wallet)
+            db.session.commit()
+
+            client_ip = request.remote_addr
+            user_agent = request.headers.get('User-Agent')
+            SupplierOTPService.generate_and_send_otp(
+                identifier=phone, 
+                target_id=new_supplier.id, 
+                target_type='supplier', 
+                ip_address=client_ip, 
+                user_agent=user_agent
+            )
+
+            return jsonify({
+                "success": True,
+                "message": "تم إنشاء الحساب والمحفظة المالية الذكية بنجاح!",
+                "redirect_url": url_for('suppliers_auth_bp.login')
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"success": False, "message": f"حدث خطأ داخلي أثناء عملية التسجيل: {str(e)}"}), 500
+
+    return render_template('suppliers_auth_portal/register.html')
 
 
-@whatsapp_bp.route('/send-broadcast', methods=['POST'])
-def send_broadcast_view():
-    """إرسال رسالة جماعية مستهدفة باستخدام خدمة الواتساب المركزية"""
-    from apps.whatsapp_service.service import WhatsAppService
-    wa_service = WhatsAppService()
-    
-    campaign_data = {
-        'campaign_name': request.form.get('campaign_name', 'حملة عامة'),
-        'target_category': request.form.get('target_category', 'all'),
-        'message_text': request.form.get('message_text', '')
-    }
-    
-    if not campaign_data['message_text']:
-        flash('نص الرسالة مطلوب لإتمام الحملة الإعلانية!', 'danger')
-        return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+@suppliers_auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """مسار استعادة كلمة المرور عبر رقم الهاتف ورمز التحقق OTP"""
+    if request.method == 'POST':
+        phone = request.form.get('phone', '').strip().replace("+", "")
+        digits_only = "".join(filter(str.isdigit, phone))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
         
-    result = wa_service.send_bulk_messages(campaign_data)
-    sent_count = result.get('sent_count', 0)
-    
-    flash(f'تم إرسال الحملة بنجاح إلى {sent_count} جهة اتصال مستهدفة!', 'success')
-    return redirect(url_for('whatsapp_service.contacts_bulk_view'))
+        supplier = Supplier.query.filter_by(search_phone=clean_9).first()
+        
+        if not supplier:
+            flash('رقم الهاتف غير مسجل في النظام.', 'danger')
+            return redirect(url_for('suppliers_auth_bp.forgot_password'))
+
+        otp_res = SupplierOTPService.generate_and_send_otp(
+            identifier=phone,
+            target_id=supplier.id,
+            target_type='supplier_password_reset',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        if otp_res.get("success"):
+            session['reset_phone'] = phone
+            flash('تم إرسال رمز التحقق (OTP) إلى رقم واتساب الخاص بك بنجاح.', 'success')
+            return redirect(url_for('suppliers_auth_bp.verify_reset_otp'))
+        else:
+            flash(otp_res.get("error", "فشل إرسال رمز التحقق."), 'danger')
+
+    return render_template('suppliers_auth_portal/forgot_password.html')
+
+
+@suppliers_auth_bp.route('/verify-reset-otp', methods=['GET', 'POST'])
+def verify_reset_otp():
+    """التحقق من رمز الاستعادة وتحديث كلمة المرور"""
+    phone = session.get('reset_phone')
+    if not phone:
+        return redirect(url_for('suppliers_auth_bp.forgot_password'))
+
+    if request.method == 'POST':
+        entered_code = request.form.get('otp_code', '').strip()
+        new_password = request.form.get('new_password', '')
+
+        verify_res = SupplierOTPService.verify_otp(phone, entered_code)
+        if not verify_res.get("success"):
+            flash(verify_res.get("message", "رمز التحقق غير صحيح أو منتهي الصلاحية."), 'danger')
+            return render_template('suppliers_auth_portal/verify_reset_otp.html')
+
+        if not new_password or len(new_password) < 8:
+            flash('كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.', 'danger')
+            return render_template('suppliers_auth_portal/verify_reset_otp.html')
+
+        digits_only = "".join(filter(str.isdigit, phone))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        supplier = Supplier.query.filter_by(search_phone=clean_9).first()
+        
+        if supplier:
+            supplier.set_password(new_password)
+            db.session.commit()
+            session.pop('reset_phone', None)
+            flash('تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن.', 'success')
+            return redirect(url_for('suppliers_auth_bp.login'))
+
+    return render_template('suppliers_auth_portal/verify_reset_otp.html')
+
+
+@suppliers_auth_bp.route('/dashboard')
+@login_required
+def dashboard():
+    """لوحة تحكم المورد المحمية"""
+    # التعامل مع حالة ما إذا كان المستخدم الحالي هو Supplier أو SupplierStaff
+    if isinstance(current_user, Supplier):
+        supplier_id = current_user.id
+    else:
+        supplier_id = getattr(current_user, 'supplier_id', None)
+
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first() if supplier_id else None
+    return render_template('suppliers_auth_portal/dashboard.html', wallet=wallet)
+
+
+@suppliers_auth_bp.route('/logout')
+def logout():
+    """تسجيل خروج المورد أو الموظف وتنظيف الجلسة"""
+    logout_user()
+    session.clear()
+    flash('تم تسجيل الخروج بنجاح.', 'success')
+    return redirect(url_for('suppliers_auth_bp.login'))
+
+
+def init_app(app):
+    """دالة تسجيل الـ Blueprint الخاص ببوابة الموردين في التطبيق الرئيسي"""
+    app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
