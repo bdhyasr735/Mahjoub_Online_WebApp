@@ -35,6 +35,7 @@ def format_phone_number(phone: str) -> str:
     if not phone:
         return ""
     
+    # تنظيف الرقم وإزالة أي رموز غريبة ما عدا الأرقام وعلامة الزائد
     clean = "".join([c for c in str(phone) if c.isdigit() or c == '+'])
     
     if not clean.startswith('+'):
@@ -43,6 +44,7 @@ def format_phone_number(phone: str) -> str:
         else:
             clean = '+967' + clean.lstrip('0')
             
+    # تنسيق شكل العرض للأرقام اليمنية إذا تطابق الطول
     if clean.startswith('+967') and len(clean) == 13:
         return f"{clean[:4]} {clean[4:6]} {clean[6:9]} {clean[9:]}"
         
@@ -51,20 +53,20 @@ def format_phone_number(phone: str) -> str:
 
 class WhatsAppService:
     def __init__(self):
-        # إزالة أي مسافات زائدة أو علامات تنصيص غير مقصودة قد تعطل الاتصال
-        self.api_version = os.getenv("WHATSAPP_API_VERSION", "v26.0").strip()
-        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
-        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "").strip()
-        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip()
-        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "").strip()
-        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "").strip()
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        # إعدادات الربط مع Meta Cloud API v26.0 (آمن - تقرأ من Railway فقط)
+        self.api_version = os.getenv("WHATSAPP_API_VERSION", "v26.0")
+        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+        self.waba_id = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
+        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+        self.app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
         # ✅ إعداد Cloudinary
         cloudinary.config(
-            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "").strip(),
-            api_key=os.getenv("CLOUDINARY_API_KEY", "").strip(),
-            api_secret=os.getenv("CLOUDINARY_API_SECRET", "").strip(),
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+            api_key=os.getenv("CLOUDINARY_API_KEY", ""),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET", ""),
             secure=True
         )
 
@@ -72,9 +74,14 @@ class WhatsAppService:
         self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
         self.media_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
 
+        # مخزن مؤقت للمحادثات وسجلات الويب هوك
         self.webhook_logs: List[Dict[str, Any]] = []
         self.contacts_db: Dict[str, Dict[str, Any]] = {}
         self.messages_db: Dict[str, List[Dict[str, Any]]] = {}
+
+    # =========================================================================
+    # 1. إرسال الرسائل والقوالب والوسائط (Outbound Meta API)
+    # =========================================================================
 
     def _get_headers(self) -> Dict[str, str]:
         return {
@@ -83,6 +90,7 @@ class WhatsAppService:
         }
 
     def _process_message_variables(self, text: str, contact_data: Dict[str, Any]) -> str:
+        """استبدال المتغيرات في الرسالة بالبيانات الحقيقية للعميل أو التاجر أو المسوق"""
         if not contact_data:
             return text
 
@@ -101,8 +109,8 @@ class WhatsAppService:
         )
 
     def send_message(self, recipient_phone: str, text: str, contact_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API مباشرة وحقيقية"""
-        clean_phone = "".join([c for c in str(recipient_phone) if c.isdigit()])
+        """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API"""
+        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
 
         if contact_data:
             text = self._process_message_variables(text, contact_data)
@@ -118,25 +126,15 @@ class WhatsAppService:
             }
         }
 
-        # تسجيل الرسالة محلياً في قاعدة البيانات أولاً
         self._record_message(clean_phone, text, direction="outbound", status="sent")
 
-        # التحقق من وجود التوكن ومعرف الرقم لإتمام الإرسال الفعلي
-        if not self.access_token or not self.phone_number_id:
-            print("⚠️ [تحذير]: WHATSAPP_ACCESS_TOKEN أو PHONE_NUMBER_ID غير مضبوط بشكل صحيح في البيئة.")
-            return {"error": "Missing Access Token or Phone Number ID", "status": "failed"}
+        if not self.access_token:
+            return {"status": "simulated", "message_id": f"sim_{int(datetime.utcnow().timestamp())}", "to": clean_phone}
 
         try:
-            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=15)
-            res_data = response.json()
-            
-            if response.status_code != 200:
-                print( فشل إرسال الواتساب من ميتا: {res_data}")
-                return {"status": "failed", "error": res_data}
-                
-            return res_data
+            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
+            return response.json()
         except Exception as e:
-            print(f"⚠️ [خطأ اتصال بـ Meta API]: {e}")
             return {"error": str(e), "status": "failed"}
 
     def send_template(
@@ -147,7 +145,7 @@ class WhatsAppService:
         components: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """إرسال قالب رسمي معتمد من Meta"""
-        clean_phone = "".join([c for c in str(recipient_phone) if c.isdigit()])
+        clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
         payload = {
             "messaging_product": "whatsapp",
             "to": clean_phone,
@@ -161,18 +159,19 @@ class WhatsAppService:
 
         self._record_message(clean_phone, f"[قالب رسمي: {template_name}]", direction="outbound", status="sent")
 
-        if not self.access_token or not self.phone_number_id:
-            return {"error": "Missing Access Token or Phone Number ID", "status": "failed"}
+        if not self.access_token:
+            return {"status": "simulated", "template": template_name, "to": clean_phone}
 
         try:
-            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=15)
+            response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=10)
             return response.json()
         except Exception as e:
             return {"error": str(e), "status": "failed"}
 
     def send_media(self, recipient_phone: str, files: list) -> Dict[str, Any]:
+        """إرسال ملفات (صور، فيديو، مستندات) عبر Meta WhatsApp Cloud API"""
         try:
-            clean_phone = "".join([c for c in str(recipient_phone) if c.isdigit()])
+            clean_phone = recipient_phone.replace("+", "").replace(" ", "").strip()
             results = []
 
             for file in files:
@@ -187,8 +186,9 @@ class WhatsAppService:
                 else:
                     media_type = 'document'
 
+                upload_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/media"
                 upload_res = requests.post(
-                    self.media_url,
+                    upload_url,
                     headers={"Authorization": f"Bearer {self.access_token}"},
                     files={
                         "file": (file.filename, file.stream, file.content_type),
@@ -208,10 +208,18 @@ class WhatsAppService:
                     "messaging_product": "whatsapp",
                     "to": clean_phone,
                     "type": media_type,
-                    media_type: {"id": media_id}
+                    "media_type": {
+                        "id": media_id
+                    }
                 }
 
-                send_res = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=15)
+                send_res = requests.post(
+                    self.base_url,
+                    headers=self._get_headers(),
+                    json=payload,
+                    timeout=10
+                )
+
                 send_data = send_res.json()
                 self._record_message(clean_phone, f"[{media_type}] ملف مرفق", direction="outbound", media_id=media_id, status="sent")
                 results.append(send_data)
@@ -222,27 +230,32 @@ class WhatsAppService:
             return {"error": str(e), "status": "failed"}
 
     def send_bulk_messages(self, campaign_data: Dict[str, Any]) -> Dict[str, Any]:
+        """إرسال رسائل جماعية مستهدفة مع استبدال المتغيرات بالبيانات الحقيقية"""
         campaign_name = campaign_data.get('campaign_name', '')
         target_category = campaign_data.get('target_category', 'all')
         message_text = campaign_data.get('message_text', '')
 
         target_contacts = self.get_all_contacts()
+
         sent_count = 0
-        
         for contact in target_contacts:
             if target_category != 'all' and contact.get('category') != target_category:
                 continue
 
             personalized_message = self._process_message_variables(message_text, contact)
+
             result = self.send_message(contact['raw_phone'], personalized_message, contact)
-            
-            # التحقق من نجاح الإرسال الفعلي عبر ميتا
-            if "messages" in result or result.get('status') == 'success':
+            if result.get('status') in ['sent', 'simulated']:
                 sent_count += 1
 
         return {"success": True, "sent_count": sent_count, "campaign_name": campaign_name}
 
+    # =========================================================================
+    # 2. معالجة الـ Webhook الوارد (Inbound Webhook)
+    # =========================================================================
+
     def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
+        """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
         if not self.app_secret or not signature_header:
             return True
         expected_hash = hmac.new(
@@ -253,6 +266,7 @@ class WhatsAppService:
         return hmac.compare_digest(f"sha256={expected_hash}", signature_header)
 
     def process_incoming_payload(self, data: Dict[str, Any]) -> None:
+        """تحليل ومعالجة الرسائل والأحداث الواردة من Meta Webhook"""
         try:
             entries = data.get("entry", [])
             for entry in entries:
@@ -264,9 +278,10 @@ class WhatsAppService:
                     if "contacts" in value and len(value["contacts"]) > 0:
                         contact_profile_name = value["contacts"][0].get("profile", {}).get("name", "عميل محجوب")
 
+                    # 1. حالة وصول رسالة جديدة من عميل
                     if "messages" in value:
                         for msg in value["messages"]:
-                            sender_phone = "".join([c for c in str(msg.get("from", "")) if c.isdigit()])
+                            sender_phone = str(msg.get("from", "")).replace("+", "").strip()
                             msg_type = msg.get("type")
                             msg_text = ""
                             media_id = ""
@@ -282,28 +297,49 @@ class WhatsAppService:
                                 msg_text = "صورة"
                                 media_id = msg.get("image", {}).get("id", "")
                                 media_url = self._get_media_url(media_id)
+                                if media_url:
+                                    try:
+                                        response = requests.get(media_url, timeout=30)
+                                        if response.status_code == 200:
+                                            temp_file = f"temp_{media_id}.jpg"
+                                            with open(temp_file, "wb") as f:
+                                                f.write(response.content)
+                                            permanent_url = self._upload_to_cloudinary(temp_file, media_id)
+                                            if permanent_url:
+                                                media_url = permanent_url
+                                            if os.path.exists(temp_file):
+                                                os.remove(temp_file)
+                                    except Exception as e:
+                                        print(f"⚠️ [خطأ تحميل صورة من Meta]: {e}")
                             elif msg_type == "video":
                                 msg_text = "فيديو"
                                 media_id = msg.get("video", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
                             elif msg_type == "document":
                                 msg_text = "ملف مرفق"
                                 media_id = msg.get("document", {}).get("id", "")
+                                media_url = self._get_media_url(media_id)
+                            elif msg_type == "location":
+                                msg_text = "موقع جغرافي"
 
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
                             self._record_message(sender_phone, msg_text, direction="inbound", media_id=media_id, media_url=media_url)
 
+                    # 2. حالة تحديث حالة التسليم والقراءة (تحديث الشخطين الزرقاء)
                     if "statuses" in value:
                         for status_update in value["statuses"]:
-                            recipient_id = "".join([c for c in str(status_update.get("recipient_id", "")) if c.isdigit()])
-                            status = status_update.get("status")
+                            recipient_id = str(status_update.get("recipient_id", "")).replace("+", "").strip()
+                            status = status_update.get("status")  # sent, delivered, read
                             self._update_message_status(recipient_id, status)
+
         except Exception as e:
-            print(f"⚠️ [خطأ معالجة الويب هوك]: {e}")
+            self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
 
     def _update_message_status(self, phone: str, status: str) -> None:
+        """تحديث حالة الرسائل المرسلة (sent, delivered, read) وعكسها لتظهر الشخطين بلون أزرق عند القراءة"""
         try:
-            clean_phone = "".join([c for c in str(phone) if c.isdigit()])
+            clean_phone = phone.replace("+", "").strip()
             messages = WhatsAppMessageLog.query.filter_by(
                 recipient_number=clean_phone,
                 direction='outbound'
@@ -314,11 +350,17 @@ class WhatsAppService:
             db.session.commit()
         except Exception as e:
             db.session.rollback()
+            print(f"⚠️ [خطأ تحديث حالة الرسالة]: {e}")
+
+    # =========================================================================
+    # 3. دالة إضافة/تحديث جهة الاتصال (مع زيادة unread_count)
+    # =========================================================================
 
     def _ensure_contact_exists(self, phone: str, name: str = "عميل واتساب", last_message: str = "") -> None:
+        """إضافة جهة الاتصال تلقائياً أو تحديث آخر رسالة لها مع زيادة العداد"""
         if not phone:
             return
-        clean_phone = "".join([c for c in str(phone) if c.isdigit()])
+        clean_phone = phone.replace("+", "").strip()
 
         try:
             contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
@@ -344,16 +386,40 @@ class WhatsAppService:
             db.session.commit()
         except Exception as e:
             db.session.rollback()
+            print(f"⚠️ [خطأ حفظ جهة الاتصال في الجدول]: {e}")
+
+    # =========================================================================
+    # 4. الرد الآلي
+    # =========================================================================
+
+    def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
+        return
+
+    def _generate_gemini_reply(self, prompt: str) -> str:
+        if not self.gemini_api_key:
+            return "أهلاً بك في سوق محجوب أونلاين! تم استلام رسالتك وسيتواصل معك أحد ممثلي الخدمة في أقرب وقت."
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            res = requests.post(url, json=payload, timeout=8)
+            res_json = res.json()
+            return res_json['candidates'][0]['content']['parts'][0]['text']
+        except Exception:
+            return "مرحباً بك في سوق محجوب أونلاين! نسعد بخدمتك دائماً، كيف يمكننا مساعدتك اليوم؟"
+
+    # =========================================================================
+    # 5. إدارة قواعد البيانات وسجلات المحادثات
+    # =========================================================================
 
     def _record_message(self, phone: str, content: str, direction: str, media_id: str = "", media_url: str = "", status: str = "received") -> None:
-        clean_phone = "".join([c for c in str(phone) if c.isdigit()])
+        clean_phone = phone.replace("+", "").strip()
         self._ensure_contact_exists(clean_phone, last_message=content)
 
         try:
             msg = WhatsAppMessageLog(
                 direction=direction,
-                sender_number=clean_phone if direction == 'inbound' else self.phone_number_id,
-                recipient_number=self.phone_number_id if direction == 'inbound' else clean_phone,
+                sender_number=clean_phone if direction == 'inbound' else '967784439991',
+                recipient_number='967784439991' if direction == 'inbound' else clean_phone,
                 content=content,
                 message_type='text',
                 status=status,
@@ -364,6 +430,7 @@ class WhatsAppService:
             db.session.commit()
         except Exception as e:
             db.session.rollback()
+            print(f"⚠️ [خطأ حفظ الرسالة في الجدول]: {e}")
 
     def _log_webhook_event(self, event_type: str, phone: str, status: str) -> None:
         self.webhook_logs.insert(0, {
@@ -375,14 +442,21 @@ class WhatsAppService:
         if len(self.webhook_logs) > 100:
             self.webhook_logs.pop()
 
+    # =========================================================================
+    # 6. دوال جلب البيانات (مع توحيد الأرقام ومنع التكرار)
+    # =========================================================================
+
     def get_all_contacts(self) -> List[Dict[str, Any]]:
+        """جلب جميع جهات الاتصال ودمج الأرقام المتطابقة لمنع التكرار"""
         try:
             unique_contacts = {}
+
+            # 1. جلب العملاء من قاعدة البيانات
             customers = WhatsAppCustomerContact.query.order_by(WhatsAppCustomerContact.last_timestamp.desc()).all()
             for c in customers:
                 if not c.phone:
                     continue
-                raw_phone = "".join([c_char for c_char in str(c.phone) if c_char.isdigit()])
+                raw_phone = c.phone.replace("+", "").strip()
                 formatted_phone = format_phone_number(raw_phone)
                 extra_data = c.extra_data if isinstance(c.extra_data, dict) else {}
 
@@ -404,11 +478,19 @@ class WhatsAppService:
                     'notes': c.notes or '',
                 }
 
+                # فحص حالة الاتصال (متصل خلال آخر 5 دقائق)
+                if c.last_timestamp:
+                    dt = c.last_timestamp.replace(tzinfo=None) if isinstance(c.last_timestamp, datetime) else None
+                    if dt and (datetime.utcnow() - dt).total_seconds() < 300:
+                        unique_contacts[raw_phone]['is_online'] = True
+                        unique_contacts[raw_phone]['last_seen'] = 'متصل الآن'
+
+            # 2. جلب التجار والموردين ودمجهم إذا كان الرقم موجوداً
             suppliers = Supplier.query.all()
             for s in suppliers:
                 if not s.phone:
                     continue
-                raw_phone = "".join([c_char for c_char in str(s.phone) if c_char.isdigit()])
+                raw_phone = s.phone.replace("+", "").strip()
                 formatted_phone = format_phone_number(raw_phone)
                 
                 if raw_phone in unique_contacts:
@@ -430,11 +512,12 @@ class WhatsAppService:
                         'last_timestamp': s.created_at.isoformat() if s.created_at else None,
                     }
 
+            # 3. جلب المسوقين
             marketers = Marketer.query.all()
             for m in marketers:
                 if not m.phone:
                     continue
-                raw_phone = "".join([c_char for c_char in str(m.phone) if c_char.isdigit()])
+                raw_phone = m.phone.replace("+", "").strip()
                 formatted_phone = format_phone_number(raw_phone)
 
                 if raw_phone in unique_contacts:
@@ -456,13 +539,15 @@ class WhatsAppService:
                     }
 
             return list(unique_contacts.values())
+
         except Exception as e:
-            print(f"⚠️ [خطأ جلب جهات الاتصال]: {e}")
+            print(f"⚠️ [خطأ جلب جهات الاتصال من الجداول]: {e}")
             return []
 
     def get_chat_history(self, phone: str) -> List[Dict[str, Any]]:
+        """جلب سجل المحادثة"""
         try:
-            clean_phone = "".join([c for c in str(phone) if c.isdigit()])
+            clean_phone = phone.replace("+", "").strip()
             messages = WhatsAppMessageLog.query.filter(
                 (WhatsAppMessageLog.sender_number == clean_phone) |
                 (WhatsAppMessageLog.recipient_number == clean_phone)
@@ -478,11 +563,13 @@ class WhatsAppService:
                     'timestamp': m.timestamp.strftime("%H:%M") if m.timestamp else '',
                     'media_url': m.media_url,
                     'media_type': m.message_type,
-                    'media_filename': getattr(m, 'media_filename', ''),
+                    'media_filename': m.media_filename,
                 }
                 result.append(item)
+
             return result
         except Exception as e:
+            print(f"⚠️ [خطأ جلب المحادثة من الجداول]: {e}")
             return []
 
     def _get_media_url(self, media_id: str) -> str:
@@ -493,6 +580,22 @@ class WhatsAppService:
             return data.get("url", "")
         except Exception:
             return ""
+
+    def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
+        try:
+            upload_result = cloudinary.uploader.upload(
+                file_path,
+                public_id=public_id,
+                folder=f"whatsapp/{public_id.split('_')[0]}"
+            )
+            return upload_result.get("secure_url", "")
+        except Exception as e:
+            print(f"⚠️ [خطأ رفع إلى Cloudinary]: {e}")
+            return ""
+
+    # =========================================================================
+    # 7. دوال إضافية وإدارة التكوين
+    # =========================================================================
 
     def get_webhook_logs(self) -> List[Dict[str, Any]]:
         return self.webhook_logs
@@ -518,10 +621,10 @@ class WhatsAppService:
         }
 
     def update_config(self, new_config: Dict[str, Any]) -> None:
-        self.phone_number_id = new_config.get("whatsapp_phone_number_id", self.phone_number_id).strip()
-        self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id).strip()
-        self.access_token = new_config.get("whatsapp_access_token", self.access_token).strip()
-        self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token).strip()
+        self.phone_number_id = new_config.get("whatsapp_phone_number_id", self.phone_number_id)
+        self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id)
+        self.access_token = new_config.get("whatsapp_access_token", self.access_token)
+        self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
 
     def clear_demo_data(self) -> Dict[str, Any]:
         self.contacts_db.clear()
@@ -531,8 +634,9 @@ class WhatsAppService:
 
     def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
         try:
-            clean_phone = "".join([c for c in str(phone) if c.isdigit()])
+            clean_phone = phone.replace("+", "").strip()
             contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+
             if not contact:
                 return {"error": "Contact not found", "status": "failed"}
 
@@ -546,11 +650,13 @@ class WhatsAppService:
 
     def mark_contact_as_read(self, phone: str) -> Dict[str, Any]:
         try:
-            clean_phone = "".join([c for c in str(phone) if c.isdigit()])
+            clean_phone = phone.replace("+", "").strip()
             contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+
             if contact:
                 contact.unread_count = 0
                 db.session.commit()
+
             return {"success": True, "status": "success"}
         except Exception as e:
             db.session.rollback()
