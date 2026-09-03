@@ -8,13 +8,18 @@ Flask / Python Routes for Meta WhatsApp Cloud API v26.0
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from datetime import datetime
 
-# ✅ استيراد النماذج (ضروري للدوال المتعلقة بجهات الاتصال)
+# ✅ استيراد النماذج وقاعدة البيانات بشكل آمن
 try:
     from apps.models.whatsapp_models import WhatsAppCustomerContact
     from apps.models.supplier_db import Supplier
     from apps.models.marketer_db import Marketer
+    from apps.extensions import db
 except ImportError:
     WhatsAppCustomerContact = Supplier = Marketer = None
+    try:
+        from app import db
+    except ImportError:
+        db = None
 
 # تعريف الـ Blueprint الإداري
 whatsapp_bp = Blueprint(
@@ -281,7 +286,7 @@ def contacts_bulk_view():
     
     stats = {
         'customers_count': customers_count,
-        'merchants_count': suppliers_count,  # التجار يتم تمثيلهم عبر الموردين في النظام
+        'merchants_count': suppliers_count, 
         'suppliers_count': suppliers_count,
         'marketers_count': marketers_count
     }
@@ -311,7 +316,7 @@ def add_contact_view():
         return redirect(url_for('whatsapp_service.contacts_bulk_view'))
 
     try:
-        clean_phone = phone.replace("+", "").strip()
+        clean_phone = "".join([c for c in phone if c.isdigit()])
         
         # التحقق مما إذا كانت جهة الاتصال موجودة مسبقاً لتجنب التكرار
         contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
@@ -371,7 +376,7 @@ def import_contacts_view():
             category = row.get('Category', default_category)
             
             if name and phone:
-                clean_phone = phone.replace("+", "").strip()
+                clean_phone = "".join([c for c in phone if c.isdigit()])
                 existing = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
                 if not existing:
                     new_c = WhatsAppCustomerContact(
