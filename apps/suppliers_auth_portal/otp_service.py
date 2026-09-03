@@ -4,17 +4,27 @@
 خدمة إدارة رموز التحقق (OTP) لبوابة الموردين - تعتمد على جدول otp_db.py
 """
 
+import threading
 from apps.models.otp_db import OTP
 from apps.whatsapp_service.service import WhatsAppService
 
 class SupplierOTPService:
     @staticmethod
+    def _send_whatsapp_in_background(phone: str, text: str):
+        """دالة خاصة لإرسال الواتساب في الخلفية لعدم تجميد السيرفر"""
+        try:
+            whatsapp = WhatsAppService()
+            whatsapp.send_message(recipient_phone=phone, text=text)
+        except Exception as e:
+            print(f"⚠️ [خطأ إرسال الواتساب بالخلفية]: {e}")
+
+    @staticmethod
     def generate_and_send_otp(identifier: str, target_id: int, target_type: str = 'supplier', ip_address: str = None, user_agent: str = None) -> dict:
-        """توليد رمز تحقق آمن عبر جدول OTP، حفظه، وإرساله عبر خدمة الواتساب"""
+        """توليد رمز التحقق آمن، حفظه، وإرساله عبر خيط خلفي (Background Thread) لمنع الـ Timeout"""
         clean_identifier = identifier.replace("+", "").strip()
         
         try:
-            # 1. استدعاء دالة الإنشاء الآمنة من نموذج OTP (تنشئ الرمز المشفر وتُبطِل أي رموز سابقة)
+            # 1. توليد الرمز وحفظه في قاعدة البيانات فوراً
             otp_record, otp_code = OTP.create_otp(
                 identifier=clean_identifier,
                 target_id=target_id,
@@ -24,30 +34,27 @@ class SupplierOTPService:
                 expiry_seconds=300  # صالح لمدة 5 دقائق
             )
             
-            # 2. تجهيز النص وإرساله عبر WhatsAppService
-            whatsapp = WhatsAppService()
+            # 2. تجهيز النص
             message_text = f"🔐 رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 5 دقائق فقط."
             
-            result = whatsapp.send_message(recipient_phone=clean_identifier, text=message_text)
+            # 3. إرسال الواتساب في الخلفية (Thread) لمنع حدوث خطأ 499 والتعليق
+            thread = threading.Thread(
+                target=SupplierOTPService._send_whatsapp_in_background,
+                args=(clean_identifier, message_text)
+            )
+            thread.daemon = True
+            thread.start()
             
-            # فحص النتيجة (التعامل مع الحالة الحقيقية والحالة التجريبية Simulated)
-            status = result.get("status")
-            error = result.get("error")
-            
-            if error or status == "failed":
-                return {"success": False, "error": f"فشل إرسال رسالة الواتساب: {error or 'خطأ غير معروف'}"}
-                
-            return {"success": True, "message": "تم إرسال رمز التحقق بنجاح عبر الواتساب", "otp_code": otp_code}
+            return {"success": True, "message": "تم إنشاء وإرسال رمز التحقق بنجاح", "otp_code": otp_code}
             
         except Exception as e:
-            return {"success": False, "error": str(e)}
+                return {"success": False, "error": str(e)}
 
     @staticmethod
     def verify_otp(identifier: str, entered_otp: str) -> dict:
-        """التحقق من صحة الرمز المدخل عبر دوال الأمان في نموذج OTP"""
+        """التحقق من صحة الرمز المدخل"""
         clean_identifier = identifier.replace("+", "").strip()
         clean_code = str(entered_otp).strip()
         
-        # استخدام دالة التحقق المضمنة في نموذج OTP والتي تدير المحاولات والحظر تلقائياً
         verification_result = OTP.verify_code_for_identifier(clean_identifier, clean_code)
         return verification_result
