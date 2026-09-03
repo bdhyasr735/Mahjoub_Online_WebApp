@@ -10,6 +10,7 @@ import json
 import hmac
 import hashlib
 import requests
+import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
@@ -390,8 +391,15 @@ class WhatsAppService:
 
     def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
         """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
+        # إذا لم يتم ضبط المفتاح السري أو التوقيع، نرفض الطلب لحماية النظام
         if not self.app_secret or not signature_header:
-            return True
+            return False
+        
+        # استخراج الجزء السداسي العشري من الهيدر (عادة يكون "sha256=<value>")
+        algo, _, sig = signature_header.partition("=")
+        if algo != "sha256" or not sig:
+            return False
+
         expected_hash = hmac.new(
             self.app_secret.encode('utf-8'),
             raw_payload,
@@ -401,6 +409,7 @@ class WhatsAppService:
 
     def process_incoming_payload(self, data: Dict[str, Any]) -> None:
         """تحليل ومعالجة الرسائل والأحداث الواردة من Meta Webhook"""
+        import sys
         try:
             entries = data.get("entry", [])
             for entry in entries:
@@ -473,7 +482,7 @@ class WhatsAppService:
 
         except Exception as e:
             self._log_webhook_event("error", "system", f"خطأ معالجة: {str(e)}")
-            print(f"⚠️ [خطأ معالجة Webhook]: {e}")
+            print(f"⚠️ [خطأ معالجة Webhook]: {e}", file=sys.stderr)
 
     def _update_message_status(self, phone: str, status: str) -> None:
         """تحديث حالة الرسائل المرسلة (sent, delivered, read)"""
