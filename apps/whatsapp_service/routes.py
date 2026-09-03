@@ -23,7 +23,7 @@ try:
 except ImportError:
     WhatsAppCustomerContact = Supplier = Marketer = None
 
-# ⚠️ تعريف Blueprint واحد فقط يحمل اسم معروف للجميع (لا يوجد تعارض)
+# ⚠️ تعريف Blueprint لوحة التحكم (يحتوي على /admin/whatsapp)
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
@@ -31,9 +31,15 @@ whatsapp_bp = Blueprint(
     url_prefix='/admin/whatsapp'
 )
 
+# ⚠️ تعريف Blueprint عام للـ Webhook (بدون بادئة admin، يحتوي على /whatsapp/webhook)
+webhook_public_bp = Blueprint(
+    'whatsapp_webhook_public',
+    __name__
+)
+
 
 # =========================================================================
-# 1. مسارات الـ Webhook (مسارات عامة بدون بادئة /admin)
+# 1. مسارات الـ Webhook مع Meta Cloud API v26.0
 # =========================================================================
 
 def _handle_verify():
@@ -88,13 +94,23 @@ def _handle_incoming_event():
     return jsonify({"status": "received"}), 200
 
 
-# ⚠️ مهم جداً: هذه هي المسارات العامة للويب هوك
+# ⚠️ مسارات الـ Webhook العامة (تعمل بدون تسجيل دخول)
+@webhook_public_bp.route('/whatsapp/webhook', methods=['GET'])
+def verify_webhook_public():
+    return _handle_verify()
+
+@webhook_public_bp.route('/whatsapp/webhook', methods=['POST'])
+def handle_webhook_event_public():
+    return _handle_incoming_event()
+
+
+# ⚠️ مسارات الـ Webhook داخل لوحة التحكم (للاستخدام الداخلي)
 @whatsapp_bp.route('/webhook', methods=['GET'])
-def verify_webhook():
+def verify_webhook_admin():
     return _handle_verify()
 
 @whatsapp_bp.route('/webhook', methods=['POST'])
-def handle_webhook_event():
+def handle_webhook_event_admin():
     return _handle_incoming_event()
 
 
