@@ -23,7 +23,7 @@ try:
 except ImportError:
     WhatsAppCustomerContact = Supplier = Marketer = None
 
-# تعريف الـ Blueprint الإداري (الاسم كما هو مطلوب في app.py)
+# ⚠️ تعريف Blueprint واحد فقط يحمل اسم معروف للجميع (لا يوجد تعارض)
 whatsapp_bp = Blueprint(
     'whatsapp_service',
     __name__,
@@ -31,15 +31,9 @@ whatsapp_bp = Blueprint(
     url_prefix='/admin/whatsapp'
 )
 
-# تعريف Blueprint عام لمسارات الويب هوك المباشرة بدون بادئة admin
-webhook_public_bp = Blueprint(
-    'whatsapp_webhook_public',
-    __name__
-)
-
 
 # =========================================================================
-# 1. مسارات الـ Webhook مع Meta Cloud API v26.0 (تدعم كلا المسارين)
+# 1. مسارات الـ Webhook (مسارات عامة بدون بادئة /admin)
 # =========================================================================
 
 def _handle_verify():
@@ -71,10 +65,8 @@ def _handle_incoming_event():
     raw_payload = request.get_data()
     signature = request.headers.get('X-Hub-Signature-256', '')
 
-    # ✅ تم تعطيل التحقق من التوقيع مؤقتاً لأنك في وضع اختبار مؤقت
-    # ⚠️ أعد تفعيله لاحقاً بعد التأكد من وصول الرسائل، لضمان الأمان.
+    # ✅ تم تعطيل التحقق من التوقيع مؤقتاً (وضع اختبار)
     # if not wa_service.verify_webhook_signature(raw_payload, signature):
-    #     print("❌ [SIGNATURE FAILED]: Invalid signature", file=sys.stderr)
     #     return jsonify({"error": "Invalid signature"}), 401
 
     data = request.get_json(silent=True) or {}
@@ -87,30 +79,22 @@ def _handle_incoming_event():
         result = wa_service.process_incoming_payload(data)
         print(f"✅ [PROCESSED SUCCESSFULLY]: {result}", file=sys.stderr)
     except Exception as e:
-        # 🚨 طباعة أي خطأ يحدث أثناء المعالجة (مشكلة في قاعدة البيانات أو الكود)
+        # 🚨 طباعة أي خطأ يحدث أثناء المعالجة
         print(f"❌ [ERROR IN PROCESSING]: {e}", file=sys.stderr)
         import traceback
-        traceback.print_exc()  # لطباعة تفاصيل الخطأ الكاملة
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
     return jsonify({"status": "received"}), 200
 
 
+# ⚠️ مهم جداً: هذه هي المسارات العامة للويب هوك
 @whatsapp_bp.route('/webhook', methods=['GET'])
-def verify_webhook_admin():
+def verify_webhook():
     return _handle_verify()
 
 @whatsapp_bp.route('/webhook', methods=['POST'])
-def handle_webhook_event_admin():
-    return _handle_incoming_event()
-
-
-@webhook_public_bp.route('/whatsapp/webhook', methods=['GET'])
-def verify_webhook_public():
-    return _handle_verify()
-
-@webhook_public_bp.route('/whatsapp/webhook', methods=['POST'])
-def handle_webhook_event_public():
+def handle_webhook_event():
     return _handle_incoming_event()
 
 
@@ -305,7 +289,7 @@ def contacts_bulk_view():
 
     stats = {
         'customers_count': customers_count,
-        'merchants_count': suppliers_count,  # التجار يتم تمثيلهم عبر الموردين في النظام
+        'merchants_count': suppliers_count,
         'suppliers_count': suppliers_count,
         'marketers_count': marketers_count
     }
