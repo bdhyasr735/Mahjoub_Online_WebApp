@@ -11,8 +11,8 @@ from sqlalchemy import or_
 
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
-# تأكد من استيراد نموذج موظف المورد هنا أو تعديل مساره حسب مشروعك:
-# from apps.models.supplier_employee_db import SupplierEmployee 
+# استيراد نموذج موظف المورد الفعلي المتوافق مع علاقة staff_members
+from apps.models.supplier_staff_db import SupplierStaff  # تأكد من مسار الاستيراد إذا اختلف قليلاً
 from apps.models.wallet_db import SupplierWallet
 from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
@@ -25,11 +25,10 @@ suppliers_auth_bp = Blueprint(
 
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """مسار تسجيل دخول الموردين وموظفيهم مع التحقق التفصيلي وتوافق الـ Frontend"""
+    """مسار تسجيل دخول الموردين وموظفيهم مع التوافق التام مع نموذج Supplier والتشفر السيادي"""
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         data = request.get_json() or {}
         
-        # التقاط الحقول القادمة من الـ Frontend الصحيح (identifier و user_type)
         login_input = data.get('identifier', '').strip().replace("+", "")
         password = data.get('password', '')
         user_type = data.get('user_type', 'supplier') # 'supplier' أو 'employee'
@@ -37,29 +36,34 @@ def login():
         if not login_input or not password:
             return jsonify({"success": False, "message": "الرجاء إدخال اسم المستخدم / رقم الهاتف وكلمة المرور."}), 400
 
-        # الحالة الأولى: تسجيل دخول موظف مورد
+        # الحالة الأولى: تسجيل دخول موظف المورد (SupplierStaff)
         if user_type == 'employee':
-            # تأكد من توفر نموذج SupplierEmployee، وفي حال كان غير مُعرف استبدله بالنموذج الخاص بك
-            employee = SupplierEmployee.query.filter(
+            # استخراج آخر 9 أرقام للبحث المطابق لهاتفه إن وجد
+            digits_only = "".join(filter(str.isdigit, login_input))
+            clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+
+            employee = SupplierStaff.query.filter(
                 or_(
-                    SupplierEmployee.username == login_input,
-                    SupplierEmployee.email == login_input,
-                    SupplierEmployee.phone == login_input
+                    SupplierStaff.username == login_input,
+                    SupplierStaff.email == login_input,
+                    SupplierStaff.phone == clean_9 if hasattr(SupplierStaff, 'phone') else False
                 )
             ).first()
 
             if not employee:
                 return jsonify({"success": False, "message": "معرف الموظف أو البريد الإلكتروني غير مسجل في المنصة اللامركزية."}), 404
 
-            if not check_password_hash(employee.password_hash, password):
+            # التحقق من كلمة المرور (افترضنا وجود check_password أو check_password_hash)
+            is_valid_pass = employee.check_password(password) if hasattr(employee, 'check_password') else check_password_hash(employee.password_hash, password)
+            if not is_valid_pass:
                 return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
 
-            if getattr(employee, 'is_suspended', False):
+            if getattr(employee, 'is_suspended', False) or getattr(employee, 'status', 'active') == 'suspended':
                 return jsonify({"success": False, "message": "تم توقيف حسابك الوظيفي نظراً لمخالفة اللوائح."}), 403
 
             login_user(employee, remember=data.get('remember_me', False))
             session['employee_id'] = employee.id
-            session['supplier_id'] = employee.supplier_id # ربط الموظف بمورده الأساسي
+            session['supplier_id'] = employee.supplier_id
 
             return jsonify({
                 "success": True, 
@@ -67,23 +71,28 @@ def login():
                 "redirect_url": url_for('suppliers_auth_bp.dashboard')
             })
 
-        # الحالة الثانية: تسجيل دخول حساب المورد الرئيسي (الافتراضي)
+        # الحالة الثانية: تسجيل دخول حساب المورد الرئيسي (باستخدام دالة authenticate الذكية في نموذج Supplier)
         else:
-            supplier = Supplier.query.filter(
-                or_(
-                    Supplier.phone == login_input, 
-                    Supplier.username == login_input,
-                    Supplier.email == login_input
-                )
-            ).first()
+            supplier = Supplier.authenticate(identifier=login_input, password=password)
 
             if not supplier:
-                return jsonify({"success": False, "message": "رقم الهاتف أو اسم المستخدم أو البريد غير مسجل كمورد في المنصة اللامركزية."}), 404
+                # التحقق هل الحساب غير موجود أصلاً أم كلمة المرور خطأ لإعطاء رسالة أدق
+                digits_only = "".join(filter(str.isdigit, login_input))
+                clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+                
+                exists_check = Supplier.query.filter(
+                    (Supplier.username == login_input) | 
+                    (Supplier.email == login_input) | 
+                    (Supplier.search_phone == clean_9)
+                ).first()
 
-            if not check_password_hash(supplier.password_hash, password):
-                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
+                if not exists_check:
+                    return jsonify({"success": False, "message": "رقم الهاتف أو اسم المستخدم أو البريد غير مسجل كمورد في المنصة."}), 404
+                else:
+                    return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
 
-            if getattr(supplier, 'is_suspended', False):
+            # التحقق من حالة الحظـر أو التوقيف
+            if getattr(supplier, 'status', 'active') == 'suspended':
                 return jsonify({"success": False, "message": "تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة."}), 403
 
             login_user(supplier, remember=data.get('remember_me', False))
@@ -103,28 +112,19 @@ def login():
         user_type = request.form.get('user_type', 'supplier')
 
         if user_type == 'employee':
-            employee = SupplierEmployee.query.filter(
-                or_(
-                    SupplierEmployee.username == login_input, 
-                    SupplierEmployee.email == login_input,
-                    SupplierEmployee.phone == login_input
-                )
+            employee = SupplierStaff.query.filter(
+                or_(SupplierStaff.username == login_input, SupplierStaff.email == login_input)
             ).first()
-            if not employee or not check_password_hash(employee.password_hash, password):
+            is_valid_pass = employee.check_password(password) if employee and hasattr(employee, 'check_password') else False
+            if not employee or not is_valid_pass:
                 flash('بيانات دخول الموظف غير صحيحة.', 'danger')
                 return redirect(url_for('suppliers_auth_bp.login'))
             login_user(employee, remember=True)
             session['supplier_id'] = employee.supplier_id
         else:
-            supplier = Supplier.query.filter(
-                or_(
-                    Supplier.phone == login_input, 
-                    Supplier.username == login_input,
-                    Supplier.email == login_input
-                )
-            ).first()
-            if not supplier or not check_password_hash(supplier.password_hash, password):
-                flash('رقم الهاتف أو اسم المستخدم غير صحيح.', 'danger')
+            supplier = Supplier.authenticate(identifier=login_input, password=password)
+            if not supplier:
+                flash('رقم الهاتف أو اسم المستخدم أو كلمة المرور غير صحيحة.', 'danger')
                 return redirect(url_for('suppliers_auth_bp.login'))
             login_user(supplier, remember=True)
             session['supplier_id'] = supplier.id
@@ -154,19 +154,26 @@ def register():
         if password != confirm_password:
             return jsonify({"success": False, "message": "كلمتا المرور غير متطابقتين."}), 400
 
-        existing_supplier = Supplier.query.filter_by(phone=phone).first()
+        # التحقق عبر search_phone الموحد في نموذج Supplier
+        digits_only = "".join(filter(str.isdigit, phone))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        existing_supplier = Supplier.query.filter_by(search_phone=clean_9).first()
+        
         if existing_supplier:
             return jsonify({"success": False, "message": "رقم الهاتف مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة."}), 400
 
         try:
-            hashed_password = generate_password_hash(password)
+            # إنشاء المورد مع استغلال ميزات النموذج (توليد اسم مستخدم مؤقت وتشفير الهاتف تلقائياً عبر المُنشئ أو الخاصية)
             new_supplier = Supplier(
+                username=f"sup_{clean_9}",
                 phone=phone,
-                password_hash=hashed_password,
-                is_active=True
+                status='active',
+                rank='bronze'
             )
+            new_supplier.set_password(password)
+            
             db.session.add(new_supplier)
-            db.session.flush()
+            db.session.flush() # للحصول على الـ id ليتم توليد الأكواد النمطية (SUP-963X) تلقائياً عبر الـ Event Listener
 
             new_wallet = SupplierWallet(
                 supplier_id=new_supplier.id,
@@ -205,7 +212,10 @@ def forgot_password():
     """مسار استعادة كلمة المرور عبر رقم الهاتف ورمز التحقق OTP"""
     if request.method == 'POST':
         phone = request.form.get('phone', '').strip().replace("+", "")
-        supplier = Supplier.query.filter_by(phone=phone).first()
+        digits_only = "".join(filter(str.isdigit, phone))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        
+        supplier = Supplier.query.filter_by(search_phone=clean_9).first()
         
         if not supplier:
             flash('رقم الهاتف غير مسجل في النظام.', 'danger')
@@ -249,9 +259,12 @@ def verify_reset_otp():
             flash('كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.', 'danger')
             return render_template('suppliers_auth_portal/verify_reset_otp.html')
 
-        supplier = Supplier.query.filter_by(phone=phone).first()
+        digits_only = "".join(filter(str.isdigit, phone))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        supplier = Supplier.query.filter_by(search_phone=clean_9).first()
+        
         if supplier:
-            supplier.password_hash = generate_password_hash(new_password)
+            supplier.set_password(new_password)
             db.session.commit()
             session.pop('reset_phone', None)
             flash('تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن.', 'success')
@@ -264,13 +277,19 @@ def verify_reset_otp():
 @login_required
 def dashboard():
     """لوحة تحكم المورد المحمية"""
-    wallet = SupplierWallet.query.filter_by(supplier_id=current_user.id).first()
+    # التعامل مع حالة ما إذا كان المستخدم الحالي هو Supplier أو SupplierStaff
+    if isinstance(current_user, Supplier):
+        supplier_id = current_user.id
+    else:
+        supplier_id = getattr(current_user, 'supplier_id', None)
+
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first() if supplier_id else None
     return render_template('suppliers_auth_portal/dashboard.html', wallet=wallet)
 
 
 @suppliers_auth_bp.route('/logout')
 def logout():
-    """تسجيل خروج المورد وتنظيف الجلسة"""
+    """تسجيل خروج المورد أو الموظف وتنظيف الجلسة"""
     logout_user()
     session.clear()
     flash('تم تسجيل الخروج بنجاح.', 'success')
