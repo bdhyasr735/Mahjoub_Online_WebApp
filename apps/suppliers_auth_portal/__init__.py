@@ -5,6 +5,6 @@
 تتولى إدارة تسجيل الدخول، والتسجيل، واستعادة كلمة المرور للموردين وموظفيهم.
 """
 
-from apps.suppliers_auth_portal.routes import suppliers_auth_bp, init_app
+from apps.suppliers_auth_portal.routes import suppliers_auth_bp
 
-__all__ = ['suppliers_auth_bp', 'init_app']
+__all__ = ['suppliers_auth_bp']
