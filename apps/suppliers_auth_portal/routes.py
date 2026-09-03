@@ -11,6 +11,8 @@ from sqlalchemy import or_
 
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
+# تأكد من استيراد نموذج موظف المورد هنا أو تعديل مساره حسب مشروعك:
+# from apps.models.supplier_employee_db import SupplierEmployee 
 from apps.models.wallet_db import SupplierWallet
 from apps.suppliers_auth_portal.otp_service import SupplierOTPService
 
@@ -23,66 +25,111 @@ suppliers_auth_bp = Blueprint(
 
 @suppliers_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """مسار تسجيل دخول الموردين برقم الهاتف أو اسم المستخدم وكلمة المرور مع التحقق التفصيلي"""
+    """مسار تسجيل دخول الموردين وموظفيهم مع التحقق التفصيلي وتوافق الـ Frontend"""
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         data = request.get_json() or {}
-        login_input = data.get('phone', '').strip().replace("+", "")
+        
+        # التقاط الحقول القادمة من الـ Frontend الصحيح (identifier و user_type)
+        login_input = data.get('identifier', '').strip().replace("+", "")
         password = data.get('password', '')
+        user_type = data.get('user_type', 'supplier') # 'supplier' أو 'employee'
 
         if not login_input or not password:
-            return jsonify({"success": False, "message": "الرجاء إدخال رقم الهاتف/اسم المستخدم وكلمة المرور."}), 400
+            return jsonify({"success": False, "message": "الرجاء إدخال اسم المستخدم / رقم الهاتف وكلمة المرور."}), 400
 
-        # البحث المرن برقم الهاتف أو اسم المستخدم
-        supplier = Supplier.query.filter(
-            or_(Supplier.phone == login_input, Supplier.username == login_input)
-        ).first()
+        # الحالة الأولى: تسجيل دخول موظف مورد
+        if user_type == 'employee':
+            # تأكد من توفر نموذج SupplierEmployee، وفي حال كان غير مُعرف استبدله بالنموذج الخاص بك
+            employee = SupplierEmployee.query.filter(
+                or_(
+                    SupplierEmployee.username == login_input,
+                    SupplierEmployee.email == login_input,
+                    SupplierEmployee.phone == login_input
+                )
+            ).first()
 
-        # التحقق مما إذا كان الحساب غير مسجل بالأساس في القاعدة
-        if not supplier:
-            return jsonify({"success": False, "message": "رقم الهاتف أو اسم المستخدم غير مسجل في المنصة اللامركزية."}), 404
+            if not employee:
+                return jsonify({"success": False, "message": "معرف الموظف أو البريد الإلكتروني غير مسجل في المنصة اللامركزية."}), 404
 
-        # التحقق من صحة كلمة المرور
-        if not check_password_hash(supplier.password_hash, password):
-            return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
+            if not check_password_hash(employee.password_hash, password):
+                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
 
-        # التحقق مما إذا كان الحساب موقوفاً
-        if getattr(supplier, 'is_suspended', False):
-            return jsonify({"success": False, "message": "تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة."}), 403
+            if getattr(employee, 'is_suspended', False):
+                return jsonify({"success": False, "message": "تم توقيف حسابك الوظيفي نظراً لمخالفة اللوائح."}), 403
 
-        # تسجيل الدخول عبر Flask-Login
-        login_user(supplier, remember=True)
-        session['supplier_id'] = supplier.id
-        session['supplier_phone'] = supplier.phone
+            login_user(employee, remember=data.get('remember_me', False))
+            session['employee_id'] = employee.id
+            session['supplier_id'] = employee.supplier_id # ربط الموظف بمورده الأساسي
 
-        return jsonify({
-            "success": True, 
-            "message": "تم تسجيل الدخول بنجاح. جاري تحويلك إلى لوحة التحكم...", 
-            "redirect_url": url_for('suppliers_auth_bp.dashboard')
-        })
+            return jsonify({
+                "success": True, 
+                "message": "تم تسجيل الدخول بنجاح. جاري تحويلك إلى لوحة التحكم...", 
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
 
+        # الحالة الثانية: تسجيل دخول حساب المورد الرئيسي (الافتراضي)
+        else:
+            supplier = Supplier.query.filter(
+                or_(
+                    Supplier.phone == login_input, 
+                    Supplier.username == login_input,
+                    Supplier.email == login_input
+                )
+            ).first()
+
+            if not supplier:
+                return jsonify({"success": False, "message": "رقم الهاتف أو اسم المستخدم أو البريد غير مسجل كمورد في المنصة اللامركزية."}), 404
+
+            if not check_password_hash(supplier.password_hash, password):
+                return jsonify({"success": False, "message": "كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى."}), 401
+
+            if getattr(supplier, 'is_suspended', False):
+                return jsonify({"success": False, "message": "تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة."}), 403
+
+            login_user(supplier, remember=data.get('remember_me', False))
+            session['supplier_id'] = supplier.id
+            session['supplier_phone'] = supplier.phone
+
+            return jsonify({
+                "success": True, 
+                "message": "تم تسجيل الدخول بنجاح. جاري تحويلك إلى لوحة التحكم...", 
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+            })
+
+    # الطلبات التقليدية العادية (Fallback في حال عدم تفعيل JavaScript)
     if request.method == 'POST':
-        login_input = request.form.get('phone', '').strip().replace("+", "")
+        login_input = request.form.get('identifier', '').strip().replace("+", "")
         password = request.form.get('password', '')
+        user_type = request.form.get('user_type', 'supplier')
 
-        supplier = Supplier.query.filter(
-            or_(Supplier.phone == login_input, Supplier.username == login_input)
-        ).first()
+        if user_type == 'employee':
+            employee = SupplierEmployee.query.filter(
+                or_(
+                    SupplierEmployee.username == login_input, 
+                    SupplierEmployee.email == login_input,
+                    SupplierEmployee.phone == login_input
+                )
+            ).first()
+            if not employee or not check_password_hash(employee.password_hash, password):
+                flash('بيانات دخول الموظف غير صحيحة.', 'danger')
+                return redirect(url_for('suppliers_auth_bp.login'))
+            login_user(employee, remember=True)
+            session['supplier_id'] = employee.supplier_id
+        else:
+            supplier = Supplier.query.filter(
+                or_(
+                    Supplier.phone == login_input, 
+                    Supplier.username == login_input,
+                    Supplier.email == login_input
+                )
+            ).first()
+            if not supplier or not check_password_hash(supplier.password_hash, password):
+                flash('رقم الهاتف أو اسم المستخدم غير صحيح.', 'danger')
+                return redirect(url_for('suppliers_auth_bp.login'))
+            login_user(supplier, remember=True)
+            session['supplier_id'] = supplier.id
+            session['supplier_phone'] = supplier.phone
 
-        if not supplier:
-            flash('رقم الهاتف أو اسم المستخدم غير مسجل في المنصة اللامركزية.', 'danger')
-            return redirect(url_for('suppliers_auth_bp.login'))
-
-        if not check_password_hash(supplier.password_hash, password):
-            flash('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.', 'danger')
-            return redirect(url_for('suppliers_auth_bp.login'))
-
-        if getattr(supplier, 'is_suspended', False):
-            flash('تم توقيف لوحة التحكم نظراً لمخالفة ميثاق حوكمة الأسعار والتكلفة.', 'danger')
-            return redirect(url_for('suppliers_auth_bp.login'))
-
-        login_user(supplier, remember=True)
-        session['supplier_id'] = supplier.id
-        session['supplier_phone'] = supplier.phone
         flash('تم تسجيل الدخول بنجاح.', 'success')
         return redirect(url_for('suppliers_auth_bp.dashboard'))
 
