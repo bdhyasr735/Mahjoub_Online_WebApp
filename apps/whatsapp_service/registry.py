@@ -80,41 +80,32 @@ def register_module(app):
     تسجيل موديول الواتساب في تطبيق Flask / Python المركزي.
     """
     try:
-        # استيراد المسارات من ملف routes.py (يحتوي على كل شيء بما فيه جهات الاتصال)
-        from apps.whatsapp_service.routes import whatsapp_bp, webhook_public_bp
+        # ✅ استيراد whatsapp_bp فقط (لأنه يحتوي على كل شيء)
+        from apps.whatsapp_service.routes import whatsapp_bp
         
         # استيراد CSRF من ملف الإضافات
         from apps.extensions import csrf
 
-        # تسجيل مسار لوحة التحكم الإدارية (يحتوي على /dashboard و /contacts-bulk)
+        # تسجيل مسار لوحة التحكم الإدارية + مسار الويب هوك (موجودان داخل whatsapp_bp)
         if whatsapp_bp.name not in app.blueprints:
             app.register_blueprint(whatsapp_bp)
             print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' بنجاح تحت المسار {URL_PREFIX}.")
             print(f"✅ [Module]: تم تفعيل مسارات جهات الاتصال '/contacts-bulk' تلقائياً.")
-
-        # تسجيل المسار العام /whatsapp/webhook (لحل مشكلة الـ 404)
-        if webhook_public_bp.name not in app.blueprints:
-            app.register_blueprint(webhook_public_bp)
-            print(f"✅ [Module]: تم تسجيل مسار الـ Webhook العام '/whatsapp/webhook' بنجاح.")
+            print(f"✅ [Module]: تم تسجيل مسار الـ Webhook العام '/admin/whatsapp/webhook' بنجاح (من خلال whatsapp_bp).")
 
         # 🔥 الأهم: استثناء المسارات من حماية CSRF (حتى تصل رسائل Meta)
         csrf.exempt(whatsapp_bp)
-        csrf.exempt(webhook_public_bp)
 
     except ImportError:
         # في حالة الاستيراد النسبي
         try:
-            from .routes import whatsapp_bp, webhook_public_bp
+            from .routes import whatsapp_bp
             from apps.extensions import csrf
             
             if whatsapp_bp.name not in app.blueprints:
                 app.register_blueprint(whatsapp_bp)
             
-            if webhook_public_bp.name not in app.blueprints:
-                app.register_blueprint(webhook_public_bp)
-            
             csrf.exempt(whatsapp_bp)
-            csrf.exempt(webhook_public_bp)
             
             print(f"✅ [Module]: تم تسجيل موديول '{MODULE_NAME}' (استيراد نسبي) وتفعيله بنجاح.")
         except Exception as inner_e:
