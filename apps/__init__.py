@@ -273,7 +273,8 @@ def create_app():
             '/supplier/reset-password',
             admin_login_path,
             '/auth',
-            '/whatsapp'
+            '/whatsapp',
+            '/admin/whatsapp'  # ✅ تم إضافة هذا السطر لمنع التحويل لبوابة الدخول
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
