@@ -93,8 +93,8 @@ def register():
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    """لوحة تحكم الموردين"""
-    return render_template('suppliers_auth_portal/dashboard.html')
+    """لوحة تحكم الموردين - إعادة التوجيه إلى لوحة التحكم الفعلية"""
+    return redirect('/supplier/dashboard/')
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password():
