@@ -5,6 +5,9 @@
 """
 
 import threading
+import sys
+import traceback
+from flask import current_app
 from apps.models.otp_db import OTP
 from apps.whatsapp_service.service import WhatsAppService
 
@@ -24,13 +27,22 @@ class SupplierOTPService:
         return clean
 
     @staticmethod
-    def _send_whatsapp_in_background(phone: str, text: str):
-        """دالة خاصة لإرسال الواتساب في الخلفية لعدم تجميد السيرفر"""
-        try:
-            whatsapp = WhatsAppService()
-            whatsapp.send_message(recipient_phone=phone, text=text)
-        except Exception as e:
-            print(f"⚠️ [خطأ إرسال الواتساب بالخلفية]: {e}")
+    def _send_whatsapp_in_background(phone: str, text: str, app_obj=None):
+        """دالة خاصة لإرسال الواتساب في الخلفية مع الحفاظ على سياق تطبيق Flask لضمان عمل الاتصال وقاعدة البيانات"""
+        def execute_send():
+            try:
+                whatsapp = WhatsAppService()
+                result = whatsapp.send_message(recipient_phone=phone, text=text)
+                print(f"📬 [OTP WhatsApp Result]: {result}", file=sys.stderr)
+            except Exception as e:
+                print(f"❌ [خطأ قاتل في إرسال OTP بالخلفية]: {str(e)}", file=sys.stderr)
+                traceback.print_exc()
+
+        if app_obj:
+            with app_obj.app_context():
+                execute_send()
+        else:
+            execute_send()
 
     @staticmethod
     def generate_and_send_otp(identifier: str, target_id: int, target_type: str = 'supplier', ip_address: str = None, user_agent: str = None) -> dict:
@@ -51,10 +63,13 @@ class SupplierOTPService:
             # 2. تجهيز النص (مع تحسين التنسيق)
             message_text = f"🔐 رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 5 دقائق فقط."
             
+            # التقاط سياق التطبيق الحالي لضمان عمل قاعدة البيانات والمفاتيح داخل الـ Thread
+            app_obj = current_app._get_current_object() if current_app else None
+
             # 3. الإرسال في الخلفية لمنع الـ Timeout والخطأ 499
             thread = threading.Thread(
                 target=SupplierOTPService._send_whatsapp_in_background,
-                args=(recipient_phone, message_text)
+                args=(recipient_phone, message_text, app_obj)
             )
             thread.daemon = True
             thread.start()
@@ -70,6 +85,5 @@ class SupplierOTPService:
         formatted_identifier = SupplierOTPService._format_phone_number(identifier)
         clean_code = str(entered_otp).strip()
         
-        # ملاحظة: إذا كان جدول OTP يدعم البحث جزئياً، يمكنك تمرير الصيغة المنسقة
         verification_result = OTP.verify_code_for_identifier(formatted_identifier, clean_code)
         return verification_result
