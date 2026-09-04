@@ -186,18 +186,17 @@ def reset_password():
     """إعادة تعيين كلمة المرور باستخدام OTP"""
     try:
         data = request.get_json(silent=True) or request.form.to_dict()
-        identifier = data.get('identifier', '')
-        otp_code = data.get('otp_code', '')
+        identifier = data.get('identifier', '').strip()
+        otp_code = data.get('otp_code', '').strip()
         new_password = data.get('new_password', '')
         
-        verification = SupplierOTPService.verify_otp(identifier, otp_code)
-        
-        if not verification.get('success'):
-            return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو انتهت صلاحيته."}), 400
-        
+        if not identifier or not otp_code or not new_password:
+            return jsonify({"success": False, "message": "جميع الحقول مطلوبة."}), 400
+
         digits_only = "".join(filter(str.isdigit, str(identifier)))
         clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
         
+        # 1. البحث عن المورد أولاً للحصول على رقم هاتفه المسجل
         supplier = Supplier.query.filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) | 
@@ -208,6 +207,18 @@ def reset_password():
         if not supplier:
             return jsonify({"success": False, "message": "لم يتم العثور على الحساب."}), 404
         
+        # 2. تنسيق رقم الهاتف للحصول على المعرف المطابق لما تم حفظه في قاعدة بيانات الـ OTP
+        formatted_phone = SupplierOTPService._format_phone_number(supplier.phone)
+        
+        # 3. التحقق من الرمز باستخدام المعرف المُنسق (مع تجربة المعرف الخام كاحتياط)
+        verification = SupplierOTPService.verify_otp(formatted_phone, otp_code)
+        if not verification.get('success'):
+            verification = SupplierOTPService.verify_otp(identifier, otp_code)
+            
+        if not verification.get('success'):
+            return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو انتهت صلاحيته."}), 400
+        
+        # 4. تحديث كلمة المرور بنجاح
         supplier.password = new_password
         db.session.commit()
         
@@ -216,8 +227,11 @@ def reset_password():
             "message": "تم تحديث كلمة المرور بنجاح.",
             "redirect_url": url_for('suppliers_auth_bp.login')
         })
+        
     except Exception as e:
         db.session.rollback()
+        print(f"❌ [خطأ في reset_password]: {str(e)}")
+        traceback.print_exc()
         return jsonify({"success": False, "message": f"حدث خطأ: {str(e)}"}), 500
 
 @suppliers_auth_bp.route('/logout', methods=['GET'])
