@@ -22,7 +22,7 @@ suppliers_auth_bp = Blueprint(
 def login():
     """تسجيل الدخول للموردين (يدعم JSON و Form)"""
     if current_user.is_authenticated:
-        return redirect(url_for('suppliers_auth_bp.dashboard'))
+        return redirect('/supplier/dashboard/')
     
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict()
@@ -44,7 +44,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": url_for('suppliers_auth_bp.dashboard')
+                "redirect_url": "/supplier/dashboard/"
             })
         else:
             return jsonify({
@@ -93,7 +93,7 @@ def register():
 @suppliers_auth_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    """لوحة تحكم الموردين - إعادة التوجيه إلى لوحة التحكم الفعلية"""
+    """لوحة تحكم الموردين"""
     return redirect('/supplier/dashboard/')
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
@@ -238,4 +238,4 @@ def reset_password():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('suppliers_auth_bp.login'))
+    return redirect('/supplier/login')
