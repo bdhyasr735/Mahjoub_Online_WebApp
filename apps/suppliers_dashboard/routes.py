@@ -24,29 +24,38 @@ suppliers_dashboard_bp = Blueprint(
 def index():
     """الصفحة الرئيسية للوحة تحكم المورد متوافقة تماماً مع الجداول ونموذج المحفظة."""
     try:
-        # التحقق الآمن من معرّف المستخدم الحالي لمنع حلقات إعادة التوجيه
-        supplier_id = None
-        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
-            # التحقق إذا كان الحقل مخزناً كـ supplier_id مباشرة أو كـ id رئيسي
-            supplier_id = getattr(current_user, 'supplier_id', None)
-            if not supplier_id and hasattr(current_user, 'id'):
-                if isinstance(current_user, Supplier):
-                    supplier_id = current_user.id
-                else:
-                    # في حال كان الموظف مسجل الدخول، نحاول جلب الـ supplier_id المرتبط به
-                    supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
-
-        if not supplier_id:
-            flash("يرجى تسجيل الدخول كمورد للوصول إلى لوحة التحكم.", "warning")
+        # 1. التحقق الآمن من مصادقة المستخدم وتجنب حلقة إعادة التوجيه
+        if not hasattr(current_user, 'is_authenticated') or not current_user.is_authenticated:
             return redirect(url_for('suppliers_auth_portal.login_page'))
 
-        # جلب بيانات المورد باستخدام db.session.get المتوافقة مع SQLAlchemy 3.x
+        supplier_id = None
+        
+        # محاولة استخراج معرّف المورد بطرق آمنة تدعم مختلف أنواع الحسابات المرتبطة
+        if hasattr(current_user, 'supplier_id') and current_user.supplier_id:
+            supplier_id = current_user.supplier_id
+        elif hasattr(current_user, 'id'):
+            # إذا كان الكائن الحالي هو نفس جدول Supplier
+            if isinstance(current_user, Supplier):
+                supplier_id = current_user.id
+            else:
+                # محاولة فحص ما إذا كان الـ id الحالي يتبع لجدول الموردين مباشرة
+                possible_supplier = db.session.get(Supplier, current_user.id)
+                if possible_supplier:
+                    supplier_id = current_user.id
+                else:
+                    supplier_id = getattr(current_user, 'supplier_id', None)
+
+        if not supplier_id:
+            flash("يرجى تسجيل الدخول بحساب مورد صحيح للوصول إلى لوحة التحكم.", "warning")
+            return redirect(url_for('suppliers_auth_portal.login_page'))
+
+        # 2. جلب بيانات المورد باستخدام db.session.get المتوافقة مع SQLAlchemy الحديثة
         supplier = db.session.get(Supplier, supplier_id)
         if not supplier:
             flash("لم يتم العثور على بيانات المورد المرتبطة.", "danger")
             return redirect(url_for('suppliers_auth_portal.login_page'))
         
-        # جلب المحفظة المالية المرتبطة بالمورد بالريال السعودي (SAR)
+        # 3. جلب المحفظة المالية المرتبطة بالمورد بالريال السعودي (SAR)
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
         
         # إذا لم تكن المحفظة موجودة، يتم إنشاؤها تلقائياً بالرمز والخصائص المعيارية
@@ -62,7 +71,7 @@ def index():
             db.session.add(wallet)
             db.session.commit()
 
-        # جلب عدد المنتجات المرتبطة
+        # 4. جلب عدد المنتجات المرتبطة
         products_count = 0
         try:
             products_count = ProductSupplierMapping.query.filter_by(
@@ -77,7 +86,7 @@ def index():
                     .where(products_table.c.supplier_id == supplier_id)
                 ).scalar() or 0
 
-        # جلب عدد الموظفين المرتبطين بالمورد
+        # 5. جلب عدد الموظفين المرتبطين بالمورد
         staff_count = 0
         try:
             staff_count = SupplierStaff.query.filter_by(
@@ -92,7 +101,7 @@ def index():
                     .where(staff_table.c.supplier_id == supplier_id)
                 ).scalar() or 0
 
-        # جلب الملف الشخصي المرتبط
+        # 6. جلب الملف الشخصي المرتبط
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
         
         # الاعتماد الحصري على balance_sar
@@ -141,7 +150,7 @@ def index():
             }
         }
         
-        # رেন্ডر القالب مع فرض ترويسات منع التخزين المؤقت لتجنب خطأ 304 بعد تسجيل الدخول
+        # 7. تجهيز القالب مع إضافة ترويسات منع التخزين المؤقت نهائياً (تمنع مشكلة 304 وتضمن تحديث الصفحة)
         rendered_html = render_template(
             'suppliers/dashboard.html',
             page_title='لوحة تحكم المورد | محجوب أونلاين',
