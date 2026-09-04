@@ -29,11 +29,14 @@ def login():
         identifier = data.get('identifier') or data.get('username')
         password = data.get('password')
         
+        digits_only = "".join(filter(str.isdigit, str(identifier or '')))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        
         supplier = Supplier.query.filter(
             (Supplier.username == identifier) |
             (Supplier.email == identifier) |
-            (Supplier.search_phone == identifier) |
-            (Supplier.phone == identifier)
+            (Supplier.search_phone == clean_9) |
+            (Supplier.supplier_code == identifier)
         ).first()
         
         if supplier and supplier.check_password(password):
@@ -100,7 +103,7 @@ def forgot_password():
 
 @suppliers_auth_bp.route('/forgot-password/request-otp', methods=['POST'])
 def request_otp():
-    """طلب إرسال رمز التحقق OTP مع استجابة فورية وخلفية آمنة لمنع الـ Timeout"""
+    """طلب إرسال رمز التحقق OTP مع معالجة دقيقة للبحث في جدول الموردين المشفر"""
     try:
         data = request.get_json(silent=True) or request.form.to_dict()
         identifier = data.get('identifier', '').strip()
@@ -108,16 +111,19 @@ def request_otp():
         if not identifier:
             return jsonify({"success": False, "message": "الرجاء إدخال اسم المستخدم أو رقم الهاتف."}), 400
         
-        # البحث عن المورد
+        digits_only = "".join(filter(str.isdigit, str(identifier)))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        
+        # البحث الذكي المطابق لهيكل جدول الموردين المشفر
         supplier = Supplier.query.filter(
-            (Supplier.phone == identifier) | 
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) | 
-            (Supplier.search_phone == identifier)
+            (Supplier.search_phone == clean_9) |
+            (Supplier.supplier_code == identifier)
         ).first()
         
         if not supplier:
-            return jsonify({"success": False, "message": "لم يتم العثور على حساب مرتبط بالبيانات المدخلة."}), 404
+            return jsonify({"success": False, "message": f"لم يتم العثور على حساب مرتبط بالبيانات المدخلة: {identifier}"}), 404
         
         # توحيد صيغة رقم الهاتف
         recipient_phone = SupplierOTPService._format_phone_number(supplier.phone)
@@ -152,7 +158,6 @@ def request_otp():
             else:
                 task()
 
-        # إطلاق الـ Thread للإرسال في الخلفية
         thread = threading.Thread(
             target=send_whatsapp_async,
             args=(recipient_phone, message_text, app_obj)
@@ -165,7 +170,7 @@ def request_otp():
             "success": True,
             "message": "تم إرسال رمز التحقق بنجاح.",
             "data": {
-                "masked_phone": f"****{supplier.phone[-4:]}",
+                "masked_phone": f"****{supplier.phone[-4:]}" if supplier.phone else "****",
                 "_dev_otp": otp_code
             }
         })
@@ -189,11 +194,14 @@ def reset_password():
         if not verification.get('success'):
             return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو انتهت صلاحيته."}), 400
         
+        digits_only = "".join(filter(str.isdigit, str(identifier)))
+        clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
+        
         supplier = Supplier.query.filter(
-            (Supplier.phone == identifier) | 
             (Supplier.username == identifier) | 
-            (Supplier.email == identifier) |
-            (Supplier.search_phone == identifier)
+            (Supplier.email == identifier) | 
+            (Supplier.search_phone == clean_9) |
+            (Supplier.supplier_code == identifier)
         ).first()
         
         if not supplier:
