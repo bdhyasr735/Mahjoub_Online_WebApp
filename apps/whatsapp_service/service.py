@@ -36,7 +36,6 @@ def format_phone_number(phone: str) -> str:
     if not phone:
         return ""
     
-    # تنظيف الرقم وإزالة أي رموز غريبة ما عدا الأرقام وعلامة الزائد
     clean = "".join([c for c in str(phone) if c.isdigit() or c == '+'])
     
     if not clean.startswith('+'):
@@ -45,7 +44,6 @@ def format_phone_number(phone: str) -> str:
         else:
             clean = '+967' + clean.lstrip('0')
             
-    # تنسيق شكل العرض للأرقام اليمنية إذا تطابق الطول
     if clean.startswith('+967') and len(clean) == 13:
         return f"{clean[:4]} {clean[4:6]} {clean[6:9]} {clean[9:]}"
         
@@ -56,12 +54,9 @@ def clean_phone_number(phone: str) -> str:
     """تنظيف رقم الهاتف وإرجاعه بصيغة رقمية فقط مع كود الدولة"""
     if not phone:
         return ""
-    # إزالة كل شيء ما عدا الأرقام
     clean = "".join(filter(str.isdigit, str(phone)))
-    # إزالة الصفر في البداية
     if clean.startswith('0'):
         clean = clean[1:]
-    # إضافة كود اليمن إذا كان الرقم أقل من 10 أرقام
     if len(clean) < 10:
         clean = '967' + clean
     return clean
@@ -142,7 +137,6 @@ class WhatsAppService:
             }
         }
 
-        # ✅ حفظ الرسالة بحالة "pending" قبل الإرسال
         try:
             msg = WhatsAppMessageLog(
                 direction='outbound',
@@ -162,7 +156,6 @@ class WhatsAppService:
             print(f"⚠️ [خطأ حفظ الرسالة قبل الإرسال]: {e}")
             return {"status": "failed", "error": f"فشل حفظ الرسالة: {str(e)}"}
 
-        # ✅ التحقق من التوكن
         if not self.access_token:
             try:
                 msg.status = 'simulated'
@@ -175,7 +168,6 @@ class WhatsAppService:
                 db.session.rollback()
                 return {"status": "failed", "error": str(e)}
 
-        # ✅ إرسال الرسالة عبر Meta API
         try:
             print(f"📤 [إرسال] إلى {clean_phone}: {text[:50]}...")
             response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=15)
@@ -383,11 +375,11 @@ class WhatsAppService:
     def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
         """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
         if not self.app_secret or not signature_header:
-            return False  # تصحيح الخطأ الإملائي
+            return False
         
         algo, _, sig = signature_header.partition("=")
         if algo != "sha256" or not sig:
-            return False  # تصحيح الخطأ الإملائي
+            return False
 
         expected_hash = hmac.new(
             self.app_secret.encode('utf-8'),
@@ -737,4 +729,72 @@ class WhatsAppService:
                 return res.json().get("url", "")
             return ""
         except Exception:
+            return ""
+
+    # =========================================================================
+    # 7. دوال إضافية وإدارة التكوين
+    # =========================================================================
+
+    def mark_contact_as_read(self, phone: str) -> dict:
+        """تصفير عداد الرسائل غير المقروءة عند فتح المحادثة"""
+        try:
+            clean_phone = clean_phone_number(phone)
+            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+            if contact:
+                contact.unread_count = 0
+                db.session.commit()
+
+            return {"success": True, "status": "success"}
+        except Exception as e:
+            db.session.rollback()
+            return {"error": str(e), "status": "failed"}
+
+    def update_contact_name(self, phone: str, name: str) -> dict:
+        try:
+            clean_phone = clean_phone_number(phone)
+            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
+            if not contact:
+                return {"error": "Contact not found", "status": "failed"}
+            contact.name = name
+            contact.whatsapp_profile_name = name
+            db.session.commit()
+            return {"success": True, "message": "تم تعديل الاسم بنجاح", "name": name}
+        except Exception as e:
+            db.session.rollback()
+            return {"error": str(e), "status": "failed"}
+
+    def get_webhook_logs(self) -> List[Dict[str, Any]]:
+        return self.webhook_logs
+
+    def get_current_config(self) -> Dict[str, Any]:
+        return {
+            "whatsapp_phone_number_id": self.phone_number_id,
+            "whatsapp_business_account_id": self.waba_id,
+            "whatsapp_access_token": self.access_token,
+            "whatsapp_verify_token": self.verify_token,
+            "whatsapp_api_version": self.api_version
+        }
+
+    def update_config(self, new_config: Dict[str, Any]) -> None:
+        self.phone_number_id = new_config.get("whatsapp_phone_number_id", self.phone_number_id)
+        self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id)
+        self.access_token = new_config.get("whatsapp_access_token", self.access_token)
+        self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
+
+    def clear_demo_data(self) -> Dict[str, Any]:
+        self.contacts_db.clear()
+        self.messages_db.clear()
+        self.webhook_logs.clear()
+        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح."}
+
+    def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
+        try:
+            upload_result = cloudinary.uploader.upload(
+                file_path,
+                public_id=public_id,
+                folder=f"whatsapp/{public_id.split('_')[0]}"
+            )
+            return upload_result.get("secure_url", "")
+        except Exception as e:
+            print(f"⚠️ [خطأ رفع إلى Cloudinary]: {e}")
             return ""
