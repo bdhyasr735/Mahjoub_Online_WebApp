@@ -22,7 +22,7 @@ suppliers_auth_bp = Blueprint(
 def login():
     """تسجيل الدخول للموردين (يدعم JSON و Form)"""
     if current_user.is_authenticated:
-        return redirect('/suppliers/dashboard/')
+        return redirect(url_for('suppliers_auth_bp.dashboard'))
     
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict()
@@ -44,7 +44,7 @@ def login():
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/suppliers/dashboard/"
+                "redirect_url": url_for('suppliers_auth_bp.dashboard')
             })
         else:
             return jsonify({
@@ -94,7 +94,9 @@ def register():
 @login_required
 def dashboard():
     """لوحة تحكم الموردين"""
-    return redirect('/suppliers/dashboard/')
+    # هنا يتم عرض قالب لوحة التحكم وتمرير البيانات المرتبطة بالمورد الحالي
+    # تأكد من مسار قالب لوحة التحكم لديك (مثال: suppliers/dashboard.html أو suppliers_auth_portal/dashboard.html)
+    return render_template('suppliers/dashboard.html', supplier=current_user)
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password():
@@ -114,7 +116,6 @@ def request_otp():
         digits_only = "".join(filter(str.isdigit, str(identifier)))
         clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
         
-        # البحث الذكي المطابق لهيكل جدول الموردين المشفر
         supplier = Supplier.query.filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) | 
@@ -125,10 +126,8 @@ def request_otp():
         if not supplier:
             return jsonify({"success": False, "message": f"لم يتم العثور على حساب مرتبط بالبيانات المدخلة: {identifier}"}), 404
         
-        # توحيد صيغة رقم الهاتف
         recipient_phone = SupplierOTPService._format_phone_number(supplier.phone)
         
-        # 1. توليد وحفظ الرمز في قاعدة البيانات مباشرة وبسرعة
         otp_record, otp_code = OTP.create_otp(
             identifier=recipient_phone,
             target_id=supplier.id,
@@ -138,10 +137,8 @@ def request_otp():
         
         message_text = f"🔐 رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 5 دقائق فقط."
         
-        # التقاط سياق التطبيق للـ Thread الخلفي
         app_obj = current_app._get_current_object() if current_app else None
 
-        # 2. دالة إرسال الواتساب في الخلفية لعدم تجميد المتصفح
         def send_whatsapp_async(phone, text, app_context):
             def task():
                 try:
@@ -165,7 +162,6 @@ def request_otp():
         thread.daemon = True
         thread.start()
         
-        # 3. إرجاع الاستجابة للعميل فوراً لمنع خطأ الاتصال (مضاف إليها otp_sent للتوافق مع الواجهة)
         return jsonify({
             "success": True,
             "otp_sent": True,
@@ -196,7 +192,6 @@ def reset_password():
         digits_only = "".join(filter(str.isdigit, str(identifier)))
         clean_9 = digits_only[-9:] if len(digits_only) >= 9 else digits_only
         
-        # 1. البحث عن المورد أولاً للحصول على رقم هاتفه المسجل
         supplier = Supplier.query.filter(
             (Supplier.username == identifier) | 
             (Supplier.email == identifier) | 
@@ -207,10 +202,8 @@ def reset_password():
         if not supplier:
             return jsonify({"success": False, "message": "لم يتم العثور على الحساب."}), 404
         
-        # 2. تنسيق رقم الهاتف للحصول على المعرف المطابق لما تم حفظه في قاعدة بيانات الـ OTP
         formatted_phone = SupplierOTPService._format_phone_number(supplier.phone)
         
-        # 3. التحقق من الرمز باستخدام المعرف المُنسق (مع تجربة المعرف الخام كاحتياط)
         verification = SupplierOTPService.verify_otp(formatted_phone, otp_code)
         if not verification.get('success'):
             verification = SupplierOTPService.verify_otp(identifier, otp_code)
@@ -218,7 +211,6 @@ def reset_password():
         if not verification.get('success'):
             return jsonify({"success": False, "message": "رمز التحقق غير صحيح أو انتهت صلاحيته."}), 400
         
-        # 4. تحديث كلمة المرور بنجاح
         supplier.password = new_password
         db.session.commit()
         
@@ -238,4 +230,4 @@ def reset_password():
 @login_required
 def logout():
     logout_user()
-    return redirect('/supplier/login')
+    return redirect(url_for('suppliers_auth_bp.login'))
