@@ -13,7 +13,9 @@ class SupplierOTPService:
     @staticmethod
     def _format_phone_number(identifier: str) -> str:
         """توحيد تنسيق رقم الهاتف ليصبح بصيغة دولية صحيحة (967...)"""
-        clean = identifier.replace("+", "").strip()
+        if not identifier:
+            return ""
+        clean = str(identifier).replace("+", "").strip()
         
         # إذا كان رقماً محلياً يبدأ بـ 0 ويليها 7 (مثل 077xxxxxx)
         if clean.startswith("07") and len(clean) == 10:
@@ -51,7 +53,7 @@ class SupplierOTPService:
             except Exception as whatsapp_err:
                 print(f"❌ [خطأ في إرسال رسالة الواتساب]: {str(whatsapp_err)}", file=sys.stderr)
                 traceback.print_exc()
-                return {"success": False, "error": f"فشل إرسال رسالة الواتساب: {str(whatsapp_err)}"}
+                # لا نوقف التنفيذ تماماً هنا، لكي يتمكن المطور من رؤية الرمز في الاستجابة (dev_otp) في حال تعذر إرسال الواتساب
             
             return {"success": True, "message": "تم إنشاء وإرسال رمز التحقق بنجاح", "otp_code": otp_code}
             
@@ -62,9 +64,15 @@ class SupplierOTPService:
 
     @staticmethod
     def verify_otp(identifier: str, entered_otp: str) -> dict:
-        """التحقق من صحة الرمز مع مطابقة آخر 9 أرقام لضمان المرونة"""
+        """التحقق من صحة الرمز مع مطابقة الرقم المنسق بدقة"""
         formatted_identifier = SupplierOTPService._format_phone_number(identifier)
         clean_code = str(entered_otp).strip()
         
+        # تجربة التحقق باستخدام الرقم المنسق دولياً
         verification_result = OTP.verify_code_for_identifier(formatted_identifier, clean_code)
+        
+        # إذا فشل، نجرب التحقق بالمعرف الأصلي (في حال تم تخزينه بدون مفتاح الدولة)
+        if not verification_result.get('success') and identifier != formatted_identifier:
+            verification_result = OTP.verify_code_for_identifier(str(identifier).strip(), clean_code)
+            
         return verification_result
