@@ -1,4 +1,3 @@
-# apps/__init__.py
 # -*- coding: utf-8 -*-
 
 import os
@@ -274,7 +273,7 @@ def create_app():
             admin_login_path,
             '/auth',
             '/whatsapp',
-            '/admin/whatsapp'  # ✅ تم إضافة هذا السطر لمنع التحويل لبوابة الدخول
+            '/admin/whatsapp'
         ]
 
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
@@ -283,14 +282,14 @@ def create_app():
         if current_user.is_authenticated:
             user_type = session.get('user_type')
             is_admin_side = isinstance(current_user, (AdminUser, AdminStaff)) or user_type in ['admin', 'admin_staff']
-            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff)) or user_type in ['supplier', 'supplier_staff']
+            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff)) or user_type in ['supplier', 'supplier_staff'] or hasattr(current_user, 'supplier_id')
 
             if path.startswith('/supplier'):
                 if is_supplier_side:
                     return
                 if is_admin_side:
                     return redirect('/dashboard')
-                return redirect('/supplier/login')
+                return
 
             if path.startswith('/admin') or path.startswith('/dashboard'):
                 if is_admin_side:
@@ -302,7 +301,9 @@ def create_app():
             return
 
         if path.startswith('/supplier'):
-            return redirect('/supplier/login')
+            if path != '/supplier/login':
+                return redirect('/supplier/login')
+            return
 
         return redirect(admin_login_path)
 
