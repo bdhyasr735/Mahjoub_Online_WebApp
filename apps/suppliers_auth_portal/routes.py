@@ -3,7 +3,7 @@
 import threading
 import sys
 import traceback
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.otp_db import OTP
@@ -22,7 +22,7 @@ suppliers_auth_bp = Blueprint(
 def login():
     """تسجيل الدخول للموردين (يدعم JSON و Form)"""
     if current_user.is_authenticated:
-        return redirect('/suppliers/dashboard')
+        return redirect('/supplier/dashboard')
     
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict()
@@ -41,10 +41,14 @@ def login():
         
         if supplier and supplier.check_password(password):
             login_user(supplier)
+            
+            # 🔑 تعيين نوع المستخدم في الجلسة ليتمكن نظام الحماية الأساسي من التعرف عليه
+            session['user_type'] = 'supplier'
+            
             return jsonify({
                 "success": True,
                 "message": "تم تسجيل الدخول بنجاح",
-                "redirect_url": "/suppliers/dashboard"
+                "redirect_url": "/supplier/dashboard"
             })
         else:
             return jsonify({
@@ -94,7 +98,7 @@ def register():
 @login_required
 def dashboard():
     """لوحة تحكم الموردين"""
-    return redirect('/suppliers/dashboard')
+    return redirect('/supplier/dashboard')
 
 @suppliers_auth_bp.route('/forgot-password', methods=['GET'])
 def forgot_password():
@@ -227,5 +231,6 @@ def reset_password():
 @suppliers_auth_bp.route('/logout', methods=['GET'])
 @login_required
 def logout():
+    session.pop('user_type', None)
     logout_user()
     return redirect(url_for('suppliers_auth_bp.login'))
