@@ -749,8 +749,10 @@ class WhatsAppService:
                 return ""
             url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
             res = requests.get(url, headers={"Authorization": f"Bearer {self.access_token}"}, timeout=10)
-            data = res.json()
-            return data.get("url", "")
+            if res.status_code == 200:
+                media_data = res.json()
+                return media_data.get("url", "")
+            return ""
         except Exception as e:
             print(f"⚠️ [خطأ جلب رابط الوسائط]: {e}")
             return ""
