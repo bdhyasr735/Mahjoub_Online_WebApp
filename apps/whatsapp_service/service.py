@@ -391,14 +391,12 @@ class WhatsAppService:
 
     def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
         """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
-        # إذا لم يتم ضبط المفتاح السري أو التوقيع، نرفض الطلب لحماية النظام
         if not self.app_secret or not signature_header:
-            return False
+            return false
         
-        # استخراج الجزء السداسي العشري من الهيدر (عادة يكون "sha256=<value>")
         algo, _, sig = signature_header.partition("=")
         if algo != "sha256" or not sig:
-            return False
+            return false
 
         expected_hash = hmac.new(
             self.app_secret.encode('utf-8'),
@@ -488,7 +486,6 @@ class WhatsAppService:
         """تحديث حالة الرسائل المرسلة (sent, delivered, read)"""
         try:
             clean_phone = clean_phone_number(phone)
-            # تحديث أحدث 5 رسائل مرسلة لهذا الرقم
             messages = WhatsAppMessageLog.query.filter_by(
                 recipient_number=clean_phone,
                 direction='outbound'
@@ -557,7 +554,6 @@ class WhatsAppService:
 
     def _handle_smart_ai_reply(self, sender_phone: str, customer_message: str) -> None:
         """معالجة الردود الذكية باستخدام Gemini AI"""
-        # يمكن تفعيلها لاحقاً
         pass
 
     def _generate_gemini_reply(self, prompt: str) -> str:
@@ -580,7 +576,6 @@ class WhatsAppService:
         """تسجيل رسالة في قاعدة البيانات مع ضمان الحفظ"""
         clean_phone = clean_phone_number(phone)
         
-        # تأكد من وجود جهة الاتصال (للوارد فقط)
         if direction == 'inbound':
             self._ensure_contact_exists(clean_phone, last_message=content)
 
@@ -649,7 +644,6 @@ class WhatsAppService:
                     'notes': c.notes or '',
                 }
 
-                # فحص حالة الاتصال (متصل خلال آخر 5 دقائق)
                 if c.last_timestamp:
                     dt = c.last_timestamp.replace(tzinfo=None) if isinstance(c.last_timestamp, datetime) else None
                     if dt and (datetime.utcnow() - dt).total_seconds() < 300:
@@ -748,11 +742,10 @@ class WhatsAppService:
             if not media_id or not self.access_token:
                 return ""
             url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
-            res = requests.get(url, headers={"Authorization": f"Bearer {self.access_token}"}, timeout=10)
+            headers = {"Authorization": f"Bearer {self.access_token}"}
+            res = requests.get(url, headers=headers, timeout=10)
             if res.status_code == 200:
-                media_data = res.json()
-                return media_data.get("url", "")
+                return res.json().get("url", "")
             return ""
-        except Exception as e:
-            print(f"⚠️ [خطأ جلب رابط الوسائط]: {e}")
+        except Exception:
             return ""
