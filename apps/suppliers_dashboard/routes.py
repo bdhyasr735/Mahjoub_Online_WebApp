@@ -24,23 +24,26 @@ suppliers_dashboard_bp = Blueprint(
 def index():
     """الصفحة الرئيسية للوحة تحكم المورد متوافقة تماماً مع الجداول ونموذج المحفظة."""
     try:
-        # التحقق من أن المستخدم يمتلك معرف صحيح
-        if not hasattr(current_user, 'id'):
-            flash("يرجى تسجيل الدخول كمورد.", "warning")
+        # التحقق الآمن من معرّف المستخدم الحالي لمنع حلقات إعادة التوجيه
+        supplier_id = None
+        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            # التحقق إذا كان الحقل مخزناً كـ supplier_id مباشرة أو كـ id رئيسي
+            supplier_id = getattr(current_user, 'supplier_id', None)
+            if not supplier_id and hasattr(current_user, 'id'):
+                if isinstance(current_user, Supplier):
+                    supplier_id = current_user.id
+                else:
+                    # في حال كان الموظف مسجل الدخول، نحاول جلب الـ supplier_id المرتبط به
+                    supplier_id = getattr(current_user, 'supplier_id', None) or getattr(current_user, 'id', None)
+
+        if not supplier_id:
+            flash("يرجى تسجيل الدخول كمورد للوصول إلى لوحة التحكم.", "warning")
             return redirect(url_for('suppliers_auth_portal.login_page'))
-        
-        # التعامل الآمن مع معرف المورد سواء كان دخله كمورد رئيسي أو موظف تابع
-        supplier_id = getattr(current_user, 'supplier_id', None)
-        if not supplier_id and hasattr(current_user, 'id'):
-            if isinstance(current_user, Supplier):
-                supplier_id = current_user.id
-            else:
-                supplier_id = current_user.id
 
         # جلب بيانات المورد باستخدام db.session.get المتوافقة مع SQLAlchemy 3.x
-        supplier = db.session.get(Supplier, supplier_id) if supplier_id else None
+        supplier = db.session.get(Supplier, supplier_id)
         if not supplier:
-            flash("لم يتم العثور على بيانات المورد.", "danger")
+            flash("لم يتم العثور على بيانات المورد المرتبطة.", "danger")
             return redirect(url_for('suppliers_auth_portal.login_page'))
         
         # جلب المحفظة المالية المرتبطة بالمورد بالريال السعودي (SAR)
