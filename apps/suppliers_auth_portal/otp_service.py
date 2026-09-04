@@ -28,7 +28,7 @@ class SupplierOTPService:
 
     @staticmethod
     def _send_whatsapp_in_background(phone: str, text: str, app_obj=None):
-        """دالة خاصة لإرسال الواتساب في الخلفية مع الحفاظ على سياق تطبيق Flask لضمان عمل الاتصال وقاعدة البيانات"""
+        """دالة خاصة لإرسال الواتساب في الخلفية مع سياق التطبيق وطباعة الأخطاء بدقة"""
         def execute_send():
             try:
                 whatsapp = WhatsAppService()
@@ -63,7 +63,7 @@ class SupplierOTPService:
             # 2. تجهيز النص (مع تحسين التنسيق)
             message_text = f"🔐 رمز التحقق الخاص بك في منصة محجوب أونلاين هو: *{otp_code}*\nصالح لمدة 5 دقائق فقط."
             
-            # التقاط سياق التطبيق الحالي لضمان عمل قاعدة البيانات والمفاتيح داخل الـ Thread
+            # التقاط سياق التطبيق الحالي لضمان عمل الاتصال وقاعدة البيانات داخل الـ Thread
             app_obj = current_app._get_current_object() if current_app else None
 
             # 3. الإرسال في الخلفية لمنع الـ Timeout والخطأ 499
@@ -85,5 +85,6 @@ class SupplierOTPService:
         formatted_identifier = SupplierOTPService._format_phone_number(identifier)
         clean_code = str(entered_otp).strip()
         
+        # ملاحظة: إذا كان جدول OTP يدعم البحث جزئياً، يمكنك تمرير الصيغة المنسقة
         verification_result = OTP.verify_code_for_identifier(formatted_identifier, clean_code)
         return verification_result
