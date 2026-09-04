@@ -297,7 +297,7 @@
                 if (response.ok && data.success) {
                     showAlert('✅ تمت المصادقة بنجاح', 'جاري التوجيه إلى لوحة التحكم الملكية...', true);
                     setTimeout(() => {
-                        window.location.href = data.redirect_url || '/suppliers/dashboard';
+                        window.location.href = data.redirect_url || '/supplier/dashboard';
                     }, 1000);
                 } else {
                     failedAttempts++;
