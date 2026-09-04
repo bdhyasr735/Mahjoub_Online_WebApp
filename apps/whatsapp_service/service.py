@@ -734,7 +734,7 @@ class WhatsAppService:
                     'timestamp': m.timestamp.strftime("%H:%M") if m.timestamp else '',
                     'media_url': m.media_url,
                     'media_type': m.message_type,
-                    'media_filename': m.media_filename,
+                    'media_filename': getattr(m, 'media_filename', ''),
                 }
                 result.append(item)
 
@@ -745,90 +745,12 @@ class WhatsAppService:
 
     def _get_media_url(self, media_id: str) -> str:
         try:
+            if not media_id or not self.access_token:
+                return ""
             url = f"https://graph.facebook.com/{self.api_version}/{media_id}"
             res = requests.get(url, headers={"Authorization": f"Bearer {self.access_token}"}, timeout=10)
             data = res.json()
             return data.get("url", "")
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ [خطأ جلب رابط الوسائط]: {e}")
             return ""
-
-    def _upload_to_cloudinary(self, file_path: str, public_id: str) -> str:
-        try:
-            upload_result = cloudinary.uploader.upload(
-                file_path,
-                public_id=public_id,
-                folder=f"whatsapp/{public_id.split('_')[0]}"
-            )
-            return upload_result.get("secure_url", "")
-        except Exception as e:
-            print(f"⚠️ [خطأ رفع إلى Cloudinary]: {e}")
-            return ""
-
-    # =========================================================================
-    # 7. دوال إضافية وإدارة التكوين
-    # =========================================================================
-
-    def get_webhook_logs(self) -> List[Dict[str, Any]]:
-        return self.webhook_logs
-
-    def get_approved_templates(self) -> List[Dict[str, Any]]:
-        return [
-            {
-                "name": "mahjoob_order_confirmation",
-                "category": "خدمات وطلبات (Utility)",
-                "language": "ar",
-                "status": "APPROVED",
-                "body_text": "مرحباً {{1}}، تم تأكيد طلبك رقم #{{2}} بقيمة {{3}} ر.س من سوق محجوب أونلاين بنجاح."
-            }
-        ]
-
-    def get_current_config(self) -> Dict[str, Any]:
-        return {
-            "whatsapp_phone_number_id": self.phone_number_id,
-            "whatsapp_business_account_id": self.waba_id,
-            "whatsapp_access_token": self.access_token,
-            "whatsapp_verify_token": self.verify_token,
-            "whatsapp_api_version": self.api_version
-        }
-
-    def update_config(self, new_config: Dict[str, Any]) -> None:
-        self.phone_number_id = new_config.get("whatsapp_phone_number_id", self.phone_number_id)
-        self.waba_id = new_config.get("whatsapp_business_account_id", self.waba_id)
-        self.access_token = new_config.get("whatsapp_access_token", self.access_token)
-        self.verify_token = new_config.get("whatsapp_verify_token", self.verify_token)
-
-    def clear_demo_data(self) -> Dict[str, Any]:
-        self.contacts_db.clear()
-        self.messages_db.clear()
-        self.webhook_logs.clear()
-        return {"success": True, "message": "تم تفريغ كافة البيانات التجريبية بنجاح."}
-
-    def update_contact_name(self, phone: str, name: str) -> Dict[str, Any]:
-        try:
-            clean_phone = clean_phone_number(phone)
-            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
-
-            if not contact:
-                return {"error": "Contact not found", "status": "failed"}
-
-            contact.name = name
-            contact.whatsapp_profile_name = name
-            db.session.commit()
-            return {"success": True, "message": "تم تعديل الاسم بنجاح", "name": name}
-        except Exception as e:
-            db.session.rollback()
-            return {"error": str(e), "status": "failed"}
-
-    def mark_contact_as_read(self, phone: str) -> Dict[str, Any]:
-        try:
-            clean_phone = clean_phone_number(phone)
-            contact = WhatsAppCustomerContact.query.filter_by(phone=clean_phone).first()
-
-            if contact:
-                contact.unread_count = 0
-                db.session.commit()
-
-            return {"success": True, "status": "success"}
-        except Exception as e:
-            db.session.rollback()
-            return {"error": str(e), "status": "failed"}
