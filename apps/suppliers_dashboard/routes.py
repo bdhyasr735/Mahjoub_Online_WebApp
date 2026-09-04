@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_dashboard/routes.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response
 from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
@@ -141,8 +141,8 @@ def index():
             }
         }
         
-        # الاستدعاء المباشر والصحيح للمسار الفعلي: apps/suppliers_dashboard/templates/suppliers/dashboard.html
-        return render_template(
+        # رেন্ডر القالب مع فرض ترويسات منع التخزين المؤقت لتجنب خطأ 304 بعد تسجيل الدخول
+        rendered_html = render_template(
             'suppliers/dashboard.html',
             page_title='لوحة تحكم المورد | محجوب أونلاين',
             supplier=supplier,
@@ -153,6 +153,13 @@ def index():
             staff_count=staff_count,
             supplier_modules=supplier_modules
         )
+        
+        response = make_response(rendered_html)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
     except Exception as e:
         db.session.rollback()
         print(f"❌ [خطأ في لوحة تحكم الموردين]: {str(e)}")
