@@ -165,9 +165,10 @@ def request_otp():
         thread.daemon = True
         thread.start()
         
-        # 3. إرجاع الاستجابة للعميل فوراً لمنع خطأ الاتصال
+        # 3. إرجاع الاستجابة للعميل فوراً لمنع خطأ الاتصال (مضاف إليها otp_sent للتوافق مع الواجهة)
         return jsonify({
             "success": True,
+            "otp_sent": True,
             "message": "تم إرسال رمز التحقق بنجاح.",
             "data": {
                 "masked_phone": f"****{supplier.phone[-4:]}" if supplier.phone else "****",
