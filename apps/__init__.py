@@ -281,15 +281,9 @@ def create_app():
             return
 
         if current_user.is_authenticated:
-            is_admin_side = isinstance(current_user, (AdminUser, AdminStaff))
-            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff))
-
-            if path.startswith('/admin') or path.startswith('/dashboard'):
-                if is_admin_side:
-                    return
-                if is_supplier_side:
-                    return redirect('/supplier/dashboard')
-                return redirect(admin_login_path)
+            user_type = session.get('user_type')
+            is_admin_side = isinstance(current_user, (AdminUser, AdminStaff)) or user_type in ['admin', 'admin_staff']
+            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff)) or user_type in ['supplier', 'supplier_staff']
 
             if path.startswith('/supplier'):
                 if is_supplier_side:
@@ -297,6 +291,13 @@ def create_app():
                 if is_admin_side:
                     return redirect('/dashboard')
                 return redirect('/supplier/login')
+
+            if path.startswith('/admin') or path.startswith('/dashboard'):
+                if is_admin_side:
+                    return
+                if is_supplier_side:
+                    return redirect('/supplier/dashboard')
+                return redirect(admin_login_path)
 
             return
 
@@ -469,7 +470,6 @@ def create_app():
     # 📱 تسجيل مسار الواتساب العام
     # ============================================================
     try:
-        # ✅ استيراد whatsapp_bp فقط (لأنه يحتوي على جميع المسارات بما فيها الـ Webhook)
         from apps.whatsapp_service.routes import whatsapp_bp
 
         if whatsapp_bp.name not in app.blueprints:
@@ -584,13 +584,11 @@ def create_app():
                 db.session.rollback()
                 print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        # ✅ دمج SUPPLIER_MODULES مع app.supplier_modules
         combined_supplier_modules = SUPPLIER_MODULES.copy()
         if hasattr(app, 'supplier_modules'):
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
-        # ✅ حذف المفتاح المكرر 'supplier_wallet' إذا كان موجوداً
         if 'supplier_wallet' in combined_supplier_modules:
             del combined_supplier_modules['supplier_wallet']
 
