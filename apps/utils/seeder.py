@@ -83,14 +83,14 @@ def seed_database():
                 store_name='متجر محجوب أونلاين',
                 status='active'
             )
-            supplier.phone = '779077746'  # ✅ يتم تشفيره تلقائياً عبر setter
+            supplier.phone = '967779077746'  # ✅ تم تصحيح الرقم ليطابق الصيغة الكاملة والمدعومة
             supplier.set_password('123')
             db.session.add(supplier)
             db.session.flush()
             print("✅ [الزراعة]: تم إنشاء المورد التجريبي.")
         else:
             print("ℹ️ [الزراعة]: المورد التجريبي موجود مسبقاً، يتم تحديث بياناته الأساسية...")
-            supplier.phone = '779077746'
+            supplier.phone = '967779077746'  # ✅ تصحيح الرقم هنا أيضاً لتجنب أي مشاكل بالبحث أو الواتساب
             supplier.set_password('123')
             db.session.commit()
             print("✅ [الزراعة]: تم تحديث بيانات المورد وكلمة المرور بنجاح.")
@@ -151,7 +151,7 @@ def seed_database():
             db.session.add(initial_transaction)
             print("✅ [الزراعة]: تم إنشاء معاملة الإيداع الافتتاحية.")
 
-            # إنشاء سند الخزينة (إذا كان النمودج يدعمه)
+            # إنشاء سند الخزينة (إذا كان النموذج يدعمه)
             try:
                 treasury_entry = TreasuryEntry(
                     reference_number=seed_ref_number,
