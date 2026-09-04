@@ -126,7 +126,6 @@ class WhatsAppService:
 
     def send_message(self, recipient_phone: str, text: str, contact_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """إرسال رسالة نصية فردية عبر Meta WhatsApp Cloud API مع حفظ كامل"""
-        # تنظيف رقم الهاتف
         clean_phone = clean_phone_number(recipient_phone)
 
         if contact_data:
@@ -143,9 +142,7 @@ class WhatsAppService:
             }
         }
 
-        # ============================================================
         # ✅ حفظ الرسالة بحالة "pending" قبل الإرسال
-        # ============================================================
         try:
             msg = WhatsAppMessageLog(
                 direction='outbound',
@@ -165,9 +162,7 @@ class WhatsAppService:
             print(f"⚠️ [خطأ حفظ الرسالة قبل الإرسال]: {e}")
             return {"status": "failed", "error": f"فشل حفظ الرسالة: {str(e)}"}
 
-        # ============================================================
         # ✅ التحقق من التوكن
-        # ============================================================
         if not self.access_token:
             try:
                 msg.status = 'simulated'
@@ -180,9 +175,7 @@ class WhatsAppService:
                 db.session.rollback()
                 return {"status": "failed", "error": str(e)}
 
-        # ============================================================
         # ✅ إرسال الرسالة عبر Meta API
-        # ============================================================
         try:
             print(f"📤 [إرسال] إلى {clean_phone}: {text[:50]}...")
             response = requests.post(self.base_url, headers=self._get_headers(), json=payload, timeout=15)
@@ -251,7 +244,6 @@ class WhatsAppService:
             }
         }
 
-        # حفظ القالب
         try:
             msg = WhatsAppMessageLog(
                 direction='outbound',
@@ -346,7 +338,6 @@ class WhatsAppService:
 
                 send_data = send_res.json()
                 
-                # حفظ سجل الوسائط
                 self._record_message(
                     clean_phone, 
                     f"[{media_type}] {file.filename}", 
@@ -392,11 +383,11 @@ class WhatsAppService:
     def verify_webhook_signature(self, raw_payload: bytes, signature_header: str) -> bool:
         """التحقق الأمني من أن الطلب صادر من خوادم Meta"""
         if not self.app_secret or not signature_header:
-            return false
+            return False  # تصحيح الخطأ الإملائي
         
         algo, _, sig = signature_header.partition("=")
         if algo != "sha256" or not sig:
-            return false
+            return False  # تصحيح الخطأ الإملائي
 
         expected_hash = hmac.new(
             self.app_secret.encode('utf-8'),
@@ -407,7 +398,6 @@ class WhatsAppService:
 
     def process_incoming_payload(self, data: Dict[str, Any]) -> None:
         """تحليل ومعالجة الرسائل والأحداث الواردة من Meta Webhook"""
-        import sys
         try:
             entries = data.get("entry", [])
             for entry in entries:
@@ -457,7 +447,6 @@ class WhatsAppService:
                             else:
                                 msg_text = f"نوع رسالة غير معروف: {msg_type}"
 
-                            # حفظ جهة الاتصال والرسالة
                             self._ensure_contact_exists(sender_phone, contact_profile_name, msg_text)
                             self._log_webhook_event("incoming_message", sender_phone, msg_text)
                             self._record_message(
@@ -474,7 +463,7 @@ class WhatsAppService:
                     if "statuses" in value:
                         for status_update in value["statuses"]:
                             recipient_id = clean_phone_number(status_update.get("recipient_id", ""))
-                            status = status_update.get("status")  # sent, delivered, read
+                            status = status_update.get("status")
                             self._update_message_status(recipient_id, status)
                             print(f"📊 [تحديث حالة] {recipient_id}: {status}")
 
