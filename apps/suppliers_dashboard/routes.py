@@ -1,142 +1,81 @@
-# -*- coding: utf-8 -*-
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
-from functools import wraps
-import logging
+# apps/suppliers_dashboard/routes.py
+from flask import render_template, redirect, url_for, flash, request, session
+from apps.suppliers_dashboard import suppliers_dashboard_bp
+from apps.suppliers_dashboard.registry import get_supplier_modules
 
-from apps.extensions import db
-
-logger = logging.getLogger(__name__)
-
-# ✅ تعريف Blueprint وتوجيه مجلد القوالب مباشرة إلى مجلد templates داخل الموديول
-suppliers_dashboard_bp = Blueprint(
-    'suppliers_dashboard',
-    __name__,
-    url_prefix='/supplier',
-    template_folder='templates',
-    static_folder='static'
-)
-
-# نسخة مطابقة بنفس الـ Blueprint لتغطية أي استيراد باسم مختلف
-suppliers_bp = suppliers_dashboard_bp
-
-def register_module(app):
-    """دالة التسجيل التلقائي المطلوبة بواسطة create_app لتسجيل البلوبرنت في التطبيق الرئيسي"""
-    app.register_blueprint(suppliers_dashboard_bp)
-    print("✅ [مجلد الموردين]: تم تسجيل موديول لوحة تحكم الموردين بنجاح.")
-
-def safe_url_for(endpoint, **values):
-    try:
-        return url_for(endpoint, **values)
-    except Exception:
-        return '#'
+# محاكاة لجلب بيانات المورد الحالي (يمكن استبدالها لاحقاً بنظام المصالحة وقواعد البيانات الخاصة بك)
+def get_current_supplier():
+    # بيانات افتراضية متوافقة مع القوالب التي أنشأتها
+    return {
+        'id': 1,
+        'username': 'mahjoub_store',
+        'store_name': 'متجر محجوب المركزية',
+        'trade_name': 'مؤسسة محجوب للتجارة الإلكترونية',
+        'owner_name': 'علي محجوب',
+        'supplier_code': 'SUP-9081',
+        'email': 'supplier@mahjoub.cloud',
+        'phone': '+967770000000',
+        'rank': 'gold',
+        'status': 'active'
+    }
 
 @suppliers_dashboard_bp.context_processor
-def inject_global_vars():
-    return dict(safe_url_for=safe_url_for)
+def inject_supplier_modules():
+    """حقن موديولات الروابط تلقائياً لجميع قوالب لوحة الموردين"""
+    return {
+        'supplier_modules': get_supplier_modules()
+    }
 
-def supplier_login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'supplier_id' not in session:
-            flash('يرجى تسجيل الدخول أولاً للوصول إلى لوحة التحكم.', 'warning')
-            return redirect(url_for('suppliers_dashboard.login'))
-        return f(*args, **kwargs)
-    return decorated_function
+@suppliers_dashboard_bp.route('/')
+@suppliers_dashboard_bp.route('/dashboard')
+def dashboard_home():
+    supplier = get_current_supplier()
+    
+    # بيانات افتراضية للإحصائيات (يمكن ربطها بقواعد البيانات مباشرة)
+    balance = 15420.50
+    products_count = 128
+    staff_count = 5
+    
+    wallet = {
+        'wallet_code': 'WAL-SUP-8842'
+    }
+    
+    profile = {
+        'city': 'الحديدية / صنعاء'
+    }
 
-@suppliers_dashboard_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if 'supplier_id' in session:
-        return redirect(url_for('suppliers_dashboard.dashboard'))
-        
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        
-        try:
-            from apps.models.supplier_db import Supplier
-            supplier = Supplier.query.filter_by(username=username).first()
-            if supplier and hasattr(supplier, 'check_password') and supplier.check_password(password):
-                session['supplier_id'] = supplier.id
-                session['supplier_username'] = supplier.username
-                flash('تم تسجيل الدخول بنجاح، أهلاً بك!', 'success')
-                return redirect(url_for('suppliers_dashboard.dashboard'))
-            else:
-                flash('اسم المستخدم أو كلمة المرور غير صحيحة.', 'danger')
-        except Exception as e:
-            logger.error(f"❌ [Supplier Login DB Error]: {e}")
-            flash('حدث خطأ في النظام، يرجى المحاولة لاحقاً.', 'danger')
-            
-    return render_template('suppliers/login.html')
+    return render_template(
+        'suppliers/dashboard.html',
+        supplier=supplier,
+        balance=balance,
+        products_count=products_count,
+        staff_count=staff_count,
+        wallet=wallet,
+        profile=profile
+    )
+
+@suppliers_dashboard_bp.route('/products')
+def list_products():
+    supplier = get_current_supplier()
+    return render_template('suppliers/products_list.html', supplier=supplier)
+
+@suppliers_dashboard_bp.route('/products/add')
+def add_product():
+    supplier = get_current_supplier()
+    return render_template('suppliers/product_add.html', supplier=supplier)
+
+@suppliers_dashboard_bp.route('/staff')
+def list_staff():
+    supplier = get_current_supplier()
+    return render_template('suppliers/staff_list.html', supplier=supplier)
+
+@suppliers_dashboard_bp.route('/settings')
+def profile_settings():
+    supplier = get_current_supplier()
+    return render_template('suppliers/settings.html', supplier=supplier)
 
 @suppliers_dashboard_bp.route('/logout')
 def logout():
     session.clear()
-    flash('تم تسجيل الخروج بنجاح.', 'info')
-    return redirect(url_for('suppliers_dashboard.login'))
-
-@suppliers_dashboard_bp.route('/')
-@suppliers_dashboard_bp.route('/dashboard')
-@suppliers_dashboard_bp.route('/dashboard/')  # ✅ دعم الرابط مع وجود سلاش في النهاية للإنتاج
-@supplier_login_required
-def dashboard():
-    supplier_id = session.get('supplier_id')
-    
-    supplier_obj = None
-    wallet_obj = None
-    profile_obj = None
-    products_count = 0
-    staff_count = 0
-    balance = 0.0
-
-    try:
-        from apps.models.supplier_db import Supplier, SupplierStaff, SupplierProfile
-        from apps.models.wallet_db import SupplierWallet
-        from apps.models.product_db import Product
-
-        supplier_obj = db.session.get(Supplier, supplier_id)
-        wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-        profile_obj = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
-
-        if wallet_obj:
-            balance = float(getattr(wallet_obj, 'balance', getattr(wallet_obj, 'balance_sar', 0.0)))
-
-        if hasattr(Product, 'supplier_id'):
-            products_count = db.session.query(db.func.count(Product.id)).filter_by(supplier_id=supplier_id).scalar() or 0
-
-        if hasattr(SupplierStaff, 'supplier_id'):
-            staff_count = db.session.query(db.func.count(SupplierStaff.id)).filter_by(supplier_id=supplier_id).scalar() or 0
-
-    except Exception as e:
-        logger.error(f"❌ [Supplier Dashboard Production Error]: {e}")
-
-    supplier = {
-        'id': supplier_obj.id if supplier_obj else supplier_id,
-        'username': getattr(supplier_obj, 'username', session.get('supplier_username', '')),
-        'store_name': getattr(supplier_obj, 'store_name', None),
-        'trade_name': getattr(supplier_obj, 'trade_name', None),
-        'owner_name': getattr(supplier_obj, 'owner_name', None),
-        'supplier_code': getattr(supplier_obj, 'supplier_code', None),
-        'email': getattr(supplier_obj, 'email', None),
-        'phone': getattr(supplier_obj, 'phone', None),
-        'rank': getattr(supplier_obj, 'rank', 'bronze')
-    }
-    
-    wallet = {
-        'wallet_code': getattr(wallet_obj, 'wallet_code', None),
-        'balance': balance
-    }
-    
-    profile = {
-        'city': getattr(profile_obj, 'city', None)
-    }
-
-    context = {
-        "supplier": supplier,
-        "wallet": wallet,
-        "balance": balance,
-        "products_count": products_count,
-        "staff_count": staff_count,
-        "profile": profile
-    }
-
-    return render_template('suppliers/dashboard.html', **context)
+    flash('تم تسجيل الخروج بنجاح.', 'success')
+    return redirect(url_for('suppliers_dashboard.dashboard_home'))
