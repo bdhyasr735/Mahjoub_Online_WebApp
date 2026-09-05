@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/routes.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
@@ -12,6 +12,7 @@ from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_att
 import re
 import traceback
 from decimal import Decimal
+from datetime import datetime
 
 # ✅ تعريف الـ Blueprint بنفس اسم الـ LINKS في registry.py
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
@@ -40,25 +41,66 @@ def get_wallet_balance(wallet):
 
 
 def get_sidebar_modules():
-    """دالة مساعدة لجلب الموديولات والقوائم الجانبية الخاصة بلوحة تحكم المورد حصرياً"""
+    """دالة مساعدة لجلب الموديولات والقوائم الجانبية الخاصة بلوحة تحكم المورد"""
     supplier_modules = {}
+    
+    # محاولة جلب الموديولات من السجل الرئيسي
     try:
         from apps.suppliers_dashboard.registry import MODULES_REGISTRY
         if MODULES_REGISTRY:
             supplier_modules = MODULES_REGISTRY.copy()
     except ImportError:
         pass
-        
+    
+    # محاولة جلب الموديولات من current_app
     if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules = current_app.supplier_modules.copy()
-        
-    # قائمة احتياطية آمنة تضمن عدم ظهور قائمة الرقابة المالية في حال عدم توفر السجل
+    
+    # ✅ القائمة الاحتياطية الكاملة (جميع الموديولات)
     if not supplier_modules:
         supplier_modules = {
-            'wallet': {'name': 'المحفظة والمالية', 'endpoint': 'supplier_wallet.wallet_dashboard'},
-            'dashboard': {'name': 'لوحة التحكم', 'endpoint': 'suppliers_dashboard.index'}
+            'suppliers_dashboard': {
+                'title': 'الرئيسية',
+                'icon': 'fas fa-chart-pie',
+                'links': {
+                    'suppliers_dashboard.index': 'الرئيسية'
+                }
+            },
+            'supplier_products': {
+                'title': 'إدارة المنتجات',
+                'icon': 'fas fa-box',
+                'links': {
+                    'supplier_products.index': 'جميع المنتجات',
+                    'supplier_products.add': 'إضافة منتج جديد'
+                }
+            },
+            'supplier_orders': {
+                'title': 'المبيعات والطلبات',
+                'icon': 'fas fa-shopping-cart',
+                'links': {
+                    'supplier_orders.index': 'الطلبات الواردة',
+                    'supplier_orders.history': 'سجل المبيعات'
+                }
+            },
+            'supplier_wallet': {
+                'title': 'الإدارة المالية',
+                'icon': 'fas fa-wallet',
+                'links': {
+                    'supplier_wallet.wallet_dashboard': 'المحفظة والسحب',
+                    'supplier_wallet.transactions': 'حركة المحفظة',
+                    'supplier_wallet.withdraw': 'سحب الرصيد'
+                }
+            },
+            'supplier_staff': {
+                'title': 'الموظفين',
+                'icon': 'fas fa-users',
+                'links': {
+                    'supplier_staff.index': 'قائمة الموظفين',
+                    'supplier_staff.add': 'إضافة موظف'
+                }
+            }
         }
-        
+    
     return supplier_modules
 
 
@@ -242,41 +284,65 @@ def transactions(wallet_id):
     if not wallet:
         return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
-    query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
+    # جلب الحركات المالية
+    transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).all()
+    
+    # جلب طلبات السحب
+    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).all()
+    
+    # دمج القائمتين
+    all_transactions = list(transactions_list)
+    
+    for req in withdrawal_requests:
+        all_transactions.append({
+            'voucher_number': req.request_number,
+            'reference_number': req.request_number,
+            'transaction_type': 'debit',
+            'amount': req.amount,
+            'balance_after': None,
+            'status': req.status,
+            'created_at': req.created_at,
+            'is_withdrawal': True
+        })
+    
+    # ترتيب حسب التاريخ (الأحدث أولاً)
+    all_transactions.sort(key=lambda x: x.get('created_at') or x.created_at, reverse=True)
 
+    # فلترة حسب البحث
     search_query = request.args.get('q', '').strip()
     trans_type = request.args.get('trans_type', '').strip()
     status = request.args.get('status', '').strip()
 
     if search_query:
-        query = query.filter(
-            db.or_(
-                WalletTransaction.voucher_number.ilike(f'%{search_query}%'),
-                WalletTransaction.transfer_number.ilike(f'%{search_query}%'),
-                WalletTransaction.reference_number.ilike(f'%{search_query}%')
-            )
-        )
+        all_transactions = [
+            t for t in all_transactions
+            if search_query.lower() in str(t.get('voucher_number', '')).lower()
+            or search_query.lower() in str(t.get('reference_number', '')).lower()
+        ]
 
-    trx_column = get_trx_type_attr()
-    if trans_type and trx_column is not None:
-        query = query.filter(trx_column == trans_type)
+    if trans_type:
+        all_transactions = [
+            t for t in all_transactions
+            if t.get('transaction_type') == trans_type
+        ]
 
-    if status and hasattr(WalletTransaction, 'status'):
-        query = query.filter_by(status=status)
+    if status:
+        all_transactions = [
+            t for t in all_transactions
+            if t.get('status') == status
+        ]
 
-    transactions = query.order_by(WalletTransaction.created_at.desc()).all()
-    modules = get_sidebar_modules()
-
-    # ✅ الحصول على الرصيد للقالب
     balance = get_wallet_balance(wallet)
+    modules = get_sidebar_modules()
 
     return render_template(
         'supplier_wallet/wallet_transactions.html',
         wallet=wallet,
-        balance=balance,  # ✅ تمرير الرصيد إلى القالب
-        transactions=transactions,
+        balance=balance,
+        transactions=all_transactions,
         supplier_modules=modules,
-        modules_registry=modules
+        modules_registry=modules,
+        now=datetime.now()
     )
 
 
