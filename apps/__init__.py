@@ -65,7 +65,7 @@ def reset_database_safe():
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT typname FROM pg_type 
-                          WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) LOOP
+                        WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) LOOP
                     EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(r.typname) || ' CASCADE';
                 END LOOP;
             END $$;
@@ -487,8 +487,8 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
-                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                     'suppliers_auth_portal', 'admin', 'zsa_engine']
+                    'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                    'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -539,6 +539,12 @@ def create_app():
                             "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
                             "links": links_data,
                         }
+                        
+                        # 🛠️ التعديل الجذري لمنع تكرار المحفظة في الإدارة المالية ولوحة الموردين
+                        if item == 'supplier_wallet':
+                            # إزالة المحفظة تماماً من القوائم الجانبية الجبرية لتجنب تكرارها داخل قسم الإدارة المالية
+                            continue
+
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
                         else:
@@ -590,6 +596,7 @@ def create_app():
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
+        # التأكد الإضافي من إزالة المحفظة من الموديولات المدمجة للموردين لضمان عدم ظهورها مكررة
         if 'supplier_wallet' in combined_supplier_modules:
             del combined_supplier_modules['supplier_wallet']
 
