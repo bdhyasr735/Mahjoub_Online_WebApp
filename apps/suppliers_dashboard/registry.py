@@ -7,6 +7,7 @@ MODULE_NAME = "لوحة تحكم الموردين"
 DISPLAY_NAME = "لوحة تحكم الموردين"
 MODULE_ICON = "fas fa-home"
 SHOW_IN_SUPPLIER = True
+IS_LAYOUT_CONTAINER = False
 
 NAV_ITEMS = [
     {
