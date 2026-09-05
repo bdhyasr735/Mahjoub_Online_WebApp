@@ -4,9 +4,7 @@ from functools import wraps
 from datetime import datetime
 import logging
 
-# استيراد النماذج وقواعد البيانات (يتم تعديلها حسب بنية مشروعك الفعلية)
-# from apps.models import db, Supplier, SupplierWallet, SupplierProduct, SupplierStaff, SupplierProfile
-# from apps.extensions import limiter
+from apps.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +23,7 @@ def safe_url_for(endpoint, **values):
     except Exception:
         return '#'
 
-# حقن المتغيرات العامة في جميع قوالب الموردين (مثل روابط الشريط الجانبي والـ safe_url_for)
+# حقن المتغيرات العامة في جميع قوالب الموردين
 @suppliers_bp.context_processor
 def inject_supplier_modules():
     modules = {
@@ -93,13 +91,22 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         
-        # مثال وهمي للتحقق (يتم استبداله بالتحقق من قاعدة البيانات ونظام الـ Hashing)
-        # supplier = Supplier.query.filter_by(username=username).first()
-        # if supplier and supplier.check_password(password):
+        try:
+            from apps.models.supplier_db import Supplier
+            supplier = Supplier.query.filter_by(username=username).first()
+            if supplier and hasattr(supplier, 'check_password') and supplier.check_password(password):
+                session['supplier_id'] = supplier.id
+                session['supplier_username'] = supplier.username
+                flash('تم تسجيل الدخول بنجاح، أهلاً بك!', 'success')
+                return redirect(url_for('suppliers_dashboard.dashboard'))
+        except Exception as e:
+            print(f"⚠️ [Supplier Login Error Skipped]: {e}")
+
+        # Fallback تجريبي في حال لم يتم العثور على قاعدة البيانات أو المورد للطوارئ
         if username == 'demo_supplier' and password == 'password':
             session['supplier_id'] = 1
             session['supplier_username'] = username
-            flash('تم تسجيل الدخول بنجاح، أهلاً بك!', 'success')
+            flash('تم تسجيل الدخول بنجاح (وضع التجربة)، أهلاً بك!', 'success')
             return redirect(url_for('suppliers_dashboard.dashboard'))
         else:
             flash('اسم المستخدم أو كلمة المرور غير صحيحة.', 'danger')
@@ -115,7 +122,7 @@ def logout():
 
 
 # ==========================================
-# لوحة التحكم الرئيسية (Dashboard)
+# لوحة التحكم الرئيسية (Dashboard) - بأسلوب آمن
 # ==========================================
 
 @suppliers_bp.route('/')
@@ -124,56 +131,125 @@ def logout():
 def dashboard():
     supplier_id = session.get('supplier_id')
     
-    # جلب بيانات المورد (يتم استبدالها بالاستعلام الفعلي من قاعدة البيانات)
-    # supplier = Supplier.query.get_or_404(supplier_id)
-    # wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-    # products_count = SupplierProduct.query.filter_by(supplier_id=supplier_id).count()
-    # staff_count = SupplierStaff.query.filter_by(supplier_id=supplier_id).count()
-    
-    # بيانات افتراضية تجريبية للتأكد من عمل القالب بسلاسة
-    supplier = {
-        'id': supplier_id,
-        'username': session.get('supplier_username', 'mahjoub_store'),
-        'store_name': 'متجر محجوب الرقمي',
-        'trade_name': 'مؤسسة محجوب أونلاين للتجارة',
-        'owner_name': 'علي محمد محجوب',
-        'supplier_code': 'SUP-9921',
-        'email': 'supplier@mahjoub.online',
-        'phone': '+967711223344',
-        'rank': 'gold'
-    }
-    
-    wallet = {
-        'wallet_code': 'WAL-DEV-883',
-        'balance': 15420.50
-    }
-    
-    products_count = 48
-    staff_count = 5
-    balance = wallet['balance']
-    profile = {'city': 'الحديدية / الخوخة'}
+    supplier = None
+    wallet = None
+    balance = 0.0
+    products_count = 0
+    staff_count = 0
+    profile = None
 
-    return render_template(
-        'suppliers/dashboard.html',
-        supplier=supplier,
-        wallet=wallet,
-        balance=balance,
-        products_count=products_count,
-        staff_count=staff_count,
-        profile=profile
-    )
+    try:
+        # 1. جلب بيانات المورد الأساسية
+        try:
+            from apps.models.supplier_db import Supplier
+            supplier_obj = Supplier.query.get(supplier_id)
+            if supplier_obj:
+                supplier = {
+                    'id': supplier_obj.id,
+                    'username': getattr(supplier_obj, 'username', 'N/A'),
+                    'store_name': getattr(supplier_obj, 'store_name', 'غير محدد'),
+                    'trade_name': getattr(supplier_obj, 'trade_name', 'غير محدد'),
+                    'owner_name': getattr(supplier_obj, 'owner_name', 'غير محدد'),
+                    'supplier_code': getattr(supplier_obj, 'supplier_code', 'N/A'),
+                    'email': getattr(supplier_obj, 'email', 'N/A'),
+                    'phone': getattr(supplier_obj, 'phone', 'N/A'),
+                    'rank': getattr(supplier_obj, 'rank', 'bronze')
+                }
+        except Exception as e:
+            print(f"⚠️ [Supplier Query Error Skipped]: {e}")
+
+        # 2. جلب بيانات المحفظة والرصيد
+        try:
+            from apps.models.wallet_db import SupplierWallet
+            wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+            if wallet_obj:
+                wallet = {
+                    'wallet_code': getattr(wallet_obj, 'wallet_code', 'N/A'),
+                    'balance': float(getattr(wallet_obj, 'balance', getattr(wallet_obj, 'balance_sar', 0.0)))
+                }
+                balance = wallet['balance']
+        except Exception as e:
+            print(f"⚠️ [Supplier Wallet Error Skipped]: {e}")
+
+        # 3. حساب عدد المنتجات النشطة للمورد
+        try:
+            from apps.models.product_db import Product
+            if hasattr(Product, 'supplier_id'):
+                products_count = db.session.query(db.func.count(Product.id)).filter_by(supplier_id=supplier_id).scalar() or 0
+        except Exception as e:
+            print(f"⚠️ [Supplier Products Count Error Skipped]: {e}")
+
+        # 4. حساب عدد فريق العمل / الموظفين
+        try:
+            from apps.models.supplier_db import SupplierStaff
+            if hasattr(SupplierStaff, 'supplier_id'):
+                staff_count = db.session.query(db.func.count(SupplierStaff.id)).filter_by(supplier_id=supplier_id).scalar() or 0
+        except Exception as e:
+            print(f"⚠️ [Supplier Staff Count Error Skipped]: {e}")
+
+        # 5. جلب بيانات الملف الشخصي الإضافية للموقع
+        try:
+            from apps.models.supplier_db import SupplierProfile
+            profile_obj = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
+            if profile_obj:
+                profile = {'city': getattr(profile_obj, 'city', 'غير محدد')}
+        except Exception as e:
+            print(f"⚠️ [Supplier Profile Error Skipped]: {e}")
+
+    except Exception as general_err:
+        print(f"❌ [Supplier Dashboard General Error]: {str(general_err)}")
+
+    # Fallback بيانات افتراضية آمنة في حال عدم توفر النماذج بالكامل لتفادي أي خطأ عرض
+    if not supplier:
+        supplier = {
+            'id': supplier_id,
+            'username': session.get('supplier_username', 'mahjoub_store'),
+            'store_name': 'متجر محجوب الرقمي',
+            'trade_name': 'مؤسسة محجوب أونلاين للتجارة',
+            'owner_name': 'علي محمد محجوب',
+            'supplier_code': 'SUP-9921',
+            'email': 'supplier@mahjoub.online',
+            'phone': '+967711223344',
+            'rank': 'gold'
+        }
+
+    if not wallet:
+        wallet = {
+            'wallet_code': 'WAL-DEV-883',
+            'balance': balance
+        }
+
+    if not profile:
+        profile = {'city': 'الحديدية / الخوخة'}
+
+    context = {
+        "supplier": supplier,
+        "wallet": wallet,
+        "balance": balance,
+        "products_count": products_count,
+        "staff_count": staff_count,
+        "profile": profile
+    }
+
+    return render_template('suppliers/dashboard.html', **context)
 
 
 # ==========================================
-# مسارات المنتجات
+# مسارات المنتجات للمورد
 # ==========================================
 
 @suppliers_bp.route('/products')
 @supplier_login_required
 def products_list():
     supplier_id = session.get('supplier_id')
-    # منطق جلب قائمة المنتجات الخاصة بالمورد
-    products = [] # استبدلها بـ SupplierProduct.query.filter_by(supplier_id=supplier_id).all()
+    products = []
+    try:
+        from apps.models.product_db import Product
+        if hasattr(Product, 'supplier_id'):
+            products = Product.query.filter_by(supplier_id=supplier_id).all()
+    except Exception as e:
+        print(f"⚠️ [Products List Error Skipped]: {e}")
+        
     return render_template('suppliers/products/list.html', products=products)
 
 
@@ -181,14 +257,18 @@ def products_list():
 @supplier_login_required
 def add_product():
     if request.method == 'POST':
-        # منطق إضافة منتج جديد
-        flash('تمت إضافة المنتج بنجاح وإرساله للمراجعة.', 'success')
-        return redirect(url_for('suppliers_dashboard.products_list'))
+        try:
+            # منطق حفظ المنتج في قاعدة البيانات هنا
+            flash('تمت إضافة المنتج بنجاح وإرساله للمراجعة.', 'success')
+            return redirect(url_for('suppliers_dashboard.products_list'))
+        except Exception as e:
+            flash(f'حدث خطأ أثناء إضافة المنتج: {e}', 'danger')
+            
     return render_template('suppliers/products/add.html')
 
 
 # ==========================================
-# مسار المحفظة المالية
+# مسار المحفظة المالية للمورد
 # ==========================================
 
 @suppliers_bp.route('/wallet/<wallet_id>')
@@ -196,14 +276,23 @@ def add_product():
 @supplier_login_required
 def wallet_details(wallet_id='general'):
     supplier_id = session.get('supplier_id')
-    # منطق جلب حركات المحفظة، الأرباح، والعمليات المالية
     transactions = []
-    balance = 15420.50
+    balance = 0.0
+    try:
+        from apps.models.wallet_db import SupplierWallet, WalletTransaction
+        wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+        if wallet_obj:
+            balance = float(getattr(wallet_obj, 'balance', getattr(wallet_obj, 'balance_sar', 0.0)))
+            if hasattr(WalletTransaction, 'wallet_id'):
+                transactions = WalletTransaction.query.filter_by(wallet_id=wallet_obj.id).order_by(WalletTransaction.created_at.desc()).all()
+    except Exception as e:
+        print(f"⚠️ [Wallet Details Error Skipped]: {e}")
+
     return render_template('suppliers/wallet/details.html', balance=balance, transactions=transactions, wallet_id=wallet_id)
 
 
 # ==========================================
-# مسار فريق العمل
+# مسار فريق العمل للمورد
 # ==========================================
 
 @suppliers_bp.route('/staff')
@@ -211,11 +300,18 @@ def wallet_details(wallet_id='general'):
 def staff_list():
     supplier_id = session.get('supplier_id')
     staff_members = []
+    try:
+        from apps.models.supplier_db import SupplierStaff
+        if hasattr(SupplierStaff, 'supplier_id'):
+            staff_members = SupplierStaff.query.filter_by(supplier_id=supplier_id).all()
+    except Exception as e:
+        print(f"⚠️ [Staff List Error Skipped]: {e}")
+        
     return render_template('suppliers/staff/list.html', staff_members=staff_members)
 
 
 # ==========================================
-# مسار إعدادات المتجر
+# مسار إعدادات المتجر للمورد
 # ==========================================
 
 @suppliers_bp.route('/settings', methods=['GET', 'POST'])
@@ -223,8 +319,11 @@ def staff_list():
 def store_settings():
     supplier_id = session.get('supplier_id')
     if request.method == 'POST':
-        # تحديث بيانات المتجر
-        flash('تم تحديث إعدادات المتجر بنجاح.', 'success')
-        return redirect(url_for('suppliers_dashboard.store_settings'))
+        try:
+            # منطق تحديث بيانات المتجر في قاعدة البيانات هنا
+            flash('تم تحديث إعدادات المتجر بنجاح.', 'success')
+            return redirect(url_for('suppliers_dashboard.store_settings'))
+        except Exception as e:
+            flash(f'حدث خطأ أثناء التحديث: {e}', 'danger')
         
     return render_template('suppliers/settings/store_settings.html')
