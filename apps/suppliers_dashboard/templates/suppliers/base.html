@@ -348,63 +348,55 @@
             <span class="sidebar-sub">بوابة الموردين</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ Dashboard (ثابت لأنه الرابط الرئيسي) -->
-            {% set dashboard_url = safe_url_for('suppliers_dashboard.index') if safe_url_for is defined else url_for('suppliers_dashboard.index') %}
-            <a href="{{ dashboard_url }}" 
-               class="nav-link-custom {% if request.endpoint == 'suppliers_dashboard.index' %}active{% endif %}">
-                <i class="fas fa-chart-pie"></i> <span>الرئيسية</span>
-            </a>
-            
-            <!-- ✅ جميع الموديولات الأخرى ديناميكية بالكامل -->
+            <!-- ✅ توليد روابط الموديولات بالكامل ديناميكياً بناءً على الصلاحيات والبيانات القادمة من الباك إند -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
-                    {% if key != 'suppliers_dashboard' %}
-                        {% if module.links is mapping %}
-                            {% if module.links|length > 1 %}
-                                {% set ns = namespace(is_active_module=false) %}
-                                {% for endpoint, link_title in module.links.items() %}
-                                    {% if request.endpoint == endpoint %}
-                                        {% set ns.is_active_module = true %}
-                                    {% endif %}
-                                {% endfor %}
-                                
-                                <!-- ✅ قائمة منسدلة -->
-                                <div class="nav-item mt-1">
-                                    <div class="nav-link-custom {% if ns.is_active_module %}active{% endif %}" 
-                                         onclick="toggleSubmenu(this)">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="{{ module.icon | default('fas fa-folder') }}"></i>
-                                            <span>{{ module.title | default(key | replace('_', ' ') | title) }}</span>
-                                        </div>
-                                        <i class="fas fa-chevron-down {% if ns.is_active_module %}rotated{% endif %}"></i>
+                    {% if module.links is mapping %}
+                        {% if module.links|length > 1 %}
+                            {% set ns = namespace(is_active_module=false) %}
+                            {% for endpoint, link_title in module.links.items() %}
+                                {% if request.endpoint == endpoint %}
+                                    {% set ns.is_active_module = true %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- ✅ قائمة منسدلة ديناميكية -->
+                            <div class="nav-item mt-1">
+                                <div class="nav-link-custom {% if ns.is_active_module %}active{% endif %}" 
+                                     onclick="toggleSubmenu(this)">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="{{ module.icon | default('fas fa-folder') }}"></i>
+                                        <span>{{ module.title | default(key | replace('_', ' ') | title) }}</span>
                                     </div>
-                                    <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
-                                        {% for endpoint, link_title in module.links.items() %}
-                                            <li>
-                                                {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
-                                                    {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
-                                                {% else %}
-                                                    {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
-                                                {% endif %}
-                                                <a href="{{ url }}" 
-                                                   class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
-                                                    <i class="fas fa-circle"></i> 
-                                                    <span>{{ link_title }}</span>
-                                                </a>
-                                            </li>
-                                        {% endfor %}
-                                    </ul>
+                                    <i class="fas fa-chevron-down {% if ns.is_active_module %}rotated{% endif %}"></i>
                                 </div>
-                            {% else %}
-                                <!-- ✅ رابط عادي -->
-                                {% for endpoint, link_title in module.links.items() %}
-                                    <a href="{{ safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) }}" 
-                                       class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
-                                        <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                                        <span>{{ link_title }}</span>
-                                    </a>
-                                {% endfor %}
-                            {% endif %}
+                                <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
+                                    {% for endpoint, link_title in module.links.items() %}
+                                        <li>
+                                            {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
+                                                {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
+                                            {% else %}
+                                                {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                            {% endif %}
+                                            <a href="{{ url }}" 
+                                               class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
+                                                <i class="fas fa-circle"></i> 
+                                                <span>{{ link_title }}</span>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                            <!-- ✅ رابط مفرد ديناميكي من داخل القاموس -->
+                            {% for endpoint, link_title in module.links.items() %}
+                                {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                <a href="{{ url }}" 
+                                   class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
+                                    <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
+                                    <span>{{ link_title }}</span>
+                                </a>
+                            {% endfor %}
                         {% endif %}
                     {% endif %}
                 {% endfor %}
@@ -412,7 +404,7 @@
             
             <hr class="nav-divider">
             
-            <!-- ✅ تسجيل الخروج -->
+            <!-- ✅ تسجيل الخروج ديناميكي بالكامل -->
             {% set logout_url = safe_url_for('suppliers_dashboard.logout') if safe_url_for is defined else url_for('suppliers_dashboard.logout') %}
             <a href="{{ logout_url }}" id="logout-btn" class="nav-link-custom text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
