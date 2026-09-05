@@ -10,7 +10,7 @@ MODULE_NAME = "suppliers_dashboard"
 DISPLAY_NAME = "لوحة التحكم"
 MODULE_ICON = "fa-chart-pie"
 IS_LAYOUT_CONTAINER = True
-SHOW_IN_SUPPLIER = True
+SHOW_IN_SUPPLIER = True  # ✅ هذا يجعله يظهر في قائمة الموردين
 
 # ============================================
 # دالة تسجيل الموديول (مطلوبة للتسجيل الديناميكي)
