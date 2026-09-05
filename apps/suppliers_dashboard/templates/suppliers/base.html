@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}لوحة المورد | منصة محجوب{% endblock %}</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- تضمين مكتبة Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- خطوط المنصة -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bootstrap-4/bootstrap-4.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
     {% set wallet_css = safe_url_for('supplier_wallet.static', filename='css/theme.css') if safe_url_for is defined else '#' %}
     {% if wallet_css and wallet_css != '#' %}
@@ -49,9 +55,9 @@
         * { box-sizing: border-box; }
         
         body { 
-            font-family: 'Cairo', sans-serif; 
-            background: var(--flat-bg); 
-            color: #1e293b; 
+            font-family: 'Cairo', 'Tajawal', sans-serif !important; 
+            background: var(--flat-bg) !important; 
+            color: #1e293b !important;
             margin: 0; 
             overflow-x: hidden; 
             min-height: 100vh; 
@@ -59,21 +65,21 @@
         
         .sidebar {
             width: var(--sidebar-width);
-            background: linear-gradient(160deg, var(--deep-black) 0%, var(--royal-purple-dark) 40%, var(--royal-purple) 100%);
+            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
             height: 100vh;
             position: fixed;
             right: 0;
             top: 0;
             z-index: 1050;
             transition: var(--transition);
-            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            border-left: 1px solid rgba(212, 175, 55, 0.25);
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.1) transparent;
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+            scrollbar-color: rgba(212,175,55,0.3) transparent;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
         .sidebar-overlay {
             position: fixed;
@@ -94,17 +100,20 @@
         }
 
         .logo-container {
-            padding: 32px 20px 24px;
+            padding: 25px 15px;
             text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            background: rgba(0,0,0,0.2);
         }
         .sidebar-logo {
-            width: 48px;
-            height: 48px;
+            width: 65px;
+            height: 65px;
             object-fit: contain;
             filter: brightness(0) invert(1);
-            transition: var(--transition);
+            transition: transform 0.3s ease;
+        }
+        .sidebar-logo:hover {
+            transform: scale(1.05);
         }
         .sidebar-brand {
             color: #ffffff;
@@ -115,7 +124,7 @@
             letter-spacing: 0.3px;
         }
         .sidebar-sub {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--mahjoub-gold);
             font-size: 0.72rem;
             display: block;
             margin-top: 2px;
@@ -124,114 +133,102 @@
             letter-spacing: 1px;
         }
         
-        .nav-menu { padding: 20px 14px; }
-        .nav-link {
+        .nav-menu { padding: 15px 12px; }
+        .nav-link-custom {
             display: flex;
             align-items: center;
-            padding: 12px 16px;
-            color: rgba(255, 255, 255, 0.7);
+            gap: 12px;
+            padding: 12px 15px;
+            color: #cbd5e1;
             text-decoration: none;
-            border-radius: 14px;
-            transition: var(--transition);
-            font-size: 0.875rem;
-            font-weight: 600;
-            gap: 14px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
             margin-bottom: 6px;
-            position: relative;
+            font-weight: 500;
+            text-align: right;
+            border: 1px solid transparent;
         }
-        .nav-link i { width: 20px; text-align: center; font-size: 1rem; color: rgba(255, 255, 255, 0.5); transition: var(--transition); }
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.06);
-            color: #ffffff;
+        .nav-link-custom:hover {
+            background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9));
+            color: var(--mahjoub-gold);
+            border-color: rgba(212, 175, 55, 0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .nav-link:hover i { color: var(--mahjoub-gold); }
+        .nav-link-custom.active {
+            background: linear-gradient(135deg, rgba(26,11,46,0.9), rgba(45,18,74,0.9));
+            color: var(--mahjoub-gold);
+            border-color: rgba(212, 175, 55, 0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-right: 3px solid var(--mahjoub-gold);
+        }
+        .nav-link-custom i { width: 20px; text-align: center; }
         
-        .nav-link.active {
-            background: linear-gradient(90deg, rgba(212, 175, 55, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%);
-            color: #ffffff;
-            font-weight: 800;
-            border-right: 4px solid var(--mahjoub-gold);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .nav-link.active i { color: var(--mahjoub-gold); }
-
-        .nav-link.dropdown-toggle::after { display: none !important; }
-        .dropdown-arrow {
+        .nav-link-custom .fa-chevron-down {
+            margin-left: unset;
             margin-right: auto;
-            margin-left: 0;
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.4);
             transition: transform 0.3s ease;
         }
-        .nav-link[aria-expanded="true"] .dropdown-arrow {
-            transform: rotate(-90deg);
-            color: var(--mahjoub-gold);
-        }
-        .nav-link[aria-expanded="true"] {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-        }
+        .nav-link-custom .fa-chevron-down.rotated { transform: rotate(180deg); }
 
         .submenu {
-            padding-right: 18px;
-            list-style: none;
-            margin: 6px 0 10px 0;
-            border-right: 1.5px dashed rgba(255, 255, 255, 0.1);
-            margin-right: 16px;
             display: none;
-            transition: var(--transition);
+            list-style: none;
+            padding-right: 30px;
+            padding-left: 0;
+            margin: 5px 0;
         }
         .submenu.show { display: block; }
         
-        .submenu .nav-link {
-            font-size: 0.82rem;
-            padding: 10px 14px;
-            color: rgba(255, 255, 255, 0.6);
-            background: transparent !important;
-            border-right: none !important;
-            box-shadow: none !important;
+        .submenu .nav-link-custom-sub {
+            display: block;
+            padding: 8px 12px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            text-align: right;
         }
-        .submenu .nav-link:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.04) !important;
-        }
-        .submenu .nav-link.active {
+        .submenu .nav-link-custom-sub:hover {
             color: var(--mahjoub-gold);
-            font-weight: 800;
-            background: rgba(255, 255, 255, 0.05) !important;
+            background: rgba(212, 175, 55, 0.1);
         }
-        .submenu .nav-link.active i { color: var(--mahjoub-gold); }
+        .submenu .nav-link-custom-sub.active {
+            color: var(--mahjoub-gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+        .submenu .nav-link-custom-sub i { 
+            font-size: 6px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
 
-        .nav-link.text-danger { color: #f87171 !important; }
-        .nav-link.text-danger i { color: #f87171 !important; }
-        .nav-link.text-danger:hover { background: rgba(248, 113, 113, 0.1) !important; }
+        .nav-link-custom.text-danger { color: #f87171 !important; }
+        .nav-link-custom.text-danger:hover { background: rgba(248, 113, 113, 0.1) !important; }
         
         .nav-divider { border: none; border-top: 1px solid rgba(255, 255, 255, 0.06); margin: 18px 14px; }
         
         .main-wrapper {
             margin-right: var(--sidebar-width);
+            margin-left: 0;
             transition: var(--transition);
             min-height: 100vh;
             background: var(--flat-bg);
         }
         
         .top-navbar {
-            background: #ffffff;
-            padding: 0 32px;
+            background: #ffffff !important;
+            border-bottom: 1px solid var(--color-border) !important;
+            padding: 15px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #f1f5f9;
             position: sticky;
             top: 0;
             z-index: 1040;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
             height: var(--header-height);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-        .navbar-left, .navbar-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
         }
         
         .menu-toggle {
@@ -251,43 +248,46 @@
         .menu-toggle:hover { background: #f1f5f9; border-color: #cbd5e1; }
         
         .supplier-badge {
-            background: #f8fafc;
-            color: var(--royal-purple);
-            padding: 8px 18px;
-            border-radius: 12px;
+            background: linear-gradient(135deg, #1a0b2e, #08020d);
+            color: var(--mahjoub-gold);
+            padding: 7px 18px;
+            border-radius: 50px;
+            font-size: 0.8rem;
             font-weight: 800;
-            font-size: 0.85rem;
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
             gap: 10px;
-            border: 1px solid #e2e8f0;
         }
-        .supplier-badge i { color: var(--mahjoub-gold); font-size: 1.1rem; }
+        .supplier-badge i { color: var(--mahjoub-gold); }
 
         .notification-icon-btn {
-            position: relative;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            background: #F9F8F6;
+            border: 1px solid var(--color-border);
+            color: var(--royal-purple);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--royal-purple);
-            font-size: 1.1rem;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
             text-decoration: none;
-            transition: var(--transition);
         }
         .notification-icon-btn:hover {
-            background: #f1f5f9;
+            background: var(--royal-purple);
             color: var(--mahjoub-gold);
-            border-color: #cbd5e1;
+            border-color: var(--mahjoub-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26,11,46,0.15);
         }
         .notification-badge-dot {
             position: absolute;
-            top: 10px;
-            left: 11px;
+            top: -2px;
+            right: -2px;
             width: 8px;
             height: 8px;
             background-color: #ef4444;
@@ -317,76 +317,17 @@
             font-weight: 600;
         }
 
-        .kpi-card {
-            background-color: var(--color-bg-card);
-            border: 1px solid var(--color-border);
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .kpi-card-featured {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-            color: #ffffff;
-            border: none;
-        }
-        .btn-primary {
-            background-color: var(--color-primary);
-            color: #ffffff;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 700;
-            font-size: 0.75rem;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .btn-primary:hover {
-            background-color: var(--color-primary-hover);
-        }
-        .badge-completed {
-            background-color: var(--color-success-bg);
-            color: #047857;
-            border: 1px solid #A7F3D0;
-            padding: 0.25rem 0.625rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        .badge-pending {
-            background-color: var(--color-warning-bg);
-            color: #B45309;
-            border: 1px solid #FDE68A;
-            padding: 0.25rem 0.625rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        .badge-rejected {
-            background-color: var(--color-danger-bg);
-            color: #BE123C;
-            border: 1px solid #FECDD3;
-            padding: 0.25rem 0.625rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        
         @media (max-width: 992px) {
             .sidebar { right: calc(-1 * var(--sidebar-width)); }
-            .sidebar.active { right: 0; box-shadow: -15px 0 40px rgba(0,0,0,0.5); }
+            .sidebar.active { right: 0; }
             .main-wrapper { margin-right: 0; }
             .menu-toggle { display: flex; }
-            .top-navbar { padding: 0 20px; }
+            .top-navbar { padding: 12px 15px; }
             .supplier-badge span { display: none; }
         }
         
         @media (max-width: 576px) {
-            .top-navbar { padding: 0 16px; height: 65px; }
+            .top-navbar { padding: 12px 15px; height: 65px; }
             .sidebar { width: 260px; }
             .flash-messages { width: calc(100% - 32px); left: 16px; top: calc(65px + 16px); }
             .notification-icon-btn, .menu-toggle { width: 40px; height: 40px; font-size: 1rem; border-radius: 10px; }
@@ -410,7 +351,7 @@
             <!-- ✅ Dashboard (ثابت لأنه الرابط الرئيسي) -->
             {% set dashboard_url = safe_url_for('suppliers_dashboard.index') if safe_url_for is defined else url_for('suppliers_dashboard.index') %}
             <a href="{{ dashboard_url }}" 
-               class="nav-link {% if request.endpoint == 'suppliers_dashboard.index' %}active{% endif %}">
+               class="nav-link-custom {% if request.endpoint == 'suppliers_dashboard.index' %}active{% endif %}">
                 <i class="fas fa-chart-pie"></i> <span>الرئيسية</span>
             </a>
             
@@ -428,37 +369,37 @@
                                 {% endfor %}
                                 
                                 <!-- ✅ قائمة منسدلة -->
-                                <a class="nav-link dropdown-toggle {% if ns.is_active_module %}active{% endif %}" 
-                                   href="#menu-{{ key }}" 
-                                   role="button" 
-                                   aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}">
-                                    <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                                    <span>{{ module.title | default(key | replace('_', ' ') | title) }}</span>
-                                    <i class="fas fa-chevron-left dropdown-arrow"></i>
-                                </a>
-                                <div class="submenu {% if ns.is_active_module %}show{% endif %}" id="menu-{{ key }}">
-                                    {% for endpoint, link_title in module.links.items() %}
-                                        {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
-                                            {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
-                                        {% else %}
-                                            {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
-                                        {% endif %}
-                                        <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                            <i class="fas fa-circle text-[6px]"></i> 
-                                            <span>{{ link_title }}</span>
-                                        </a>
-                                    {% endfor %}
+                                <div class="nav-item mt-1">
+                                    <div class="nav-link-custom {% if ns.is_active_module %}active{% endif %}" 
+                                         onclick="toggleSubmenu(this)">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="{{ module.icon | default('fas fa-folder') }}"></i>
+                                            <span>{{ module.title | default(key | replace('_', ' ') | title) }}</span>
+                                        </div>
+                                        <i class="fas fa-chevron-down {% if ns.is_active_module %}rotated{% endif %}"></i>
+                                    </div>
+                                    <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
+                                        {% for endpoint, link_title in module.links.items() %}
+                                            <li>
+                                                {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
+                                                    {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
+                                                {% else %}
+                                                    {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                                {% endif %}
+                                                <a href="{{ url }}" 
+                                                   class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
+                                                    <i class="fas fa-circle"></i> 
+                                                    <span>{{ link_title }}</span>
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
                                 </div>
                             {% else %}
                                 <!-- ✅ رابط عادي -->
                                 {% for endpoint, link_title in module.links.items() %}
-                                    {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
-                                        {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
-                                    {% else %}
-                                        {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
-                                    {% endif %}
-                                    <a href="{{ url }}" 
-                                       class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                                    <a href="{{ safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) }}" 
+                                       class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
                                         <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
                                         <span>{{ link_title }}</span>
                                     </a>
@@ -473,7 +414,7 @@
             
             <!-- ✅ تسجيل الخروج -->
             {% set logout_url = safe_url_for('suppliers_dashboard.logout') if safe_url_for is defined else url_for('suppliers_dashboard.logout') %}
-            <a href="{{ logout_url }}" id="logout-btn" class="nav-link text-danger">
+            <a href="{{ logout_url }}" id="logout-btn" class="nav-link-custom text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
             </a>
         </nav>
@@ -481,7 +422,7 @@
 
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
-            <div class="navbar-left">
+            <div class="d-flex align-items-center gap-3">
                 <button class="menu-toggle" id="sidebar-toggle-btn" aria-label="تبديل القائمة">
                     <i class="fas fa-bars"></i>
                 </button>
@@ -491,7 +432,7 @@
                 </div>
             </div>
             
-            <div class="navbar-right">
+            <div class="d-flex align-items-center gap-3">
                 <a href="#" class="notification-icon-btn" title="الإشعارات" aria-label="الإشعارات">
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge-dot"></span>
@@ -516,7 +457,7 @@
             {% endwith %}
         </div>
 
-        <section class="p-4 p-md-6">
+        <section class="p-4 p-md-5 animate__animated animate__fadeIn">
             {% block content %}{% endblock %}
         </section>
     </main>
@@ -524,6 +465,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // ====== Toggle Sidebar ======
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('sidebar-toggle-btn');
             const overlay = document.getElementById('sidebar-overlay');
@@ -557,35 +499,19 @@
                 }
             });
 
-            const dropdownToggles = document.querySelectorAll('.sidebar .nav-link.dropdown-toggle');
-            dropdownToggles.forEach(toggle => {
-                toggle.addEventListener('click', function(e) {
-                    e.preventDefault(); 
-                    
-                    const targetSubmenu = this.nextElementSibling;
-                    
-                    if (targetSubmenu && targetSubmenu.classList.contains('submenu')) {
-                        const isOpen = targetSubmenu.classList.contains('show');
-                        
-                        document.querySelectorAll('.sidebar .submenu.show').forEach(sub => {
-                            if (sub !== targetSubmenu) {
-                                sub.classList.remove('show');
-                                const parentToggle = sub.previousElementSibling;
-                                if (parentToggle) parentToggle.setAttribute('aria-expanded', 'false');
-                            }
-                        });
+            // ====== Toggle Submenu ======
+            window.toggleSubmenu = function(el) {
+                let drop = el.nextElementSibling;
+                if (!drop) return;
+                
+                let isVisible = drop.classList.contains('show');
+                drop.classList.toggle('show', !isVisible);
+                
+                let chevron = el.querySelector('.fa-chevron-down');
+                if (chevron) chevron.classList.toggle('rotated', !isVisible);
+            };
 
-                        if (isOpen) {
-                            targetSubmenu.classList.remove('show');
-                            this.setAttribute('aria-expanded', 'false');
-                        } else {
-                            targetSubmenu.classList.add('show');
-                            this.setAttribute('aria-expanded', 'true');
-                        }
-                    }
-                });
-            });
-
+            // ====== Flash Messages Auto-Close ======
             const flashAlerts = document.querySelectorAll('.flash-messages .alert');
             flashAlerts.forEach(alert => {
                 setTimeout(() => {
@@ -594,6 +520,7 @@
                 }, 5000);
             });
 
+            // ====== Logout ======
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function(e) {
