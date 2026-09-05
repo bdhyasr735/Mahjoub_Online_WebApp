@@ -487,8 +487,8 @@ def create_app():
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
-                    'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                    'suppliers_auth_portal', 'admin', 'zsa_engine']
+                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                     'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -551,17 +551,6 @@ def create_app():
                             ADMIN_MODULES[item] = mod_data
                 except Exception as e:
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
-
-    # ============================================================
-    # 🔌 التسجيل اليدوي لموديول لوحة تحكم الموردين
-    # ============================================================
-    try:
-        from apps.suppliers_dashboard import suppliers_dashboard_bp
-        if 'suppliers_dashboard_core_module' not in app.blueprints:
-            app.register_blueprint(suppliers_dashboard_bp)
-            print("✅ [لوحة تحكم الموردين]: تم تسجيل موديول 'suppliers_dashboard' بنجاح.")
-    except Exception as e:
-        print(f"❌ [خطأ لوحة تحكم الموردين]: فشل تسجيل الموديول: {e}")
 
     # ============================================================
     # 📝 معالج السياق (Context Processor)
