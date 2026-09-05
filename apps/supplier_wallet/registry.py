@@ -12,23 +12,10 @@ DISPLAY_NAME = "الإدارة المالية"
 MODULE_ICON = "fa-coins"
 SHOW_IN_SUPPLIER = True
 
-def get_menu_items():
-    """دالة ديناميكية لإنشاء الروابط مع wallet_id الفعلي"""
-    from apps.supplier_wallet.utils import get_current_supplier_id
-    from apps.models.wallet_db import SupplierWallet
-    
-    supplier_id = get_current_supplier_id()
-    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-    wallet_id = wallet.wallet_code if wallet else 'general'
-    
-    return {
-        'supplier_wallet.transactions': ('حركة المحفظة', {'wallet_id': wallet_id}),
-        'supplier_wallet.withdraw': ('سحب الرصيد', {'wallet_id': wallet_id})
-    }
-
+# ✅ استخدام مسارات إعادة التوجيه (Redirect) بدلاً من المسارات المباشرة
 LINKS = {
-    'supplier_wallet.transactions': 'حركة المحفظة',
-    'supplier_wallet.withdraw': 'سحب الرصيد'
+    'supplier_wallet.transactions_redirect': 'حركة المحفظة',
+    'supplier_wallet.withdraw_redirect': 'سحب الرصيد'
 }
 
 # ============================================
