@@ -1,27 +1,23 @@
 # -*- coding: utf-8 -*-
+# 📂 apps/supplier_wallet/registry.py
+
+from apps.supplier_wallet.routes import wallet_bp
 
 MODULE_NAME = "الإدارة المالية"
-ICON = "fa-wallet"
-SHOW_IN_SUPPLIER = True  # أو False حسب رغبتك
+ICON = "fas fa-wallet"
+SHOW_IN_SUPPLIER = True
 
-# تعريف الروابط والقوائم الفرعية بشكل ديناميكي
-NAV_ITEMS = [
-    {
-        "endpoint": "financial.wallet_movements",  # اسم الendpoint الخاص بحركة المحفظة لديك
-        "title": "حركة المحفظة"
-    },
-    {
-        "endpoint": "financial.withdraw_balance",   # اسم الendpoint الخاص بسحب الرصيد لديك
-        "title": "سحب الرصيد"
-    },
-    {
-        "endpoint": "financial.settlement_reports", # تقارير التسوية إن وجدت
-        "title": "تقارير التسوية"
-    }
-]
+# تعريف الروابط لتظهر العنصرين المطلوبين فقط في القائمة الجانبية
+LINKS = {
+    'supplier_wallet.transactions': 'حركة المحفظة',
+    'supplier_wallet.withdraw': 'سحب الرصيد'
+}
 
 def register_module(app):
-    # تسجيل الـ Blueprint الخاص بالموديول هنا
-    from apps.financial.routes import financial_bp
-    app.register_blueprint(financial_bp, url_prefix='/financial')
-    print("✅ [الإدارة المالية]: تم تسجيل الموديول بنجاح.")
+    """دالة تسجيل الموديول الديناميكي"""
+    app.register_blueprint(wallet_bp)
+    
+    # دعم التوافقية مع النظام الديناميكي
+    app.config.setdefault('supplier_wallet_bp', wallet_bp)
+    
+    print("✅ [الإدارة المالية]: تم تسجيل موديول المحفظة بنجاح.")
