@@ -26,6 +26,10 @@ def register_module(app):
     except Exception as e:
         logger.error(f"❌ [Registry]: فشل تسجيل موديول 'suppliers_dashboard': {e}")
 
+def init_app(app):
+    """دالة التهيئة العامة للموديول لمنع خطأ الاستيراد في الملف الرئيسي"""
+    register_module(app)
+
 class SuppliersDashboardRegistry:
     def __init__(self, app=None):
         self.modules = {}
