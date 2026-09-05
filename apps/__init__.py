@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import importlib
 import secrets
@@ -15,11 +14,10 @@ from sqlalchemy import text, select
 import config
 from apps.extensions import db, login_manager, migrate, limiter
 from apps.services.graphql_client import GraphQLClient
-from apps.utils.seeder import seed_database  # ✅ استيراد seed_database من المسار الصحيح
+from apps.utils.seeder import seed_database
 
 ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
-
 
 def import_all_models():
     """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
@@ -33,11 +31,9 @@ def import_all_models():
                 except Exception as e:
                     print(f"⚠️ [خطأ في استيراد النموذج] فشل استيراد النموذج '{module_name}': {e}")
 
-
 def reset_database_safe():
     """إعادة تعيين قاعدة البيانات بشكل آمن مع تجاوز أخطاء الأنواع المكررة"""
     try:
-        # حذف جميع التسلسلات (sequences) أولاً
         db.session.execute(text("""
             DO $$ DECLARE
                 r RECORD;
@@ -47,8 +43,6 @@ def reset_database_safe():
                 END LOOP;
             END $$;
         """))
-        
-        # حذف جميع الجداول
         db.session.execute(text("""
             DO $$ DECLARE
                 r RECORD;
@@ -58,8 +52,6 @@ def reset_database_safe():
                 END LOOP;
             END $$;
         """))
-        
-        # حذف جميع الأنواع المخصصة (لتجنب خطأ UniqueViolation)
         db.session.execute(text("""
             DO $$ DECLARE
                 r RECORD;
@@ -70,7 +62,6 @@ def reset_database_safe():
                 END LOOP;
             END $$;
         """))
-        
         db.session.commit()
         print("✅ [إعادة تعيين قاعدة البيانات]: تم الحذف بنجاح.")
         return True
@@ -78,7 +69,6 @@ def reset_database_safe():
         db.session.rollback()
         print(f"❌ [خطأ إعادة تعيين قاعدة البيانات]: {e}")
         return False
-
 
 def create_app():
     app = Flask(__name__, static_folder='../static')
@@ -91,9 +81,6 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
 
-    # ============================================================
-    # 🔌 إعدادات الاتصال بقاعدة البيانات
-    # ============================================================
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "pool_pre_ping": True,
         "pool_recycle": 280,
@@ -126,9 +113,6 @@ def create_app():
         }
     })
 
-    # ============================================================
-    # ⚙️ تنظيف وتفريغ الجلسات عند انتهاء الطلب أو وقوع خطأ
-    # ============================================================
     @app.teardown_request
     def shutdown_session(exception=None):
         if exception:
@@ -140,54 +124,37 @@ def create_app():
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
-    # ============================================================
-    # ⚙️ التهيئة وإعادة بناء الجداول بالكامل عند عملية الرفع
-    # ============================================================
     with app.app_context():
         import_all_models()
-        
         try:
-            # 🔍 التحقق من الاتصال بقاعدة البيانات
             db.session.execute(text("SELECT 1"))
             print("✅ [اتصال قاعدة البيانات]: تم التحقق من الاتصال بنجاح.")
-            
-            # 📋 إعادة تعيين قاعدة البيانات بشكل آمن
             print("🔄 [إعادة البناء]: جاري إعادة تعيين قاعدة البيانات...")
-            
             if reset_database_safe():
-                # ✨ إنشاء الجداول الجديدة
                 print("🔄 [إعادة البناء]: جاري إنشاء الجداول بالهيكل الجديد...")
                 db.create_all()
                 print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
-                # 🌱 زراعة البيانات المبدئية باستخدام seeder المستورد
-                seed_database()  # ✅ تم استيرادها من apps.utils.seeder
+                seed_database()
                 print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
             else:
                 print("❌ [إعادة البناء]: فشلت عملية إعادة تعيين قاعدة البيانات.")
-
         except Exception as e:
             db.session.rollback()
             print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
             import traceback
             traceback.print_exc()
 
-    # ============================================================
-    # ⚙️ أمر CLI لإعادة بناء القاعدة يدوياً
-    # ============================================================
     @app.cli.command("rebuild-db")
     def rebuild_db_command():
         """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
         click.echo("🔄 [إعادة بناء القاعدة]: جاري إعادة تعيين قاعدة البيانات...")
         import_all_models()
-        
         if reset_database_safe():
             click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
             db.create_all()
             click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-
             click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
-            seed_database()  # ✅ تم استيرادها من apps.utils.seeder
+            seed_database()
             click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
         else:
             click.echo("❌ [إعادة بناء القاعدة]: فشلت عملية إعادة تعيين قاعدة البيانات.")
@@ -364,9 +331,6 @@ def create_app():
         except Exception as e:
             return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
-    # ============================================================
-    # 🎭 المسار الخادع (لتمويه المتسللين)
-    # ============================================================
     @app.route('/auth/m7jb_sovereign_hq_v2_99x')
     def deceptive_admin_honeypot():
         """مسار خادع لتسجيل الدخول الوهمي"""
@@ -394,11 +358,6 @@ def create_app():
 
         return redirect(admin_login_path)
 
-    # ============================================================
-    # 🗂️ تسجيل البوابات والموديولات
-    # ============================================================
-
-    # ✅ تسجيل بوابة المصادقة الإدارية
     try:
         from apps.auth_portal.routes import auth_bp
         app.register_blueprint(auth_bp)
@@ -424,13 +383,12 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # ✅ تسجيل بوابة الموردين
     try:
         from apps.suppliers_auth_portal.routes import suppliers_auth_bp
         app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_auth_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
-        print(f"    📍 المسار: /supplier")
+        print("    📍 المسار: /supplier")
     except ImportError:
         try:
             from apps.suppliers_auth_portal.registry import suppliers_auth_bp
@@ -456,7 +414,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
-    # ✅ تسجيل مسارات GraphQL
     try:
         from apps.admin.graphql_routes import graphql_bp
         app.register_blueprint(graphql_bp)
@@ -467,9 +424,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
-    # ============================================================
-    # 📱 تسجيل مسار الواتساب العام
-    # ============================================================
     try:
         from apps.whatsapp_service.routes import whatsapp_bp
 
@@ -482,9 +436,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
-    # ============================================================
-    # 🔄 التسجيل الديناميكي التلقائي لجميع الموديولات
-    # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
                      'migrations', 'utils', 'api', 'data', 'auth_portal', 
@@ -540,9 +491,7 @@ def create_app():
                             "links": links_data,
                         }
                         
-                        # 🛠️ التعديل الجذري لمنع تكرار المحفظة في الإدارة المالية ولوحة الموردين
                         if item == 'supplier_wallet':
-                            # إزالة المحفظة تماماً من القوائم الجانبية الجبرية لتجنب تكرارها داخل قسم الإدارة المالية
                             continue
 
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
@@ -552,9 +501,6 @@ def create_app():
                 except Exception as e:
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
-    # ============================================================
-    # 📝 معالج السياق (Context Processor)
-    # ============================================================
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
@@ -596,7 +542,6 @@ def create_app():
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
-        # التأكد الإضافي من إزالة المحفظة من الموديولات المدمجة للموردين لضمان عدم ظهورها مكررة
         if 'supplier_wallet' in combined_supplier_modules:
             del combined_supplier_modules['supplier_wallet']
 
