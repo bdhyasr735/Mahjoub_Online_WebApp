@@ -1,10 +1,21 @@
-# ============================================================
-    # 🔌 التسجيل اليدوي لموديول لوحة تحكم الموردين
-    # ============================================================
-    try:
-        from apps.suppliers_dashboard import suppliers_dashboard_bp
-        if 'suppliers_dashboard_core' not in app.blueprints:
-            app.register_blueprint(suppliers_dashboard_bp)
-            print("✅ [لوحة تحكم الموردين]: تم تسجيل موديول 'suppliers_dashboard' بنجاح.")
-    except Exception as e:
-        print(f"❌ [خطأ لوحة تحكم الموردين]: فشل تسجيل الموديول: {e}")
+# -*- coding: utf-8 -*-
+
+MODULE_NAME = "لوحة التحكم"
+MODULE_ICON = "fa-tachometer-alt"
+SHOW_IN_SUPPLIER = True
+
+# الروابط التي ستظهر في القائمة الجانبية للمورد
+NAV_ITEMS = [
+    {
+        "endpoint": "suppliers_dashboard.supplier_dashboard_index",
+        "title": "الرئيسية",
+        "icon": "fa-home"
+    }
+]
+
+def register_module(app):
+    """دالة تسجيل الموديول تلقائياً"""
+    from apps.suppliers_dashboard import suppliers_dashboard_bp
+    if 'suppliers_dashboard_core' not in app.blueprints:
+        app.register_blueprint(suppliers_dashboard_bp)
+    print("✅ [تسجيل موديول لوحة الموردين]: تم ربط مسارات وقوائم الموديول بنجاح.")
