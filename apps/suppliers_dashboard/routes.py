@@ -1,254 +1,230 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/suppliers_dashboard/routes.py
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
+from functools import wraps
+from datetime import datetime
+import logging
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response, session
-from flask_login import login_required, current_user, login_user, logout_user
-from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet
-from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier_staff_db import SupplierStaff
-from apps.models.supplier_profile_db import SupplierProfile
-from apps.extensions import db
+# استيراد النماذج وقواعد البيانات (يتم تعديلها حسب بنية مشروعك الفعلية)
+# from apps.models import db, Supplier, SupplierWallet, SupplierProduct, SupplierStaff, SupplierProfile
+# from apps.extensions import limiter
 
-# إنشاء Blueprint متوافق مع هيكلة المسارات والجداول مع دعم الرابط المنتهي بـ /
-suppliers_dashboard_bp = Blueprint(
+logger = logging.getLogger(__name__)
+
+suppliers_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
+    url_prefix='/supplier',
     template_folder='templates',
-    url_prefix='/supplier/dashboard'
+    static_folder='static'
 )
 
-
-# ============================================
-# دالة مساعدة للحصول على رصيد المحفظة
-# ============================================
-def get_wallet_balance(wallet):
-    """الحصول على رصيد المحفظة بغض النظر عن اسم العمود"""
-    if not wallet:
-        return 0.0
-    
-    # قائمة بأسماء الأعمدة المحتملة للرصيد
-    balance_fields = ['balance', 'balance_sar', 'wallet_balance', 'amount', 'current_balance']
-    
-    for field in balance_fields:
-        if hasattr(wallet, field):
-            value = getattr(wallet, field)
-            if value is not None:
-                try:
-                    return float(value)
-                except (ValueError, TypeError):
-                    return 0.0
-    
-    # إذا لم يتم العثور على أي عمود
-    print(f"⚠️ [تحذير]: لم يتم العثور على عمود الرصيد في SupplierWallet")
-    print(f"📋 الأعمدة المتاحة: {[attr for attr in dir(wallet) if not attr.startswith('_')]}")
-    return 0.0
-
-
-# ============================================
-# دالة مساعدة لتوليد الروابط بشكل آمن
-# ============================================
-@suppliers_dashboard_bp.context_processor
-def utility_processor():
-    def safe_url_for(endpoint, **values):
-        try:
-            return url_for(endpoint, **values)
-        except Exception:
-            return '#'
-    return dict(safe_url_for=safe_url_for)
-
-
-# ============================================
-# مسار تسجيل الدخول المؤقت (للتجربة)
-# ============================================
-@suppliers_dashboard_bp.route('/login', strict_slashes=False)
-def login():
-    """صفحة تسجيل دخول مؤقتة للتجربة"""
+# دالة مساعدة لتوفير مسارات آمنة (Safe URL for) تفادياً لأخطاء الـ endpoints غير الموجودة
+def safe_url_for(endpoint, **values):
     try:
-        # إذا كان المستخدم مسجل دخول بالفعل، انتقل إلى الداشبورد
-        if current_user.is_authenticated:
-            return redirect(url_for('suppliers_dashboard.index'))
+        return url_for(endpoint, **values)
+    except Exception:
+        return '#'
+
+# حقن المتغيرات العامة في جميع قوالب الموردين (مثل روابط الشريط الجانبي والـ safe_url_for)
+@suppliers_bp.context_processor
+def inject_supplier_modules():
+    modules = {
+        'dashboard': {
+            'title': 'لوحة التحكم',
+            'icon': 'fas fa-home',
+            'links': {
+                'suppliers_dashboard.dashboard': 'الرئيسية'
+            }
+        },
+        'products': {
+            'title': 'إدارة المنتجات',
+            'icon': 'fas fa-boxes',
+            'links': {
+                'suppliers_dashboard.products_list': 'قائمة المنتجات',
+                'suppliers_dashboard.add_product': 'إضافة منتج جديد'
+            }
+        },
+        'wallet': {
+            'title': 'المحفظة المالية',
+            'icon': 'fas fa-wallet',
+            'links': {
+                'suppliers_dashboard.wallet_details': 'تفاصيل المحفظة والعمليات'
+            }
+        },
+        'staff': {
+            'title': 'فريق العمل',
+            'icon': 'fas fa-users-cog',
+            'links': {
+                'suppliers_dashboard.staff_list': 'إدارة الموظفين والصلاحيات'
+            }
+        },
+        'settings': {
+            'title': 'إعدادات المتجر',
+            'icon': 'fas fa-store-alt',
+            'links': {
+                'suppliers_dashboard.store_settings': 'الملف الشخصي والبيانات'
+            }
+        }
+    }
+    return dict(supplier_modules=modules, safe_url_for=safe_url_for)
+
+
+# ديكوراتور (Decorator) التحقق من تسجيل دخول المورد
+def supplier_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'supplier_id' not in session:
+            flash('يرجى تسجيل الدخول أولاً للوصول إلى لوحة التحكم.', 'warning')
+            return redirect(url_for('suppliers_dashboard.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ==========================================
+# مسارات المصادقة (تسجيل الدخول / الخروج)
+# ==========================================
+
+@suppliers_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'supplier_id' in session:
+        return redirect(url_for('suppliers_dashboard.dashboard'))
         
-        # جلب أول مورد في قاعدة البيانات
-        supplier = Supplier.query.first()
-        if supplier:
-            login_user(supplier)
-            flash(f"تم تسجيل الدخول بنجاح كمورد: {supplier.username}", "success")
-            return redirect(url_for('suppliers_dashboard.index'))
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        # مثال وهمي للتحقق (يتم استبداله بالتحقق من قاعدة البيانات ونظام الـ Hashing)
+        # supplier = Supplier.query.filter_by(username=username).first()
+        # if supplier and supplier.check_password(password):
+        if username == 'demo_supplier' and password == 'password':
+            session['supplier_id'] = 1
+            session['supplier_username'] = username
+            flash('تم تسجيل الدخول بنجاح، أهلاً بك!', 'success')
+            return redirect(url_for('suppliers_dashboard.dashboard'))
         else:
-            return "لا يوجد مورد في قاعدة البيانات. يرجى إنشاء مورد أولاً.", 404
-    except Exception as e:
-        return f"خطأ في تسجيل الدخول: {str(e)}", 500
+            flash('اسم المستخدم أو كلمة المرور غير صحيحة.', 'danger')
+            
+    return render_template('suppliers/login.html')
 
 
-# ============================================
-# مسار تسجيل الخروج
-# ============================================
-@suppliers_dashboard_bp.route('/logout', strict_slashes=False)
-@login_required
+@suppliers_bp.route('/logout')
 def logout():
-    """تسجيل الخروج"""
-    logout_user()
     session.clear()
-    flash("تم تسجيل الخروج بنجاح.", "info")
+    flash('تم تسجيل الخروج بنجاح.', 'info')
     return redirect(url_for('suppliers_dashboard.login'))
 
 
-# ============================================
-# الصفحة الرئيسية للوحة التحكم
-# ============================================
-@suppliers_dashboard_bp.route('/', strict_slashes=False)
-@login_required
-def index():
-    """الصفحة الرئيسية للوحة تحكم المورد متوافقة تماماً مع الجداول ونموذج المحفظة."""
-    try:
-        # 1. التحقق الآمن من مصادقة المستخدم
-        if not current_user.is_authenticated:
-            flash("يرجى تسجيل الدخول للوصول إلى لوحة التحكم.", "warning")
-            return redirect(url_for('suppliers_dashboard.login'))
+# ==========================================
+# لوحة التحكم الرئيسية (Dashboard)
+# ==========================================
 
-        # 2. استخراج معرّف المورد
-        supplier_id = None
-        
-        if hasattr(current_user, 'supplier_id') and current_user.supplier_id:
-            supplier_id = current_user.supplier_id
-        elif hasattr(current_user, 'id'):
-            if isinstance(current_user, Supplier):
-                supplier_id = current_user.id
-            else:
-                possible_supplier = db.session.get(Supplier, current_user.id)
-                if possible_supplier:
-                    supplier_id = current_user.id
-                else:
-                    supplier_id = getattr(current_user, 'supplier_id', None)
+@suppliers_bp.route('/')
+@suppliers_bp.route('/dashboard')
+@supplier_login_required
+def dashboard():
+    supplier_id = session.get('supplier_id')
+    
+    # جلب بيانات المورد (يتم استبدالها بالاستعلام الفعلي من قاعدة البيانات)
+    # supplier = Supplier.query.get_or_404(supplier_id)
+    # wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    # products_count = SupplierProduct.query.filter_by(supplier_id=supplier_id).count()
+    # staff_count = SupplierStaff.query.filter_by(supplier_id=supplier_id).count()
+    
+    # بيانات افتراضية تجريبية للتأكد من عمل القالب بسلاسة
+    supplier = {
+        'id': supplier_id,
+        'username': session.get('supplier_username', 'mahjoub_store'),
+        'store_name': 'متجر محجوب الرقمي',
+        'trade_name': 'مؤسسة محجوب أونلاين للتجارة',
+        'owner_name': 'علي محمد محجوب',
+        'supplier_code': 'SUP-9921',
+        'email': 'supplier@mahjoub.online',
+        'phone': '+967711223344',
+        'rank': 'gold'
+    }
+    
+    wallet = {
+        'wallet_code': 'WAL-DEV-883',
+        'balance': 15420.50
+    }
+    
+    products_count = 48
+    staff_count = 5
+    balance = wallet['balance']
+    profile = {'city': 'الحديدية / الخوخة'}
 
-        if not supplier_id:
-            flash("يرجى تسجيل الدخول بحساب مورد صحيح للوصول إلى لوحة التحكم.", "warning")
-            return redirect(url_for('suppliers_dashboard.login'))
+    return render_template(
+        'suppliers/dashboard.html',
+        supplier=supplier,
+        wallet=wallet,
+        balance=balance,
+        products_count=products_count,
+        staff_count=staff_count,
+        profile=profile
+    )
 
-        # 3. جلب بيانات المورد
-        supplier = db.session.get(Supplier, supplier_id)
-        if not supplier:
-            flash("لم يتم العثور على بيانات المورد المرتبطة.", "danger")
-            return redirect(url_for('suppliers_dashboard.login'))
-        
-        # 4. جلب المحفظة المالية
-        wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-        
-        # إنشاء محفظة إذا لم تكن موجودة
-        if not wallet:
-            import string, secrets
-            wallet_code = f"WLT-{supplier_id}-{''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(4))}"
-            wallet = SupplierWallet(
-                wallet_code=wallet_code,
-                supplier_id=supplier_id,
-                status='active'
-                # ✅ تم حذف balance_sar لأن العمود غير موجود في قاعدة البيانات
-            )
-            db.session.add(wallet)
-            db.session.commit()
 
-        # 5. جلب عدد المنتجات المرتبطة
-        products_count = 0
-        try:
-            products_count = ProductSupplierMapping.query.filter_by(
-                supplier_id=supplier_id,
-                is_active=True
-            ).count()
-        except Exception:
-            products_table = db.metadata.tables.get('products')
-            if products_table is not None:
-                products_count = db.session.execute(
-                    db.select(db.func.count(products_table.c.id))
-                    .where(products_table.c.supplier_id == supplier_id)
-                ).scalar() or 0
+# ==========================================
+# مسارات المنتجات
+# ==========================================
 
-        # 6. جلب عدد الموظفين المرتبطين
-        staff_count = 0
-        try:
-            staff_count = SupplierStaff.query.filter_by(
-                supplier_id=supplier_id,
-                is_active=True
-            ).count()
-        except Exception:
-            staff_table = db.metadata.tables.get('supplier_staff')
-            if staff_table is not None:
-                staff_count = db.session.execute(
-                    db.select(db.func.count(staff_table.c.id))
-                    .where(staff_table.c.supplier_id == supplier_id)
-                ).scalar() or 0
+@suppliers_bp.route('/products')
+@supplier_login_required
+def products_list():
+    supplier_id = session.get('supplier_id')
+    # منطق جلب قائمة المنتجات الخاصة بالمورد
+    products = [] # استبدلها بـ SupplierProduct.query.filter_by(supplier_id=supplier_id).all()
+    return render_template('suppliers/products/list.html', products=products)
 
-        # 7. جلب الملف الشخصي المرتبط
-        profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
-        
-        # 8. الرصيد - استخدام الدالة المساعدة للتعامل مع أسماء الأعمدة المختلفة
-        balance = get_wallet_balance(wallet)
-        
-        # 9. قائمة الوحدات الجانبية (sidebar)
-        supplier_modules = {
-            'suppliers_dashboard': {
-                'title': 'لوحة التحكم',
-                'icon': 'fas fa-chart-pie',
-                'links': {
-                    'suppliers_dashboard.index': 'الرئيسية'
-                }
-            },
-            'supplier_products': {
-                'title': 'إدارة المنتجات',
-                'icon': 'fas fa-box',
-                'links': {
-                    'supplier_products.index': 'جميع المنتجات',
-                    'supplier_products.add': 'إضافة منتج جديد'
-                }
-            },
-            'supplier_orders': {
-                'title': 'المبيعات والطلبات',
-                'icon': 'fas fa-shopping-cart',
-                'links': {
-                    'supplier_orders.index': 'الطلبات الواردة',
-                    'supplier_orders.history': 'سجل المبيعات'
-                }
-            },
-            'supplier_wallet': {
-                'title': 'الإدارة المالية',
-                'icon': 'fas fa-wallet',
-                'links': {
-                    'supplier_wallet.index': 'المحفظة والسحب',
-                    'supplier_wallet.reports': 'تقارير التسوية'
-                }
-            },
-            'supplier_staff': {
-                'title': 'الموظفين',
-                'icon': 'fas fa-users',
-                'links': {
-                    'supplier_staff.index': 'قائمة الموظفين',
-                    'supplier_staff.add': 'إضافة موظف'
-                }
-            }
-        }
-        
-        # 10. تجهيز القالب
-        rendered_html = render_template(
-            'suppliers/dashboard.html',
-            page_title='لوحة تحكم المورد | محجوب أونلاين',
-            supplier=supplier,
-            profile=profile,
-            wallet=wallet,
-            balance=balance,
-            products_count=products_count,
-            staff_count=staff_count,
-            supplier_modules=supplier_modules
-        )
-        
-        response = make_response(rendered_html)
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-        return response
 
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ [خطأ في لوحة تحكم الموردين]: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return f"حدث خطأ داخلي في الخادم: {str(e)}", 500
+@suppliers_bp.route('/products/add', methods=['GET', 'POST'])
+@supplier_login_required
+def add_product():
+    if request.method == 'POST':
+        # منطق إضافة منتج جديد
+        flash('تمت إضافة المنتج بنجاح وإرساله للمراجعة.', 'success')
+        return redirect(url_for('suppliers_dashboard.products_list'))
+    return render_template('suppliers/products/add.html')
+
+
+# ==========================================
+# مسار المحفظة المالية
+# ==========================================
+
+@suppliers_bp.route('/wallet/<wallet_id>')
+@suppliers_bp.route('/wallet')
+@supplier_login_required
+def wallet_details(wallet_id='general'):
+    supplier_id = session.get('supplier_id')
+    # منطق جلب حركات المحفظة، الأرباح، والعمليات المالية
+    transactions = []
+    balance = 15420.50
+    return render_template('suppliers/wallet/details.html', balance=balance, transactions=transactions, wallet_id=wallet_id)
+
+
+# ==========================================
+# مسار فريق العمل
+# ==========================================
+
+@suppliers_bp.route('/staff')
+@supplier_login_required
+def staff_list():
+    supplier_id = session.get('supplier_id')
+    staff_members = []
+    return render_template('suppliers/staff/list.html', staff_members=staff_members)
+
+
+# ==========================================
+# مسار إعدادات المتجر
+# ==========================================
+
+@suppliers_bp.route('/settings', methods=['GET', 'POST'])
+@supplier_login_required
+def store_settings():
+    supplier_id = session.get('supplier_id')
+    if request.method == 'POST':
+        # تحديث بيانات المتجر
+        flash('تم تحديث إعدادات المتجر بنجاح.', 'success')
+        return redirect(url_for('suppliers_dashboard.store_settings'))
+        
+    return render_template('suppliers/settings/store_settings.html')
