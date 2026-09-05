@@ -7,6 +7,7 @@ from apps.extensions import db
 
 logger = logging.getLogger(__name__)
 
+# ✅ تأكد من تعريف كلا الاسمين لتجنب أي خطأ استيراد مستقبلاً
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
@@ -14,6 +15,9 @@ suppliers_dashboard_bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
+
+# نسخة مطابقة بنفس الـ Blueprint لتغطية أي استيراد باسم مختلف
+suppliers_bp = suppliers_dashboard_bp
 
 def safe_url_for(endpoint, **values):
     try:
@@ -23,7 +27,6 @@ def safe_url_for(endpoint, **values):
 
 @suppliers_dashboard_bp.context_processor
 def inject_global_vars():
-    #متغيرات عامة آمنة للواجهات
     return dict(safe_url_for=safe_url_for)
 
 def supplier_login_required(f):
@@ -34,11 +37,6 @@ def supplier_login_required(f):
             return redirect(url_for('suppliers_dashboard.login'))
         return f(*args, **kwargs)
     return decorated_function
-
-
-# ==========================================
-# مسارات المصادقة (إنتاج)
-# ==========================================
 
 @suppliers_dashboard_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -65,17 +63,11 @@ def login():
             
     return render_template('suppliers/login.html')
 
-
 @suppliers_dashboard_bp.route('/logout')
 def logout():
     session.clear()
     flash('تم تسجيل الخروج بنجاح.', 'info')
     return redirect(url_for('suppliers_dashboard.login'))
-
-
-# ==========================================
-# لوحة التحكم الرئيسية (Dashboard - نظيفة وديناميكية)
-# ==========================================
 
 @suppliers_dashboard_bp.route('/')
 @suppliers_dashboard_bp.route('/dashboard')
@@ -95,7 +87,6 @@ def dashboard():
         from apps.models.wallet_db import SupplierWallet
         from apps.models.product_db import Product
 
-        # جلب البيانات الحقيقية فقط من قاعدة البيانات
         supplier_obj = Supplier.query.get(supplier_id)
         wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
         profile_obj = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
@@ -112,7 +103,6 @@ def dashboard():
     except Exception as e:
         logger.error(f"❌ [Supplier Dashboard Production Error]: {e}")
 
-    # تجهيز هيكل البيانات للرندر بدون أي بيانات وهمية أو حقن نوافذ غريبة
     supplier = {
         'id': supplier_obj.id if supplier_obj else supplier_id,
         'username': getattr(supplier_obj, 'username', session.get('supplier_username', '')),
