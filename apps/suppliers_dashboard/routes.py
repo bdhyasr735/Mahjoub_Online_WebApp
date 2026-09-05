@@ -7,7 +7,7 @@ from apps.extensions import db
 
 logger = logging.getLogger(__name__)
 
-# ✅ تأكد من تعريف كلا الاسمين لتجنب أي خطأ استيراد مستقبلاً
+# ✅ تعريف Blueprint وتوجيه مجلد القوالب مباشرة إلى مجلد templates داخل الموديول
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
@@ -18,6 +18,11 @@ suppliers_dashboard_bp = Blueprint(
 
 # نسخة مطابقة بنفس الـ Blueprint لتغطية أي استيراد باسم مختلف
 suppliers_bp = suppliers_dashboard_bp
+
+def register_module(app):
+    """دالة التسجيل التلقائي المطلوبة بواسطة create_app لتسجيل البلوبرنت في التطبيق الرئيسي"""
+    app.register_blueprint(suppliers_dashboard_bp)
+    print("✅ [مجلد الموردين]: تم تسجيل موديول لوحة تحكم الموردين بنجاح.")
 
 def safe_url_for(endpoint, **values):
     try:
@@ -87,7 +92,7 @@ def dashboard():
         from apps.models.wallet_db import SupplierWallet
         from apps.models.product_db import Product
 
-        supplier_obj = Supplier.query.get(supplier_id)
+        supplier_obj = db.session.get(Supplier, supplier_id)
         wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
         profile_obj = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
 
