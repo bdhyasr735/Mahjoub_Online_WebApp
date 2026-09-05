@@ -8,4 +8,9 @@ suppliers_dashboard_bp = Blueprint(
     static_folder='static'
 )
 
+def register_module(app):
+    """دالة التسجيل الديناميكي لتتوافق مع نظام المحمل العام في محجوب أونلاين"""
+    app.register_blueprint(suppliers_dashboard_bp, url_prefix='/suppliers')
+    # يمكنك تعديل الـ url_prefix حسب مسار التطبيق لديك
+
 from apps.suppliers_dashboard import routes
