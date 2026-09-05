@@ -20,6 +20,32 @@ suppliers_dashboard_bp = Blueprint(
 
 
 # ============================================
+# دالة مساعدة للحصول على رصيد المحفظة
+# ============================================
+def get_wallet_balance(wallet):
+    """الحصول على رصيد المحفظة بغض النظر عن اسم العمود"""
+    if not wallet:
+        return 0.0
+    
+    # قائمة بأسماء الأعمدة المحتملة للرصيد
+    balance_fields = ['balance', 'balance_sar', 'wallet_balance', 'amount', 'current_balance']
+    
+    for field in balance_fields:
+        if hasattr(wallet, field):
+            value = getattr(wallet, field)
+            if value is not None:
+                try:
+                    return float(value)
+                except (ValueError, TypeError):
+                    return 0.0
+    
+    # إذا لم يتم العثور على أي عمود
+    print(f"⚠️ [تحذير]: لم يتم العثور على عمود الرصيد في SupplierWallet")
+    print(f"📋 الأعمدة المتاحة: {[attr for attr in dir(wallet) if not attr.startswith('_')]}")
+    return 0.0
+
+
+# ============================================
 # دالة مساعدة لتوليد الروابط بشكل آمن
 # ============================================
 @suppliers_dashboard_bp.context_processor
@@ -116,8 +142,8 @@ def index():
             wallet = SupplierWallet(
                 wallet_code=wallet_code,
                 supplier_id=supplier_id,
-                status='active',
-                balance_sar=0.00
+                status='active'
+                # ✅ تم حذف balance_sar لأن العمود غير موجود في قاعدة البيانات
             )
             db.session.add(wallet)
             db.session.commit()
@@ -155,8 +181,8 @@ def index():
         # 7. جلب الملف الشخصي المرتبط
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first()
         
-        # 8. الرصيد
-        balance = float(wallet.balance_sar or 0.0) if wallet else 0.0
+        # 8. الرصيد - استخدام الدالة المساعدة للتعامل مع أسماء الأعمدة المختلفة
+        balance = get_wallet_balance(wallet)
         
         # 9. قائمة الوحدات الجانبية (sidebar)
         supplier_modules = {
