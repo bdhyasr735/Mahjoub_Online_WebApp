@@ -1,61 +1,23 @@
-def get_sidebar_modules():
-    """دالة مساعدة لجلب الموديولات والقوائم الجانبية الخاصة بلوحة تحكم المورد"""
-    supplier_modules = {}
+from flask import Blueprint
+
+# تعريف البلوبرنت الخاص بمحفظة الموردين مع تحديد مسار القوالب ومجلدات الـ static إن وجدت
+supplier_wallet_bp = Blueprint(
+    'supplier_wallet',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/supplier/wallet'
+)
+
+def register_supplier_wallet_app(app):
+    """
+    دالة لتسجيل تطبيق محفظة الموردين وتوابعه في التطبيق الرئيسي Flask
+    """
+    # استيراد المسارات هنا لتجنب المشاكل الدائرية (Circular Imports)
+    from . import routes
     
-    # محاولة جلب الموديولات من السجل الرئيسي
-    try:
-        from apps.suppliers_dashboard.registry import MODULES_REGISTRY
-        if MODULES_REGISTRY:
-            supplier_modules = MODULES_REGISTRY.copy()
-    except ImportError:
-        pass
+    # تسجيل الـ Blueprint في التطبيق الرئيسي
+    app.register_blueprint(supplier_wallet_bp)
     
-    # محاولة جلب الموديولات من current_app
-    if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
-        supplier_modules = current_app.supplier_modules.copy()
-    
-    # ✅ القائمة الاحتياطية الكاملة (جميع الموديولات)
-    if not supplier_modules:
-        supplier_modules = {
-            'suppliers_dashboard': {
-                'title': 'الرئيسية',
-                'icon': 'fas fa-chart-pie',
-                'links': {
-                    'suppliers_dashboard.index': 'الرئيسية'
-                }
-            },
-            'supplier_products': {
-                'title': 'إدارة المنتجات',
-                'icon': 'fas fa-box',
-                'links': {
-                    'supplier_products.index': 'جميع المنتجات',
-                    'supplier_products.add': 'إضافة منتج جديد'
-                }
-            },
-            'supplier_orders': {
-                'title': 'المبيعات والطلبات',
-                'icon': 'fas fa-shopping-cart',
-                'links': {
-                    'supplier_orders.index': 'الطلبات الواردة',
-                    'supplier_orders.history': 'سجل المبيعات'
-                }
-            },
-            'supplier_wallet': {
-                'title': 'الإدارة المالية',
-                'icon': 'fas fa-coins',
-                'links': {
-                    'supplier_wallet.transactions_redirect': 'حركة المحفظة',
-                    'supplier_wallet.withdraw_redirect': 'سحب الرصيد'
-                }
-            },
-            'supplier_staff': {
-                'title': 'الموظفين',
-                'icon': 'fas fa-users',
-                'links': {
-                    'supplier_staff.index': 'قائمة الموظفين',
-                    'supplier_staff.add': 'إضافة موظف'
-                }
-            }
-        }
-    
-    return supplier_modules
+    # يمكنك إضافة أي تهيئة إضافية هنا (مثل تسجيل خدمات أو أدوات مساعدة عامة)
+    print("Supplier Wallet App registered successfully.")
