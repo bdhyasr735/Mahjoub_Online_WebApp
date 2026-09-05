@@ -76,6 +76,7 @@ def logout():
 
 @suppliers_dashboard_bp.route('/')
 @suppliers_dashboard_bp.route('/dashboard')
+@suppliers_dashboard_bp.route('/dashboard/')  # ✅ دعم الرابط مع وجود سلاش في النهاية للإنتاج
 @supplier_login_required
 def dashboard():
     supplier_id = session.get('supplier_id')
