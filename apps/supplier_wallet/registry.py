@@ -2,7 +2,6 @@
 # 📂 apps/supplier_wallet/registry.py
 
 from apps.supplier_wallet.routes import wallet_bp
-from flask import url_for
 
 # ============================================
 # معلومات الموديول للتسجيل الديناميكي
