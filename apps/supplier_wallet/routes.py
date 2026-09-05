@@ -17,6 +17,28 @@ from decimal import Decimal
 wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
 
+# ============================================
+# دالة مساعدة للحصول على رصيد المحفظة بأمان
+# ============================================
+def get_wallet_balance(wallet):
+    """الحصول على رصيد المحفظة بغض النظر عن اسم العمود"""
+    if not wallet:
+        return Decimal('0.0')
+    
+    # قائمة بأسماء الأعمدة المحتملة للرصيد
+    if hasattr(wallet, 'balance'):
+        return Decimal(str(wallet.balance or 0.0))
+    elif hasattr(wallet, 'balance_sar'):
+        return Decimal(str(wallet.balance_sar or 0.0))
+    elif hasattr(wallet, 'wallet_balance'):
+        return Decimal(str(wallet.wallet_balance or 0.0))
+    elif hasattr(wallet, 'amount'):
+        return Decimal(str(wallet.amount or 0.0))
+    else:
+        print(f"⚠️ [تحذير]: لم يتم العثور على عمود الرصيد في SupplierWallet")
+        return Decimal('0.0')
+
+
 def get_sidebar_modules():
     """دالة مساعدة لجلب الموديولات والقوائم الجانبية الخاصة بلوحة تحكم المورد حصرياً"""
     supplier_modules = {}
@@ -122,6 +144,9 @@ def withdraw(wallet_id):
     if not wallet:
         return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
+    # ✅ الحصول على الرصيد الحالي بأمان
+    current_balance = get_wallet_balance(wallet)
+
     if request.method == 'POST':
         try:
             raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
@@ -130,7 +155,8 @@ def withdraw(wallet_id):
             if amount <= 0:
                 raise ValueError("مبلغ السحب يجب أن يكون أكبر من الصفر")
                 
-            if amount > wallet.balance_sar:
+            # ✅ استخدام current_balance بدلاً من wallet.balance_sar
+            if amount > current_balance:
                 raise ValueError("المبلغ المطلوب يتجاوز رصيد المحفظة المتاح")
 
             bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة')
@@ -144,10 +170,12 @@ def withdraw(wallet_id):
         except ValueError as e:
             db.session.rollback()
             print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
+            flash(str(e), "danger")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Withdrawal Exception]: {str(e)}")
             traceback.print_exc()
+            flash(f"حدث خطأ: {str(e)}", "danger")
 
         return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id))
 
@@ -165,6 +193,7 @@ def withdraw(wallet_id):
     return render_template(
         'supplier_wallet/withdrawal_form.html',
         wallet=wallet,
+        balance=current_balance,  # ✅ تمرير الرصيد إلى القالب
         active_bank=active_bank,
         pagination=pagination,
         supplier_modules=modules,
@@ -238,9 +267,13 @@ def transactions(wallet_id):
     transactions = query.order_by(WalletTransaction.created_at.desc()).all()
     modules = get_sidebar_modules()
 
+    # ✅ الحصول على الرصيد للقالب
+    balance = get_wallet_balance(wallet)
+
     return render_template(
         'supplier_wallet/wallet_transactions.html',
         wallet=wallet,
+        balance=balance,  # ✅ تمرير الرصيد إلى القالب
         transactions=transactions,
         supplier_modules=modules,
         modules_registry=modules
