@@ -14,7 +14,6 @@ NAV_ITEMS = [
 ]
 
 def register_module(app):
-    """دالة التسجيل التلقائي المطلوبة في التطبيق الرئيسي"""
+    """دالة احتياطية للتسجيل التلقائي إن طلبها النظام"""
     if 'suppliers_dashboard' not in app.blueprints:
         app.register_blueprint(suppliers_dashboard_bp)
-        print("✅ [تسجيل الموديول]: تم تسجيل لوحة تحكم الموردين بنجاح عبر registry.py")
