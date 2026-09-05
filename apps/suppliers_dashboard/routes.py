@@ -7,7 +7,7 @@ from apps.extensions import db
 
 logger = logging.getLogger(__name__)
 
-suppliers_bp = Blueprint(
+suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
     url_prefix='/supplier',
@@ -21,7 +21,7 @@ def safe_url_for(endpoint, **values):
     except Exception:
         return '#'
 
-@suppliers_bp.context_processor
+@suppliers_dashboard_bp.context_processor
 def inject_global_vars():
     #متغيرات عامة آمنة للواجهات
     return dict(safe_url_for=safe_url_for)
@@ -40,7 +40,7 @@ def supplier_login_required(f):
 # مسارات المصادقة (إنتاج)
 # ==========================================
 
-@suppliers_bp.route('/login', methods=['GET', 'POST'])
+@suppliers_dashboard_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if 'supplier_id' in session:
         return redirect(url_for('suppliers_dashboard.dashboard'))
@@ -66,7 +66,7 @@ def login():
     return render_template('suppliers/login.html')
 
 
-@suppliers_bp.route('/logout')
+@suppliers_dashboard_bp.route('/logout')
 def logout():
     session.clear()
     flash('تم تسجيل الخروج بنجاح.', 'info')
@@ -77,8 +77,8 @@ def logout():
 # لوحة التحكم الرئيسية (Dashboard - نظيفة وديناميكية)
 # ==========================================
 
-@suppliers_bp.route('/')
-@suppliers_bp.route('/dashboard')
+@suppliers_dashboard_bp.route('/')
+@suppliers_dashboard_bp.route('/dashboard')
 @supplier_login_required
 def dashboard():
     supplier_id = session.get('supplier_id')
