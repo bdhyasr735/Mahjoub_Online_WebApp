@@ -130,6 +130,28 @@ def get_current_wallet_identifier():
     return str(supplier_id)
 
 
+# ============================================
+# مسارات إعادة التوجيه بدون wallet_id (للقائمة الجانبية)
+# ============================================
+@wallet_bp.route('/transactions')
+@login_required
+def transactions_redirect():
+    """إعادة توجيه إلى حركة المحفظة مع wallet_id الفعلي"""
+    wallet_id = get_current_wallet_identifier()
+    return redirect(url_for('supplier_wallet.transactions', wallet_id=wallet_id))
+
+
+@wallet_bp.route('/withdraw')
+@login_required
+def withdraw_redirect():
+    """إعادة توجيه إلى سحب الرصيد مع wallet_id الفعلي"""
+    wallet_id = get_current_wallet_identifier()
+    return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id))
+
+
+# ============================================
+# المسارات الرئيسية
+# ============================================
 @wallet_bp.route('/')
 @wallet_bp.route('/dashboard')
 @login_required
