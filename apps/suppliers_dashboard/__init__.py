@@ -2,9 +2,9 @@
 
 from flask import Blueprint, render_template
 
-# إنشاء Blueprint لوحة تحكم الموردين مع تحديد مسار القوالب والبادئة
+# استخدام اسم فريد للـ Blueprint لمنع التضارب
 suppliers_dashboard_bp = Blueprint(
-    'suppliers_dashboard',
+    'suppliers_dashboard_core',
     __name__,
     template_folder='templates',
     url_prefix='/supplier'
@@ -18,6 +18,6 @@ def supplier_dashboard_index():
 
 def register_module(app):
     """دالة التسجيل الديناميكي للموديول في التطبيق الرئيسي"""
-    if 'suppliers_dashboard' not in app.blueprints:
+    if 'suppliers_dashboard_core' not in app.blueprints:
         app.register_blueprint(suppliers_dashboard_bp)
     print("✅ [لوحة تحكم الموردين]: تم تسجيل موديول 'suppliers_dashboard' بنجاح.")
