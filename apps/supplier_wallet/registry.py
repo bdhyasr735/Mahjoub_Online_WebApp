@@ -11,7 +11,7 @@ DISPLAY_NAME = "الإدارة المالية"
 MODULE_ICON = "fa-coins"
 SHOW_IN_SUPPLIER = True
 
-# ✅ استخدام مسارات إعادة التوجيه (Redirect) بدلاً من المسارات المباشرة
+# ✅ استخدام مسارات إعادة التوجيه (Redirect)
 LINKS = {
     'supplier_wallet.transactions_redirect': 'حركة المحفظة',
     'supplier_wallet.withdraw_redirect': 'سحب الرصيد'
