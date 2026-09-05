@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import os
 from flask import Blueprint, render_template
 
-# إنشاء Blueprint لوحة تحكم الموردين مع تحديد مجلد القوالب والمسار الأساسي
+# إنشاء Blueprint لوحة تحكم الموردين مع تحديد مسار القوالب والبادئة
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
     __name__,
