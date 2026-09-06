@@ -1,11 +1,24 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/__init__.py
+# 📂 apps/suppliers_wallet/__init__.py
 
-from apps.supplier_wallet.routes import wallet_bp
+from .registry import (
+    MODULE_NAME,
+    MODULE_ICON,
+    SHOW_IN_SUPPLIER,
+    LINKS,
+    register_module,
+    get_module_stats,
+    get_module_link,
+    get_dashboard_card
+)
 
-def register_module(app):
-    """تسجيل موديول المحفظة وتوابعه في التطبيق الرئيسي"""
-    app.register_blueprint(wallet_bp)
-    return wallet_bp
-
-__all__ = ['wallet_bp', 'register_module']
+__all__ = [
+    'MODULE_NAME',
+    'MODULE_ICON',
+    'SHOW_IN_SUPPLIER',
+    'LINKS',
+    'register_module',
+    'get_module_stats',
+    'get_module_link',
+    'get_dashboard_card'
+]
