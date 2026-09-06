@@ -491,9 +491,6 @@ def create_app():
                             "links": links_data,
                         }
                         
-                        if item == 'supplier_wallet':
-                            continue
-
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
                         else:
@@ -541,9 +538,6 @@ def create_app():
         if hasattr(app, 'supplier_modules'):
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
-
-        if 'supplier_wallet' in combined_supplier_modules:
-            del combined_supplier_modules['supplier_wallet']
 
         return {
             'registered_modules': ADMIN_MODULES,
