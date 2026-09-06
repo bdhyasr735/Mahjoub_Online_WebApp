@@ -44,11 +44,11 @@ def get_sidebar_modules():
     if not supplier_modules:
         supplier_modules = {
             'supplier_wallet': {
-                'title': 'الإدارة المالية',
+                'title': 'محفظة المورد',
                 'icon': 'fas fa-wallet',
                 'links': {
-                    'supplier_wallet_bp.transactions': 'حركة المحفظة',
-                    'supplier_wallet_bp.withdraw': 'سحب الرصيد'
+                    'supplier_wallet_bp.wallet_dashboard_redirect': 'إدارة المحفظة',
+                    'supplier_wallet_bp.transactions_redirect': 'سجل المعاملات'
                 }
             }
         }
