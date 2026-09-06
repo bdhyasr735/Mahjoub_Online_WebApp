@@ -436,6 +436,14 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
+    # تسجيل موديول محفظة الموردين صراحة للتأكد من عمله فوراً دون الانتظار أو الاعتماد الكلي على حلطة التجاهل
+    try:
+        from apps.supplier_wallet.registry import register_module as register_supplier_wallet
+        register_supplier_wallet(app)
+        print("✅ [محفظة المورد]: تم تسجيل موديول محفظة الموردين صراحة بنجاح.")
+    except Exception as e:
+        print(f"⚠️ [محفظة المورد]: التسجيل الصريح لم يتم أو تم بطريقة أخرى: {e}")
+
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
                      'migrations', 'utils', 'api', 'data', 'auth_portal', 
