@@ -348,7 +348,7 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ توليد روابط الموديولات بالكامل ديناميكياً بناءً على الصلاحيات والبيانات القادمة من الباك إند -->
+            <!-- ✅ توليد روابط الموديولات ديناميكياً بدون مشاكل في أجهزة التوجيه المباشرة -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
@@ -363,7 +363,7 @@
                             <!-- ✅ قائمة منسدلة ديناميكية -->
                             <div class="nav-item mt-1">
                                 <div class="nav-link-custom {% if ns.is_active_module %}active{% endif %}" 
-                                   onclick="toggleSubmenu(this)">
+                                     onclick="toggleSubmenu(this)">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="{{ module.icon | default('fas fa-folder') }}"></i>
                                         <span>{{ module.title | default(key | replace('_', ' ') | title) }}</span>
@@ -373,11 +373,7 @@
                                 <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
                                     {% for endpoint, link_title in module.links.items() %}
                                         <li>
-                                            {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
-                                                {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
-                                            {% else %}
-                                                {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
-                                            {% endif %}
+                                            {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
                                             <a href="{{ url }}" 
                                                class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
                                                 <i class="fas fa-circle"></i> 
@@ -404,7 +400,7 @@
 
             <hr class="nav-divider">
 
-            <!-- ✅ تسجيل الخروج ديناميكي بالكامل -->
+            <!-- ✅ تسجيل الخروج ديناميكي -->
             {% set logout_url = safe_url_for('suppliers_dashboard.logout') if safe_url_for is defined else url_for('suppliers_dashboard.logout') %}
             <a href="{{ logout_url }}" id="logout-btn" class="nav-link-custom text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
