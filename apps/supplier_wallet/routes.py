@@ -43,12 +43,12 @@ def get_sidebar_modules():
         supplier_modules = current_app.supplier_modules.copy()
     if not supplier_modules:
         supplier_modules = {
-            'supplier_wallet': {
-                'title': 'محفظة المورد',
+            'financial_management': {
+                'title': 'الإدارة المالية',
                 'icon': 'fas fa-wallet',
                 'links': {
-                    'supplier_wallet_bp.wallet_dashboard_redirect': 'إدارة المحفظة',
-                    'supplier_wallet_bp.transactions_redirect': 'سجل المعاملات'
+                    'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
+                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
                 }
             }
         }
