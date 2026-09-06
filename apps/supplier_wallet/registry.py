@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/suppliers_dashboard/registry.py
+# 📂 apps/supplier_wallet/__init__.py
 
-MODULES_REGISTRY = {
-    'supplier_wallet': {
-        'title': 'المحفظة والمالية',
-        'icon': 'fas fa-wallet',
-        'links': {
-            'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
-            'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
-        }
-    }
-}
+from .routes import supplier_wallet_bp
+
+def register_module(app):
+    """
+    هذه هي الدالة التي يبحث عنها النظام الديناميكي لتسجيل الموديول.
+    """
+    if 'supplier_wallet_bp' not in app.blueprints:
+        app.register_blueprint(supplier_wallet_bp)
+
+def init_app(app):
+    register_module(app)
