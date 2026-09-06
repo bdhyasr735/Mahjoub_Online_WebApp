@@ -3,6 +3,9 @@
 
 from apps.supplier_wallet.routes import wallet_bp
 
+# 🔗 تصدير اسم الـ Blueprint المطلوب لنظام التسجيل الديناميكي
+supplier_wallet_bp = wallet_bp
+
 MODULE_NAME = "الإدارة المالية"
 ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
@@ -13,11 +16,12 @@ LINKS = {
     'supplier_wallet.withdraw': 'سحب الرصيد'
 }
 
+def init_app(app):
+    """دالة تسجيل الموديول في تطبيق Flask الرئيسي"""
+    if 'supplier_wallet' not in app.blueprints and wallet_bp.name not in app.blueprints:
+        app.register_blueprint(wallet_bp)
+        print("✅ [الإدارة المالية]: تم تسجيل موديول المحفظة بنجاح.")
+
 def register_module(app):
     """دالة تسجيل الموديول الديناميكي"""
-    app.register_blueprint(wallet_bp)
-    
-    # دعم التوافقية مع النظام الديناميكي
-    app.config.setdefault('supplier_wallet_bp', wallet_bp)
-    
-    print("✅ [الإدارة المالية]: تم تسجيل موديول المحفظة بنجاح.")
+    init_app(app)
