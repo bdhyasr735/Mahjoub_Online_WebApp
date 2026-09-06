@@ -132,7 +132,7 @@ def get_current_wallet_identifier():
 # ============================================
 # مسارات إعادة التوجيه بدون wallet_id (للقائمة الجانبية)
 # ============================================
-@wallet_bp.route('/transactions')
+@wallet_bp.route('/transactions', strict_slashes=False)
 @login_required
 def transactions_redirect():
     """إعادة توجيه إلى حركة المحفظة مع wallet_id الفعلي"""
@@ -140,7 +140,7 @@ def transactions_redirect():
     return redirect(url_for('supplier_wallet.transactions', wallet_id=wallet_id))
 
 
-@wallet_bp.route('/withdraw')
+@wallet_bp.route('/withdraw', strict_slashes=False)
 @login_required
 def withdraw_redirect():
     """إعادة توجيه إلى سحب الرصيد مع wallet_id الفعلي"""
@@ -151,16 +151,16 @@ def withdraw_redirect():
 # ============================================
 # المسارات الرئيسية
 # ============================================
-@wallet_bp.route('/')
-@wallet_bp.route('/dashboard')
+@wallet_bp.route('/', strict_slashes=False)
+@wallet_bp.route('/dashboard', strict_slashes=False)
 @login_required
 def wallet_dashboard_redirect():
     wallet_id = get_current_wallet_identifier()
     return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
 
 
-@wallet_bp.route('/<string:wallet_id>/')
-@wallet_bp.route('/<string:wallet_id>/dashboard')
+@wallet_bp.route('/<string:wallet_id>/', strict_slashes=False)
+@wallet_bp.route('/<string:wallet_id>/dashboard', strict_slashes=False)
 @login_required
 def wallet_dashboard(wallet_id):
     supplier_id = get_current_supplier_id()
@@ -194,7 +194,7 @@ def wallet_dashboard(wallet_id):
     )
 
 
-@wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'])
+@wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw(wallet_id):
     """عرض نموذج السحب ومعالجته"""
@@ -264,7 +264,7 @@ def withdraw(wallet_id):
     )
 
 
-@wallet_bp.route('/receipt/<string:request_number>')
+@wallet_bp.route('/receipt/<string:request_number>', strict_slashes=False)
 @login_required
 def withdrawal_receipt(request_number):
     supplier_id = get_current_supplier_id()
@@ -292,7 +292,7 @@ def withdrawal_receipt(request_number):
     )
 
 
-@wallet_bp.route('/<string:wallet_id>/transactions')
+@wallet_bp.route('/<string:wallet_id>/transactions', strict_slashes=False)
 @login_required
 def transactions(wallet_id):
     """عرض كشف الحساب"""
@@ -367,7 +367,7 @@ def transactions(wallet_id):
     )
 
 
-@wallet_bp.route('/store/<string:supplier_code>')
+@wallet_bp.route('/store/<string:supplier_code>', strict_slashes=False)
 def public_store_view(supplier_code):
     supplier = Supplier.query.filter_by(supplier_code=supplier_code, status='active').first_or_404()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
