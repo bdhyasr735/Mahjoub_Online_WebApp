@@ -27,7 +27,7 @@ suppliers_dashboard_bp = Blueprint(
 )
 
 
-@suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
+@suppliers_dashboard_bp.route('/dashboard', methods=['GET'], strict_slashes=False)
 @login_required
 def dashboard():
     """لوحة التحكم الرئيسية للمورد - عرض المؤشرات الحية والمحفظة والبيانات الأساسية"""
