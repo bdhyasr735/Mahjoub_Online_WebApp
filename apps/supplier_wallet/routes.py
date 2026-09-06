@@ -14,7 +14,6 @@ import traceback
 from decimal import Decimal
 from datetime import datetime
 
-# ✅ تم توحيد اسم الـ Blueprint ليكون supplier_wallet_bp ليتطابق مع ملف الـ registry والـ endpoints
 supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
 def get_wallet_balance(wallet):
@@ -44,43 +43,12 @@ def get_sidebar_modules():
         supplier_modules = current_app.supplier_modules.copy()
     if not supplier_modules:
         supplier_modules = {
-            'suppliers_dashboard': {
-                'title': 'الرئيسية',
-                'icon': 'fas fa-chart-pie',
-                'links': {
-                    'suppliers_dashboard.index': 'الرئيسية'
-                }
-            },
-            'supplier_products': {
-                'title': 'إدارة المنتجات',
-                'icon': 'fas fa-box',
-                'links': {
-                    'supplier_products.index': 'جميع المنتجات',
-                    'supplier_products.add': 'إضافة منتج جديد'
-                }
-            },
-            'supplier_orders': {
-                'title': 'المبيعات والطلبات',
-                'icon': 'fas fa-shopping-cart',
-                'links': {
-                    'supplier_orders.index': 'الطلبات الواردة',
-                    'supplier_orders.history': 'سجل المبيعات'
-                }
-            },
             'supplier_wallet': {
                 'title': 'الإدارة المالية',
                 'icon': 'fas fa-wallet',
                 'links': {
                     'supplier_wallet_bp.transactions': 'حركة المحفظة',
                     'supplier_wallet_bp.withdraw': 'سحب الرصيد'
-                }
-            },
-            'supplier_staff': {
-                'title': 'الموظفين',
-                'icon': 'fas fa-users',
-                'links': {
-                    'supplier_staff.index': 'قائمة الموظفين',
-                    'supplier_staff.add': 'إضافة موظف'
                 }
             }
         }
