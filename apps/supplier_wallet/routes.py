@@ -266,7 +266,7 @@ def transactions(wallet_id):
     )
 
 @supplier_wallet_bp.route('/store/<string:supplier_code>', strict_slashes=False)
-def public_store_view(supplier_code):
+public_store_view(supplier_code):
     supplier = Supplier.query.filter_by(supplier_code=supplier_code, status='active').first_or_404()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
     modules = get_sidebar_modules()
