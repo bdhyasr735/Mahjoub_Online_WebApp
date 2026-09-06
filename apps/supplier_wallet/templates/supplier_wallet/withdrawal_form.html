@@ -76,6 +76,11 @@
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: 0.5; transform: scale(0.8); }
     }
+
+    .btn-submit-disabled {
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
+    }
 </style>
 
 <div style="max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px; box-sizing: border-box;">
@@ -136,7 +141,7 @@
             </div>
 
             <div style="display: flex; gap: 12px; margin-top: 10px; width: 100%; flex-wrap: wrap;">
-                <button type="submit" style="flex: 1; min-width: 160px; justify-content: center; padding: 14px; font-size: 14px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
+                <button type="submit" id="submit-withdraw-btn" style="flex: 1; min-width: 160px; justify-content: center; padding: 14px; font-size: 14px; background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
                         onmouseover="this.style.opacity='0.9';" onmouseout="this.style.opacity='1';">
                     تأكيد وإرسال طلب السحب
                 </button>
@@ -268,31 +273,45 @@
             
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <span style="color: #9ca3af; font-size: 13px;">📌 رقم الطلب</span>
-                <span id="modal-req-number" class="font-mono" style="color: #D4AF37; font-weight: 700; font-size: 14px; direction: ltr;">-</span>
+                <span id="modal-req-number" class="font-mono" style="color: #D4AF37; font-weight: 700; font-size: 14px; direction: ltr;">
+                    {{ latest_request.request_number if latest_request else '-' }}
+                </span>
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <span style="color: #9ca3af; font-size: 13px;">💰 المبلغ المسحوب</span>
-                <span id="modal-req-amount" class="font-mono" style="color: #D4AF37; font-weight: 700; font-size: 16px;">-</span>
+                <span id="modal-req-amount" class="font-mono" style="color: #D4AF37; font-weight: 700; font-size: 16px;">
+                    {% if latest_request %}
+                        {{ "%.2f"|format(latest_request.amount) }} {{ latest_request.currency or 'SAR' }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span>
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <span style="color: #9ca3af; font-size: 13px;">📊 حالة الطلب</span>
                 <span id="modal-req-status" style="font-weight: 700; color: #f59e0b; font-size: 14px; display: flex; align-items: center; gap: 6px;">
                     <span style="display: inline-block; width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
-                    قيد الانتظار
+                    <span id="modal-req-status-text">قيد الانتظار</span>
                 </span>
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
                 <span style="color: #9ca3af; font-size: 13px;">📅 تاريخ الطلب</span>
-                <span id="modal-req-date" class="font-mono" style="color: #d1d5db; font-size: 13px;">-</span>
+                <span id="modal-req-date" class="font-mono" style="color: #d1d5db; font-size: 13px;">
+                    {% if latest_request and latest_request.created_at %}
+                        {{ latest_request.created_at.strftime('%Y-%m-%d | %I:%M:%S %p') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span>
             </div>
         </div>
 
         <div style="display: flex; gap: 12px; flex-direction: column; width: 100%;">
             <a id="modal-receipt-link" href="#" 
-               style="width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #D4AF37 0%, #b8941f 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; padding: 14px; cursor: pointer; font-size: 15px; box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25); transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 10px;"
+               style="width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #D4AF37 0%, #b8941f 100%); color: #0f0717; font-weight: 800; border: none; border-radius: 12px; padding: 14px; cursor: pointer; font-size: 15px; box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25); transition: all 0.3s ease; text-decoration: none; display: none; align-items: center; justify-content: center; gap: 10px;"
                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 30px rgba(212, 175, 55, 0.35)';"
                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px rgba(212, 175, 55, 0.25)';">
                 عرض سند الصرف الرسمي
@@ -310,6 +329,18 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    const withdrawForm = document.getElementById('withdraw-form');
+    const submitBtn = document.getElementById('submit-withdraw-btn');
+
+    // منع الإرسال المزدوج
+    if (withdrawForm && submitBtn) {
+        withdrawForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('btn-submit-disabled');
+            submitBtn.textContent = 'جاري إرسال الطلب...';
+        });
+    }
+
     const searchInput = document.getElementById('live-search');
     const statusFilter = document.getElementById('status-filter');
     const resetBtn = document.getElementById('reset-filters');
@@ -324,38 +355,43 @@ document.addEventListener("DOMContentLoaded", function() {
     const modalReqNumber = document.getElementById('modal-req-number');
     const modalReqAmount = document.getElementById('modal-req-amount');
     const modalReqStatus = document.getElementById('modal-req-status');
+    const modalReqStatusText = document.getElementById('modal-req-status-text');
     const modalReqDate = document.getElementById('modal-req-date');
     const modalTitleText = document.getElementById('modal-title-text');
     const modalSubtitleText = document.getElementById('modal-subtitle-text');
     const modalDetailsBox = document.getElementById('modal-details-box');
     const receiptLink = document.getElementById('modal-receipt-link');
 
+    // فتح النافذة عند الضغط على أزرار الجدول
     openModalBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const requestNumber = this.getAttribute('data-number');
             
-            modalTitleText.textContent = "✅ تم الطلب بنجاح";
+            modalTitleText.textContent = "✅ تفاصيل طلب السحب";
             modalSubtitleText.style.display = 'block';
-            modalSubtitleText.textContent = "⏳ طلبك قيد الإنتظار للمراجعة والتحويل";
+            modalSubtitleText.textContent = "معلومات الطلب المسجلة بالمنظومة";
             if(modalDetailsBox) modalDetailsBox.style.display = 'block';
 
-            modalReqNumber.textContent = requestNumber;
-            modalReqAmount.textContent = this.getAttribute('data-amount');
+            if(modalReqNumber) modalReqNumber.textContent = requestNumber;
+            if(modalReqAmount) modalReqAmount.textContent = this.getAttribute('data-amount');
             
             const statusText = this.getAttribute('data-status');
-            modalReqStatus.textContent = statusText;
+            if(modalReqStatusText) modalReqStatusText.textContent = statusText;
             
             if(statusText === 'قيد الانتظار') {
-                modalReqStatus.style.color = '#f59e0b';
+                if(modalReqStatus) modalReqStatus.style.color = '#f59e0b';
             } else {
-                modalReqStatus.style.color = '#ef4444';
+                if(modalReqStatus) modalReqStatus.style.color = '#ef4444';
             }
 
-            modalReqDate.textContent = this.getAttribute('data-date');
+            if(modalReqDate) modalReqDate.textContent = this.getAttribute('data-date');
             
             if (receiptLink && requestNumber) {
-                receiptLink.href = "{{ url_for('supplier_wallet.withdrawal_receipt', request_number='') }}" + requestNumber;
+                const baseUrl = "{{ url_for('supplier_wallet.withdrawal_receipt', request_number='REQ_NUM_PLACEHOLDER') }}";
+                receiptLink.href = baseUrl.replace('REQ_NUM_PLACEHOLDER', requestNumber);
                 receiptLink.style.display = 'inline-flex';
+            } else if (receiptLink) {
+                receiptLink.style.display = 'none';
             }
             
             modal.classList.add('active');
@@ -379,6 +415,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // تصفية وحساب إحصائيات جدول الطلبات
     function updateLiveView() {
         const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const selectedStatus = statusFilter ? statusFilter.value : '';
