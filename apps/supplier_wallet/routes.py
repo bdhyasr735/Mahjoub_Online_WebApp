@@ -39,8 +39,10 @@ def get_sidebar_modules():
             supplier_modules = MODULES_REGISTRY.copy()
     except ImportError:
         pass
+    
     if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules = current_app.supplier_modules.copy()
+        
     if not supplier_modules:
         supplier_modules = {
             'financial_management': {
