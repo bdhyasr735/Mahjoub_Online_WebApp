@@ -1,11 +1,13 @@
-# مثال لما يجب أن يكون عليه ملف التسجيل أو الـ registry الخاص بموديول المحفظة
-NAV_ITEMS = {
-    'supplier_wallet': {
-        'title': 'المحفظة المالية',
-        'icon': 'fas fa-wallet',
-        'links': {
-            'supplier_wallet.wallet_dashboard': 'لوحة المحفظة والعمليات',
-            'supplier_wallet.withdraw': 'طلب سحب جديد'
-        }
+# -*- coding: utf-8 -*-
+# 📂 apps/supplier_wallet/registry.py
+
+MODULE_CONFIG = {
+    'key': 'supplier_wallet',
+    'title': 'المحفظة المالية',
+    'icon': 'fas fa-wallet',
+    'order': 3,
+    'links': {
+        'supplier_wallet.wallet_dashboard': 'لوحة المحفظة والعمليات',
+        'supplier_wallet.withdraw': 'طلب سحب رصيد'
     }
 }
