@@ -436,18 +436,12 @@ def create_app():
     except Exception as e:
         print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
-    # تسجيل موديول محفظة الموردين صراحة للتأكد من عمله فوراً دون الانتظار أو الاعتماد الكلي على حلطة التجاهل
-    try:
-        from apps.supplier_wallet.registry import register_module as register_supplier_wallet
-        register_supplier_wallet(app)
-        print("✅ [محفظة المورد]: تم تسجيل موديول محفظة الموردين صراحة بنجاح.")
-    except Exception as e:
-        print(f"⚠️ [محفظة المورد]: التسجيل الصريح لم يتم أو تم بطريقة أخرى: {e}")
+    # تم إزالة التسجيل الصريح لموديول محفظة الموردين (supplier_wallet) من هنا تماماً
 
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
                      'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                     'suppliers_auth_portal', 'admin', 'zsa_engine']
+                     'suppliers_auth_portal', 'admin', 'zsa_engine', 'supplier_wallet'] # تم إضافة supplier_wallet لقائمة التجاهل الديناميكي أيضاً لضمان عدم تحميله
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -515,10 +509,10 @@ def create_app():
                 return '#'
 
         supplier_context = {
-            'current_supplier': None, 'owner_full_name': '',
-            'supplier_bank_name': '', 'supplier_bank_account': '',
-            'supplier_wallet': None, 'pending_financials_count': 0,
-            'total_pending_payouts': 0.00
+            'current_supplier': None, 
+            'owner_full_name': '',
+            'supplier_bank_name': '', 
+            'supplier_bank_account': ''
         }
         if current_user.is_authenticated:
             try:
@@ -527,16 +521,13 @@ def create_app():
                     supplier_id = getattr(current_user, 'supplier_id', None) if user_type != 'supplier' else getattr(current_user, 'id', None)
                     if supplier_id:
                         from apps.models.supplier_db import Supplier
-                        from apps.models.wallet_db import SupplierWallet
                         supplier_obj = db.session.get(Supplier, supplier_id)
                         if supplier_obj:
-                            wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_obj.id).first()
                             supplier_context.update({
                                 'current_supplier': supplier_obj,
                                 'owner_full_name': getattr(supplier_obj, 'owner_name', ''),
                                 'supplier_bank_name': getattr(supplier_obj, 'bank_name', ''),
                                 'supplier_bank_account': getattr(supplier_obj, 'bank_account_number', ''),
-                                'supplier_wallet': wallet_obj
                             })
             except Exception as e:
                 db.session.rollback()
