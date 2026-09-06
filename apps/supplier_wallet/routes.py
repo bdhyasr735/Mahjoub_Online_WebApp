@@ -33,27 +33,47 @@ def get_wallet_balance(wallet):
 
 def get_sidebar_modules():
     supplier_modules = {}
+
+    # 1. جلب الموديولات الأساسية من سجل الموردين
     try:
         from apps.suppliers_dashboard.registry import MODULES_REGISTRY
         if MODULES_REGISTRY:
-            supplier_modules = MODULES_REGISTRY.copy()
+            supplier_modules.update(MODULES_REGISTRY)
     except ImportError:
         pass
-    
-    if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
-        supplier_modules = current_app.supplier_modules.copy()
-        
-    if not supplier_modules:
-        supplier_modules = {
-            'financial_management': {
-                'title': 'الإدارة المالية',
-                'icon': 'fas fa-wallet',
-                'links': {
-                    'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
-                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
-                }
+
+    # 2. دمج الموديولات المسجلة ديناميكياً على مستوى التطبيق
+    if hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
+        supplier_modules.update(current_app.supplier_modules)
+
+    # 3. دمج الموديولات المسجلة في القاموس العام SUPPLIER_MODULES
+    try:
+        from apps.app import SUPPLIER_MODULES
+        if SUPPLIER_MODULES:
+            for key, mod in SUPPLIER_MODULES.items():
+                if isinstance(mod, dict):
+                    supplier_modules[key] = {
+                        'title': mod.get('title') or mod.get('MODULE_NAME', 'الإدارة المالية'),
+                        'icon': mod.get('icon') or mod.get('MODULE_ICON', 'fas fa-wallet'),
+                        'links': mod.get('links') or mod.get('LINKS', {
+                            'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
+                            'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                        })
+                    }
+    except ImportError:
+        pass
+
+    # 4. ضمان إدراج موديول الإدارة المالية في حال عدم وجوده
+    if 'financial_management' not in supplier_modules and 'supplier_wallet' not in supplier_modules:
+        supplier_modules['financial_management'] = {
+            'title': 'الإدارة المالية',
+            'icon': 'fas fa-wallet',
+            'links': {
+                'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
+                'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
             }
         }
+
     return supplier_modules
 
 def get_current_wallet_identifier():
