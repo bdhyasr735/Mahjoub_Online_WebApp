@@ -3,14 +3,12 @@
 
 from .routes import supplier_wallet_bp
 
-def init_app(app):
-    """
-    دالة تهيئة حزمة المحفظة وتسجيل الـ Blueprint في تطبيق Flask الرئيسي.
-    """
-    app.register_blueprint(supplier_wallet_bp)
-
 def register_module(app):
     """
-    دالة متوافقة مع نظام التسجيل الديناميكي للموديولات.
+    هذه هي الدالة التي يبحث عنها النظام الديناميكي لتسجيل الموديول.
     """
-    init_app(app)
+    if 'supplier_wallet_bp' not in app.blueprints:
+        app.register_blueprint(supplier_wallet_bp)
+
+def init_app(app):
+    register_module(app)
