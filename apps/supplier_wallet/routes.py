@@ -127,24 +127,31 @@ def withdraw(wallet_id):
     supplier_id = get_current_supplier_id()
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
+        
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
         return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
+        
     current_balance = get_wallet_balance(wallet)
+
     if request.method == 'POST':
         try:
             raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
+            
             if amount <= 0:
                 raise ValueError("مبلغ السحب يجب أن يكون أكبر من الصفر")
             if amount > current_balance:
                 raise ValueError("المبلغ المطلوب يتجاوز رصيد المحفظة المتاح")
+                
             bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة')
             notes = request.form.get('notes', '')
+            
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
             return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
+            
         except ValueError as e:
             db.session.rollback()
             print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
@@ -154,15 +161,19 @@ def withdraw(wallet_id):
             print(f"⚠️ [Withdrawal Exception]: {str(e)}")
             traceback.print_exc()
             NotificationService.notify_error(f"حدث خطأ غير متوقع: {str(e)}", "خطأ نظام")
+            
         return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
+
     page = request.args.get('page', 1, type=int)
     query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
     pagination = query.paginate(page=page, per_page=15, error_out=False)
+    
     active_bank = {
         'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة',
         'id': 1
     }
     modules = get_sidebar_modules()
+    
     return render_template(
         'supplier_wallet/withdrawal_form.html',
         wallet=wallet,
