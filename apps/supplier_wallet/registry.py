@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
@@ -17,7 +17,6 @@ LINKS = {
 
 def register_module(app):
     try:
-        # ✅ التصحيح هنا: استخدام الاسم المفرد supplier_wallet بدلاً من suppliers_wallet
         from apps.supplier_wallet.routes import supplier_wallet_bp
         if 'supplier_wallet_bp' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier')
