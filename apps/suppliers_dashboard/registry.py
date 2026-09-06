@@ -4,8 +4,8 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from apps.extensions import db
-from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet, SupplierProfile
+from apps.models.supplier_db import Supplier, SupplierProfile
+from apps.models.wallet_db import SupplierWallet
 
 # تعريف الـ Blueprint الخاص بلوحة تحكم الموردين مع تحديد مسار القوالب (Templates) وملفات الـ Static إن وجدت
 suppliers_dashboard_bp = Blueprint(
