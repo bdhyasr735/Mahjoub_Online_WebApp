@@ -12,7 +12,7 @@ from flask_talisman import Talisman
 from flask_cors import CORS
 from sqlalchemy import text, select
 import config
-from apps.extensions import db, login_manager, migrate, limiter
+from apps.extensions import db, login_manager, migrate, limiter, csrf
 from apps.services.graphql_client import GraphQLClient
 from apps.utils.seeder import seed_database
 
@@ -89,7 +89,13 @@ def create_app():
         "pool_timeout": 30,
     }
 
+    # 1. تهيئة الإضافات الأساسية أولاً
     db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
+    csrf.init_app(app)
+    limiter.init_app(app)
+
     app.jinja_env.globals.update(getattr=getattr)
 
     CORS(app, resources={
@@ -124,6 +130,7 @@ def create_app():
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
+    # 2. استيراد النماذج وإنشاء الجداول داخل سياق التطبيق بعد التهيئة التامة
     with app.app_context():
         import_all_models()
         try:
@@ -158,13 +165,6 @@ def create_app():
             click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
         else:
             click.echo("❌ [إعادة بناء القاعدة]: فشلت عملية إعادة تعيين قاعدة البيانات.")
-
-    migrate.init_app(app, db)
-    login_manager.init_app(app)
-    
-    from apps.extensions import csrf, limiter
-    csrf.init_app(app)
-    limiter.init_app(app)
 
     @login_manager.user_loader
     def load_user(user_id):
