@@ -1,24 +1,8 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/__init__.py
 
-from .registry import (
-    MODULE_NAME,
-    MODULE_ICON,
-    SHOW_IN_SUPPLIER,
-    LINKS,
-    register_module,
-    get_module_stats,
-    get_module_link,
-    get_dashboard_card
-)
+from apps.supplier_wallet.routes import supplier_wallet_bp
 
-__all__ = [
-    'MODULE_NAME',
-    'MODULE_ICON',
-    'SHOW_IN_SUPPLIER',
-    'LINKS',
-    'register_module',
-    'get_module_stats',
-    'get_module_link',
-    'get_dashboard_card'
-]
+def init_app(app):
+    """تسجيل بلوبرنت محفظة المورد في التطبيق الرئيسي"""
+    app.register_blueprint(supplier_wallet_bp)
