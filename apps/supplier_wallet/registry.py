@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/suppliers_wallet/registry.py
+# 📂 apps/supplier_wallet/registry.py
 
 import logging
 from flask import url_for, session
@@ -11,22 +11,23 @@ MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
-    "suppliers_wallet_bp.supplier_wallet_view": "💰 إدارة المحفظة",
-    "suppliers_wallet_bp.wallet_transactions": "📊 سجل المعاملات"
+    "supplier_wallet_bp.supplier_wallet_view": "💰 إدارة المحفظة",
+    "supplier_wallet_bp.wallet_transactions": "📊 سجل المعاملات"
 }
 
 def register_module(app):
     try:
-        from apps.suppliers_wallet.routes import suppliers_wallet_bp
-        if 'suppliers_wallet_bp' not in app.blueprints:
-            app.register_blueprint(suppliers_wallet_bp, url_prefix='/supplier')
+        # ✅ التصحيح هنا: استخدام الاسم المفرد supplier_wallet بدلاً من suppliers_wallet
+        from apps.supplier_wallet.routes import supplier_wallet_bp
+        if 'supplier_wallet_bp' not in app.blueprints:
+            app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier')
             print("✅ [Registry Supplier]: تم تسجيل موديول محفظة الموردين.")
         else:
             print("ℹ️ [Registry Supplier]: موديول محفظة الموردين مسجل مسبقاً.")
     except ImportError as e:
         print(f"❌ [Registry Supplier]: خطأ في استيراد routes: {e}")
     except Exception as e:
-        print(f"❌ [Registry Supplier]: خطأ في تسجيل suppliers_wallet: {e}")
+        print(f"❌ [Registry Supplier]: خطأ في تسجيل supplier_wallet: {e}")
     return app
 
 def get_module_stats():
@@ -41,7 +42,6 @@ def get_module_stats():
             balance = wallet.balance if wallet else 0.0
             pending_balance = wallet.pending_balance if hasattr(wallet, 'pending_balance') and wallet else 0.0
             
-            # حساب عدد المعاملات
             transactions_count = WalletTransaction.query.filter_by(supplier_id=supplier_id).count()
         else:
             balance = 0.0
@@ -61,10 +61,9 @@ def get_module_stats():
 
 def get_module_link():
     try:
-        return url_for('suppliers_wallet_bp.supplier_wallet_view')
+        return url_for('supplier_wallet_bp.supplier_wallet_view')
     except Exception as e:
         print(f"❌ [Registry Supplier Wallet Link Error]: {e}")
-        # ✅ حل آمن: استخدام المسار المباشر لضمان ظهور الرابط دائماً
         return '/supplier/wallet'
 
 def get_dashboard_card():
