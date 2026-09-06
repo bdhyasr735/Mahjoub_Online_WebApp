@@ -1,13 +1,10 @@
 # coding: utf-8
-"""
-📂 apps/supplier_wallet/__init__.py
-حزمة إدارة محفظة الموردين والعمليات المالية
-"""
+# 📂 apps/supplier_wallet/__init__.py
 
 from apps.supplier_wallet.routes import wallet_bp
 
 def register_module(app):
-    """تسجيل موديول المحفظة في التطبيق الرئيسي"""
+    """تسجيل موديول المحفظة وتوابعه في التطبيق الرئيسي"""
     app.register_blueprint(wallet_bp)
     return wallet_bp
 
