@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-# 📂 apps/supplier_wallet/__init__.py
+# coding: utf-8
+"""
+📂 apps/supplier_wallet/__init__.py
+حزمة إدارة محفظة الموردين والعمليات المالية
+"""
 
-from apps.supplier_wallet.registry import supplier_wallet_bp, register_module, MODULE_NAME, ICON, SHOW_IN_SUPPLIER, LINKS
+from apps.supplier_wallet.routes import wallet_bp
 
-__all__ = [
-    'supplier_wallet_bp',
-    'register_module',
-    'MODULE_NAME',
-    'ICON',
-    'SHOW_IN_SUPPLIER',
-    'LINKS'
-]
+__all__ = ['wallet_bp']
