@@ -20,541 +20,543 @@ ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
 
 def import_all_models():
-    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
-    models_dir = os.path.join(os.path.dirname(__file__), 'models')
-    if os.path.exists(models_dir):
-        for file in os.listdir(models_dir):
-            if file.endswith('.py') and not file.startswith('__'):
-                module_name = file[:-3]
-                try:
-                    importlib.import_module(f"apps.models.{module_name}")
-                except Exception as e:
-                    print(f"⚠️ [خطأ في استيراد النموذج] فشل استيراد النموذج '{module_name}': {e}")
+    """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
+    models_dir = os.path.join(os.path.dirname(__file__), 'models')
+    if os.path.exists(models_dir):
+        for file in os.listdir(models_dir):
+            if file.endswith('.py') and not file.startswith('__'):
+                module_name = file[:-3]
+                try:
+                    importlib.import_module(f"apps.models.{module_name}")
+                except Exception as e:
+                    print(f"⚠️ [خطأ في استيراد النموذج] فشل استيراد النموذج '{module_name}': {e}")
 
 def reset_database_safe():
-    """إعادة تعيين قاعدة البيانات بشكل آمن مع تجاوز أخطاء الأنواع المكررة"""
-    try:
-        db.session.execute(text("""
-            DO $$ DECLARE
-                r RECORD;
-            BEGIN
-                FOR r IN (SELECT sequencename FROM pg_sequences WHERE schemaname = 'public') LOOP
-                    EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.sequencename) || ' CASCADE';
-                END LOOP;
-            END $$;
-        """))
-        db.session.execute(text("""
-            DO $$ DECLARE
-                r RECORD;
-            BEGIN
-                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                END LOOP;
-            END $$;
-        """))
-        db.session.execute(text("""
-            DO $$ DECLARE
-                r RECORD;
-            BEGIN
-                FOR r IN (SELECT typname FROM pg_type 
-                        WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) LOOP
-                    EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(r.typname) || ' CASCADE';
-                END LOOP;
-            END $$;
-        """))
-        db.session.commit()
-        print("✅ [إعادة تعيين قاعدة البيانات]: تم الحذف بنجاح.")
-        return True
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ [خطأ إعادة تعيين قاعدة البيانات]: {e}")
-        return False
+    """إعادة تعيين قاعدة البيانات بشكل آمن مع تجاوز أخطاء الأنواع المكررة"""
+    try:
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT sequencename FROM pg_sequences WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.sequencename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT typname FROM pg_type 
+                        WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) LOOP
+                    EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(r.typname) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
+        db.session.commit()
+        print("✅ [إعادة تعيين قاعدة البيانات]: تم الحذف بنجاح.")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ [خطأ إعادة تعيين قاعدة البيانات]: {e}")
+        return False
 
 def create_app():
-    app = Flask(__name__, static_folder='../static')
-    app.config.from_object('config.Config')
-    config.Config.validate_config()
+    app = Flask(__name__, static_folder='../static')
+    app.config.from_object('config.Config')
+    config.Config.validate_config()
 
-    app.config.update(
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SECURE=os.environ.get('FLASK_ENV') == 'production',
-        SESSION_COOKIE_SAMESITE='Lax',
-    )
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SECURE=os.environ.get('FLASK_ENV') == 'production',
+        SESSION_COOKIE_SAMESITE='Lax',
+    )
 
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 280,
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-    }
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+    }
 
-    # 1. تهيئة الإضافات الأساسية أولاً
-    db.init_app(app)
-    migrate.init_app(app, db)
-    login_manager.init_app(app)
-    csrf.init_app(app)
-    limiter.init_app(app)
+    # 1. تهيئة الإضافات الأساسية أولاً
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
+    csrf.init_app(app)
+    limiter.init_app(app)
 
-    app.jinja_env.globals.update(getattr=getattr)
+    app.jinja_env.globals.update(getattr=getattr)
 
-    CORS(app, resources={
-        r"/admin/graphql*": {
-            "origins": [
-                "https://studio.apollographql.com",
-                "https://embed.apollographql.com",
-                "https://sandbox.embed.apollographql.com",
-                "http://localhost:5000",
-                "https://mahjoub.online"
-            ],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": [
-                "Content-Type",
-                "Authorization",
-                "X-Requested-With",
-                "Apollo-Require-Preflight",
-                "Accept"
-            ],
-            "supports_credentials": True
-        }
-    })
+    CORS(app, resources={
+        r"/admin/graphql*": {
+            "origins": [
+                "https://studio.apollographql.com",
+                "https://embed.apollographql.com",
+                "https://sandbox.embed.apollographql.com",
+                "http://localhost:5000",
+                "https://mahjoub.online"
+            ],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": [
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
+                "Apollo-Require-Preflight",
+                "Accept"
+            ],
+            "supports_credentials": True
+        }
+    })
 
-    @app.teardown_request
-    def shutdown_session(exception=None):
-        if exception:
-            db.session.rollback()
-        db.session.remove()
+    @app.teardown_request
+    def shutdown_session(exception=None):
+        if exception:
+            db.session.rollback()
+        db.session.remove()
 
-    @app.errorhandler(500)
-    def handle_500_error(e):
-        db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        db.session.rollback()
+        return jsonify({"error": "Internal Server Error", "message": "حدث خطأ داخلي في الخادم"}), 500
 
-    # 2. استيراد النماذج وإنشاء الجداول داخل سياق التطبيق بعد التهيئة التامة
-    with app.app_context():
-        import_all_models()
-        try:
-            db.session.execute(text("SELECT 1"))
-            print("✅ [اتصال قاعدة البيانات]: تم التحقق من الاتصال بنجاح.")
-            print("🔄 [إعادة البناء]: جاري إعادة تعيين قاعدة البيانات...")
-            if reset_database_safe():
-                print("🔄 [إعادة البناء]: جاري إنشاء الجداول بالهيكل الجديد...")
-                db.create_all()
-                print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-                seed_database()
-                print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
-            else:
-                print("❌ [إعادة البناء]: فشلت عملية إعادة تعيين قاعدة البيانات.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
-            import traceback
-            traceback.print_exc()
+    # 2. استيراد النماذج وإنشاء الجداول داخل سياق التطبيق بعد التهيئة التامة
+    with app.app_context():
+        import_all_models()
+        try:
+            db.session.execute(text("SELECT 1"))
+            print("✅ [اتصال قاعدة البيانات]: تم التحقق من الاتصال بنجاح.")
+            print("🔄 [إعادة البناء]: جاري إعادة تعيين قاعدة البيانات...")
+            if reset_database_safe():
+                print("🔄 [إعادة البناء]: جاري إنشاء الجداول بالهيكل الجديد...")
+                db.create_all()
+                print("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
+                seed_database()
+                print("✅ [الزراعة التلقائية]: تمت زراعة البيانات المبدئية بنجاح.")
+            else:
+                print("❌ [إعادة البناء]: فشلت عملية إعادة تعيين قاعدة البيانات.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ [خطأ في إعادة بناء الجداول]: {e}")
+            import traceback
+            traceback.print_exc()
 
-    @app.cli.command("rebuild-db")
-    def rebuild_db_command():
-        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
-        click.echo("🔄 [إعادة بناء القاعدة]: جاري إعادة تعيين قاعدة البيانات...")
-        import_all_models()
-        if reset_database_safe():
-            click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
-            db.create_all()
-            click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
-            click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
-            seed_database()
-            click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
-        else:
-            click.echo("❌ [إعادة بناء القاعدة]: فشلت عملية إعادة تعيين قاعدة البيانات.")
+    @app.cli.command("rebuild-db")
+    def rebuild_db_command():
+        """حذف جميع الجداول وإعادة إنشائها وزراعة البيانات المبدئية عبر السطر البرمجي."""
+        click.echo("🔄 [إعادة بناء القاعدة]: جاري إعادة تعيين قاعدة البيانات...")
+        import_all_models()
+        if reset_database_safe():
+            click.echo("⚙️ [إعادة بناء القاعدة]: جاري إنشاء الجداول بالهيكل الجديد...")
+            db.create_all()
+            click.echo("✅ [إنشاء الجداول]: تم إنشاء جميع الجداول بنجاح.")
+            click.echo("🌱 [إعادة بناء القاعدة]: جاري زراعة البيانات المبدئية وتوثيق السندات...")
+            seed_database()
+            click.echo("🎉 [إعادة بناء القاعدة]: اكتملت عملية إعادة البناء والتسجيل بنجاح!")
+        else:
+            click.echo("❌ [إعادة بناء القاعدة]: فشلت عملية إعادة تعيين قاعدة البيانات.")
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        from apps.models.admin_db import AdminUser
-        from apps.models.admin_staff_db import AdminStaff
-        from apps.models.supplier_db import Supplier
-        from apps.models.supplier_staff_db import SupplierStaff
+    @login_manager.user_loader
+    def load_user(user_id):
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
 
-        try:
-            user_id_int = int(user_id)
-        except (ValueError, TypeError):
-            return None
+        try:
+            user_id_int = int(user_id)
+        except (ValueError, TypeError):
+            return None
 
-        user_type = session.get('user_type')
+        user_type = session.get('user_type')
 
-        try:
-            if user_type == 'admin':
-                return db.session.get(AdminUser, user_id_int)
-            elif user_type == 'admin_staff':
-                return db.session.get(AdminStaff, user_id_int)
-            elif user_type == 'supplier_staff':
-                return db.session.get(SupplierStaff, user_id_int)
-            elif user_type == 'supplier':
-                return db.session.get(Supplier, user_id_int)
-            elif user_type == 'staff':
-                staff_admin = db.session.get(AdminStaff, user_id_int)
-                if staff_admin:
-                    return staff_admin
-                return db.session.get(SupplierStaff, user_id_int)
+        try:
+            if user_type == 'admin':
+                return db.session.get(AdminUser, user_id_int)
+            elif user_type == 'admin_staff':
+                return db.session.get(AdminStaff, user_id_int)
+            elif user_type == 'supplier_staff':
+                return db.session.get(SupplierStaff, user_id_int)
+            elif user_type == 'supplier':
+                return db.session.get(Supplier, user_id_int)
+            elif user_type == 'staff':
+                staff_admin = db.session.get(AdminStaff, user_id_int)
+                if staff_admin:
+                    return staff_admin
+                return db.session.get(SupplierStaff, user_id_int)
 
-            return (
-                db.session.get(AdminUser, user_id_int) or
-                db.session.get(AdminStaff, user_id_int) or
-                db.session.get(Supplier, user_id_int) or
-                db.session.get(SupplierStaff, user_id_int)
-            )
-        except Exception as e:
-            db.session.rollback()
-            print(f"❌ [خطأ تحميل المستخدم load_user]: {e}")
-            return None
+            return (
+                db.session.get(AdminUser, user_id_int) or
+                db.session.get(AdminStaff, user_id_int) or
+                db.session.get(Supplier, user_id_int) or
+                db.session.get(SupplierStaff, user_id_int)
+            )
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ [خطأ تحميل المستخدم load_user]: {e}")
+            return None
 
-    @login_manager.unauthorized_handler
-    def unauthorized():
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-        if request.path.startswith('/supplier'):
-            return redirect('/supplier/login')
-        return redirect(admin_login_path)
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        if request.path.startswith('/supplier'):
+            return redirect('/supplier/login')
+        return redirect(admin_login_path)
 
-    @app.before_request
-    def protect_routes():
-        from apps.models.admin_db import AdminUser
-        from apps.models.admin_staff_db import AdminStaff
-        from apps.models.supplier_db import Supplier
-        from apps.models.supplier_staff_db import SupplierStaff
+    @app.before_request
+    def protect_routes():
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
 
-        path = request.path
+        path = request.path
 
-        if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
-            return
+        if '/static/' in path or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2')):
+            return
 
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        exempt_prefixes = [
-            '/static',
-            '/graphql',
-            '/admin/graphql',
-            '/favicon.ico',
-            '/m7jb_test_connection',
-            '/supplier/login',
-            '/supplier/register',
-            '/supplier/forgot-password',
-            '/supplier/reset-password',
-            admin_login_path,
-            '/auth',
-            '/whatsapp',
-            '/admin/whatsapp'
-        ]
+        exempt_prefixes = [
+            '/static',
+            '/graphql',
+            '/admin/graphql',
+            '/favicon.ico',
+            '/m7jb_test_connection',
+            '/supplier/login',
+            '/supplier/register',
+            '/supplier/forgot-password',
+            '/supplier/reset-password',
+            admin_login_path,
+            '/auth',
+            '/whatsapp',
+            '/admin/whatsapp'
+        ]
 
-        if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
-            return
+        if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
+            return
 
-        if current_user.is_authenticated:
-            user_type = session.get('user_type')
-            is_admin_side = isinstance(current_user, (AdminUser, AdminStaff)) or user_type in ['admin', 'admin_staff']
-            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff)) or user_type in ['supplier', 'supplier_staff'] or hasattr(current_user, 'supplier_id')
+        if current_user.is_authenticated:
+            user_type = session.get('user_type')
+            is_admin_side = isinstance(current_user, (AdminUser, AdminStaff)) or user_type in ['admin', 'admin_staff']
+            is_supplier_side = isinstance(current_user, (Supplier, SupplierStaff)) or user_type in ['supplier', 'supplier_staff'] or hasattr(current_user, 'supplier_id')
 
-            if path.startswith('/supplier'):
-                if is_supplier_side:
-                    return
-                if is_admin_side:
-                    return redirect('/dashboard')
-                return
+            if path.startswith('/supplier'):
+                if is_supplier_side:
+                    return
+                if is_admin_side:
+                    return redirect('/dashboard')
+                return
 
-            if path.startswith('/admin') or path.startswith('/dashboard'):
-                if is_admin_side:
-                    return
-                if is_supplier_side:
-                    return redirect('/supplier/dashboard')
-                return redirect(admin_login_path)
+            if path.startswith('/admin') or path.startswith('/dashboard'):
+                if is_admin_side:
+                    return
+                if is_supplier_side:
+                    return redirect('/supplier/dashboard')
+                return redirect(admin_login_path)
 
-            return
+            return
 
-        if path.startswith('/supplier'):
-            if path != '/supplier/login':
-                return redirect('/supplier/login')
-            return
+        if path.startswith('/supplier'):
+            if path != '/supplier/login':
+                return redirect('/supplier/login')
+            return
 
-        return redirect(admin_login_path)
+        return redirect(admin_login_path)
 
-    talisman = Talisman()
-    talisman.init_app(app,
-        content_security_policy={
-            'default-src': ["'self'"],
-            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
-            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
-            'img-src': ["'self'", "data:", "https://*"],
-            'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com"]
-        },
-        force_https=(os.environ.get('FLASK_ENV') == 'production')
-    )
+    talisman = Talisman()
+    talisman.init_app(app,
+        content_security_policy={
+            'default-src': ["'self'"],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
+            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com", "https://cdn.tailwindcss.com"],
+            'img-src': ["'self'", "data:", "https://*"],
+            'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            'frame-ancestors': ["'self'", "https://studio.apollographql.com", "https://embed.apollographql.com", "https://sandbox.embed.apollographql.com"]
+        },
+        force_https=(os.environ.get('FLASK_ENV') == 'production')
+    )
 
-    @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
-    @csrf.exempt
-    def graphql_proxy():
-        origin = request.headers.get('Origin', 'https://studio.apollographql.com')
-        if request.method == 'OPTIONS':
-            response = make_response('', 200)
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight, Accept'
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            return response
-        try:
-            if request.method == 'GET':
-                query = request.args.get('query')
-                variables = request.args.get('variables')
-                operation_name = request.args.get('operationName')
-            else:
-                data = request.get_json(silent=True) or {}
-                query = data.get('query')
-                variables = data.get('variables')
-                operation_name = data.get('operationName')
-            client = GraphQLClient()
-            result = client.execute(query, variables, operation_name)
-            response = jsonify(result)
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            return response
-        except Exception as e:
-            response = jsonify({"error": str(e), "message": "فشل تمرير طلب GraphQL إلى الخادم"})
-            response.status_code = 500
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            return response
+    @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
+    @csrf.exempt
+    def graphql_proxy():
+        origin = request.headers.get('Origin', 'https://studio.apollographql.com')
+        if request.method == 'OPTIONS':
+            response = make_response('', 200)
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight, Accept'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            return response
+        try:
+            if request.method == 'GET':
+                query = request.args.get('query')
+                variables = request.args.get('variables')
+                operation_name = request.args.get('operationName')
+            else:
+                data = request.get_json(silent=True) or {}
+                query = data.get('query')
+                variables = data.get('variables')
+                operation_name = data.get('operationName')
+            client = GraphQLClient()
+            result = client.execute(query, variables, operation_name)
+            response = jsonify(result)
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            return response
+        except Exception as e:
+            response = jsonify({"error": str(e), "message": "فشل تمرير طلب GraphQL إلى الخادم"})
+            response.status_code = 500
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            return response
 
-    @app.route('/m7jb_test_connection')
-    def test_graphql_connection():
-        try:
-            client = GraphQLClient()
-            success = client.test_connection()
-            return jsonify({"connection_status": success, "endpoint": client.endpoint, "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"})
-        except Exception as e:
-            return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
+    @app.route('/m7jb_test_connection')
+    def test_graphql_connection():
+        try:
+            client = GraphQLClient()
+            success = client.test_connection()
+            return jsonify({"connection_status": success, "endpoint": client.endpoint, "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"})
+        except Exception as e:
+            return jsonify({"connection_status": False, "error": str(e), "message": f"❌ خطأ: {str(e)}"}), 500
 
-    @app.route('/auth/m7jb_sovereign_hq_v2_99x')
-    def deceptive_admin_honeypot():
-        """مسار خادع لتسجيل الدخول الوهمي"""
-        from flask import render_template
-        try:
-            return render_template('auth/deceptive_login.html')
-        except Exception:
-            return "<h1>401 Unauthorized</h1><p>Access Denied to Sovereign HQ.</p>", 401
+    @app.route('/auth/m7jb_sovereign_hq_v2_99x')
+    def deceptive_admin_honeypot():
+        """مسار خادع لتسجيل الدخول الوهمي"""
+        from flask import render_template
+        try:
+            return render_template('auth/deceptive_login.html')
+        except Exception:
+            return "<h1>401 Unauthorized</h1><p>Access Denied to Sovereign HQ.</p>", 401
 
-    @app.route('/')
-    def index():
-        from apps.models.admin_db import AdminUser
-        from apps.models.admin_staff_db import AdminStaff
-        from apps.models.supplier_db import Supplier
-        from apps.models.supplier_staff_db import SupplierStaff
+    @app.route('/')
+    def index():
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
 
-        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
 
-        if current_user.is_authenticated:
-            if isinstance(current_user, (Supplier, SupplierStaff)):
-                return redirect('/supplier/dashboard')
-            elif isinstance(current_user, (AdminUser, AdminStaff)):
-                return redirect('/dashboard')
-            return redirect(admin_login_path)
+        if current_user.is_authenticated:
+            if isinstance(current_user, (Supplier, SupplierStaff)):
+                return redirect('/supplier/dashboard')
+            elif isinstance(current_user, (AdminUser, AdminStaff)):
+                return redirect('/dashboard')
+            return redirect(admin_login_path)
 
-        return redirect(admin_login_path)
+        return redirect(admin_login_path)
 
-    try:
-        from apps.auth_portal.routes import auth_bp
-        app.register_blueprint(auth_bp)
-        print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
-    except ImportError:
-        try:
-            from apps.auth_portal.routes import auth_portal_bp
-            app.register_blueprint(auth_portal_bp)
-            print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح (auth_portal_bp).")
-        except ImportError:
-            try:
-                import apps.auth_portal.routes as auth_routes
-                for attr_name in dir(auth_routes):
-                    attr = getattr(auth_routes, attr_name)
-                    if isinstance(attr, Blueprint):
-                        app.register_blueprint(attr)
-                        print(f"✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح ({attr_name}).")
-                        break
-            except Exception as e:
-                print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
-        except Exception as e:
-            print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
-    except Exception as e:
-        print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
+    try:
+        from apps.auth_portal.routes import auth_bp
+        app.register_blueprint(auth_bp)
+        print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
+    except ImportError:
+        try:
+            from apps.auth_portal.routes import auth_portal_bp
+            app.register_blueprint(auth_portal_bp)
+            print("✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح (auth_portal_bp).")
+        except ImportError:
+            try:
+                import apps.auth_portal.routes as auth_routes
+                for attr_name in dir(auth_routes):
+                    attr = getattr(auth_routes, attr_name)
+                    if isinstance(attr, Blueprint):
+                        app.register_blueprint(attr)
+                        print(f"✅ [بوابة المصادقة]: تم تسجيل بوابة المصادقة الإدارية بنجاح ({attr_name}).")
+                        break
+            except Exception as e:
+                print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
+        except Exception as e:
+            print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
+    except Exception as e:
+        print(f"❌ [خطأ بوابة المصادقة]: فشل تسجيل بوابة المصادقة الإدارية: {e}")
 
-    try:
-        from apps.suppliers_auth_portal.routes import suppliers_auth_bp
-        app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
-        csrf.exempt(suppliers_auth_bp)
-        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
-        print("    📍 المسار: /supplier")
-    except ImportError:
-        try:
-            from apps.suppliers_auth_portal.registry import suppliers_auth_bp
-            app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
-            csrf.exempt(suppliers_auth_bp)
-            print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (من registry).")
-        except ImportError:
-            try:
-                suppliers_auth_bp = Blueprint(
-                    'suppliers_auth_bp',
-                    __name__,
-                    template_folder='templates/suppliers_auth_portal',
-                    url_prefix='/supplier'
-                )
-                from apps.suppliers_auth_portal import routes
-                app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
-                csrf.exempt(suppliers_auth_bp)
-                print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (تم إنشاؤها مباشرة).")
-            except Exception as e:
-                print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
-        except Exception as e:
-            print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
-    except Exception as e:
-        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+    try:
+        from apps.suppliers_auth_portal.routes import suppliers_auth_bp
+        app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
+        csrf.exempt(suppliers_auth_bp)
+        print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
+        print("    📍 المسار: /supplier")
+    except ImportError:
+        try:
+            from apps.suppliers_auth_portal.registry import suppliers_auth_bp
+            app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
+            csrf.exempt(suppliers_auth_bp)
+            print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (من registry).")
+        except ImportError:
+            try:
+                suppliers_auth_bp = Blueprint(
+                    'suppliers_auth_bp',
+                    __name__,
+                    template_folder='templates/suppliers_auth_portal',
+                    url_prefix='/supplier'
+                )
+                from apps.suppliers_auth_portal import routes
+                app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
+                csrf.exempt(suppliers_auth_bp)
+                print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح (تم إنشاؤها مباشرة).")
+            except Exception as e:
+                print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+        except Exception as e:
+            print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
+    except Exception as e:
+        print(f"❌ [خطأ بوابة الموردين]: فشل تسجيل بوابة الموردين: {e}")
 
-    try:
-        from apps.admin.graphql_routes import graphql_bp
-        app.register_blueprint(graphql_bp)
-        csrf.exempt(graphql_bp)
-        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
-    except ImportError:
-        pass
-    except Exception as e:
-        print(f"❌ [خطأ مسارات GraphQL]: {e}")
+    try:
+        from apps.admin.graphql_routes import graphql_bp
+        app.register_blueprint(graphql_bp)
+        csrf.exempt(graphql_bp)
+        print("✅ [مسارات GraphQL]: تم تسجيل مسارات GraphQL الإدارية بنجاح.")
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"❌ [خطأ مسارات GraphQL]: {e}")
 
-    try:
-        from apps.whatsapp_service.routes import whatsapp_bp
+    try:
+        from apps.whatsapp_service.routes import whatsapp_bp
 
-        if whatsapp_bp.name not in app.blueprints:
-            app.register_blueprint(whatsapp_bp)
-            print("✅ [واتساب]: تم تسجيل جميع مسارات الواتساب (لوحة التحكم + الـ Webhook) بنجاح.")
+        if whatsapp_bp.name not in app.blueprints:
+            app.register_blueprint(whatsapp_bp)
+            print("✅ [واتساب]: تم تسجيل جميع مسارات الواتساب (لوحة التحكم + الـ Webhook) بنجاح.")
 
-        csrf.exempt(whatsapp_bp)
+        csrf.exempt(whatsapp_bp)
 
-    except Exception as e:
-        print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
+    except Exception as e:
+        print(f"❌ [خطأ واتساب]: فشل تسجيل المسار العام: {e}")
 
-    apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
-                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                     'suppliers_auth_portal', 'admin', 'zsa_engine']
+    apps_dir = app.root_path
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
+                     'migrations', 'utils', 'api', 'data', 'auth_portal', 
+                     'suppliers_auth_portal', 'admin', 'zsa_engine']
 
-    if os.path.exists(apps_dir):
-        for item in os.listdir(apps_dir):
-            item_path = os.path.join(apps_dir, item)
-            if not os.path.isdir(item_path) or item in ignored_dirs:
-                continue
-            registry_file = os.path.join(item_path, 'registry.py')
-            if os.path.exists(registry_file):
-                try:
-                    module = importlib.import_module(f"apps.{item}.registry")
-                    
-                    if hasattr(module, 'register_module'):
-                        module.register_module(app)
-                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
-                    else:
-                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
+    if os.path.exists(apps_dir):
+        for item in os.listdir(apps_dir):
+            item_path = os.path.join(apps_dir, item)
+            if not os.path.isdir(item_path) or item in ignored_dirs:
+                continue
+            registry_file = os.path.join(item_path, 'registry.py')
+            if os.path.exists(registry_file):
+                try:
+                    module = importlib.import_module(f"apps.{item}.registry")
+                    
+                    if hasattr(module, 'register_module'):
+                        module.register_module(app)
+                        print(f"🟢 [التسجيل الديناميكي]: ✅ تم تحميل وتسجيل الموديول '{item}' بنجاح.")
+                    else:
+                        print(f"🟡 [التسجيل الديناميكي]: ⚠️ الموديول '{item}' لا يتضمن دالة register_module.")
 
-                    try:
-                        app_module = importlib.import_module(f"apps.{item}")
-                        if hasattr(app_module, 'init_app'):
-                            app_module.init_app(app)
-                    except ImportError:
-                        pass
+                    try:
+                        app_module = importlib.import_module(f"apps.{item}")
+                        if hasattr(app_module, 'init_app'):
+                            app_module.init_app(app)
+                    except ImportError:
+                        pass
 
-                    links_data = {}
-                    if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
-                        for nav in module.NAV_ITEMS:
-                            ep = nav.get('endpoint')
-                            title = nav.get('title')
-                            if ep and title:
-                                links_data[ep] = title
-                    if not links_data and hasattr(module, 'LINKS'):
-                        raw_links = getattr(module, 'LINKS')
-                        if isinstance(raw_links, dict):
-                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
-                        elif isinstance(raw_links, list):
-                            links_data = {ep: lbl for ep, lbl in raw_links}
-                    menu_items_func = getattr(module, 'get_menu_items', None)
-                    if not links_data and menu_items_func:
-                        res = menu_items_func()
-                        if isinstance(res, dict):
-                            links_data = res
-                        elif isinstance(res, list):
-                            links_data = {ep: lbl for ep, lbl in res}
-                    if links_data:
-                        mod_data = {
-                            "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
-                            "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
-                            "links": links_data,
-                        }
-                        
-                        # السماح لموديول المحفظة بالعمل وتسجيل روابطه بالكامل دون استثناء
-                        if item == 'supplier_wallet':
-                            pass
+                    links_data = {}
+                    if hasattr(module, 'NAV_ITEMS') and isinstance(module.NAV_ITEMS, list):
+                        for nav in module.NAV_ITEMS:
+                            ep = nav.get('endpoint')
+                            title = nav.get('title')
+                            if ep and title:
+                                links_data[ep] = title
+                    if not links_data and hasattr(module, 'LINKS'):
+                        raw_links = getattr(module, 'LINKS')
+                        if isinstance(raw_links, dict):
+                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
+                        elif isinstance(raw_links, list):
+                            links_data = {ep: lbl for ep, lbl in raw_links}
+                    menu_items_func = getattr(module, 'get_menu_items', None)
+                    if not links_data and menu_items_func:
+                        res = menu_items_func()
+                        if isinstance(res, dict):
+                            links_data = res
+                        elif isinstance(res, list):
+                            links_data = {ep: lbl for ep, lbl in res}
+                    if links_data:
+                        mod_data = {
+                            "display_name": getattr(module, 'MODULE_NAME', getattr(module, 'DISPLAY_NAME', item.replace('_', ' ').capitalize())),
+                            "icon": getattr(module, 'MODULE_ICON', getattr(module, 'ICON', 'fa-folder')),
+                            "links": links_data,
+                        }
+                        
+                        if item == 'supplier_wallet':
+                            continue
 
-                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
-                            SUPPLIER_MODULES[item] = mod_data
-                        else:
-                            ADMIN_MODULES[item] = mod_data
-                except Exception as e:
-                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
+                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
+                            SUPPLIER_MODULES[item] = mod_data
+                        else:
+                            ADMIN_MODULES[item] = mod_data
+                except Exception as e:
+                    print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
-    @app.context_processor
-    def inject_vars():
-        def safe_url_for(endpoint, **values):
-            try:
-                return url_for(endpoint, **values)
-            except Exception:
-                return '#'
+    @app.context_processor
+    def inject_vars():
+        def safe_url_for(endpoint, **values):
+            try:
+                return url_for(endpoint, **values)
+            except Exception:
+                return '#'
 
-        supplier_context = {
-            'current_supplier': None, 'owner_full_name': '',
-            'supplier_bank_name': '', 'supplier_bank_account': '',
-            'supplier_wallet': None, 'pending_financials_count': 0,
-            'total_pending_payouts': 0.00
-        }
-        if current_user.is_authenticated:
-            try:
-                user_type = session.get('user_type')
-                if user_type in ['supplier', 'supplier_staff', 'staff']:
-                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type != 'supplier' else getattr(current_user, 'id', None)
-                    if supplier_id:
-                        from apps.models.supplier_db import Supplier
-                        from apps.models.wallet_db import SupplierWallet
-                        supplier_obj = db.session.get(Supplier, supplier_id)
-                        if supplier_obj:
-                            wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_obj.id).first()
-                            supplier_context.update({
-                                'current_supplier': supplier_obj,
-                                'owner_full_name': getattr(supplier_obj, 'owner_name', ''),
-                                'supplier_bank_name': getattr(supplier_obj, 'bank_name', ''),
-                                'supplier_bank_account': getattr(supplier_obj, 'bank_account_number', ''),
-                                'supplier_wallet': wallet_obj
-                            })
-            except Exception as e:
-                db.session.rollback()
-                print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
+        supplier_context = {
+            'current_supplier': None, 'owner_full_name': '',
+            'supplier_bank_name': '', 'supplier_bank_account': '',
+            'supplier_wallet': None, 'pending_financials_count': 0,
+            'total_pending_payouts': 0.00
+        }
+        if current_user.is_authenticated:
+            try:
+                user_type = session.get('user_type')
+                if user_type in ['supplier', 'supplier_staff', 'staff']:
+                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type != 'supplier' else getattr(current_user, 'id', None)
+                    if supplier_id:
+                        from apps.models.supplier_db import Supplier
+                        from apps.models.wallet_db import SupplierWallet
+                        supplier_obj = db.session.get(Supplier, supplier_id)
+                        if supplier_obj:
+                            wallet_obj = SupplierWallet.query.filter_by(supplier_id=supplier_obj.id).first()
+                            supplier_context.update({
+                                'current_supplier': supplier_obj,
+                                'owner_full_name': getattr(supplier_obj, 'owner_name', ''),
+                                'supplier_bank_name': getattr(supplier_obj, 'bank_name', ''),
+                                'supplier_bank_account': getattr(supplier_obj, 'bank_account_number', ''),
+                                'supplier_wallet': wallet_obj
+                            })
+            except Exception as e:
+                db.session.rollback()
+                print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
-        combined_supplier_modules = SUPPLIER_MODULES.copy()
-        if hasattr(app, 'supplier_modules'):
-            for key, value in app.supplier_modules.items():
-                combined_supplier_modules[key] = value
+        combined_supplier_modules = SUPPLIER_MODULES.copy()
+        if hasattr(app, 'supplier_modules'):
+            for key, value in app.supplier_modules.items():
+                combined_supplier_modules[key] = value
 
-        return {
-            'registered_modules': ADMIN_MODULES,
-            'admin_modules': ADMIN_MODULES,
-            'supplier_modules': combined_supplier_modules,
-            'safe_url_for': safe_url_for,
-            **supplier_context
-        }
+        if 'supplier_wallet' in combined_supplier_modules:
+            del combined_supplier_modules['supplier_wallet']
 
-    @app.after_request
-    def set_csrf_header(response):
-        if not response.headers.get('X-CSRF-Token'):
-            response.headers['X-CSRF-Token'] = generate_csrf()
-        return response
+        return {
+            'registered_modules': ADMIN_MODULES,
+            'admin_modules': ADMIN_MODULES,
+            'supplier_modules': combined_supplier_modules,
+            'safe_url_for': safe_url_for,
+            **supplier_context
+        }
 
-    return app
+    @app.after_request
+    def set_csrf_header(response):
+        if not response.headers.get('X-CSRF-Token'):
+            response.headers['X-CSRF-Token'] = generate_csrf()
+        return response
+
+    return app
