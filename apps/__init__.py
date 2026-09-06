@@ -388,7 +388,7 @@ def create_app():
         app.register_blueprint(suppliers_auth_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_auth_bp)
         print("✅ [بوابة الموردين]: تم تسجيل بوابة الموردين بنجاح.")
-        print("    📍 المسار: /supplier")
+        print("   📍 المسار: /supplier")
     except ImportError:
         try:
             from apps.suppliers_auth_portal.registry import suppliers_auth_bp
@@ -441,7 +441,7 @@ def create_app():
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 
                      'migrations', 'utils', 'api', 'data', 'auth_portal', 
-                     'suppliers_auth_portal', 'admin', 'zsa_engine', 'supplier_wallet'] # تم إضافة supplier_wallet لقائمة التجاهل الديناميكي أيضاً لضمان عدم تحميله
+                     'suppliers_auth_portal', 'admin', 'zsa_engine']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
