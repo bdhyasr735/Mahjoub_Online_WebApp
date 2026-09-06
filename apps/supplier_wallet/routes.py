@@ -130,6 +130,139 @@ def withdraw(wallet_id):
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
         return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
+    current_balance =```python
+# -*- coding: utf-8 -*-
+# 📂 apps/supplier_wallet/routes.py
+
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
+from flask_login import login_required, current_user
+from apps.extensions import db
+from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
+from apps.models.supplier_db import Supplier
+from apps.supplier_wallet.services.wallet_service import WalletService
+from apps.supplier_wallet.services.notification_service import NotificationService
+from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
+import re
+import traceback
+from decimal import Decimal
+from datetime import datetime
+
+supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='templates', url_prefix='/supplier/wallet')
+
+def get_wallet_balance(wallet):
+    if not wallet:
+        return Decimal('0.0')
+    if hasattr(wallet, 'balance'):
+        return Decimal(str(wallet.balance or 0.0))
+    elif hasattr(wallet, 'balance_sar'):
+        return Decimal(str(wallet.balance_sar or 0.0))
+    elif hasattr(wallet, 'wallet_balance'):
+        return Decimal(str(wallet.wallet_balance or 0.0))
+    elif hasattr(wallet, 'amount'):
+        return Decimal(str(wallet.amount or 0.0))
+    else:
+        print("⚠️ [تحذير]: لم يتم العثور على عمود الرصيد في SupplierWallet")
+        return Decimal('0.0')
+
+def get_sidebar_modules():
+    supplier_modules = {}
+    try:
+        from apps.suppliers_dashboard.registry import MODULES_REGISTRY
+        if MODULES_REGISTRY:
+            supplier_modules = MODULES_REGISTRY.copy()
+    except ImportError:
+        pass
+    if not supplier_modules and hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
+        supplier_modules = current_app.supplier_modules.copy()
+    if not supplier_modules:
+        supplier_modules = {
+            'financial_management': {
+                'title': 'الإدارة المالية',
+                'icon': 'fas fa-wallet',
+                'links': {
+                    'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
+                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                }
+            }
+        }
+    return supplier_modules
+
+def get_current_wallet_identifier():
+    supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+    if not supplier_id:
+        return '1'
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if wallet:
+        if hasattr(wallet, 'wallet_code') and wallet.wallet_code:
+            return str(wallet.wallet_code)
+        return str(wallet.id)
+    trade_name = getattr(current_user, 'trade_name', None)
+    if trade_name:
+        slug = re.sub(r'[^\w\s-]', '', trade_name).strip().lower()
+        slug = re.sub(r'[-\s]+', '-', slug)
+        if slug:
+            return slug
+    return str(supplier_id)
+
+@supplier_wallet_bp.route('/transactions', strict_slashes=False)
+@login_required
+def transactions_redirect():
+    wallet_id = get_current_wallet_identifier()
+    return redirect(url_for('supplier_wallet_bp.transactions', wallet_id=wallet_id))
+
+@supplier_wallet_bp.route('/withdraw', strict_slashes=False)
+@login_required
+def withdraw_redirect():
+    wallet_id = get_current_wallet_identifier()
+    return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
+
+@supplier_wallet_bp.route('/', strict_slashes=False)
+@supplier_wallet_bp.route('/dashboard', strict_slashes=False)
+@login_required
+def wallet_dashboard_redirect():
+    wallet_id = get_current_wallet_identifier()
+    return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
+
+@supplier_wallet_bp.route('/<string:wallet_id>/', strict_slashes=False)
+@supplier_wallet_bp.route('/<string:wallet_id>/dashboard', strict_slashes=False)
+@login_required
+def wallet_dashboard(wallet_id):
+    supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+    if not supplier_id:
+        return redirect(url_for('main.index'))
+    try:
+        wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ [Wallet Dashboard Error]: {str(e)}")
+        traceback.print_exc()
+        return redirect(url_for('main.index'))
+    transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
+    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
+    modules = get_sidebar_modules()
+    return render_template(
+        'supplier_wallet/dashboard.html',
+        wallet=wallet,
+        transactions=transactions,
+        withdrawal_requests=withdrawal_requests,
+        supplier_modules=modules,
+        modules_registry=modules
+    )
+
+@supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def withdraw(wallet_id):
+    supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if not wallet:
+        return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
     current_balance = get_wallet_balance(wallet)
     if request.method == 'POST':
         try:
