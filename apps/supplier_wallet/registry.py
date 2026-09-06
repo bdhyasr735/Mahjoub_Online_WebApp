@@ -11,15 +11,15 @@ MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
-    "supplier_wallet_bp.supplier_wallet_view": "💰 إدارة المحفظة",
-    "supplier_wallet_bp.wallet_transactions": "📊 سجل المعاملات"
+    "supplier_wallet_bp.wallet_dashboard_redirect": "💰 إدارة المحفظة",
+    "supplier_wallet_bp.transactions_redirect": "📊 سجل المعاملات"
 }
 
 def register_module(app):
     try:
         from apps.supplier_wallet.routes import supplier_wallet_bp
         if 'supplier_wallet_bp' not in app.blueprints:
-            app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier')
+            app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
             print("✅ [Registry Supplier]: تم تسجيل موديول محفظة الموردين.")
         else:
             print("ℹ️ [Registry Supplier]: موديول محفظة الموردين مسجل مسبقاً.")
@@ -31,7 +31,7 @@ def register_module(app):
 
 def get_module_stats():
     try:
-        from apps.models.wallet import SupplierWallet, WalletTransaction
+        from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
         supplier_id = session.get('user_id') or session.get('supplier_id')
         user_type = session.get('user_type')
@@ -41,7 +41,7 @@ def get_module_stats():
             balance = wallet.balance if wallet else 0.0
             pending_balance = wallet.pending_balance if hasattr(wallet, 'pending_balance') and wallet else 0.0
             
-            transactions_count = WalletTransaction.query.filter_by(supplier_id=supplier_id).count()
+            transactions_count = WalletTransaction.query.filter_by(wallet_id=wallet.id).count()
         else:
             balance = 0.0
             pending_balance = 0.0
@@ -60,7 +60,7 @@ def get_module_stats():
 
 def get_module_link():
     try:
-        return url_for('supplier_wallet_bp.supplier_wallet_view')
+        return url_for('supplier_wallet_bp.wallet_dashboard_redirect')
     except Exception as e:
         print(f"❌ [Registry Supplier Wallet Link Error]: {e}")
         return '/supplier/wallet'
