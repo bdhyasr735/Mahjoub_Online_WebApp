@@ -348,10 +348,9 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ توليد روابط الموديولات بالكامل ديناميكياً عندما تكون supplier_modules عبارة عن قائمة (List) -->
+            <!-- ✅ توليد روابط الموديولات بالكامل ديناميكياً بناءً على الصلاحيات والبيانات القادمة من الباك إند -->
             {% if supplier_modules %}
-                {% for module in supplier_modules %}
-                    {% set key = module.name | default(module.key | default('module_' ~ loop.index)) %}
+                {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
                         {% if module.links|length > 1 %}
                             {% set ns = namespace(is_active_module=false) %}
@@ -359,12 +358,12 @@
                                 {% if request.endpoint == endpoint %}
                                     {% set ns.is_active_module = true %}
                                 {% endif %}
-                            endfor %}
+                            {% endfor %}
                             
                             <!-- ✅ قائمة منسدلة ديناميكية -->
                             <div class="nav-item mt-1">
                                 <div class="nav-link-custom {% if ns.is_active_module %}active{% endif %}" 
-                                     onclick="toggleSubmenu(this)">
+                                   onclick="toggleSubmenu(this)">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="{{ module.icon | default('fas fa-folder') }}"></i>
                                         <span>{{ module.title | default(key | replace('_', ' ') | title) }}</span>
@@ -389,13 +388,9 @@
                                 </ul>
                             </div>
                         {% else %}
-                            <!-- ✅ رابط مفرد ديناميكي من داخل القاموس الفرعي -->
+                            <!-- ✅ رابط مفرد ديناميكي من داخل القاموس -->
                             {% for endpoint, link_title in module.links.items() %}
-                                {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
-                                    {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
-                                {% else %}
-                                    {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
-                                {% endif %}
+                                {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
                                 <a href="{{ url }}" 
                                    class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
                                     <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
@@ -403,19 +398,6 @@
                                 </a>
                             {% endfor %}
                         {% endif %}
-                    {% elif module.url or module.endpoint %}
-                        <!-- ✅ رابط مفرد مباشر -->
-                        {% set endpoint = module.endpoint %}
-                        {% if 'wallet' in endpoint or 'wallet_id' in endpoint %}
-                            {% set url = safe_url_for(endpoint, wallet_id='general') if safe_url_for is defined else url_for(endpoint, wallet_id='general') %}
-                        {% else %}
-                            {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
-                        {% endif %}
-                        <a href="{{ url }}" 
-                           class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
-                            <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                            <span>{{ module.title }}</span>
-                        </a>
                     {% endif %}
                 {% endfor %}
             {% endif %}
