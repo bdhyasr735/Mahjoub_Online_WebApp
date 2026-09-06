@@ -491,6 +491,8 @@ def create_app():
                             "links": links_data,
                         }
                         
+                        # تم إزالة الشرط الذي كان يتخطي موديول المحفظة (supplier_wallet) ليظهر بشكل طبيعي ودون استثناء
+
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
                         else:
