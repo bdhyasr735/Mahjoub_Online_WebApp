@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/suppliers_wallet/__init__.py
+# 📂 apps/supplier_wallet/__init__.py
 
 from .registry import (
     MODULE_NAME,
