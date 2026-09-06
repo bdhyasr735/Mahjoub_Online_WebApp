@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify, session
 from flask_login import login_required, current_user
 from apps.extensions import db
 
@@ -11,7 +11,7 @@ SHOW_IN_SUPPLIER = True  # ليظهر ضمن لوحة تحكم الموردين
 
 # تعريف مسار البلوبرينت الخاص بالمحفظة
 supplier_wallet_bp = Blueprint(
-    'supplier_wallet',
+    'supplier_wallet_bp',
     __name__,
     template_folder='templates',
     static_folder='static',
@@ -52,11 +52,10 @@ def wallet_overview():
     except Exception as e:
         db.session.rollback()
         flash(f"حدث خطأ أثناء استبيان بيانات المحفظة: {str(e)}", "danger")
-        return redirect(url_for('supplier_wallet.wallet_overview'))
+        return redirect(url_for('supplier_wallet_bp.wallet_overview'))
 
 def session_is_supplier():
     """دالة مساعدة للتحقق من نوع الجلسة الحالية"""
-    from flask import session
     return session.get('user_type') in ['supplier', 'supplier_staff']
 
 def register_module(app):
@@ -73,22 +72,22 @@ def register_module(app):
         "display_name": DISPLAY_NAME,
         "icon": MODULE_ICON,
         "links": {
-            "supplier_wallet.wallet_overview": "إدارة المحفظة والأرصدة"
+            "supplier_wallet_bp.wallet_overview": "إدارة المحفظة والأرصدة"
         }
     }
     
-    print("🟢 [موديول محفظة الموردين]: تم تسجيله وتنشيطه بنجاح عبر ملف التسجيل (registry.py).")
+    print("🟢 [موديول محفظة الموردين]: تم تسجيله وتنشيطه بنجاح عبر ملف التسجيل.")
 
 # القوائم والروابط البديلة لضمان التوافق التام مع فاحص النظام
 NAV_ITEMS = [
     {
-        "endpoint": "supplier_wallet.wallet_overview",
+        "endpoint": "supplier_wallet_bp.wallet_overview",
         "title": "محفظة الأرباح والمدفوعات"
     }
 ]
 
 LINKS = {
-    "supplier_wallet.wallet_overview": "محفظة الأرباح والمدفوعات"
+    "supplier_wallet_bp.wallet_overview": "محفظة الأرباح والمدفوعات"
 }
 
 def get_menu_items():
