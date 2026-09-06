@@ -4,7 +4,10 @@
 حزمة خدمات المحفظة والعمليات المالية للموردين
 """
 
-from apps.supplier_wallet.services.wallet_service import WalletService
-from apps.supplier_wallet.services.notification_service import NotificationService
+from .wallet_service import WalletService
+from .notification_service import NotificationService
 
-__all__ = ['WalletService', 'NotificationService']
+__all__ = [
+    'WalletService',
+    'NotificationService'
+]
