@@ -14,7 +14,8 @@ import traceback
 from decimal import Decimal
 from datetime import datetime
 
-wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates', url_prefix='/supplier/wallet')
+# ✅ تم توحيد اسم الـ Blueprint ليكون supplier_wallet_bp ليتطابق مع ملف الـ registry والـ endpoints
+supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
 def get_wallet_balance(wallet):
     if not wallet:
@@ -70,8 +71,8 @@ def get_sidebar_modules():
                 'title': 'الإدارة المالية',
                 'icon': 'fas fa-wallet',
                 'links': {
-                    'supplier_wallet.transactions': 'حركة المحفظة',
-                    'supplier_wallet.withdraw': 'سحب الرصيد'
+                    'supplier_wallet_bp.transactions': 'حركة المحفظة',
+                    'supplier_wallet_bp.withdraw': 'سحب الرصيد'
                 }
             },
             'supplier_staff': {
@@ -104,27 +105,27 @@ def get_current_wallet_identifier():
             return slug
     return str(supplier_id)
 
-@wallet_bp.route('/transactions', strict_slashes=False)
+@supplier_wallet_bp.route('/transactions', strict_slashes=False)
 @login_required
 def transactions_redirect():
     wallet_id = get_current_wallet_identifier()
-    return redirect(url_for('supplier_wallet.transactions', wallet_id=wallet_id))
+    return redirect(url_for('supplier_wallet_bp.transactions', wallet_id=wallet_id))
 
-@wallet_bp.route('/withdraw', strict_slashes=False)
+@supplier_wallet_bp.route('/withdraw', strict_slashes=False)
 @login_required
 def withdraw_redirect():
     wallet_id = get_current_wallet_identifier()
-    return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id))
+    return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
 
-@wallet_bp.route('/', strict_slashes=False)
-@wallet_bp.route('/dashboard', strict_slashes=False)
+@supplier_wallet_bp.route('/', strict_slashes=False)
+@supplier_wallet_bp.route('/dashboard', strict_slashes=False)
 @login_required
 def wallet_dashboard_redirect():
     wallet_id = get_current_wallet_identifier()
-    return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
+    return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
 
-@wallet_bp.route('/<string:wallet_id>/', strict_slashes=False)
-@wallet_bp.route('/<string:wallet_id>/dashboard', strict_slashes=False)
+@supplier_wallet_bp.route('/<string:wallet_id>/', strict_slashes=False)
+@supplier_wallet_bp.route('/<string:wallet_id>/dashboard', strict_slashes=False)
 @login_required
 def wallet_dashboard(wallet_id):
     supplier_id = get_current_supplier_id()
@@ -152,7 +153,7 @@ def wallet_dashboard(wallet_id):
         modules_registry=modules
     )
 
-@wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def withdraw(wallet_id):
     supplier_id = get_current_supplier_id()
@@ -160,7 +161,7 @@ def withdraw(wallet_id):
         supplier_id = current_user.id
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
-        return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
+        return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
     current_balance = get_wallet_balance(wallet)
     if request.method == 'POST':
         try:
@@ -175,7 +176,7 @@ def withdraw(wallet_id):
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
-            return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id))
+            return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
         except ValueError as e:
             db.session.rollback()
             print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
@@ -185,7 +186,7 @@ def withdraw(wallet_id):
             print(f"⚠️ [Withdrawal Exception]: {str(e)}")
             traceback.print_exc()
             NotificationService.notify_error(f"حدث خطأ غير متوقع: {str(e)}", "خطأ نظام")
-        return redirect(url_for('supplier_wallet.withdraw', wallet_id=wallet_id))
+        return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
     page = request.args.get('page', 1, type=int)
     query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
     pagination = query.paginate(page=page, per_page=15, error_out=False)
@@ -204,7 +205,7 @@ def withdraw(wallet_id):
         modules_registry=modules
     )
 
-@wallet_bp.route('/receipt/<string:request_number>', strict_slashes=False)
+@supplier_wallet_bp.route('/receipt/<string:request_number>', strict_slashes=False)
 @login_required
 def withdrawal_receipt(request_number):
     supplier_id = get_current_supplier_id()
@@ -227,7 +228,7 @@ def withdrawal_receipt(request_number):
         modules_registry=modules
     )
 
-@wallet_bp.route('/<string:wallet_id>/transactions', strict_slashes=False)
+@supplier_wallet_bp.route('/<string:wallet_id>/transactions', strict_slashes=False)
 @login_required
 def transactions(wallet_id):
     supplier_id = get_current_supplier_id()
@@ -235,7 +236,7 @@ def transactions(wallet_id):
         supplier_id = current_user.id
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
-        return redirect(url_for('supplier_wallet.wallet_dashboard', wallet_id=wallet_id))
+        return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
     transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).all()
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).all()
     all_transactions = list(transactions_list)
@@ -296,7 +297,7 @@ def transactions(wallet_id):
         now=datetime.now()
     )
 
-@wallet_bp.route('/store/<string:supplier_code>', strict_slashes=False)
+@supplier_wallet_bp.route('/store/<string:supplier_code>', strict_slashes=False)
 def public_store_view(supplier_code):
     supplier = Supplier.query.filter_by(supplier_code=supplier_code, status='active').first_or_404()
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
