@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_wallet/registry.py
+# 📂 apps/suppliers_dashboard/registry.py
 
-# ضروري ليظهر في بوابة الموردين
-SHOW_IN_SUPPLIER = True
-
-NAV_ITEMS = [
-    {
-        'endpoint': 'supplier_wallet.wallet_dashboard',
-        'title': 'لوحة المحفظة والعمليات'
-    },
-    {
-        'endpoint': 'supplier_wallet.withdraw',
-        'title': 'طلب سحب رصيد'
-    }
-]
-
-MODULE_NAME = "المحفظة المالية"
-MODULE_ICON = "fas fa-wallet"
+MODULES_REGISTRY = {
+    'supplier_wallet': {
+        'title': 'المحفظة والمالية',
+        'icon': 'fas fa-wallet',
+        'links': {
+            'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
+            'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+        }
+    }
+}
