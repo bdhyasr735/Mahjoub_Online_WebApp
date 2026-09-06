@@ -1,81 +1,95 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_wallet/registry.py
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
+from flask_login import login_required, current_user
+from apps.extensions import db
 
-import logging
-from flask import url_for, session
-
-logger = logging.getLogger(__name__)
-
+# تعريف اسم الموديول وخصائصه الأساسية للوحة التحكم
 MODULE_NAME = "محفظة المورد"
-MODULE_ICON = "fas fa-wallet"
-SHOW_IN_SUPPLIER = True
+DISPLAY_NAME = "محفظة المورد"
+MODULE_ICON = "fa-wallet"
+SHOW_IN_SUPPLIER = True  # ليظهر ضمن لوحة تحكم الموردين
 
-LINKS = {
-    "supplier_wallet_bp.wallet_dashboard_redirect": "💰 إدارة المحفظة",
-    "supplier_wallet_bp.transactions_redirect": "📊 سجل المعاملات"
-}
+# تعريف مسار البلوبرينت الخاص بالمحفظة
+supplier_wallet_bp = Blueprint(
+    'supplier_wallet',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/supplier/wallet'
+)
 
-def register_module(app):
-    try:
-        from apps.supplier_wallet.routes import supplier_wallet_bp
-        if 'supplier_wallet_bp' not in app.blueprints:
-            app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-            print("✅ [Registry Supplier]: تم تسجيل موديول محفظة الموردين.")
-        else:
-            print("ℹ️ [Registry Supplier]: موديول محفظة الموردين مسجل مسبقاً.")
-    except ImportError as e:
-        print(f"❌ [Registry Supplier]: خطأ في استيراد routes: {e}")
-    except Exception as e:
-        print(f"❌ [Registry Supplier]: خطأ في تسجيل supplier_wallet: {e}")
-    return app
+@supplier_wallet_bp.route('/')
+@login_required
+def wallet_overview():
+    """عرض صفحة المحفظة الرئيسية للمورد وسجل المعاملات والأرصدة"""
+    # التحقق من أن المستخدم الحالي هو مورد أو موظف تابع له
+    supplier_id = getattr(current_user, 'supplier_id', None)
+    if not supplier_id and hasattr(current_user, 'id'):
+        # إذا كان الحساب نفسه هو المورد الأساسي
+        if getattr(current_user, 'role', None) == 'supplier' or session_is_supplier():
+            supplier_id = current_user.id
 
-def get_module_stats():
+    if not supplier_id:
+        abort(403)
+
     try:
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+        
+        if not wallet:
+            # إنشاء محفظة تلقائياً إذا لم تكن موجودة للمورد
+            wallet = SupplierWallet(supplier_id=supplier_id, balance=0.0, locked_balance=0.0)
+            db.session.add(wallet)
+            db.session.commit()
 
-        supplier_id = session.get('user_id') or session.get('supplier_id')
-        user_type = session.get('user_type')
+        transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
 
-        if supplier_id and user_type != 'admin':
-            wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-            balance = wallet.balance if wallet else 0.0
-            pending_balance = wallet.pending_balance if hasattr(wallet, 'pending_balance') and wallet else 0.0
-            
-            transactions_count = WalletTransaction.query.filter_by(wallet_id=wallet.id).count()
-        else:
-            balance = 0.0
-            pending_balance = 0.0
-            transactions_count = 0
+        return render_template(
+            'supplier_wallet/overview.html',
+            wallet=wallet,
+            transactions=transactions
+        )
+    except Exception as e:
+        db.session.rollback()
+        flash(f"حدث خطأ أثناء استبيان بيانات المحفظة: {str(e)}", "danger")
+        return redirect(url_for('supplier_wallet.wallet_overview'))
 
-        stats = {
-            'balance': balance,
-            'pending_balance': pending_balance,
-            'total_transactions': transactions_count,
-            'has_wallet': True
+def session_is_supplier():
+    """دالة مساعدة للتحقق من نوع الجلسة الحالية"""
+    from flask import session
+    return session.get('user_type') in ['supplier', 'supplier_staff']
+
+def register_module(app):
+    """دالة التسجيل القياسية المطلوبة من النظام الديناميكي لتحميل الموديول"""
+    # تسجيل البلوبرينت في التطبيق الرئيسي
+    if supplier_wallet_bp.name not in app.blueprints:
+        app.register_blueprint(supplier_wallet_bp)
+    
+    # ربط الخيارات والعناصر الخاصة بالقائمة الجانبية للوحة الموردين
+    if not hasattr(app, 'supplier_modules'):
+        app.supplier_modules = {}
+        
+    app.supplier_modules['supplier_wallet'] = {
+        "display_name": DISPLAY_NAME,
+        "icon": MODULE_ICON,
+        "links": {
+            "supplier_wallet.wallet_overview": "إدارة المحفظة والأرصدة"
         }
-        return stats
-    except Exception as e:
-        print(f"❌ [Registry Supplier Wallet Stats Error]: {e}")
-        return {'balance': 0.0, 'pending_balance': 0.0, 'total_transactions': 0, 'has_wallet': False}
-
-def get_module_link():
-    try:
-        return url_for('supplier_wallet_bp.wallet_dashboard_redirect')
-    except Exception as e:
-        print(f"❌ [Registry Supplier Wallet Link Error]: {e}")
-        return '/supplier/wallet'
-
-def get_dashboard_card():
-    stats = get_module_stats()
-    balance_formatted = f"{stats.get('balance', 0.0):,.2f}"
-    return {
-        'title': MODULE_NAME,
-        'icon': MODULE_ICON,
-        'link': get_module_link(),
-        'stats': stats,
-        'color': 'purple',
-        'badge': f"{balance_formatted}",
-        'subtitle': f"المعاملات: {stats.get('total_transactions', 0)}"
     }
+    
+    print("🟢 [موديول محفظة الموردين]: تم تسجيله وتنشيطه بنجاح عبر ملف التسجيل (registry.py).")
 
-__all__ = ['MODULE_NAME', 'MODULE_ICON', 'SHOW_IN_SUPPLIER', 'LINKS', 'register_module', 'get_module_stats', 'get_module_link', 'get_dashboard_card']
+# القوائم والروابط البديلة لضمان التوافق التام مع فاحص النظام
+NAV_ITEMS = [
+    {
+        "endpoint": "supplier_wallet.wallet_overview",
+        "title": "محفظة الأرباح والمدفوعات"
+    }
+]
+
+LINKS = {
+    "supplier_wallet.wallet_overview": "محفظة الأرباح والمدفوعات"
+}
+
+def get_menu_items():
+    return LINKS
