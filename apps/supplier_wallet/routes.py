@@ -32,7 +32,7 @@ def safe_redirect_home():
 
 
 def get_wallet_balance(wallet):
-    """جلب رصيد المحفظة القابل للسحب."""
+    """جلب رصيد المحفظة الإجمالي."""
     if not wallet:
         return Decimal('0.0')
     if hasattr(wallet, 'balance') and wallet.balance is not None:
@@ -286,12 +286,21 @@ def withdraw(wallet_id):
             raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
-            min_withdrawal = Decimal('50.00')
+            # 🛑 2. تطبيق شرط إبقاء 50 ريال احتياطي في المحفظة
+            reserved_balance = Decimal('50.00')
+            available_balance = current_balance - reserved_balance
+            if available_balance < Decimal('0.00'):
+                available_balance = Decimal('0.00')
+
+            min_withdrawal = Decimal('10.00')
             if amount < min_withdrawal:
                 raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal:.2f} ر.س")
 
-            if amount > current_balance:
-                raise ValueError("المبلغ المطلوب يتجاوز الرصيد القابل للسحب في محفظتك")
+            if amount > available_balance:
+                raise ValueError(
+                    f"لا يمكنك سحب هذا المبلغ. يجب الإبقاء على {reserved_balance:.2f} ر.س كحد أدنى في المحفظة. "
+                    f"المبلغ المتاح لك للسحب حالياً هو {available_balance:.2f} ر.س فقط."
+                )
 
             bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
             notes = request.form.get('notes', '')
