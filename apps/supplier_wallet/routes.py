@@ -368,7 +368,6 @@ def withdrawal_receipt(request_number):
     if not wallet:
         return safe_redirect_home()
 
-    # البحث برقم المرجع أولاً، وإذا فشل يتم البحث باستخدام ID رقمي كخيار احتياطي
     query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
     if request_number.isdigit():
         receipt = query.filter((WithdrawalRequest.request_number == request_number) | (WithdrawalRequest.id == int(request_number))).first_or_404()
