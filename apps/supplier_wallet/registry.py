@@ -11,11 +11,10 @@ URL_PREFIX = "/supplier/wallet"
 SHOW_IN_SUPPLIER = True
 SHOW_IN_ADMIN = False
 
-# ✅ استخدام أسماء الـ Endpoints الصحيحة مع بادئة supplier_wallet_bp ومسارات التوجيه السريع
+# ✅ حصر الروابط بخيارين فقط: حركة المحفظة وسحب الرصيد
 LINKS = {
-    "supplier_wallet_bp.wallet_dashboard_redirect": "لوحة المحفظة",
-    "supplier_wallet_bp.transactions_redirect": "حركات الحساب",
-    "supplier_wallet_bp.withdraw_redirect": "طلب سحب رصيد"
+    "supplier_wallet_bp.transactions_redirect": "حركة المحفظة",
+    "supplier_wallet_bp.withdraw_redirect": "سحب الرصيد"
 }
 
 links = LINKS
