@@ -12,7 +12,7 @@ from flask import flash
 
 class NotificationService:
     """
-    إدارة التنبيهات الفورية في منصة محجوب أونلاين
+    إدارة التنبيهات الفورية في المنصة
     """
 
     @staticmethod
