@@ -317,6 +317,9 @@
         </div>
         
         <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}">
+            <!-- 🔑 إدراج رمز CSRF المفقود لتجاوز حماية Flask -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="row g-3 align-items-end">
                 <div class="col-md-8">
                     <label class="form-label fw-bold mb-2" style="font-size: 12px; color: var(--text-muted);">المبلغ المطلوب سحبه (بالريال السعودي)</label>
