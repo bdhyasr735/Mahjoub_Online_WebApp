@@ -20,7 +20,7 @@
         color: var(--text-light);
     }
 
-    /* 🎯 إخفاء أسهم الزيادة والنقصان في حقول الأرقام */
+    /* إخفاء أسهم الزيادة والنقصان في حقول الأرقام */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -317,7 +317,7 @@
         </div>
         
         <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}">
-            <!-- 🔑 إدراج رمز CSRF المفقود لتجاوز حماية Flask -->
+            <!-- 🔑 رمز CSRF الحماية المضمن -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="row g-3 align-items-end">
@@ -532,12 +532,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // إظهار أو إخفاء صف عدم وجود نتائج
         if (noResultsRow) {
             noResultsRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
         }
 
-        // إظهار أو إخفاء زر إعادة الضبط
         if (query !== '' || selectedStatus !== 'all') {
             resetBtn.classList.remove('d-none');
         } else {
@@ -545,11 +543,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ربط الأحداث للحصول على بحث لحظي
     if (searchInput) searchInput.addEventListener('input', applyInstantFilter);
     if (statusSelect) statusSelect.addEventListener('change', applyInstantFilter);
 
-    // إعادة ضبط الفلتر عند الضغط على زر X
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
             searchInput.value = '';
@@ -558,7 +554,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // تطبيق الفلترة عند التحميل الأولي في حال وجود قيم مسبقة
     applyInstantFilter();
 });
 </script>
