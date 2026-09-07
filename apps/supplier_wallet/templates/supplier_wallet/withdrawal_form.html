@@ -125,7 +125,7 @@
         box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
     }
 
-    /* تنسيقات حقول الفلترة */
+    /* تنسيقات حقول الفلترة اللحظية */
     .filter-input, .filter-select {
         background: rgba(255, 255, 255, 0.04) !important;
         border: 1px solid var(--border-gold) !important;
@@ -133,6 +133,12 @@
         border-radius: 8px;
         font-size: 13px;
         padding: 8px 12px;
+        outline: none;
+    }
+
+    .filter-input:focus, .filter-select:focus {
+        border-color: var(--gold-primary) !important;
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
     }
 
     .filter-select option {
@@ -204,6 +210,7 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        cursor: pointer;
     }
 
     .btn-outline-gold:hover {
@@ -303,7 +310,7 @@
         </div>
     </div>
 
-    <!-- 2. نموذج تقديم طلب السحب (تمت إزالة رمز الدولار والأسهم) -->
+    <!-- 2. نموذج تقديم طلب السحب -->
     <div class="custom-card">
         <div class="card-title-custom">
             تقديم طلب سحب جديد
@@ -335,7 +342,7 @@
         </form>
     </div>
 
-    <!-- 3. جدول سجل طلبات السحب مع شريط الفلترة والبحث -->
+    <!-- 3. جدول سجل طلبات السحب مع شريط البحث والفلترة اللحظية -->
     <div class="custom-card">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 border-bottom pb-3 mb-4" style="border-color: var(--border-gold) !important;">
             <div class="card-title-custom mb-0 border-0 pb-0">
@@ -343,27 +350,21 @@
                 سجل عمليات السحب
             </div>
 
-            <!-- 🔍 شريط البحث والفلترة -->
-            <form method="GET" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="d-flex gap-2 flex-wrap align-items-center">
-                <input type="text" name="q" value="{{ request.args.get('q', '') }}" class="form-control filter-input" placeholder="بحث برقم المرجع..." style="width: 180px;">
+            <!-- ⚡ شريط البحث والفلترة اللحظية (Client-side) -->
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <input type="text" id="instantSearchInput" value="{{ request.args.get('q', '') }}" class="form-control filter-input" placeholder="بحث سريع برقم المرجع..." style="width: 190px;">
                 
-                <select name="status" class="form-select filter-select" style="width: 140px;">
-                    <option value="">جميع الحالات</option>
+                <select id="instantStatusSelect" class="form-select filter-select" style="width: 140px;">
+                    <option value="all" {% if not request.args.get('status') %}selected{% endif %}>جميع الحالات</option>
                     <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
                     <option value="approved" {% if request.args.get('status') == 'approved' %}selected{% endif %}>مكتمل</option>
                     <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
                 </select>
 
-                <button type="submit" class="btn-outline-gold">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    تطبيق
-                </button>
-                {% if request.args.get('q') or request.args.get('status') %}
-                <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-outline-gold" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" title="إلغاء الفلترة">
+                <button type="button" id="resetFiltersBtn" class="btn-outline-gold d-none" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" title="إلغاء الفلترة">
                     ✕
-                </a>
-                {% endif %}
-            </form>
+                </button>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -377,13 +378,16 @@
                         <th style="text-align: center;">إجراءات / سند الصرف</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="withdrawalTableBody">
                     {% if pagination and pagination.items %}
                         {% for req in pagination.items %}
-                        <tr>
+                        {% set req_ref = req.request_number if req.request_number is defined and req.request_number else ('REQ-%05d'|format(req.id)) %}
+                        {% set req_status_key = 'approved' if req.status in ['approved', 'completed'] else req.status %}
+                        
+                        <tr class="withdrawal-row" data-ref="{{ req_ref }}" data-status="{{ req_status_key }}">
                             <!-- رقم المرجع -->
                             <td class="fw-bold font-mono" style="color: var(--gold-primary);">
-                                #{{ req.request_number if req.request_number is defined and req.request_number else ('REQ-%05d'|format(req.id)) }}
+                                #{{ req_ref }}
                             </td>
 
                             <!-- المبلغ -->
@@ -426,19 +430,20 @@
                             </td>
                         </tr>
                         {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 40px 0; color: var(--text-muted);">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity: 0.3; margin-bottom: 10px;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
-                                <div style="font-size: 13px;">لا توجد طلبات سحب مطابقة للبحث أو معروضة حالياً.</div>
-                            </td>
-                        </tr>
                     {% endif %}
+
+                    <!-- 🔍 صف لا توجد نتائج مطابقة للفلتر -->
+                    <tr id="noMatchingResultsRow" style="display: none;">
+                        <td colspan="5" style="text-align: center; padding: 40px 0; color: var(--text-muted);">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity: 0.3; margin-bottom: 10px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <div style="font-size: 13px;">لا توجد طلبات سحب مطابقة لـ البحث/الفلترة المحددة.</div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- الترقيم الاحترافي (10 طلبات لكل صفحة) -->
+        <!-- الترقيم الاحترافي -->
         {% if pagination and pagination.pages > 1 %}
         <div class="d-flex justify-content-between align-items-center mt-4 pt-3" style="border-top: 1px solid rgba(212, 175, 55, 0.15);">
             <div style="font-size: 12px; color: var(--text-muted);">
@@ -494,4 +499,64 @@
     </div>
 
 </div>
+
+<!-- ⚡ كود الفلترة والبحث اللحظي (JavaScript) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('instantSearchInput');
+    const statusSelect = document.getElementById('instantStatusSelect');
+    const resetBtn = document.getElementById('resetFiltersBtn');
+    const rows = document.querySelectorAll('.withdrawal-row');
+    const noResultsRow = document.getElementById('noMatchingResultsRow');
+
+    function applyInstantFilter() {
+        const query = searchInput.value.trim().toLowerCase().replace('#', '');
+        const selectedStatus = statusSelect.value;
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const ref = (row.getAttribute('data-ref') || '').toLowerCase();
+            const status = row.getAttribute('data-status') || '';
+
+            const matchesSearch = query === '' || ref.includes(query);
+            const matchesStatus = selectedStatus === 'all' || status === selectedStatus;
+
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // إظهار أو إخفاء صف عدم وجود نتائج
+        if (noResultsRow) {
+            noResultsRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
+
+        // إظهار أو إخفاء زر إعادة الضبط
+        if (query !== '' || selectedStatus !== 'all') {
+            resetBtn.classList.remove('d-none');
+        } else {
+            resetBtn.classList.add('d-none');
+        }
+    }
+
+    // ربط الأحداث للحصول على بحث لحظي
+    if (searchInput) searchInput.addEventListener('input', applyInstantFilter);
+    if (statusSelect) statusSelect.addEventListener('change', applyInstantFilter);
+
+    // إعادة ضبط الفلتر عند الضغط على زر X
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            statusSelect.value = 'all';
+            applyInstantFilter();
+        });
+    }
+
+    // تطبيق الفلترة عند التحميل الأولي في حال وجود قيم مسبقة
+    applyInstantFilter();
+});
+</script>
 {% endblock %}
