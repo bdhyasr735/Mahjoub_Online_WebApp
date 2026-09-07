@@ -331,7 +331,6 @@ def withdraw(wallet_id):
         query = query.order_by(WithdrawalRequest.created_at.desc())
 
         pagination = query.paginate(page=page, per_page=10, error_out=False)
-
         latest_request = query.first()
 
         active_bank = {
@@ -369,7 +368,13 @@ def withdrawal_receipt(request_number):
     if not wallet:
         return safe_redirect_home()
 
-    receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
+    # البحث برقم المرجع أولاً، وإذا فشل يتم البحث باستخدام ID رقمي كخيار احتياطي
+    query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
+    if request_number.isdigit():
+        receipt = query.filter((WithdrawalRequest.request_number == request_number) | (WithdrawalRequest.id == int(request_number))).first_or_404()
+    else:
+        receipt = query.filter_by(request_number=request_number).first_or_404()
+
     supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
     modules = get_sidebar_modules()
 
