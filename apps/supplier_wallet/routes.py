@@ -168,7 +168,8 @@ def wallet_dashboard(wallet_id):
         transactions=transactions,
         withdrawal_requests=withdrawal_requests,
         supplier_modules=modules,
-        modules_registry=modules
+        modules_registry=modules,
+        get_trx_type_attr=get_trx_type_attr
     )
 
 
@@ -182,12 +183,12 @@ def withdraw(wallet_id):
     if not supplier_id:
         return safe_redirect_home()
 
-    # 1. البحث عن المحفظة بمعرف المورد أو كود المحفظة (مثل WEL-9631)
+    # 1. البحث عن المحفظة بمعرف المورد أو كود المحفظة
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet and hasattr(SupplierWallet, 'wallet_code'):
         wallet = SupplierWallet.query.filter_by(wallet_code=wallet_id).first()
 
-    # 2. إنشاء المحفظة تلقائياً إذا لم تكن موجودة لتجنب تحويل الصفحة أو انهيار النظام
+    # 2. إنشاء المحفظة تلقائياً إذا لم تكن موجودة
     if not wallet:
         try:
             wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
@@ -217,14 +218,17 @@ def withdraw(wallet_id):
             db.session.commit()
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
+            flash("تم تقديم طلب السحب بنجاح وهو قيد المراجعة حالياً.", "success")
             return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id, success='true'))
 
         except ValueError as e:
             db.session.rollback()
+            flash(str(e), "danger")
             print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
             NotificationService.notify_error(str(e), "خطأ في طلب السحب")
         except Exception as e:
             db.session.rollback()
+            flash("حدث خطأ أثناء تقديم طلب السحب، يرجى المحاولة لاحقاً.", "danger")
             print(f"⚠️ [Withdrawal Exception]: {str(e)}")
             traceback.print_exc()
             NotificationService.notify_error(f"حدث خطأ غير متوقع: {str(e)}", "خطأ نظام")
@@ -274,7 +278,7 @@ def withdrawal_receipt(request_number):
         return safe_redirect_home()
 
     receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
-    supplier = Supplier.query.get(supplier_id)
+    supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
     modules = get_sidebar_modules()
 
     return render_template(
@@ -375,6 +379,7 @@ def transactions(wallet_id):
         transactions=all_transactions,
         supplier_modules=modules,
         modules_registry=modules,
+        get_trx_type_attr=get_trx_type_attr,
         now=datetime.now()
     )
 
