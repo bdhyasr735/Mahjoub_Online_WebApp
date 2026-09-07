@@ -341,22 +341,26 @@ def transactions(wallet_id):
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).all()
     all_transactions = list(transactions_list)
 
+    # دمج طلبات السحب المستقلة كحركات مالية
     for req in withdrawal_requests:
+        status_val = req.status.value if hasattr(req.status, 'value') else req.status
         all_transactions.append({
             'voucher_number': req.request_number,
             'reference_number': req.request_number,
             'transaction_type': 'debit',
             'amount': req.amount,
             'balance_after': None,
-            'status': req.status,
+            'status': status_val,
             'created_at': req.created_at,
             'is_withdrawal': True
         })
 
     def get_sort_key(t):
         if isinstance(t, dict):
-            return t.get('created_at') or datetime.min
-        return getattr(t, 'created_at', None) or datetime.min
+            dt = t.get('created_at')
+        else:
+            dt = getattr(t, 'created_at', None)
+        return dt if dt is not None else datetime.min
 
     all_transactions.sort(key=get_sort_key, reverse=True)
 
@@ -368,11 +372,11 @@ def transactions(wallet_id):
         filtered_list = []
         for t in all_transactions:
             if isinstance(t, dict):
-                v_num = str(t.get('voucher_number', ''))
-                r_num = str(t.get('reference_number', ''))
+                v_num = str(t.get('voucher_number', '') or '')
+                r_num = str(t.get('reference_number', '') or '')
             else:
-                v_num = str(getattr(t, 'voucher_number', ''))
-                r_num = str(getattr(t, 'reference_number', ''))
+                v_num = str(getattr(t, 'voucher_number', '') or '')
+                r_num = str(getattr(t, 'reference_number', '') or '')
             if search_query.lower() in v_num.lower() or search_query.lower() in r_num.lower():
                 filtered_list.append(t)
         all_transactions = filtered_list
@@ -380,16 +384,26 @@ def transactions(wallet_id):
     if trans_type:
         filtered_list = []
         for t in all_transactions:
-            t_type = t.get('transaction_type') if isinstance(t, dict) else getattr(t, 'transaction_type', None)
-            if t_type == trans_type:
+            if isinstance(t, dict):
+                t_type = t.get('transaction_type')
+            else:
+                t_type = getattr(t, 'transaction_type', None)
+                if hasattr(t_type, 'value'):
+                    t_type = t_type.value
+            if str(t_type).lower() == trans_type.lower():
                 filtered_list.append(t)
         all_transactions = filtered_list
 
     if status:
         filtered_list = []
         for t in all_transactions:
-            s_val = t.get('status') if isinstance(t, dict) else getattr(t, 'status', None)
-            if s_val == status:
+            if isinstance(t, dict):
+                s_val = t.get('status')
+            else:
+                s_val = getattr(t, 'status', None)
+                if hasattr(s_val, 'value'):
+                    s_val = s_val.value
+            if str(s_val).lower() == status.lower():
                 filtered_list.append(t)
         all_transactions = filtered_list
 
