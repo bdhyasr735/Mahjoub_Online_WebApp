@@ -1,265 +1,382 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}سند صرف رقم {{ req.request_number }} - منصة محجوب أونلاين{% endblock %}
+{% block title %}طلب سحب رصيد | منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
-    /* تنسيقات الشاشة الأساسية */
     :root {
         --purple-dark: #1a0b2e;
         --purple-card: #12071f;
         --gold-primary: #D4AF37;
         --gold-hover: #b8941f;
         --border-gold: rgba(212, 175, 55, 0.25);
+        --text-muted: #9ca3af;
+        --text-light: #e5e7eb;
     }
 
-    .receipt-container {
-        max-width: 750px;
+    .wallet-container {
+        max-width: 1000px;
         margin: 20px auto;
+        color: var(--text-light);
+    }
+
+    /* كروت المؤشرات المالية */
+    .stat-card {
+        background: linear-gradient(145deg, var(--purple-card), var(--purple-dark));
+        border: 1px solid var(--border-gold);
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(212, 175, 55, 0.15);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(212, 175, 55, 0.1);
+        border: 1px solid var(--border-gold);
+        color: var(--gold-primary);
+    }
+
+    /* البطاقات الرئيسية والنموذج */
+    .custom-card {
         background: linear-gradient(145deg, var(--purple-card), var(--purple-dark));
         border: 1px solid var(--border-gold);
         border-radius: 20px;
-        padding: 35px;
-        box-shadow: 0 15px 50px rgba(0,0,0,0.6);
-        color: #e5e7eb;
-        position: relative;
-        box-sizing: border-box;
-    }
-
-    .receipt-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 2px dashed var(--border-gold);
-        padding-bottom: 20px;
+        padding: 30px;
+        box-shadow: 0 15px 50px rgba(0,0,0,0.5);
         margin-bottom: 25px;
-        flex-wrap: wrap;
-        gap: 15px;
     }
 
-    .receipt-badge {
-        background: rgba(16, 185, 129, 0.12);
-        border: 1px solid #10b981;
-        color: #10b981;
-        padding: 6px 16px;
+    .card-title-custom {
+        color: var(--gold-primary);
+        font-size: 18px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px dashed var(--border-gold);
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+
+    /* حقول الإدخال والأزرار */
+    .custom-input-group .form-control {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: 700;
+        padding: 12px 16px;
+        border-radius: 10px 0 0 10px;
+    }
+
+    .custom-input-group .form-control:focus {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: var(--gold-primary);
+        box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+        color: #ffffff;
+    }
+
+    .custom-input-group .input-group-text {
+        background: rgba(212, 175, 55, 0.15);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        color: var(--gold-primary);
+        font-weight: 800;
+        border-radius: 0 10px 10px 0;
+    }
+
+    .btn-gold {
+        background: linear-gradient(135deg, var(--gold-primary) 0%, #aa8c2c 100%);
+        color: #0f0717;
+        font-weight: 800;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-gold:hover {
+        background: linear-gradient(135deg, #e6c247 0%, var(--gold-hover) 100%);
+        color: #000;
+        box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
+    }
+
+    /* الجدول والتنسيقات الداكنة */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .custom-table th {
+        background: rgba(212, 175, 55, 0.08);
+        color: var(--gold-primary);
+        padding: 14px;
+        border-bottom: 1px solid var(--border-gold);
+        font-weight: 800;
+        text-align: right;
+    }
+
+    .custom-table td {
+        padding: 16px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--text-light);
+    }
+
+    /* الشارات الحالات (Badges) */
+    .badge-status {
+        padding: 6px 14px;
         border-radius: 50px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 800;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }
 
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 15px;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 25px;
+    .badge-approved {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid #10b981;
+        color: #10b981;
     }
 
-    .info-item {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+    .badge-pending {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid #f59e0b;
+        color: #f59e0b;
     }
 
-    .info-label {
-        font-size: 11px;
-        color: #9ca3af;
-        font-weight: 700;
+    .badge-rejected {
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid #ef4444;
+        color: #ef4444;
     }
 
-    .info-val {
-        font-size: 14px;
-        font-weight: 800;
-        color: #ffffff;
-    }
-
-    .details-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 25px;
-        font-size: 13px;
-    }
-
-    .details-table th {
-        background: rgba(212, 175, 55, 0.08);
+    .btn-outline-gold {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-gold);
         color: var(--gold-primary);
-        padding: 12px;
-        text-align: right;
-        border-bottom: 1px solid var(--border-gold);
-        font-weight: 800;
-    }
-
-    .details-table td {
-        padding: 14px 12px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .receipt-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top: 1px solid rgba(255,255,255,0.08);
-        padding-top: 20px;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    .btn-action {
-        padding: 12px 24px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 800;
-        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
         text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
         transition: all 0.2s ease;
     }
 
-    /* أسلوب الطباعة (Print Styles) لتحويل الفاتورة لورق أبيض رسمي */
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-        .receipt-container, .receipt-container * {
-            visibility: visible;
-        }
-        .receipt-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            max-width: 100%;
-            background: #ffffff !important;
-            color: #000000 !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 20px !important;
-        }
-        .receipt-badge {
-            border-color: #000 !important;
-            color: #000 !important;
-            background: none !important;
-        }
-        .info-grid {
-            background: #f9fafb !important;
-            border: 1px solid #e5e7eb !important;
-        }
-        .info-label { color: #4b5563 !important; }
-        .info-val { color: #000000 !important; }
-        .details-table th {
-            background: #f3f4f6 !important;
-            color: #000000 !important;
-            border-bottom: 2px solid #000 !important;
-        }
-        .details-table td {
-            border-bottom: 1px solid #e5e7eb !important;
-            color: #111827 !important;
-        }
-        .text-gold { color: #000000 !important; }
-        .no-print { display: none !important; }
+    .btn-outline-gold:hover {
+        background: rgba(212, 175, 55, 0.15);
+        color: #ffffff;
+        border-color: var(--gold-primary);
+    }
+
+    .font-mono {
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 </style>
 
-<div class="receipt-container">
-    <!-- الهيدر الرئيسي للسند -->
-    <div class="receipt-header">
-        <div>
-            <span style="font-size: 12px; color: var(--gold-primary); font-weight: 800; letter-spacing: 0.5px;">منصة محجوب أونلاين</span>
-            <h1 style="font-size: 22px; font-weight: 900; margin: 4px 0 0 0; color: #fff;" class="text-gold">سند صرف مستحقات مالية</h1>
-            <span style="font-size: 12px; color: #9ca3af;">الرقم المرجعي للسند: <strong class="font-mono text-white">{{ req.request_number }}</strong></span>
-        </div>
-        <div style="text-align: left;">
-            <div class="receipt-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                معاملة مكتملة ومثبتة
+<div class="wallet-container">
+
+    <!-- حساب إجماليات المبالغ ديناميكياً -->
+    {% set pending_total = wallet.withdrawal_requests | selectattr('status', 'equalto', 'pending') | map(attribute='amount') | sum if wallet and wallet.withdrawal_requests else 0.0 %}
+    {% set approved_total = wallet.withdrawal_requests | selectattr('status', 'in', ['approved', 'completed']) | map(attribute='amount') | sum if wallet and wallet.withdrawal_requests else 0.0 %}
+
+    <!-- 1. بطاقات المؤشرات المالية -->
+    <div class="row g-3 mb-4">
+        <!-- إجمالي الرصيد المتاح -->
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">إجمالي الرصيد المتاح</span>
+                        <h3 class="fw-bold mb-0 font-mono" style="color: var(--gold-primary);">{{ "%.2f"|format(balance|default(0.0)) }} <small class="fs-6">ر.س</small></h3>
+                    </div>
+                    <div class="stat-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4z"></path></svg>
+                    </div>
+                </div>
             </div>
-            <div style="font-size: 11px; color: #9ca3af; margin-top: 6px;" class="font-mono">
-                {{ req.updated_at.strftime('%Y-%m-%d | %I:%M %p') if req.updated_at else req.created_at.strftime('%Y-%m-%d | %I:%M %p') }}
+        </div>
+
+        <!-- طلبات قيد الانتظار -->
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">طلبات قيد الانتظار</span>
+                        <h3 class="fw-bold mb-0 font-mono text-warning">{{ "%.2f"|format(pending_total) }} <small class="fs-6">ر.س</small></h3>
+                    </div>
+                    <div class="stat-icon" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- المبالغ المعتمدة والمحولة -->
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">إجمالي التحويلات المعتمدة</span>
+                        <h3 class="fw-bold mb-0 font-mono" style="color: #10b981;">{{ "%.2f"|format(approved_total) }} <small class="fs-6">ر.س</small></h3>
+                    </div>
+                    <div class="stat-icon" style="color: #10b981; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- بيانات المورد والتحويل -->
-    <div class="info-grid">
-        <div class="info-item">
-            <span class="info-label">اسم المستفيد / المورد</span>
-            <span class="info-val">{{ supplier.full_name or supplier.store_name or 'مورد معتمد' }}</span>
+    <!-- 2. نموذج تقديم طلب السحب -->
+    <div class="custom-card">
+        <div class="card-title-custom">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            تقديم طلب سحب أرباح جديد
         </div>
-        <div class="info-item">
-            <span class="info-label">كود المحفظة المصرفية</span>
-            <span class="info-val font-mono">{{ wallet.wallet_code or wallet.id }}</span>
-        </div>
-        <div class="info-item">
-            <span class="info-label">جهة التحويل المصرفية</span>
-            <span class="info-val">{{ wallet.bank_name or 'الحساب البنكي المعتمد' }}</span>
-        </div>
-        <div class="info-item">
-            <span class="info-label">رقم الحساب / الآيبان</span>
-            <span class="info-val font-mono">{{ wallet.account_number or '******' }}</span>
-        </div>
-    </div>
-
-    <!-- جدول تفاصيل المبالغ -->
-    <table class="details-table">
-        <thead>
-            <tr>
-                <th>البيان / الوصف</th>
-                <th style="text-align: center;">العملة</th>
-                <th style="text-align: left;">المبلغ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>سحب رصيد مستحقات مبيعات - طلب رقم (<span class="font-mono">{{ req.request_number }}</span>)</td>
-                <td style="text-align: center;" class="font-mono">{{ req.currency or 'SAR' }}</td>
-                <td style="text-align: left; font-weight: 800;" class="font-mono">{{ "%.2f"|format(req.amount) }}</td>
-            </tr>
-            <tr>
-                <td>رسوم التحويل والمعالجة المصرفية</td>
-                <td style="text-align: center;" class="font-mono">{{ req.currency or 'SAR' }}</td>
-                <td style="text-align: left; font-weight: 800; color: #10b981;" class="font-mono">0.00</td>
-            </tr>
-            <tr style="border-top: 2px solid var(--border-gold); background: rgba(212, 175, 55, 0.03);">
-                <td style="font-weight: 900; color: var(--gold-primary);" class="text-gold">صافي المبلغ المحول للحساب</td>
-                <td style="text-align: center; font-weight: 900;" class="font-mono">{{ req.currency or 'SAR' }}</td>
-                <td style="text-align: left; font-weight: 900; font-size: 16px; color: var(--gold-primary);" class="font-mono text-gold">
-                    {{ "%.2f"|format(req.amount) }}
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- أختام وأزرار التحكم -->
-    <div class="receipt-footer">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <!-- رمز درع الأمان Vector -->
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                <path d="M9 12l2 2 4-4"></path>
-            </svg>
-            <div>
-                <div style="font-size: 11px; font-weight: 800; color: #d1d5db;">سند معتمد إلكترونياً</div>
-                <div style="font-size: 10px; color: #9ca3af;">لا يحتاج إلى توقيع خطي - منصة محجوب أونلاين</div>
+        
+        <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold mb-2" style="font-size: 12px; color: var(--text-muted);">المبلغ المراد سحبه (بالريال السعودي)</label>
+                    <div class="input-group custom-input-group">
+                        <input type="number" 
+                               step="0.01" 
+                               min="1" 
+                               max="{{ balance }}" 
+                               name="amount" 
+                               class="form-control font-mono" 
+                               placeholder="0.00" 
+                               required>
+                        <span class="input-group-text">SAR</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn-gold w-100">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        تأكيد وإرسال الطلب
+                    </button>
+                </div>
             </div>
+        </form>
+    </div>
+
+    <!-- 3. جدول سجل طلبات السحب -->
+    <div class="custom-card">
+        <div class="card-title-custom">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            سجل طلبات السحب السابقة
         </div>
 
-        <div class="no-print" style="display: flex; gap: 10px;">
-            <button onclick="window.print()" class="btn-action" style="background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; border: none;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                طباعة السند
-            </button>
-            <a href="{{ url_for('supplier_wallet.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-action" style="background: rgba(255,255,255,0.05); color: #d1d5db; border: 1px solid rgba(255,255,255,0.1);">
-                عودة للطلبات
-            </a>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>المبلغ المطلوبة</th>
+                        <th>حالة المعاملة</th>
+                        <th>التاريخ والوقت</th>
+                        <th style="text-align: center;">الإجراء / السند</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if pagination and pagination.items %}
+                        {% for req in pagination.items %}
+                        <tr>
+                            <!-- رقم الطلب -->
+                            <td class="fw-bold font-mono" style="color: var(--gold-primary);">
+                                #{{ req.request_number if req.request_number is defined and req.request_number else ('REQ-%05d'|format(req.id)) }}
+                            </td>
+
+                            <!-- المبلغ -->
+                            <td class="fw-bold font-mono fs-6" style="color: #ffffff;">
+                                {{ "%.2f"|format(req.amount) }} <small style="color: var(--text-muted); font-size: 11px;">SAR</small>
+                            </td>
+
+                            <!-- حالة الطلب -->
+                            <td>
+                                {% if req.status in ['approved', 'completed'] %}
+                                    <span class="badge-status badge-approved">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        تم الاعتماد
+                                    </span>
+                                {% elif req.status == 'pending' %}
+                                    <span class="badge-status badge-pending">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                        قيد الانتظار
+                                    </span>
+                                {% else %}
+                                    <span class="badge-status badge-rejected">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        مرفوض
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- تاريخ ووقت الطلب -->
+                            <td class="font-mono" style="color: var(--text-muted); font-size: 12px;">
+                                {{ req.created_at.strftime('%Y-%m-%d | %I:%M %p') if req.created_at else '-' }}
+                            </td>
+
+                            <!-- التفاصيل وسند السحب -->
+                            <td style="text-align: center;">
+                                <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=req.request_number if req.request_number is defined and req.request_number else req.id) }}" 
+                                   class="btn-outline-gold">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></a style="text-decoration:none;">عرض السند
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px 0; color: var(--text-muted);">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity: 0.3; margin-bottom: 10px;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
+                                <div style="font-size: 13px;">لا توجد طلبات سحب مسجلة حتى الآن.</div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
+
+        <!-- الترقيم (Pagination) -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" style="background: rgba(255,255,255,0.05); border-color: var(--border-gold); color: var(--gold-primary);" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.id, page=pagination.prev_num) }}">السابق</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <a class="page-link" style="background: var(--gold-primary); border-color: var(--gold-primary); color: #000; font-weight: 800;" href="#">{{ pagination.page }}</a>
+                    </li>
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" style="background: rgba(255,255,255,0.05); border-color: var(--border-gold); color: var(--gold-primary);" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.id, page=pagination.next_num) }}">التالي</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
+
 </div>
 {% endblock %}
