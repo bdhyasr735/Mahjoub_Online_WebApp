@@ -278,6 +278,11 @@ def withdraw(wallet_id):
 
     if request.method == 'POST':
         try:
+            # 🛑 1. التحقق من عدم وجود طلب سحب معلق آخر للمحفظة
+            has_pending = WithdrawalRequest.query.filter_by(wallet_id=wallet.id, status='pending').first()
+            if has_pending:
+                raise ValueError("لديك طلب سحب قيد المراجعة حالياً، لا يمكنك تقديم طلب جديد حتى يتم البت فيه.")
+
             raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
