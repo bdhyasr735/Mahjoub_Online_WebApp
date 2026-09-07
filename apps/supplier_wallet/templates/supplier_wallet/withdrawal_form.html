@@ -20,6 +20,16 @@
         color: var(--text-light);
     }
 
+    /* 🎯 إخفاء أسهم الزيادة والنقصان في حقول الأرقام */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] { 
+        -moz-appearance: textfield; 
+    }
+
     /* كروت المؤشرات المالية */
     .stat-card {
         background: linear-gradient(145deg, var(--purple-card), var(--purple-dark));
@@ -115,6 +125,21 @@
         box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
     }
 
+    /* تنسيقات حقول الفلترة */
+    .filter-input, .filter-select {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid var(--border-gold) !important;
+        color: #ffffff !important;
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+
+    .filter-select option {
+        background: #12071f;
+        color: #ffffff;
+    }
+
     /* الجدول والتنسيقات الداكنة */
     .custom-table {
         width: 100%;
@@ -190,6 +215,38 @@
     .font-mono {
         font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+
+    /* الترقيم الاحترافي */
+    .custom-pagination .page-link {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-gold);
+        color: var(--gold-primary);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+
+    .custom-pagination .page-link:hover {
+        background: rgba(212, 175, 55, 0.2);
+        color: #ffffff;
+        border-color: var(--gold-primary);
+    }
+
+    .custom-pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, var(--gold-primary) 0%, #aa8c2c 100%);
+        color: #0d0518;
+        border-color: var(--gold-primary);
+        font-weight: 900;
+    }
+
+    .custom-pagination .page-item.disabled .page-link {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.25);
+        cursor: not-allowed;
+    }
 </style>
 
 <div class="wallet-container">
@@ -246,10 +303,9 @@
         </div>
     </div>
 
-    <!-- 2. نموذج تقديم طلب السحب -->
+    <!-- 2. نموذج تقديم طلب السحب (تمت إزالة رمز الدولار والأسهم) -->
     <div class="custom-card">
         <div class="card-title-custom">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
             تقديم طلب سحب جديد
         </div>
         
@@ -279,11 +335,35 @@
         </form>
     </div>
 
-    <!-- 3. جدول سجل طلبات السحب -->
+    <!-- 3. جدول سجل طلبات السحب مع شريط الفلترة والبحث -->
     <div class="custom-card">
-        <div class="card-title-custom">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            سجل عمليات السحب
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 border-bottom pb-3 mb-4" style="border-color: var(--border-gold) !important;">
+            <div class="card-title-custom mb-0 border-0 pb-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                سجل عمليات السحب
+            </div>
+
+            <!-- 🔍 شريط البحث والفلترة -->
+            <form method="GET" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="d-flex gap-2 flex-wrap align-items-center">
+                <input type="text" name="q" value="{{ request.args.get('q', '') }}" class="form-control filter-input" placeholder="بحث برقم المرجع..." style="width: 180px;">
+                
+                <select name="status" class="form-select filter-select" style="width: 140px;">
+                    <option value="">جميع الحالات</option>
+                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المراجعة</option>
+                    <option value="approved" {% if request.args.get('status') == 'approved' %}selected{% endif %}>مكتمل</option>
+                    <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
+                </select>
+
+                <button type="submit" class="btn-outline-gold">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    تطبيق
+                </button>
+                {% if request.args.get('q') or request.args.get('status') %}
+                <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-outline-gold" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" title="إلغاء الفلترة">
+                    ✕
+                </a>
+                {% endif %}
+            </form>
         </div>
 
         <div class="table-responsive">
@@ -350,7 +430,7 @@
                         <tr>
                             <td colspan="5" style="text-align: center; padding: 40px 0; color: var(--text-muted);">
                                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity: 0.3; margin-bottom: 10px;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
-                                <div style="font-size: 13px;">لا توجد طلبات سحب مسجلة حتى الآن.</div>
+                                <div style="font-size: 13px;">لا توجد طلبات سحب مطابقة للبحث أو معروضة حالياً.</div>
                             </td>
                         </tr>
                     {% endif %}
@@ -358,22 +438,53 @@
             </table>
         </div>
 
-        <!-- الترقيم (Pagination) -->
+        <!-- الترقيم الاحترافي (10 طلبات لكل صفحة) -->
         {% if pagination and pagination.pages > 1 %}
-        <div class="d-flex justify-content-center mt-4">
+        <div class="d-flex justify-content-between align-items-center mt-4 pt-3" style="border-top: 1px solid rgba(212, 175, 55, 0.15);">
+            <div style="font-size: 12px; color: var(--text-muted);">
+                صفحة <span class="fw-bold" style="color: var(--gold-primary);">{{ pagination.page }}</span> من <span class="fw-bold" style="color: #fff;">{{ pagination.pages }}</span> 
+                (إجمالي <span class="font-mono" style="color: #fff;">{{ pagination.total }}</span> طلب)
+            </div>
+
             <nav>
-                <ul class="pagination pagination-sm mb-0">
+                <ul class="pagination pagination-sm mb-0 gap-1 custom-pagination">
                     {% if pagination.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" style="background: rgba(255,255,255,0.05); border-color: var(--border-gold); color: var(--gold-primary);" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.id, page=pagination.prev_num) }}">السابق</a>
+                        <a class="page-link" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.prev_num, q=request.args.get('q', ''), status=request.args.get('status', '')) }}">
+                            &laquo; السابق
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo; السابق</span>
                     </li>
                     {% endif %}
-                    <li class="page-item active">
-                        <a class="page-link" style="background: var(--gold-primary); border-color: var(--gold-primary); color: #000; font-weight: 800;" href="#">{{ pagination.page }}</a>
-                    </li>
+
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == pagination.page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=page_num, q=request.args.get('q', ''), status=request.args.get('status', '')) }}">{{ page_num }}</a>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+
                     {% if pagination.has_next %}
                     <li class="page-item">
-                        <a class="page-link" style="background: rgba(255,255,255,0.05); border-color: var(--border-gold); color: var(--gold-primary);" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.id, page=pagination.next_num) }}">التالي</a>
+                        <a class="page-link" href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.next_num, q=request.args.get('q', ''), status=request.args.get('status', '')) }}">
+                            التالي &raquo;
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">التالي &raquo;</span>
                     </li>
                     {% endif %}
                 </ul>
