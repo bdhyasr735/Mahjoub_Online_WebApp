@@ -206,8 +206,11 @@ def withdraw(wallet_id):
             raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
-            if amount <= 0:
-                raise ValueError("يجب أن يكون المبلغ المطلوب سحبه أكبر من 0.00 ر.س")
+            # 🎯 التحقق من الحد الأدنى للسحب (50 ريال سعودي)
+            min_withdrawal = Decimal('50.00')
+            if amount < min_withdrawal:
+                raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal:.2f} ر.س")
+
             if amount > current_balance:
                 raise ValueError("المبلغ المطلوب يتجاوز الرصيد القابل للسحب في محفظتك")
 
@@ -237,9 +240,26 @@ def withdraw(wallet_id):
 
     try:
         page = request.args.get('page', 1, type=int)
-        query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
+        search_query = request.args.get('q', '').strip()
+        status_filter = request.args.get('status', '').strip()
+
+        # بناء استعلام سجل السحوبات للمحفظة
+        query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
+
+        # 🎯 فلترة بالبحث عن رقم المرجع
+        if search_query:
+            query = query.filter(WithdrawalRequest.request_number.ilike(f"%{search_query}%"))
+
+        # 🎯 فلترة بالحالة
+        if status_filter:
+            if status_filter == 'approved':
+                query = query.filter(WithdrawalRequest.status.in_(['approved', 'completed']))
+            else:
+                query = query.filter(WithdrawalRequest.status == status_filter)
+
+        query = query.order_by(WithdrawalRequest.created_at.desc())
         
-        # 🎯 تم ضبط الترقيم ليظهر 10 طلبات في كل صفحة
+        # الترقيم: 10 طلبات لكل صفحة
         pagination = query.paginate(page=page, per_page=10, error_out=False)
 
         latest_request = query.first()
@@ -286,7 +306,7 @@ def withdrawal_receipt(request_number):
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
         receipt=receipt,
-        req=receipt,  # للتوافق التام مع قالب السند سواء استخدم req أو receipt
+        req=receipt,
         wallet=wallet,
         supplier=supplier,
         supplier_modules=modules,
