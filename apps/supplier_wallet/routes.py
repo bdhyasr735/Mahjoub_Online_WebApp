@@ -3,6 +3,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
 from flask_login import login_required, current_user
+from werkzeug.routing import BuildError
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
 from apps.models.supplier_db import Supplier
@@ -15,6 +16,17 @@ from decimal import Decimal
 from datetime import datetime
 
 supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='templates', url_prefix='/supplier/wallet')
+
+
+def safe_redirect_home():
+    """إعادة توجيه آمنة عند الفشل لتجنب خطأ BuildError (500 Internal Server Error)."""
+    try:
+        return redirect(url_for('main.index'))
+    except BuildError:
+        try:
+            return redirect(url_for('suppliers_dashboard.index'))
+        except BuildError:
+            return redirect('/')
 
 
 def get_wallet_balance(wallet):
@@ -136,7 +148,7 @@ def wallet_dashboard(wallet_id):
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
     if not supplier_id:
-        return redirect(url_for('main.index'))
+        return safe_redirect_home()
     try:
         wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
         db.session.commit()
@@ -144,7 +156,7 @@ def wallet_dashboard(wallet_id):
         db.session.rollback()
         print(f"⚠️ [Wallet Dashboard Error]: {str(e)}")
         traceback.print_exc()
-        return redirect(url_for('main.index'))
+        return safe_redirect_home()
 
     transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
@@ -167,9 +179,24 @@ def withdraw(wallet_id):
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
 
+    if not supplier_id:
+        return safe_redirect_home()
+
+    # 1. البحث عن المحفظة بمعرف المورد أو كود المحفظة (مثل WEL-9631)
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if not wallet and hasattr(SupplierWallet, 'wallet_code'):
+        wallet = SupplierWallet.query.filter_by(wallet_code=wallet_id).first()
+
+    # 2. إنشاء المحفظة تلقائياً إذا لم تكن موجودة لتجنب تحويل الصفحة أو انهيار النظام
     if not wallet:
-        return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
+        try:
+            wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Withdrawal Get/Create Wallet Error]: {str(e)}")
+            traceback.print_exc()
+            return safe_redirect_home()
 
     current_balance = get_wallet_balance(wallet)
 
@@ -204,28 +231,33 @@ def withdraw(wallet_id):
 
         return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
 
-    page = request.args.get('page', 1, type=int)
-    query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
-    pagination = query.paginate(page=page, per_page=15, error_out=False)
+    try:
+        page = request.args.get('page', 1, type=int)
+        query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
+        pagination = query.paginate(page=page, per_page=15, error_out=False)
 
-    latest_request = query.first()
+        latest_request = query.first()
 
-    active_bank = {
-        'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة',
-        'id': 1
-    }
-    modules = get_sidebar_modules()
+        active_bank = {
+            'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة',
+            'id': 1
+        }
+        modules = get_sidebar_modules()
 
-    return render_template(
-        'supplier_wallet/withdrawal_form.html',
-        wallet=wallet,
-        balance=current_balance,
-        active_bank=active_bank,
-        pagination=pagination,
-        latest_request=latest_request,
-        supplier_modules=modules,
-        modules_registry=modules
-    )
+        return render_template(
+            'supplier_wallet/withdrawal_form.html',
+            wallet=wallet,
+            balance=current_balance,
+            active_bank=active_bank,
+            pagination=pagination,
+            latest_request=latest_request,
+            supplier_modules=modules,
+            modules_registry=modules
+        )
+    except Exception as e:
+        print(f"⚠️ [Withdraw Render Error]: {str(e)}")
+        traceback.print_exc()
+        return safe_redirect_home()
 
 
 @supplier_wallet_bp.route('/receipt/<string:request_number>', strict_slashes=False)
@@ -235,11 +267,11 @@ def withdrawal_receipt(request_number):
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
     if not supplier_id:
-        return redirect(url_for('main.index'))
+        return safe_redirect_home()
 
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
-        return redirect(url_for('main.index'))
+        return safe_redirect_home()
 
     receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
     supplier = Supplier.query.get(supplier_id)
@@ -263,9 +295,19 @@ def transactions(wallet_id):
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
 
+    if not supplier_id:
+        return safe_redirect_home()
+
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
-        return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
+        try:
+            wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Transactions Wallet Error]: {str(e)}")
+            traceback.print_exc()
+            return safe_redirect_home()
 
     transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).all()
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).all()
