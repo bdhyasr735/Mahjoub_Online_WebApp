@@ -5,6 +5,8 @@
 ترسل تنبيهات فورية للمورد عند إيداع رصيد، قبول/رفض سحب، أو إضافة حساب بنكي.
 """
 
+from decimal import Decimal
+from typing import Union
 from flask import flash
 
 
@@ -12,6 +14,15 @@ class NotificationService:
     """
     إدارة التنبيهات الفورية في منصة محجوب أونلاين
     """
+
+    @staticmethod
+    def _format_amount(amount: Union[float, int, Decimal, str]) -> str:
+        """تنسيق المبالغ المالية بأمان للعرض في التنبيهات"""
+        try:
+            val = Decimal(str(amount))
+            return f"{val:,.2f}"
+        except Exception:
+            return str(amount)
 
     @staticmethod
     def notify_success(message: str, title: str = "تمت العملية بنجاح"):
@@ -23,30 +34,33 @@ class NotificationService:
             'icon': 'check-circle'
         }, category='toast_success')
 
-    @staticmethod
-    def notify_withdrawal_requested(amount: float, request_number: str):
+    @classmethod
+    def notify_withdrawal_requested(cls, amount: Union[float, Decimal], request_number: str):
         """تنبيه فوري لتقديم طلب سحب جديد"""
+        formatted_amount = cls._format_amount(amount)
         flash({
             'type': 'info',
             'title': 'تم استلام طلب السحب',
-            'message': f'تم تسجيل طلب سحب بمبلغ {amount:,.2f} ر.س بنجاح برقم {request_number}. الطلب قيد مراجعة الإدارة المالية.',
+            'message': f'تم تسجيل طلب سحب بمبلغ {formatted_amount} ر.س بنجاح برقم {request_number}. الطلب قيد مراجعة الإدارة المالية.',
             'icon': 'clock'
         }, category='toast_info')
 
-    @staticmethod
-    def notify_withdrawal_approved(amount: float, voucher_number: str):
+    @classmethod
+    def notify_withdrawal_approved(cls, amount: Union[float, Decimal], voucher_number: str):
         """تنبيه فوري لاعتماد وقبول طلب السحب المالي"""
+        formatted_amount = cls._format_amount(amount)
         flash({
             'type': 'success',
             'title': 'تمت الموافقة وصرف المستحقات',
-            'message': f'تمت الموافقة على تحويل مبلغ {amount:,.2f} ر.س وإصدار سند الصرف رقم {voucher_number}.',
+            'message': f'تمت الموافقة على تحويل مبلغ {formatted_amount} ر.س وإصدار سند الصرف رقم {voucher_number}.',
             'icon': 'dollar-sign'
         }, category='toast_success')
 
-    @staticmethod
-    def notify_withdrawal_rejected(amount: float, reason: str = ""):
+    @classmethod
+    def notify_withdrawal_rejected(cls, amount: Union[float, Decimal], reason: str = ""):
         """تنبيه فوري عند رفض طلب السحب وإعادة الرصيد للمورد"""
-        msg = f'تم رفض طلب السحب بمبلغ {amount:,.2f} ر.س وإعادة الرصيد للمحفظة.'
+        formatted_amount = cls._format_amount(amount)
+        msg = f'تم رفض طلب السحب بمبلغ {formatted_amount} ر.س وإعادة الرصيد للمحفظة.'
         if reason:
             msg += f' السبب: {reason}'
         flash({
