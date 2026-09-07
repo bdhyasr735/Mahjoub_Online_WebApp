@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/routes.py
 
+import re
+import traceback
+from decimal import Decimal
+from datetime import datetime
+
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
 from flask_login import login_required, current_user
 from werkzeug.routing import BuildError
+
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
 from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
-import re
-import traceback
-from decimal import Decimal
-from datetime import datetime
 
 supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='templates', url_prefix='/supplier/wallet')
 
@@ -33,14 +35,14 @@ def get_wallet_balance(wallet):
     """جلب رصيد المحفظة القابل للسحب مع دعم المسميات المختلفة للموديل."""
     if not wallet:
         return Decimal('0.0')
-    if hasattr(wallet, 'balance'):
-        return Decimal(str(wallet.balance or 0.0))
-    elif hasattr(wallet, 'balance_sar'):
-        return Decimal(str(wallet.balance_sar or 0.0))
-    elif hasattr(wallet, 'wallet_balance'):
-        return Decimal(str(wallet.wallet_balance or 0.0))
-    elif hasattr(wallet, 'amount'):
-        return Decimal(str(wallet.amount or 0.0))
+    if hasattr(wallet, 'balance') and wallet.balance is not None:
+        return Decimal(str(wallet.balance))
+    elif hasattr(wallet, 'balance_sar') and wallet.balance_sar is not None:
+        return Decimal(str(wallet.balance_sar))
+    elif hasattr(wallet, 'wallet_balance') and wallet.wallet_balance is not None:
+        return Decimal(str(wallet.wallet_balance))
+    elif hasattr(wallet, 'amount') and wallet.amount is not None:
+        return Decimal(str(wallet.amount))
     else:
         print("⚠️ [تحذير]: لم يتم العثور على حقل الرصيد في SupplierWallet")
         return Decimal('0.0')
@@ -258,7 +260,7 @@ def withdraw(wallet_id):
                 query = query.filter(WithdrawalRequest.status == status_filter)
 
         query = query.order_by(WithdrawalRequest.created_at.desc())
-        
+
         # الترقيم: 10 طلبات لكل صفحة
         pagination = query.paginate(page=page, per_page=10, error_out=False)
 
@@ -354,7 +356,7 @@ def transactions(wallet_id):
     def get_sort_key(t):
         if isinstance(t, dict):
             return t.get('created_at') or datetime.min
-        return getattr(t, 'created_at', datetime.min)
+        return getattr(t, 'created_at', None) or datetime.min
 
     all_transactions.sort(key=get_sort_key, reverse=True)
 
