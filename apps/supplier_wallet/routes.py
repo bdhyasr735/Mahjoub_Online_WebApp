@@ -30,7 +30,7 @@ def safe_redirect_home():
 
 
 def get_wallet_balance(wallet):
-    """جلب رصيد المحفظة مع التعامل مع مسميات الأقسام المختلفة بحذر."""
+    """جلب رصيد المحفظة القابل للسحب مع دعم المسميات المختلفة للموديل."""
     if not wallet:
         return Decimal('0.0')
     if hasattr(wallet, 'balance'):
@@ -42,12 +42,12 @@ def get_wallet_balance(wallet):
     elif hasattr(wallet, 'amount'):
         return Decimal(str(wallet.amount or 0.0))
     else:
-        print("⚠️ [تحذير]: لم يتم العثور على عمود الرصيد في SupplierWallet")
+        print("⚠️ [تحذير]: لم يتم العثور على حقل الرصيد في SupplierWallet")
         return Decimal('0.0')
 
 
 def get_sidebar_modules():
-    """تجميع موديولات القائمة الجانبية للمورد."""
+    """تجميع موديولات القائمة الجانبية للمورد بمسميات مالية احترافية."""
     supplier_modules = {}
 
     # 1. جلب الموديولات الأساسية من سجل الموردين
@@ -72,8 +72,8 @@ def get_sidebar_modules():
                         'title': mod.get('title') or mod.get('MODULE_NAME', 'الإدارة المالية'),
                         'icon': mod.get('icon') or mod.get('MODULE_ICON', 'fas fa-wallet'),
                         'links': mod.get('links') or mod.get('LINKS', {
-                            'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
-                            'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                            'supplier_wallet_bp.wallet_dashboard_redirect': 'سجل المعاملات',
+                            'supplier_wallet_bp.withdraw_redirect': 'إدارة السحوبات'
                         })
                     }
     except ImportError:
@@ -85,8 +85,8 @@ def get_sidebar_modules():
             'title': 'الإدارة المالية',
             'icon': 'fas fa-wallet',
             'links': {
-                'supplier_wallet_bp.wallet_dashboard_redirect': 'حركة المحفظة',
-                'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                'supplier_wallet_bp.wallet_dashboard_redirect': 'سجل المعاملات',
+                'supplier_wallet_bp.withdraw_redirect': 'إدارة السحوبات'
             }
         }
 
@@ -207,18 +207,18 @@ def withdraw(wallet_id):
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
             if amount <= 0:
-                raise ValueError("مبلغ السحب يجب أن يكون أكبر من الصفر")
+                raise ValueError("يجب أن يكون المبلغ المطلوب سحبه أكبر من 0.00 ر.س")
             if amount > current_balance:
-                raise ValueError("المبلغ المطلوب يتجاوز رصيد المحفظة المتاح")
+                raise ValueError("المبلغ المطلوب يتجاوز الرصيد القابل للسحب في محفظتك")
 
-            bank_account = request.form.get('bank_account_id', 'مصرف الراجحي - شركة الأناقة للتجارة')
+            bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
             notes = request.form.get('notes', '')
 
             wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
             db.session.commit()
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
-            flash("تم تقديم طلب السحب بنجاح وهو قيد المراجعة حالياً.", "success")
+            flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والتدقيق حالياً.", "success")
             return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id, success='true'))
 
         except ValueError as e:
@@ -228,7 +228,7 @@ def withdraw(wallet_id):
             NotificationService.notify_error(str(e), "خطأ في طلب السحب")
         except Exception as e:
             db.session.rollback()
-            flash("حدث خطأ أثناء تقديم طلب السحب، يرجى المحاولة لاحقاً.", "danger")
+            flash("حدث خطأ غير متوقع أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً.", "danger")
             print(f"⚠️ [Withdrawal Exception]: {str(e)}")
             traceback.print_exc()
             NotificationService.notify_error(f"حدث خطأ غير متوقع: {str(e)}", "خطأ نظام")
@@ -243,7 +243,7 @@ def withdraw(wallet_id):
         latest_request = query.first()
 
         active_bank = {
-            'bank_name': 'مصرف الراجحي - شركة الأناقة للتجارة',
+            'bank_name': 'الحساب البنكي المعتمد للمورد',
             'id': 1
         }
         modules = get_sidebar_modules()
