@@ -4,16 +4,18 @@
 
 {% block content %}
 <style>
-    /* تنسيقات الجدول */
+    /* تنسيقات الجدول والواجهة المالية */
     .table-container {
         overflow-x: auto;
         border-radius: 16px;
-        border: 1px solid rgba(212, 175, 55, 0.1);
+        border: 1px solid rgba(212, 175, 55, 0.15);
+        background: rgba(15, 7, 23, 0.6);
+        backdrop-filter: blur(10px);
     }
     .table-container table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 700px;
+        min-width: 750px;
     }
     .table-container th {
         background: rgba(212, 175, 55, 0.08);
@@ -25,13 +27,14 @@
         border-bottom: 2px solid rgba(212, 175, 55, 0.15);
     }
     .table-container td {
-        padding: 12px 16px;
+        padding: 14px 16px;
         border-bottom: 1px solid rgba(255,255,255,0.05);
         color: #e5e7eb;
         font-size: 13px;
+        vertical-align: middle;
     }
     .table-container tr:hover td {
-        background: rgba(255,255,255,0.03);
+        background: rgba(255, 255, 255, 0.03);
     }
     .status-badge {
         padding: 4px 12px;
@@ -39,24 +42,20 @@
         font-size: 11px;
         font-weight: 700;
         display: inline-block;
+        white-space: nowrap;
     }
-    .status-completed {
+    .status-completed, .status-approved {
         background: rgba(16, 185, 129, 0.15);
         color: #10b981;
-    }
-    .status-pending {
-        background: rgba(245, 158, 11, 0.15);
-        color: #f59e0b;
-    }
-    .status-failed {
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
+        border: 1px solid rgba(16, 185, 129, 0.3);
     }
     .type-credit {
         color: #10b981;
+        font-weight: 700;
     }
     .type-debit {
         color: #ef4444;
+        font-weight: 700;
     }
     .filter-section {
         display: flex;
@@ -82,14 +81,14 @@
     }
     .filter-section input {
         flex: 1;
-        min-width: 200px;
+        min-width: 220px;
     }
     .filter-section select {
-        min-width: 150px;
+        min-width: 160px;
     }
     .balance-card {
         background: linear-gradient(135deg, #1a0b2e 0%, #2c104f 100%);
-        border: 1px solid rgba(212, 175, 55, 0.2);
+        border: 1px solid rgba(212, 175, 55, 0.25);
         border-radius: 16px;
         padding: 20px 24px;
         display: flex;
@@ -98,6 +97,7 @@
         flex-wrap: wrap;
         gap: 16px;
         margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
     .balance-amount {
         font-size: 28px;
@@ -108,6 +108,7 @@
         font-size: 13px;
         color: #9ca3af;
         font-weight: 600;
+        margin-bottom: 4px;
     }
     .empty-state {
         text-align: center;
@@ -119,11 +120,54 @@
         margin-bottom: 16px;
         opacity: 0.3;
     }
+
+    /* تنسيقات شريط تقليب الصفحات */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+        padding: 12px 16px;
+        background: rgba(15, 7, 23, 0.4);
+        border-radius: 12px;
+        border: 1px solid rgba(212, 175, 55, 0.1);
+    }
+    .pagination-buttons {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+    .page-btn {
+        background: #0f0717;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        color: #e5e7eb;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .page-btn:hover:not(:disabled) {
+        border-color: #D4AF37;
+        color: #D4AF37;
+    }
+    .page-btn.active {
+        background: #D4AF37;
+        color: #0f0717;
+        font-weight: 800;
+        border-color: #D4AF37;
+    }
+    .page-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
 </style>
 
-<div style="max-width: 1100px; margin: 0 auto;">
+<div style="max-width: 1100px; margin: 0 auto; padding-bottom: 40px;">
 
-    <!-- عنوان الصفحة -->
+    <!-- عنوان الصفحة والزر السريع -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
         <div>
             <h1 style="font-size: 24px; font-weight: 900; color: white; margin: 0;">
@@ -131,182 +175,285 @@
                 كشف حساب المحفظة المالية
             </h1>
             <p style="color: #9ca3af; font-size: 13px; margin-top: 4px;">
-                عرض جميع الحركات المالية الخاصة بحسابك
+                عرض الحركات المكتملة والإيداعات والسحوبات الخاصة بحسابك
             </p>
         </div>
-        <a href="{{ url_for('supplier_wallet.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" 
+        <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" 
            style="background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-size: 14px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25); transition: all 0.3s ease;"
            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(212, 175, 55, 0.35)';"
            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(212, 175, 55, 0.25)';">
-            <i class="fas fa-arrow-left"></i> طلب سحب جديد
+            <i class="fas fa-arrow-left" style="margin-left: 6px;"></i> طلب سحب جديد
         </a>
     </div>
 
-    <!-- بطاقة الرصيد -->
+    <!-- بطاقة ملخص المحفظة -->
     <div class="balance-card">
         <div>
-            <div class="balance-label"><i class="fas fa-circle" style="color: #10b981; font-size: 8px; margin-left: 6px;"></i> الرصيد الحالي</div>
+            <div class="balance-label"><i class="fas fa-circle" style="color: #10b981; font-size: 8px; margin-left: 6px;"></i> الرصيد الحالي القابل للسحب</div>
             <div class="balance-amount">
                 {% set current_balance = balance if balance is defined else 0.00 %}
-                {{ "%.2f"|format(current_balance) }} <span style="font-size: 16px; font-weight: 600;">SAR</span>
+                {{ "%.2f"|format(current_balance) }} <span style="font-size: 16px; font-weight: 600; color: #e5e7eb;">ر.س</span>
             </div>
         </div>
         <div style="display: flex; gap: 30px; flex-wrap: wrap;">
             <div>
-                <div class="balance-label">كود المحفظة</div>
-                <div style="font-weight: 700; color: white; font-family: monospace;">{{ wallet.wallet_code if wallet else 'N/A' }}</div>
+                <div class="balance-label">رمز المحفظة</div>
+                <div style="font-weight: 700; color: white; font-family: monospace; font-size: 15px;">{{ wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else 'N/A') }}</div>
             </div>
             <div>
                 <div class="balance-label">آخر تحديث</div>
-                <div style="font-weight: 600; color: #d1d5db; font-size: 13px;">{{ now.strftime('%Y-%m-%d %H:%M') if now is defined else 'اليوم' }}</div>
+                <div style="font-weight: 600; color: #d1d5db; font-size: 13px; font-family: monospace;">{{ now.strftime('%Y-%m-%d %H:%M') if now is defined and now.strftime is defined else 'اليوم' }}</div>
             </div>
         </div>
     </div>
 
-    <!-- فلتر البحث -->
+    <!-- فلتر البحث والفرز اللحظي -->
     <div class="filter-section">
-        <input type="text" id="search-input" placeholder="🔍 بحث برقم الإيصال أو المرجع..." />
+        <input type="text" id="search-input" placeholder="🔍 بحث برقم الإيصال أو المرجع..." value="{{ request.args.get('q', '') }}" />
+        
         <select id="type-filter">
-            <option value="">جميع الأنواع</option>
-            <option value="credit">إيداع</option>
-            <option value="debit">سحب</option>
+            <option value="">جميع الحركات (إيداع/سحب)</option>
+            <option value="credit" {% if request.args.get('trans_type') == 'credit' %}selected{% endif %}>إيداع (+)</option>
+            <option value="debit" {% if request.args.get('trans_type') == 'debit' %}selected{% endif %}>سحب (-)</option>
         </select>
-        <select id="status-filter">
-            <option value="">جميع الحالات</option>
-            <option value="completed">مكتمل</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="failed">فشل</option>
-        </select>
-        <button id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">إعادة ضبط</button>
-        <span style="color: #9ca3af; font-size: 13px; margin-right: auto;" id="result-count">عرض 0 حركة</span>
+
+        <button id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)';">إعادة ضبط</button>
+        <span style="color: #9ca3af; font-size: 13px; margin-right: auto; font-weight: 600;" id="result-count">جاري التحميل...</span>
     </div>
 
-    <!-- جدول الحركات -->
+    <!-- جدول كشف الحركات المالية -->
     <div class="table-container">
         <table>
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>رقم الإيصال</th>
+                    <th>رقم الإيصال / المرجع</th>
                     <th>النوع</th>
                     <th>المبلغ</th>
-                    <th>الرصيد بعد</th>
+                    <th>الرصيد بعد الحركة</th>
                     <th>الحالة</th>
-                    <th>التاريخ</th>
+                    <th>التاريخ والتوقيت</th>
                 </tr>
             </thead>
             <tbody id="transactions-body">
+                {% set visible_transactions = [] %}
                 {% if transactions and transactions|length > 0 %}
                     {% for trx in transactions %}
-                    <tr class="transaction-row" 
-                        data-type="{{ trx.transaction_type or 'credit' }}"
-                        data-status="{{ trx.status or 'completed' }}"
-                        data-search="{{ trx.voucher_number or '' }} {{ trx.reference_number or '' }} {{ trx.transfer_number or '' }}">
-                        <td style="color: #9ca3af; font-size: 12px;">{{ loop.index }}</td>
-                        <td style="font-family: monospace; font-weight: 600;">{{ trx.voucher_number or '-' }}</td>
-                        <td>
-                            {% if trx.transaction_type == 'credit' %}
-                                <span class="type-credit"><i class="fas fa-arrow-down"></i> إيداع</span>
-                            {% elif trx.transaction_type == 'debit' %}
-                                <span class="type-debit"><i class="fas fa-arrow-up"></i> سحب</span>
-                            {% else %}
-                                {{ trx.transaction_type or '-' }}
-                            {% endif %}
-                        </td>
-                        <td style="font-weight: 700; {% if trx.transaction_type == 'credit' %}color: #10b981;{% else %}color: #ef4444;{% endif %}">
-                            {{ "%.2f"|format(trx.amount or 0) }} SAR
-                        </td>
-                        <td style="font-family: monospace; color: #d1d5db;">{{ "%.2f"|format(trx.balance_after or 0) }} SAR</td>
-                        <td>
-                            {% if trx.status == 'completed' %}
-                                <span class="status-badge status-completed">✓ مكتمل</span>
-                            {% elif trx.status == 'pending' %}
-                                <span class="status-badge status-pending">⏳ قيد الانتظار</span>
-                            {% elif trx.status == 'failed' %}
-                                <span class="status-badge status-failed">✕ فشل</span>
-                            {% else %}
-                                <span class="status-badge" style="background: rgba(255,255,255,0.05); color: #9ca3af;">{{ trx.status or '-' }}</span>
-                            {% endif %}
-                        </td>
-                        <td style="color: #9ca3af; font-size: 12px; font-family: monospace;">
-                            {% if trx.created_at %}
-                                {{ trx.created_at.strftime('%Y-%m-%d %H:%M') }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
+                        {% set raw_status = trx.status.value if trx.status and trx.status.value is defined else (trx.status or 'completed') %}
+                        {# إظهار المعاملات المكتملة والموافق عليها فقط وتجاهل قيد الانتظار والفاشلة #}
+                        {% if raw_status|lower in ['completed', 'approved'] %}
+                            {% set raw_type = trx.transaction_type.value if trx.transaction_type and trx.transaction_type.value is defined else (trx.transaction_type or 'credit') %}
+                            {% set voucher = trx.voucher_number or trx.reference_number or '-' %}
+                            <tr class="transaction-row" 
+                                data-type="{{ raw_type|lower }}"
+                                data-status="{{ raw_status|lower }}"
+                                data-search="{{ voucher }} {{ trx.reference_number or '' }} {{ trx.transfer_number or '' }}">
+                                <td class="row-index" style="color: #9ca3af; font-size: 12px; font-family: monospace;">{{ loop.index }}</td>
+                                <td style="font-family: monospace; font-weight: 700; color: #ffffff;">
+                                    {% if trx.is_withdrawal and trx.voucher_number %}
+                                        <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=trx.voucher_number) }}" style="color: #D4AF37; text-decoration: none;" title="عرض إيصال السحب">
+                                            {{ voucher }} <i class="fas fa-external-link-alt" style="font-size: 10px; margin-right: 4px;"></i>
+                                        </a>
+                                    {% else %}
+                                        {{ voucher }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if raw_type|lower == 'credit' %}
+                                        <span class="type-credit"><i class="fas fa-arrow-down" style="margin-left: 4px;"></i> إيداع</span>
+                                    {% elif raw_type|lower == 'debit' %}
+                                        <span class="type-debit"><i class="fas fa-arrow-up" style="margin-left: 4px;"></i> سحب</span>
+                                    {% else %}
+                                        <span style="color: #d1d5db;">{{ raw_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-weight: 700; font-family: monospace; font-size: 14px; {% if raw_type|lower == 'credit' %}color: #10b981;{% else %}color: #ef4444;{% endif %}">
+                                    {% if raw_type|lower == 'credit' %}+{% else %}-{% endif %}{{ "%.2f"|format(trx.amount or 0) }} ر.س
+                                </td>
+                                <td style="font-family: monospace; color: #d1d5db;">
+                                    {% if trx.balance_after is not none and trx.balance_after is defined %}
+                                        {{ "%.2f"|format(trx.balance_after) }} ر.س
+                                    {% else %}
+                                        <span style="color: #6b7280;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="status-badge status-completed">✓ مكتمل</span>
+                                </td>
+                                <td style="color: #9ca3af; font-size: 12px; font-family: monospace;">
+                                    {% if trx.created_at %}
+                                        {% if trx.created_at.strftime is defined %}
+                                            {{ trx.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            {{ trx.created_at }}
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endif %}
                     {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="7">
-                            <div class="empty-state">
-                                <i class="fas fa-inbox"></i>
-                                <p style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">لا توجد حركات مالية</p>
-                                <p style="font-size: 13px;">لم يتم تسجيل أي حركات في محفظتك حتى الآن</p>
-                            </div>
-                        </td>
-                    </tr>
                 {% endif %}
+                
+                <tr id="empty-row" style="display: none;">
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #ffffff;">لا توجد حركات مالية مكتملة</p>
+                            <p style="font-size: 13px;">لم يتم العثور على حركات مالية مطابقة للبحث أو معتمدة في حسابتك</p>
+                        </div>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
+
+    <!-- عناصر تقليب الصفحات (Pagination) -->
+    <div class="pagination-container" id="pagination-wrapper">
+        <div style="color: #9ca3af; font-size: 13px;">
+            صفحة <span id="current-page-num" style="color: #D4AF37; font-weight: 700;">1</span> من <span id="total-pages-num" style="color: white; font-weight: 700;">1</span>
+        </div>
+        <div class="pagination-buttons">
+            <button class="page-btn" id="prev-page"><i class="fas fa-chevron-right" style="margin-left: 4px;"></i> السابق</button>
+            <div id="page-numbers" style="display: flex; gap: 4px;"></div>
+            <button class="page-btn" id="next-page">التالي <i class="fas fa-chevron-left" style="margin-right: 4px;"></i></button>
+        </div>
+    </div>
+
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');
     const typeFilter = document.getElementById('type-filter');
-    const statusFilter = document.getElementById('status-filter');
     const resetBtn = document.getElementById('reset-filters');
-    const rows = document.querySelectorAll('.transaction-row');
+    const rows = Array.from(document.querySelectorAll('.transaction-row'));
     const resultCount = document.getElementById('result-count');
+    const emptyRow = document.getElementById('empty-row');
 
-    function filterTable() {
+    // إعدادات الصفحات
+    const itemsPerPage = 10;
+    let currentPage = 1;
+    let filteredRows = [];
+
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    const pageNumbersContainer = document.getElementById('page-numbers');
+    const currentPageNumEl = document.getElementById('current-page-num');
+    const totalPagesNumEl = document.getElementById('total-pages-num');
+
+    function filterData() {
         const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        const type = typeFilter ? typeFilter.value : '';
-        const status = statusFilter ? statusFilter.value : '';
+        const type = typeFilter ? typeFilter.value.toLowerCase() : '';
 
-        let visibleCount = 0;
-
-        rows.forEach(row => {
+        filteredRows = rows.filter(row => {
             const searchData = row.getAttribute('data-search')?.toLowerCase() || '';
-            const rowType = row.getAttribute('data-type') || '';
-            const rowStatus = row.getAttribute('data-status') || '';
+            const rowType = row.getAttribute('data-type')?.toLowerCase() || '';
 
             const matchesSearch = !search || searchData.includes(search);
             const matchesType = !type || rowType === type;
-            const matchesStatus = !status || rowStatus === status;
 
-            if (matchesSearch && matchesType && matchesStatus) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
+            return matchesSearch && matchesType;
         });
 
-        if (resultCount) {
-            resultCount.textContent = `عرض ${visibleCount} حركة`;
+        currentPage = 1;
+        renderTableAndPagination();
+    }
+
+    function renderTableAndPagination() {
+        const totalItems = filteredRows.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+        // إخفاء كل الصفوف أولاً
+        rows.forEach(r => r.style.display = 'none');
+
+        if (totalItems === 0) {
+            if (emptyRow) emptyRow.style.display = '';
+            if (resultCount) resultCount.textContent = 'عرض 0 حركة مالية';
+        } else {
+            if (emptyRow) emptyRow.style.display = 'none';
+            if (resultCount) resultCount.textContent = `عرض ${totalItems} حركة مالية مكتملة`;
+
+            // إظهار صفوف الصفحة الحالية
+            const startIdx = (currentPage - 1) * itemsPerPage;
+            const endIdx = startIdx + itemsPerPage;
+            const pageItems = filteredRows.slice(startIdx, endIdx);
+
+            pageItems.forEach((row, idx) => {
+                row.style.display = '';
+                // تحديث تسلسل الأرقام بناءً على الصفحة الحالية
+                const indexCell = row.querySelector('.row-index');
+                if (indexCell) {
+                    indexCell.textContent = startIdx + idx + 1;
+                }
+            });
+        }
+
+        // تحديث أزرار وأرقام التصفح
+        if (currentPageNumEl) currentPageNumEl.textContent = currentPage;
+        if (totalPagesNumEl) totalPagesNumEl.textContent = totalPages;
+
+        if (prevBtn) prevBtn.disabled = currentPage === 1;
+        if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+
+        renderPageButtons(totalPages);
+    }
+
+    function renderPageButtons(totalPages) {
+        if (!pageNumbersContainer) return;
+        pageNumbersContainer.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const btn = document.createElement('button');
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.addEventListener('click', () => {
+                currentPage = i;
+                renderTableAndPagination();
+            });
+            pageNumbersContainer.appendChild(btn);
         }
     }
 
-    if (searchInput) searchInput.addEventListener('input', filterTable);
-    if (typeFilter) typeFilter.addEventListener('change', filterTable);
-    if (statusFilter) statusFilter.addEventListener('change', filterTable);
+    // الأحداث
+    if (searchInput) searchInput.addEventListener('input', filterData);
+    if (typeFilter) typeFilter.addEventListener('change', filterData);
 
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
             if (searchInput) searchInput.value = '';
             if (typeFilter) typeFilter.value = '';
-            if (statusFilter) statusFilter.value = '';
-            filterTable();
+            filterData();
         });
     }
 
-    // تطبيق الفلتر عند التحميل
-    filterTable();
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTableAndPagination();
+            }
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTableAndPagination();
+            }
+        });
+    }
+
+    // التشغيل المبدئي
+    filterData();
 });
 </script>
-
 {% endblock %}
