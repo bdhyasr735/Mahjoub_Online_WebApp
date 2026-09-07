@@ -3,6 +3,7 @@
 
 import re
 import traceback
+import importlib
 from decimal import Decimal
 from datetime import datetime
 
@@ -48,9 +49,10 @@ def get_wallet_balance(wallet):
 
 
 def get_sidebar_modules():
-    """تجميع موديولات القائمة الجانبية للمورد."""
+    """تجميع موديولات القائمة الجانبية للمورد ديناميكياً لتشمل جميع الموديولات المتاحة."""
     supplier_modules = {}
 
+    # 1️⃣ محاولة جلب الموديولات من السجل المركزي للداشبورد إن وجد
     try:
         from apps.suppliers_dashboard.registry import MODULES_REGISTRY
         if MODULES_REGISTRY:
@@ -58,32 +60,38 @@ def get_sidebar_modules():
     except ImportError:
         pass
 
+    # 2️⃣ محاولة جلب الموديولات الممررة على مستوى التطبيق (current_app)
     if hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules.update(current_app.supplier_modules)
 
-    try:
-        from apps.app import SUPPLIER_MODULES
-        if SUPPLIER_MODULES:
-            for key, mod in SUPPLIER_MODULES.items():
-                if isinstance(mod, dict):
-                    supplier_modules[key] = {
-                        'title': mod.get('title') or mod.get('MODULE_NAME', 'الإدارة المالية'),
-                        'icon': mod.get('icon') or mod.get('MODULE_ICON', 'fas fa-wallet'),
-                        'links': mod.get('links') or mod.get('LINKS', {
-                            'supplier_wallet_bp.transactions_redirect': 'سجل المعاملات',
-                            'supplier_wallet_bp.withdraw_redirect': 'إدارة السحوبات'
-                        })
-                    }
-    except ImportError:
-        pass
+    # 3️⃣ المسح الديناميكي على كافة سجلات الموديولات (Registries) المسجلة في التطبيق
+    registry_paths = [
+        'apps.supplier_products.registry',
+        'apps.supplier_orders.registry',
+        'apps.supplier_wallet.registry',
+        'apps.suppliers_dashboard.registry'
+    ]
 
-    if 'financial_management' not in supplier_modules and 'supplier_wallet' not in supplier_modules:
-        supplier_modules['financial_management'] = {
-            'title': 'الإدارة المالية',
+    for path in registry_paths:
+        try:
+            mod = importlib.import_module(path)
+            if hasattr(mod, 'get_nav_metadata'):
+                metadata = mod.get_nav_metadata()
+                if metadata.get('show_in_supplier', True):
+                    supplier_modules[metadata['key']] = metadata
+            elif hasattr(mod, 'MODULES_REGISTRY') and isinstance(mod.MODULES_REGISTRY, dict):
+                supplier_modules.update(mod.MODULES_REGISTRY)
+        except (ImportError, AttributeError):
+            continue
+
+    # 4️⃣ في حالة التعذر الكامل، يتم تقديم الموديول الحالي كقيمة احتياطية بدلاً من تقييد القائمة
+    if not supplier_modules:
+        supplier_modules['supplier_wallet'] = {
+            'title': 'المحفظة الرقمية',
             'icon': 'fas fa-wallet',
             'links': {
-                'supplier_wallet_bp.transactions_redirect': 'سجل المعاملات',
-                'supplier_wallet_bp.withdraw_redirect': 'إدارة السحوبات'
+                'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
+                'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
             }
         }
 
