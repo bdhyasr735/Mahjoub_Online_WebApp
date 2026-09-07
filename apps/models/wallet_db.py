@@ -12,14 +12,13 @@ def generate_unique_voucher_number():
         random_digits = ''.join([str(random.randint(0, 9)) for _ in range(6)])
         voucher_code = f"VCH-MAH{random_digits}"
         
-        # ✅ التحقق من عدم وجود الكود مسبقاً بشكل صحيح (استخدم الجدول الصحيح)
         exists = WalletTransaction.query.filter_by(description=voucher_code).first()
         if not exists:
             return voucher_code
 
 
 class SupplierWallet(db.Model):
-    """نموذج المحفظة المالية الذكية للموردين - يدعم الترقيم النمطي WEL-963X والعملة بالريال السعودي فقط"""
+    """نموذج المحفظة المالية الذكية للموردين - يدعم الترقيم النمطي WEL-963X والعملة بالريال السعودي"""
     __tablename__ = 'supplier_wallets'
 
     __table_args__ = (
@@ -34,6 +33,8 @@ class SupplierWallet(db.Model):
     wallet_code = db.Column(db.String(50), unique=True, nullable=True)
     
     balance = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
+    balance_pending = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
+    total_withdrawn = db.Column(db.Numeric(12, 2), default=0.00, nullable=False)
     currency = db.Column(db.String(10), default='SAR', nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
@@ -48,12 +49,23 @@ class SupplierWallet(db.Model):
         kwargs['currency'] = 'SAR'
         super().__init__(**kwargs)
 
+    @property
+    def balance_sar(self):
+        """خاصية للتوافق مع الخدمات التي تعتمد مسمى balance_sar"""
+        return self.balance
+
+    @balance_sar.setter
+    def balance_sar(self, value):
+        self.balance = value
+
     def to_dict(self):
         return {
             'id': self.id,
             'supplier_id': self.supplier_id,
             'wallet_code': self.wallet_code,
             'balance': float(self.balance) if self.balance is not None else 0.00,
+            'balance_pending': float(self.balance_pending) if self.balance_pending is not None else 0.00,
+            'total_withdrawn': float(self.total_withdrawn) if self.total_withdrawn is not None else 0.00,
             'currency': self.currency,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -103,14 +115,18 @@ class WithdrawalRequest(db.Model):
 
     __table_args__ = (
         db.Index('idx_withdrawal_wallet_id', 'wallet_id'),
+        db.Index('idx_withdrawal_request_number', 'request_number'),
         db.Index('idx_withdrawal_status', 'status'),
         db.Index('idx_withdrawal_created', 'created_at'),
         {'extend_existing': True}
     )
 
     id = db.Column(db.Integer, primary_key=True)
+    request_number = db.Column(db.String(100), unique=True, nullable=True, index=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id', ondelete='CASCADE'), nullable=True)
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id', ondelete='CASCADE'), nullable=False)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
+    payout_method = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(50), default='pending', nullable=False)
     notes = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -121,8 +137,11 @@ class WithdrawalRequest(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'request_number': self.request_number,
+            'supplier_id': self.supplier_id,
             'wallet_id': self.wallet_id,
             'amount': float(self.amount) if self.amount is not None else 0.00,
+            'payout_method': self.payout_method,
             'status': self.status,
             'notes': self.notes,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -130,4 +149,4 @@ class WithdrawalRequest(db.Model):
         }
 
     def __repr__(self):
-        return f"<WithdrawalRequest {self.id}: {self.amount} - {self.status}>"
+        return f"<WithdrawalRequest {self.request_number or self.id}: {self.amount} - {self.status}>"
