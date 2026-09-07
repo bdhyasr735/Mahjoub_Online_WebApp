@@ -1,6 +1,6 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}طلب سحب رصيد | منصة محجوب أونلاين{% endblock %}
+{% block title %}طلب سحب رصيد | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
@@ -137,7 +137,7 @@
         color: var(--text-light);
     }
 
-    /* الشارات الحالات (Badges) */
+    /* شارات الحالات (Badges) */
     .badge-status {
         padding: 6px 14px;
         border-radius: 50px;
@@ -176,6 +176,9 @@
         font-weight: 700;
         text-decoration: none;
         transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
 
     .btn-outline-gold:hover {
@@ -197,12 +200,12 @@
 
     <!-- 1. بطاقات المؤشرات المالية -->
     <div class="row g-3 mb-4">
-        <!-- إجمالي الرصيد المتاح -->
+        <!-- الرصيد القابل للسحب -->
         <div class="col-md-4">
             <div class="stat-card">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">إجمالي الرصيد المتاح</span>
+                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">الرصيد القابل للسحب</span>
                         <h3 class="fw-bold mb-0 font-mono" style="color: var(--gold-primary);">{{ "%.2f"|format(balance|default(0.0)) }} <small class="fs-6">ر.س</small></h3>
                     </div>
                     <div class="stat-icon">
@@ -212,12 +215,12 @@
             </div>
         </div>
 
-        <!-- طلبات قيد الانتظار -->
+        <!-- سحوبات قيد المعالجة -->
         <div class="col-md-4">
             <div class="stat-card">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">طلبات قيد الانتظار</span>
+                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">سحوبات قيد المعالجة</span>
                         <h3 class="fw-bold mb-0 font-mono text-warning">{{ "%.2f"|format(pending_total) }} <small class="fs-6">ر.س</small></h3>
                     </div>
                     <div class="stat-icon" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1);">
@@ -227,12 +230,12 @@
             </div>
         </div>
 
-        <!-- المبالغ المعتمدة والمحولة -->
+        <!-- إجمالي السحوبات المنفذة -->
         <div class="col-md-4">
             <div class="stat-card">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">إجمالي التحويلات المعتمدة</span>
+                        <span class="d-block mb-1" style="font-size: 11px; color: var(--text-muted); font-weight: 700;">إجمالي السحوبات المنفذة</span>
                         <h3 class="fw-bold mb-0 font-mono" style="color: #10b981;">{{ "%.2f"|format(approved_total) }} <small class="fs-6">ر.س</small></h3>
                     </div>
                     <div class="stat-icon" style="color: #10b981; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1);">
@@ -247,13 +250,13 @@
     <div class="custom-card">
         <div class="card-title-custom">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            تقديم طلب سحب أرباح جديد
+            تقديم طلب سحب جديد
         </div>
         
         <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}">
             <div class="row g-3 align-items-end">
                 <div class="col-md-8">
-                    <label class="form-label fw-bold mb-2" style="font-size: 12px; color: var(--text-muted);">المبلغ المراد سحبه (بالريال السعودي)</label>
+                    <label class="form-label fw-bold mb-2" style="font-size: 12px; color: var(--text-muted);">المبلغ المطلوب سحبه (بالريال السعودي)</label>
                     <div class="input-group custom-input-group">
                         <input type="number" 
                                step="0.01" 
@@ -263,7 +266,7 @@
                                class="form-control font-mono" 
                                placeholder="0.00" 
                                required>
-                        <span class="input-group-text">SAR</span>
+                        <span class="input-group-text">ر.س</span>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -280,32 +283,32 @@
     <div class="custom-card">
         <div class="card-title-custom">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            سجل طلبات السحب السابقة
+            سجل عمليات السحب
         </div>
 
         <div class="table-responsive">
             <table class="custom-table">
                 <thead>
                     <tr>
-                        <th>رقم الطلب</th>
-                        <th>المبلغ المطلوبة</th>
-                        <th>حالة المعاملة</th>
-                        <th>التاريخ والوقت</th>
-                        <th style="text-align: center;">الإجراء / السند</th>
+                        <th>رقم المرجع</th>
+                        <th>المبلغ المطلوب</th>
+                        <th>حالة الطلب</th>
+                        <th>تاريخ الطلب</th>
+                        <th style="text-align: center;">إجراءات / سند الصرف</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if pagination and pagination.items %}
                         {% for req in pagination.items %}
                         <tr>
-                            <!-- رقم الطلب -->
+                            <!-- رقم المرجع -->
                             <td class="fw-bold font-mono" style="color: var(--gold-primary);">
                                 #{{ req.request_number if req.request_number is defined and req.request_number else ('REQ-%05d'|format(req.id)) }}
                             </td>
 
                             <!-- المبلغ -->
                             <td class="fw-bold font-mono fs-6" style="color: #ffffff;">
-                                {{ "%.2f"|format(req.amount) }} <small style="color: var(--text-muted); font-size: 11px;">SAR</small>
+                                {{ "%.2f"|format(req.amount) }} <small style="color: var(--text-muted); font-size: 11px;">ر.س</small>
                             </td>
 
                             <!-- حالة الطلب -->
@@ -313,12 +316,12 @@
                                 {% if req.status in ['approved', 'completed'] %}
                                     <span class="badge-status badge-approved">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        تم الاعتماد
+                                        مكتمل
                                     </span>
                                 {% elif req.status == 'pending' %}
                                     <span class="badge-status badge-pending">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                                        قيد الانتظار
+                                        قيد المراجعة
                                     </span>
                                 {% else %}
                                     <span class="badge-status badge-rejected">
@@ -337,7 +340,8 @@
                             <td style="text-align: center;">
                                 <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=req.request_number if req.request_number is defined and req.request_number else req.id) }}" 
                                    class="btn-outline-gold">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></a style="text-decoration:none;">عرض السند
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                    عرض السند
                                 </a>
                             </td>
                         </tr>
