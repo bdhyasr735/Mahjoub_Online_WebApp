@@ -238,7 +238,9 @@ def withdraw(wallet_id):
     try:
         page = request.args.get('page', 1, type=int)
         query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc())
-        pagination = query.paginate(page=page, per_page=15, error_out=False)
+        
+        # 🎯 تم ضبط الترقيم ليظهر 10 طلبات في كل صفحة
+        pagination = query.paginate(page=page, per_page=10, error_out=False)
 
         latest_request = query.first()
 
