@@ -21,7 +21,7 @@ supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='
 
 
 def safe_redirect_home():
-    """إعادة توجيه آمنة عند الفشل لتجنب خطأ BuildError (500 Internal Server Error)."""
+    """إعادة توجيه آمنة عند الفشل لتجنب خطأ BuildError."""
     try:
         return redirect(url_for('main.index'))
     except BuildError:
@@ -32,7 +32,7 @@ def safe_redirect_home():
 
 
 def get_wallet_balance(wallet):
-    """جلب رصيد المحفظة القابل للسحب مع دعم المسميات المختلفة للموديل."""
+    """جلب رصيد المحفظة القابل للسحب."""
     if not wallet:
         return Decimal('0.0')
     if hasattr(wallet, 'balance') and wallet.balance is not None:
@@ -44,15 +44,13 @@ def get_wallet_balance(wallet):
     elif hasattr(wallet, 'amount') and wallet.amount is not None:
         return Decimal(str(wallet.amount))
     else:
-        print("⚠️ [تحذير]: لم يتم العثور على حقل الرصيد في SupplierWallet")
         return Decimal('0.0')
 
 
 def get_sidebar_modules():
-    """تجميع موديولات القائمة الجانبية للمورد بمسميات مالية احترافية."""
+    """تجميع موديولات القائمة الجانبية للمورد."""
     supplier_modules = {}
 
-    # 1. جلب الموديولات الأساسية من سجل الموردين
     try:
         from apps.suppliers_dashboard.registry import MODULES_REGISTRY
         if MODULES_REGISTRY:
@@ -60,11 +58,9 @@ def get_sidebar_modules():
     except ImportError:
         pass
 
-    # 2. دمج الموديولات المسجلة ديناميكياً على مستوى التطبيق
     if hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules.update(current_app.supplier_modules)
 
-    # 3. دمج الموديولات المسجلة في القاموس العام SUPPLIER_MODULES
     try:
         from apps.app import SUPPLIER_MODULES
         if SUPPLIER_MODULES:
@@ -74,20 +70,19 @@ def get_sidebar_modules():
                         'title': mod.get('title') or mod.get('MODULE_NAME', 'الإدارة المالية'),
                         'icon': mod.get('icon') or mod.get('MODULE_ICON', 'fas fa-wallet'),
                         'links': mod.get('links') or mod.get('LINKS', {
-                            'supplier_wallet_bp.wallet_dashboard_redirect': 'سجل المعاملات',
+                            'supplier_wallet_bp.transactions_redirect': 'سجل المعاملات',
                             'supplier_wallet_bp.withdraw_redirect': 'إدارة السحوبات'
                         })
                     }
     except ImportError:
         pass
 
-    # 4. ضمان إدراج موديول الإدارة المالية في حال عدم وجوده
     if 'financial_management' not in supplier_modules and 'supplier_wallet' not in supplier_modules:
         supplier_modules['financial_management'] = {
             'title': 'الإدارة المالية',
             'icon': 'fas fa-wallet',
             'links': {
-                'supplier_wallet_bp.wallet_dashboard_redirect': 'سجل المعاملات',
+                'supplier_wallet_bp.transactions_redirect': 'سجل المعاملات',
                 'supplier_wallet_bp.withdraw_redirect': 'إدارة السحوبات'
             }
         }
@@ -96,7 +91,7 @@ def get_sidebar_modules():
 
 
 def get_current_wallet_identifier():
-    """الحصول على المعرف الخاص بالمحفظة (رمز المحفظة، المعرف الرقمي، أو اسم المتجر)."""
+    """الحصول على المعرف الخاص بالمحفظة."""
     supplier_id = get_current_supplier_id()
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
@@ -116,7 +111,7 @@ def get_current_wallet_identifier():
     return str(supplier_id)
 
 
-# --- مسارات إعادة التوجيه السريعة (Short URLs / Redirects) ---
+# --- مسارات إعادة التوجيه السريعة ---
 
 @supplier_wallet_bp.route('/transactions', strict_slashes=False)
 @login_required
@@ -137,183 +132,17 @@ def withdraw_redirect():
 @login_required
 def wallet_dashboard_redirect():
     wallet_id = get_current_wallet_identifier()
-    return redirect(url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet_id))
+    return redirect(url_for('supplier_wallet_bp.transactions', wallet_id=wallet_id))
 
 
-# --- مسارات لوحة التحكم والمعاملات المالية ---
+# --- مسارات اللوحة والصفحات المالية ---
 
 @supplier_wallet_bp.route('/<string:wallet_id>/', strict_slashes=False)
 @supplier_wallet_bp.route('/<string:wallet_id>/dashboard', strict_slashes=False)
 @login_required
 def wallet_dashboard(wallet_id):
-    supplier_id = get_current_supplier_id()
-    if not supplier_id and hasattr(current_user, 'id'):
-        supplier_id = current_user.id
-    if not supplier_id:
-        return safe_redirect_home()
-    try:
-        wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        print(f"⚠️ [Wallet Dashboard Error]: {str(e)}")
-        traceback.print_exc()
-        return safe_redirect_home()
-
-    transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
-    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).order_by(WithdrawalRequest.created_at.desc()).all()
-    modules = get_sidebar_modules()
-
-    return render_template(
-        'supplier_wallet/dashboard.html',
-        wallet=wallet,
-        transactions=transactions,
-        withdrawal_requests=withdrawal_requests,
-        supplier_modules=modules,
-        modules_registry=modules,
-        get_trx_type_attr=get_trx_type_attr
-    )
-
-
-@supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
-@login_required
-def withdraw(wallet_id):
-    supplier_id = get_current_supplier_id()
-    if not supplier_id and hasattr(current_user, 'id'):
-        supplier_id = current_user.id
-
-    if not supplier_id:
-        return safe_redirect_home()
-
-    # 1. البحث عن المحفظة بمعرف المورد أو كود المحفظة
-    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-    if not wallet and hasattr(SupplierWallet, 'wallet_code'):
-        wallet = SupplierWallet.query.filter_by(wallet_code=wallet_id).first()
-
-    # 2. إنشاء المحفظة تلقائياً إذا لم تكن موجودة
-    if not wallet:
-        try:
-            wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [Withdrawal Get/Create Wallet Error]: {str(e)}")
-            traceback.print_exc()
-            return safe_redirect_home()
-
-    current_balance = get_wallet_balance(wallet)
-
-    if request.method == 'POST':
-        try:
-            raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
-            amount = Decimal(raw_amount) if raw_amount else Decimal('0')
-
-            # 🎯 التحقق من الحد الأدنى للسحب (50 ريال سعودي)
-            min_withdrawal = Decimal('50.00')
-            if amount < min_withdrawal:
-                raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal:.2f} ر.س")
-
-            if amount > current_balance:
-                raise ValueError("المبلغ المطلوب يتجاوز الرصيد القابل للسحب في محفظتك")
-
-            bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
-            notes = request.form.get('notes', '')
-
-            wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
-            db.session.commit()
-
-            NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
-            flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والتدقيق حالياً.", "success")
-            return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id, success='true'))
-
-        except ValueError as e:
-            db.session.rollback()
-            flash(str(e), "danger")
-            print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
-            NotificationService.notify_error(str(e), "خطأ في طلب السحب")
-        except Exception as e:
-            db.session.rollback()
-            flash("حدث خطأ غير متوقع أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً.", "danger")
-            print(f"⚠️ [Withdrawal Exception]: {str(e)}")
-            traceback.print_exc()
-            NotificationService.notify_error(f"حدث خطأ غير متوقع: {str(e)}", "خطأ نظام")
-
-        return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
-
-    try:
-        page = request.args.get('page', 1, type=int)
-        search_query = request.args.get('q', '').strip()
-        status_filter = request.args.get('status', '').strip()
-
-        # بناء استعلام سجل السحوبات للمحفظة
-        query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
-
-        # 🎯 فلترة بالبحث عن رقم المرجع
-        if search_query:
-            query = query.filter(WithdrawalRequest.request_number.ilike(f"%{search_query}%"))
-
-        # 🎯 فلترة بالحالة
-        if status_filter:
-            if status_filter == 'approved':
-                query = query.filter(WithdrawalRequest.status.in_(['approved', 'completed']))
-            else:
-                query = query.filter(WithdrawalRequest.status == status_filter)
-
-        query = query.order_by(WithdrawalRequest.created_at.desc())
-
-        # الترقيم: 10 طلبات لكل صفحة
-        pagination = query.paginate(page=page, per_page=10, error_out=False)
-
-        latest_request = query.first()
-
-        active_bank = {
-            'bank_name': 'الحساب البنكي المعتمد للمورد',
-            'id': 1
-        }
-        modules = get_sidebar_modules()
-
-        return render_template(
-            'supplier_wallet/withdrawal_form.html',
-            wallet=wallet,
-            balance=current_balance,
-            active_bank=active_bank,
-            pagination=pagination,
-            latest_request=latest_request,
-            supplier_modules=modules,
-            modules_registry=modules
-        )
-    except Exception as e:
-        print(f"⚠️ [Withdraw Render Error]: {str(e)}")
-        traceback.print_exc()
-        return safe_redirect_home()
-
-
-@supplier_wallet_bp.route('/receipt/<string:request_number>', strict_slashes=False)
-@login_required
-def withdrawal_receipt(request_number):
-    supplier_id = get_current_supplier_id()
-    if not supplier_id and hasattr(current_user, 'id'):
-        supplier_id = current_user.id
-    if not supplier_id:
-        return safe_redirect_home()
-
-    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
-    if not wallet:
-        return safe_redirect_home()
-
-    receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
-    supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
-    modules = get_sidebar_modules()
-
-    return render_template(
-        'supplier_wallet/withdrawal_receipt.html',
-        receipt=receipt,
-        req=receipt,
-        wallet=wallet,
-        supplier=supplier,
-        supplier_modules=modules,
-        modules_registry=modules
-    )
+    """إعادة توجيه تلقائية من مسار dashboard إلى سجل المعاملات."""
+    return redirect(url_for('supplier_wallet_bp.transactions', wallet_id=wallet_id))
 
 
 @supplier_wallet_bp.route('/<string:wallet_id>/transactions', strict_slashes=False)
@@ -341,7 +170,6 @@ def transactions(wallet_id):
     withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).all()
     all_transactions = list(transactions_list)
 
-    # دمج طلبات السحب المستقلة كحركات مالية
     for req in withdrawal_requests:
         status_val = req.status.value if hasattr(req.status, 'value') else req.status
         all_transactions.append({
@@ -419,6 +247,140 @@ def transactions(wallet_id):
         modules_registry=modules,
         get_trx_type_attr=get_trx_type_attr,
         now=datetime.now()
+    )
+
+
+@supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
+@login_required
+def withdraw(wallet_id):
+    supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+
+    if not supplier_id:
+        return safe_redirect_home()
+
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if not wallet and hasattr(SupplierWallet, 'wallet_code'):
+        wallet = SupplierWallet.query.filter_by(wallet_code=wallet_id).first()
+
+    if not wallet:
+        try:
+            wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Withdrawal Get/Create Wallet Error]: {str(e)}")
+            traceback.print_exc()
+            return safe_redirect_home()
+
+    current_balance = get_wallet_balance(wallet)
+
+    if request.method == 'POST':
+        try:
+            raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
+            amount = Decimal(raw_amount) if raw_amount else Decimal('0')
+
+            min_withdrawal = Decimal('50.00')
+            if amount < min_withdrawal:
+                raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal:.2f} ر.س")
+
+            if amount > current_balance:
+                raise ValueError("المبلغ المطلوب يتجاوز الرصيد القابل للسحب في محفظتك")
+
+            bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
+            notes = request.form.get('notes', '')
+
+            wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
+            db.session.commit()
+
+            NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
+            flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والتدقيق حالياً.", "success")
+            return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id, success='true'))
+
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), "danger")
+            print(f"⚠️ [Withdrawal ValueError]: {str(e)}")
+            NotificationService.notify_error(str(e), "خطأ في طلب السحب")
+        except Exception as e:
+            db.session.rollback()
+            flash("حدث خطأ غير متوقع أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً.", "danger")
+            print(f"⚠️ [Withdrawal Exception]: {str(e)}")
+            traceback.print_exc()
+            NotificationService.notify_error(f"حدث خطأ غير متوقع: {str(e)}", "خطأ نظام")
+
+        return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
+
+    try:
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('q', '').strip()
+        status_filter = request.args.get('status', '').strip()
+
+        query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
+
+        if search_query:
+            query = query.filter(WithdrawalRequest.request_number.ilike(f"%{search_query}%"))
+
+        if status_filter:
+            if status_filter == 'approved':
+                query = query.filter(WithdrawalRequest.status.in_(['approved', 'completed']))
+            else:
+                query = query.filter(WithdrawalRequest.status == status_filter)
+
+        query = query.order_by(WithdrawalRequest.created_at.desc())
+
+        pagination = query.paginate(page=page, per_page=10, error_out=False)
+
+        latest_request = query.first()
+
+        active_bank = {
+            'bank_name': 'الحساب البنكي المعتمد للمورد',
+            'id': 1
+        }
+        modules = get_sidebar_modules()
+
+        return render_template(
+            'supplier_wallet/withdrawal_form.html',
+            wallet=wallet,
+            balance=current_balance,
+            active_bank=active_bank,
+            pagination=pagination,
+            latest_request=latest_request,
+            supplier_modules=modules,
+            modules_registry=modules
+        )
+    except Exception as e:
+        print(f"⚠️ [Withdraw Render Error]: {str(e)}")
+        traceback.print_exc()
+        return safe_redirect_home()
+
+
+@supplier_wallet_bp.route('/receipt/<string:request_number>', strict_slashes=False)
+@login_required
+def withdrawal_receipt(request_number):
+    supplier_id = get_current_supplier_id()
+    if not supplier_id and hasattr(current_user, 'id'):
+        supplier_id = current_user.id
+    if not supplier_id:
+        return safe_redirect_home()
+
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if not wallet:
+        return safe_redirect_home()
+
+    receipt = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet.id).first_or_404()
+    supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
+    modules = get_sidebar_modules()
+
+    return render_template(
+        'supplier_wallet/withdrawal_receipt.html',
+        receipt=receipt,
+        req=receipt,
+        wallet=wallet,
+        supplier=supplier,
+        supplier_modules=modules,
+        modules_registry=modules
     )
 
 
