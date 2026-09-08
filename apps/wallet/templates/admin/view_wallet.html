@@ -193,11 +193,12 @@
         </div>
     </div>
 
-    <!-- جدول الحركات المكتملة فقط (بدون تمدد أفقي) -->
+    <!-- جدول الحركات المكتملة فقط (مع الترقيم) -->
     <div class="transactions-container">
         <table class="table">
             <thead>
                 <tr>
+                    <th>م</th>
                     <th>التاريخ والوقت</th>
                     <th>البيان / رقم السند</th>
                     <th>الحالة</th>
@@ -211,6 +212,9 @@
                 {% set is_debit = trans.transaction_type in ['withdraw', 'adjustment_debit'] %}
                 {% set amount = trans.amount|default(0) %}
                 <tr>
+                    <!-- ✅ الترقيم التسلسلي -->
+                    <td class="text-muted fw-bold">{{ loop.index }}</td>
+                    
                     <td dir="ltr" class="text-muted small">
                         {{ trans.created_at.strftime('%Y-%m-%d %I:%M %p') if trans.created_at else 'N/A' }}
                     </td>
@@ -235,7 +239,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center py-5 text-muted">
+                    <td colspan="7" class="text-center py-5 text-muted">
                         <i class="fas fa-receipt fa-2x mb-3 d-block opacity-25"></i>
                         لا توجد حركات مالية بعد.
                     </td>
@@ -244,7 +248,7 @@
             </tbody>
             <tfoot style="background: var(--bg-muted);">
                 <tr>
-                    <td colspan="3" class="text-end fw-bold">الإجمالي:</td>
+                    <td colspan="4" class="text-end fw-bold">الإجمالي:</td>
                     <td id="totalDebit" class="text-danger fw-bold">0.00</td>
                     <td id="totalCredit" class="text-success fw-bold">0.00</td>
                     <td></td>
@@ -260,8 +264,8 @@
         let totalDebit = 0;
         let totalCredit = 0;
         document.querySelectorAll('.transactions-container tbody tr').forEach(row => {
-            const debitCell = row.children[3];
-            const creditCell = row.children[4];
+            const debitCell = row.children[4];
+            const creditCell = row.children[5];
             if (debitCell && debitCell.innerText !== '-') {
                 totalDebit += parseFloat(debitCell.innerText.replace(/,/g, ''));
             }
