@@ -147,7 +147,18 @@
             <form method="POST" action="{{ url_for('wallet_app.approve_withdrawal', request_number=withdrawal.request_number) }}" class="row g-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
+                <!-- ✅ حقل اختيار نوع الدفع -->
                 <div class="col-md-6">
+                    <label class="form-label">نوع الدفع</label>
+                    <select name="transfer_type" class="form-select" id="transferTypeSelect">
+                        <option value="">-- اختر نوع الدفع --</option>
+                        <option value="bank">بنك</option>
+                        <option value="company">شركة تحويل</option>
+                    </select>
+                </div>
+
+                <!-- ✅ قائمة البنوك (تظهر عند اختيار بنك) -->
+                <div class="col-md-6" id="bankField" style="display: none;">
                     <label class="form-label">اختر البنك</label>
                     <select name="bank_name" class="form-select">
                         <option value="">-- اختر البنك --</option>
@@ -157,7 +168,8 @@
                     </select>
                 </div>
 
-                <div class="col-md-6">
+                <!-- ✅ قائمة الشركات (تظهر عند اختيار شركة) -->
+                <div class="col-md-6" id="companyField" style="display: none;">
                     <label class="form-label">اختر شركة التحويل</label>
                     <select name="transfer_company" class="form-select">
                         <option value="">-- اختر الشركة --</option>
@@ -198,4 +210,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    // ✅ إظهار القائمة المناسبة حسب نوع الدفع
+    document.getElementById('transferTypeSelect').addEventListener('change', function() {
+        var type = this.value;
+        document.getElementById('bankField').style.display = (type === 'bank') ? 'block' : 'none';
+        document.getElementById('companyField').style.display = (type === 'company') ? 'block' : 'none';
+    });
+</script>
 {% endblock %}
