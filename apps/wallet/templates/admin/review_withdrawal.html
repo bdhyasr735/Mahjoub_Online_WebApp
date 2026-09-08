@@ -143,19 +143,49 @@
             <p class="text-muted mb-4">{{ withdrawal.payout_method or 'غير محدد' }}</p>
 
             {% if withdrawal.status == 'pending' %}
-            <!-- ✅ نموذج الموافقة مع رمز CSRF -->
-            <form method="POST" action="{{ url_for('wallet_app.approve_withdrawal', request_number=withdrawal.request_number) }}" class="d-flex gap-2 mb-4">
+            <!-- ✅ نموذج الموافقة مع قوائم البنوك والشركات -->
+            <form method="POST" action="{{ url_for('wallet_app.approve_withdrawal', request_number=withdrawal.request_number) }}" class="row g-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="flex-grow-1">
-                    <input type="text" name="admin_notes" class="form-control" placeholder="ملاحظات الأدمن (اختياري)">
+                
+                <div class="col-md-6">
+                    <label class="form-label">اختر البنك</label>
+                    <select name="bank_name" class="form-select">
+                        <option value="">-- اختر البنك --</option>
+                        {% for bank in banks %}
+                            <option value="{{ bank }}">{{ bank }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-check me-1"></i> الموافقة
-                </button>
+
+                <div class="col-md-6">
+                    <label class="form-label">اختر شركة التحويل</label>
+                    <select name="transfer_company" class="form-select">
+                        <option value="">-- اختر الشركة --</option>
+                        {% for company in companies %}
+                            <option value="{{ company }}">{{ company }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">رقم الحوالة</label>
+                    <input type="text" name="bank_reference" class="form-control" placeholder="أدخل رقم الحوالة">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">ملاحظات الأدمن</label>
+                    <input type="text" name="admin_notes" class="form-control" placeholder="ملاحظات (اختياري)">
+                </div>
+
+                <div class="col-12 d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> الموافقة
+                    </button>
+                </div>
             </form>
 
             <!-- ✅ نموذج الرفض مع رمز CSRF -->
-            <form method="POST" action="{{ url_for('wallet_app.reject_withdrawal', request_number=withdrawal.request_number) }}" class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('wallet_app.reject_withdrawal', request_number=withdrawal.request_number) }}" class="d-flex gap-2 mt-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="flex-grow-1">
                     <input type="text" name="admin_notes" class="form-control" placeholder="سبب الرفض (اختياري)">
