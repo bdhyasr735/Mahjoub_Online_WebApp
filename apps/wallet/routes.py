@@ -15,7 +15,7 @@ from apps.models.supplier_db import Supplier
 
 logger = logging.getLogger(__name__)
 
-# ✅ تصحيح اسم البلوبريت ليتوافق مع registry.py
+# ✅ اسم البلوبريت
 wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 
 
@@ -49,11 +49,11 @@ def dashboard():
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
     
-    # ✅ تعديل الاستعلام: دمج الجداول بشكل صحيح
+    # ✅ استعلام أساسي
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
+    # ✅ البحث اللحظي الشامل: أرقام، نصوص، ورموز
     if search:
-        # ✅ البحث اللحظي الشامل: أرقام، نصوص، ورموز
         query = query.filter(or_(
             Supplier.trade_name.ilike(f'%{search}%'),
             Supplier.owner_name.ilike(f'%{search}%'),
@@ -62,7 +62,7 @@ def dashboard():
             SupplierWallet.id.cast(db.String).ilike(f'%{search}%')  # البحث بالرقم
         ))
     
-    # ✅ إحصائيات - استخدام الحقل الصحيح (balance)
+    # ✅ إحصائيات
     stats = {
         'total_sar': query.with_entities(func.sum(SupplierWallet.balance)).scalar() or 0
     }
@@ -70,6 +70,7 @@ def dashboard():
     # ✅ كل 10 موردين كصفحة
     pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=10, error_out=False)
     
+    # ✅ عند طلب AJAX: إرجاع الـ tbody فقط (مع تمرير pagination لضمان ترقيم الصفحات)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', wallets=pagination.items, pagination=pagination)
         
@@ -115,20 +116,19 @@ def add_transaction(supplier_code):
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
 
-        # 1. تحديث الرصيد (باستخدام الحقل الصحيح balance بدلاً من balance_sar)
+        # 1. تحديث الرصيد
         wallet = update_wallet_balance(wallet, amount, trans_type)
         
-        # 2. توليد رقم سند فريد تلقائياً (لضمان عدم تكرار مشكلة المرجع المفقود)
-        # إذا أدخل الأدمن رقم حوالة بنكية، نستخدمه في الـ description، لكننا ننشئ سنداً داخلياً خاصاً بنا
+        # 2. توليد رقم سند فريد
         generated_voucher = generate_unique_voucher_number()
 
-        # 3. تسجيل العملية باستخدام الحقول الصحيحة من wallet_db.py
+        # 3. تسجيل العملية
         new_trans = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
-            transaction_type=trans_type,  # ✅ حقل صحيح
-            voucher_number=generated_voucher,  # ✅ رقم السند الداخلي
-            description=f"{description} | مرجع بنكي: {order_ref if order_ref else 'N/A'}"  # ✅ وضع المرجع البنكي في الوصف
+            transaction_type=trans_type,
+            voucher_number=generated_voucher,
+            description=f"{description} | مرجع بنكي: {order_ref if order_ref else 'N/A'}"
         )
         
         db.session.add(new_trans)
