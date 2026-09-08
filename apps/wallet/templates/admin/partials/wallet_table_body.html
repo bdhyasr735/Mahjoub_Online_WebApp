@@ -1,6 +1,6 @@
 <tbody id="walletTableBody">
     {% for wallet in wallets %}
-    <tr class="wallet-row align-middle">
+    <tr class="align-middle">
         <td class="font-monospace fw-bold py-3">{{ wallet.wallet_code }}</td>
         <td class="fw-bold py-3">{{ wallet.supplier.trade_name }}</td>
         <td class="py-3">
@@ -11,9 +11,9 @@
             {{ wallet.updated_at.strftime('%Y-%m-%d %I:%M %p') if wallet.updated_at else '---' }}
         </td>
         <td class="py-3">
-            <!-- ✅ تم تصحيح الاسم: wallet_app بدلاً من wallet_bp -->
+            <!-- ✅ تم استخدام كلاس مشابه لـ nav-link-custom لضمان التوافق -->
             <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=wallet.supplier_id) }}" 
-               class="btn btn-sm btn-royal px-3">
+               class="btn btn-sm fw-bold text-white" style="background: var(--royal-purple); border: 1px solid var(--mahjoub-gold);">
                 <i class="fas fa-eye me-1"></i> تفاصيل
             </a>
         </td>
