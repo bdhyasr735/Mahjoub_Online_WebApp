@@ -412,7 +412,7 @@
                 <div class="receipt-info-item full-width">
                     <span class="label">🏦 الحساب المصرفي / معلومات التحويل</span>
                     <span class="value" style="font-size: 13px; direction: ltr; text-align: right; display: block;">
-                        {{ receipt.transactions[0].transfer_company if receipt.transactions and receipt.transactions[0].transfer_company else 'غير محدد' }}
+                        {{ transaction.transfer_company if transaction and transaction.transfer_company else 'غير محدد' }}
                     </span>
                 </div>
             </div>
@@ -462,8 +462,8 @@
                     <strong>منصة محجوب أونلاين</strong> • بوابة الموردين<br>
                     تم إصدار هذا السند إلكترونياً وبشكل تلقائي بواسطة النظام المالي.<br>
                     رقم السند: <strong>{{ receipt.voucher_number or ('VCH-' ~ receipt.request_number) }}</strong>
-                    {% if receipt.transactions[0].bank_reference %}
-                    | رقم المرجع المصرفي: <strong>{{ receipt.transactions[0].bank_reference }}</strong>
+                    {% if transaction and transaction.bank_reference %}
+                    | رقم المرجع المصرفي: <strong>{{ transaction.bank_reference }}</strong>
                     {% endif %}
                 </div>
                 
