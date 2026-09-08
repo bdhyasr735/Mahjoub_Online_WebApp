@@ -2,29 +2,33 @@
 # 📂 apps/wallet/routes.py - إدارة محافظ الموردين
 
 import logging
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
 from flask_login import login_required, current_user
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.supplier_db import Supplier
-from apps.extensions import db
 from sqlalchemy import or_, func
-from decimal import Decimal, InvalidOperation
+
+from apps.extensions import db
+from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
+from apps.models.supplier_db import Supplier
 
 logger = logging.getLogger(__name__)
 
-# تعريف البلوبرنت
+# ✅ تصحيح اسم البلوبريت ليتوافق مع registry.py
 wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 
 
-# ✅ دالة مركزية لتحديث الرصيد - عملة واحدة فقط SAR
+# ✅ دالة مركزية لتحديث الرصيد
 def update_wallet_balance(wallet, amount, trans_type):
     """تحديث رصيد المحفظة بناءً على نوع العملية (العملة: SAR فقط)."""
     if trans_type == 'credit':  # إيداع (زيادة الرصيد)
-        wallet.balance_sar += amount
-    elif trans_type == 'debit':  # سحب (إنقاص الرصيد)
-        wallet.balance_sar -= amount
+        wallet.balance += amount
+    elif trans_type == 'debit':  # سحب أو خصم (إنقاص الرصيد)
+        wallet.balance -= amount
     
-    wallet.updated_at = func.now()
+    # تحديث تاريخ التعديل
+    wallet.updated_at = datetime.utcnow()
     return wallet
 
 
@@ -44,6 +48,8 @@ def my_wallet():
 def dashboard():
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
+    
+    # ✅ تعديل الاستعلام: دمج الجداول بشكل صحيح
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
@@ -52,9 +58,9 @@ def dashboard():
             SupplierWallet.wallet_code.ilike(f'%{search}%')
         ))
     
-    # ✅ إحصائيات - عملة واحدة فقط SAR
+    # ✅ إحصائيات - استخدام الحقل الصحيح (balance)
     stats = {
-        'total_sar': query.with_entities(func.sum(SupplierWallet.balance_sar)).scalar() or 0
+        'total_sar': query.with_entities(func.sum(SupplierWallet.balance)).scalar() or 0
     }
     
     pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
@@ -85,30 +91,30 @@ def add_transaction(supplier_id):
             flash("قيمة المبلغ غير صحيحة.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
             
-        trans_type = request.form.get('type')
+        trans_type = request.form.get('type')  # 'credit' أو 'debit'
         order_ref = request.form.get('reference_number', '').strip()
-        # ✅ العملة ثابتة SAR
-        currency = 'SAR'
+        # ✅ العملة ثابتة SAR (مأخوذة من المحفظة)
+        currency = wallet.currency or 'SAR'
         description = request.form.get('description', f"تسوية يدوية للطلب {order_ref}")
         
         if amount <= 0:
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
 
-        # 1. تحديث الرصيد باستخدام الدالة المركزية (بدون عملة)
+        # 1. تحديث الرصيد (باستخدام الحقل الصحيح balance بدلاً من balance_sar)
         wallet = update_wallet_balance(wallet, amount, trans_type)
         
-        # 2. تسجيل العملية
+        # 2. توليد رقم سند فريد تلقائياً (لضمان عدم تكرار مشكلة المرجع المفقود)
+        # إذا أدخل الأدمن رقم حوالة بنكية، نستخدمه في الـ description، لكننا ننشئ سنداً داخلياً خاصاً بنا
+        generated_voucher = generate_unique_voucher_number()
+
+        # 3. تسجيل العملية باستخدام الحقول الصحيحة من wallet_db.py
         new_trans = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
-            trans_type=trans_type,
-            owner_type='supplier',
-            owner_id=wallet.supplier_id,
-            description=description,
-            currency=currency,  # ✅ ثابت SAR
-            related_order_id=order_ref if order_ref else None,
-            reference_number=order_ref if order_ref else None
+            transaction_type=trans_type,  # ✅ حقل صحيح
+            voucher_number=generated_voucher,  # ✅ رقم السند الداخلي
+            description=f"{description} | مرجع بنكي: {order_ref if order_ref else 'N/A'}"  # ✅ وضع المرجع البنكي في الوصف
         )
         
         db.session.add(new_trans)
