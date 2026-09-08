@@ -127,7 +127,7 @@
             <p class="mb-2"><i class="fas fa-tag me-1"></i> الحالة</p>
             <h2>
                 {% if withdrawal.status == 'pending' %}
-                    <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                    <span class="badge bg-warning text-dark">قيد المراجعة</span>
                 {% elif withdrawal.status == 'completed' %}
                     <span class="badge bg-success">مكتملة</span>
                 {% elif withdrawal.status == 'rejected' %}
@@ -143,7 +143,9 @@
             <p class="text-muted mb-4">{{ withdrawal.payout_method or 'غير محدد' }}</p>
 
             {% if withdrawal.status == 'pending' %}
+            <!-- ✅ نموذج الموافقة مع رمز CSRF -->
             <form method="POST" action="{{ url_for('wallet_app.approve_withdrawal', request_number=withdrawal.request_number) }}" class="d-flex gap-2 mb-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="flex-grow-1">
                     <input type="text" name="admin_notes" class="form-control" placeholder="ملاحظات الأدمن (اختياري)">
                 </div>
@@ -152,7 +154,9 @@
                 </button>
             </form>
 
+            <!-- ✅ نموذج الرفض مع رمز CSRF -->
             <form method="POST" action="{{ url_for('wallet_app.reject_withdrawal', request_number=withdrawal.request_number) }}" class="d-flex gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="flex-grow-1">
                     <input type="text" name="admin_notes" class="form-control" placeholder="سبب الرفض (اختياري)">
                 </div>
