@@ -7,26 +7,29 @@
     :root {
         --royal-purple: #2e003e;
         --royal-gold: #d4af37;
+        --dashboard-bg: #F9F8F6;
+        --dashboard-card-bg: #FFFFFF;
+        --dashboard-border: #E5E2DC;
+        --dashboard-text: #1E1B18;
     }
-    .stat-card {
-        background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
-        color: white;
-        border-radius: 15px;
-        padding: 20px;
-        border-bottom: 4px solid var(--royal-gold);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    }
+
+    /* 🔥 إزالة nowrap ومنع التمدد الأفقي */
     .table-responsive-mahjoub {
         background: var(--dashboard-card-bg) !important;
         border-radius: 20px;
         border: 1px solid var(--dashboard-border) !important;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        overflow-x: auto;
     }
+
     .table-mahjoub {
         width: 100%;
         font-size: 0.9rem;
         color: var(--dashboard-text) !important;
+        white-space: normal !important; /* ✅ السماح بالالتفاف */
+        table-layout: auto;
     }
+
     .table-mahjoub thead {
         background: linear-gradient(to right, #1a0b2e, #08020d) !important;
         color: var(--mahjoub-gold) !important;
@@ -34,22 +37,28 @@
         font-size: 0.75rem;
         letter-spacing: 0.5px;
     }
+
     .table-mahjoub thead th {
         color: var(--mahjoub-gold) !important;
         border: none !important;
         text-align: right;
         padding: 16px 18px !important;
     }
+
     .table-mahjoub td {
         padding: 16px 18px !important;
         vertical-align: middle;
         border-bottom: 1px solid var(--dashboard-border) !important;
         color: var(--dashboard-text) !important;
         text-align: right;
+        white-space: normal !important; /* ✅ السماح بالالتفاف */
     }
+
     .table-mahjoub tbody tr:hover {
         background-color: rgba(26, 11, 46, 0.03) !important;
     }
+
+    /* 🔥 أزرار */
     .btn-royal {
         background: var(--royal-purple);
         color: white;
@@ -58,9 +67,20 @@
         padding: 8px 16px;
         transition: all 0.3s ease;
     }
+
     .btn-royal:hover {
         background: var(--royal-gold);
         color: black;
+    }
+
+    /* إحصائيات */
+    .stat-card {
+        background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        border-bottom: 4px solid var(--royal-gold);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     }
 </style>
 
