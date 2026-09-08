@@ -1,11 +1,6 @@
 <tbody id="walletTableBody">
     {% for wallet in wallets %}
     <tr class="align-middle">
-        <!-- 0. الترقيم التسلسلي (م) -->
-        <td class="text-muted fw-bold py-3">
-            {{ (pagination.page - 1) * pagination.per_page + loop.index }}
-        </td>
-
         <!-- 1. كود المحفظة -->
         <td class="font-monospace fw-bold py-3" style="color: var(--royal-purple);">
             {{ wallet.wallet_code }}
@@ -42,7 +37,7 @@
     </tr>
     {% else %}
     <tr>
-        <td colspan="6" class="text-center py-5 text-muted">
+        <td colspan="5" class="text-center py-5 text-muted">
             <i class="fas fa-wallet fa-2x mb-3 d-block opacity-25"></i>
             لا توجد محافظ مطابقة لمعايير البحث.
         </td>
