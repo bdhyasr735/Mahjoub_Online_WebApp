@@ -4,7 +4,6 @@
 
 {% block content %}
 <style>
-    /* 🎨 تنسيقات واضحة واحترافية */
     .table-container {
         overflow-x: auto;
         border-radius: 16px;
@@ -39,7 +38,6 @@
         background: rgba(212, 175, 55, 0.05);
     }
     
-    /* 🎨 أنماط الحالة */
     .status-badge {
         padding: 6px 14px;
         border-radius: 20px;
@@ -54,7 +52,6 @@
         border: 1px solid rgba(16, 185, 129, 0.4);
     }
     
-    /* 🎨 أنماط الأنواع */
     .type-credit {
         color: #10b981;
         font-weight: 800;
@@ -66,7 +63,6 @@
         font-size: 14px;
     }
     
-    /* 🎨 فلتر البحث */
     .filter-section {
         display: flex;
         gap: 12px;
@@ -97,7 +93,6 @@
         min-width: 160px;
     }
     
-    /* 🎨 بطاقة الرصيد */
     .balance-card {
         background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
         border: 1px solid rgba(212, 175, 55, 0.3);
@@ -123,7 +118,6 @@
         margin-bottom: 6px;
     }
     
-    /* 🎨 عنوان الصفحة */
     .page-title {
         font-size: 28px;
         font-weight: 900;
@@ -140,7 +134,6 @@
         margin-top: 6px;
     }
     
-    /* 🎨 زر طلب سحب جديد */
     .btn-withdraw {
         background: linear-gradient(135deg, #FFD700 0%, #aa8c2c 100%);
         color: #1e1e2f;
@@ -157,7 +150,6 @@
         box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
     }
     
-    /* 🎨 الإجماليات */
     .summary-row td {
         background: rgba(212, 175, 55, 0.15);
         color: #ffffff;
@@ -166,7 +158,6 @@
         border-top: 3px solid rgba(212, 175, 55, 0.4);
     }
     
-    /* 🎨 عناصر تقليب الصفحات */
     .pagination-container {
         display: flex;
         justify-content: space-between;
@@ -204,7 +195,6 @@
         cursor: not-allowed;
     }
     
-    /* 🎨 حالة فارغة */
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -219,7 +209,7 @@
 
 <div style="width: 100%; padding-bottom: 40px;">
 
-    <!-- 🎨 عنوان الصفحة والزر السريع -->
+    <!-- عنوان الصفحة والزر السريع -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 30px;">
         <div>
             <h1 class="page-title">
@@ -235,7 +225,7 @@
         </a>
     </div>
 
-    <!-- 🎨 بطاقة ملخص المحفظة -->
+    <!-- بطاقة ملخص المحفظة -->
     <div class="balance-card">
         <div>
             <div class="balance-label"><i class="fas fa-circle" style="color: #10b981; font-size: 8px; margin-left: 6px;"></i> الرصيد الحالي القابل للسحب</div>
@@ -256,7 +246,7 @@
         </div>
     </div>
 
-    <!-- 🎨 فلتر البحث والفرز اللحظي -->
+    <!-- فلتر البحث والفرز اللحظي -->
     <div class="filter-section">
         <input type="text" id="search-input" placeholder="🔍 بحث برقم الإيصال أو المرجع..." value="{{ request.args.get('q', '') }}" />
         <select id="type-filter">
@@ -268,7 +258,7 @@
         <span style="color: #9ca3af; font-size: 14px; margin-right: auto; font-weight: 600;" id="result-count">جاري التحميل...</span>
     </div>
 
-    <!-- 🎨 جدول كشف الحركات المالية -->
+    <!-- جدول كشف الحركات المالية -->
     <div class="table-container">
         <table>
             <thead>
@@ -306,16 +296,18 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    <div style="font-weight: 700; color: white;">
+                                        {{ trx.description or 'حركة مالية' }}
+                                    </div>
                                     {% if trx.transfer_company or trx.bank_reference %}
-                                        <div style="font-weight: 700; color: white;">
-                                            {{ trx.description or 'حركة مالية' }}
-                                        </div>
                                         <div style="font-size: 12px; color: #9ca3af; margin-top: 6px;">
-                                            <span style="color: #10b981;">🏦 {{ trx.transfer_company or 'غير محدد' }}</span>
-                                            <span style="color: #3b82f6; margin-right: 8px;">🔢 رقم الحوالة: {{ trx.bank_reference or 'غير محدد' }}</span>
+                                            {% if trx.transfer_company %}
+                                                <span style="color: #10b981;">🏦 {{ trx.transfer_company }}</span>
+                                            {% endif %}
+                                            {% if trx.bank_reference %}
+                                                <span style="color: #3b82f6; margin-right: 8px;">🔢 {{ trx.bank_reference }}</span>
+                                            {% endif %}
                                         </div>
-                                    {% else %}
-                                        <span style="font-weight: 700;">{{ trx.description or 'حركة مالية' }}</span>
                                     {% endif %}
                                 </td>
                                 <td style="font-family: monospace; font-size: 15px; color: #ffffff;">
@@ -350,7 +342,7 @@
                         {% endif %}
                     {% endfor %}
                     
-                    <!-- ✅ صف الإجماليات -->
+                    <!-- صف الإجماليات -->
                     <tr class="summary-row">
                         <td colspan="3" style="text-align: left;">الإجمالي:</td>
                         <td style="font-weight: 900;">-</td>
@@ -396,7 +388,7 @@
         </table>
     </div>
 
-    <!-- 🎨 عناصر تقليب الصفحات -->
+    <!-- عناصر تقليب الصفحات -->
     <div class="pagination-container" id="pagination-wrapper">
         <div style="color: #9ca3af; font-size: 14px;">
             صفحة <span id="current-page-num" style="color: #FFD700; font-weight: 700;">1</span> من <span id="total-pages-num" style="color: white; font-weight: 700;">1</span>
