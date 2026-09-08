@@ -63,7 +63,7 @@ class WalletService:
 
     @classmethod
     def create_withdrawal_request(cls, session, wallet_id, bank_account, amount, notes=""):
-        """إنشاء طلب سحب جديد وتحديث الأرصدة المعلقة في المحفظة بدون تعارض مع قيود القفل في بوستجرس"""
+        """إنشاء طلب سحب جديد - بدون خصم من الرصيد المتاح (يُخصم فقط عند الاعتماد من الأدمن)"""
         wallet = session.query(SupplierWallet).filter(SupplierWallet.id == wallet_id).first()
         
         if not wallet:
@@ -76,13 +76,11 @@ class WalletService:
         raw_balance = getattr(wallet, bal_attr, Decimal('0.00'))
         current_balance = Decimal(str(raw_balance)) if raw_balance is not None else Decimal('0.00')
 
+        # ✅ التحقق فقط من وجود الرصيد الكافي (دون خصم)
         if amount_decimal > current_balance:
             raise ValueError(f"المبلغ المطلوب ({amount_decimal:.2f} ر.س) يتجاوز رصيد المحفظة المتاح ({current_balance:.2f} ر.س)")
 
-        # خصم المبلغ من الرصيد المتاح
-        setattr(wallet, bal_attr, current_balance - amount_decimal)
-
-        # إضافته للرصيد المعلق إذا كان الحقل موجوداً في النموذج
+        # ✅ إضافة المبلغ للرصيد المعلق (دون خصم من الرصيد المتاح)
         pending_attr = cls._get_pending_attr_name(wallet)
         if pending_attr:
             raw_pending = getattr(wallet, pending_attr, Decimal('0.00'))
