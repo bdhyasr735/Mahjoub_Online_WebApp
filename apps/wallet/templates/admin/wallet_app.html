@@ -151,14 +151,14 @@
 <script>
     let currentSearch = '';
 
-    // دالة تحميل البيانات عبر AJAX (تعيد الجدول كاملاً مع الترقيم)
+    // دالة تحميل البيانات عبر AJAX
     function loadWalletPage(page) {
         fetch(`{{ url_for('wallet_app.dashboard') }}?page=${page}&search=${currentSearch}`, {
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
         .then(response => response.text())
         .then(html => {
-            // ✅ استبدال الجدول والترقيم بالكامل (من الملف الجديد الذي أنشأته)
+            // ✅ إصلاح البحث: استبدال الجدول والترقيم بالكامل
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
             
