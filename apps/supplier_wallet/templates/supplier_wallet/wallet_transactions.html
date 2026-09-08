@@ -1,9 +1,11 @@
-{% extends "supplier/base.html" %}
+{% extends "suppliers/base.html" %}
+
 {% block title %}كشف حساب المحفظة المالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
+<!-- أضف تنسيقاتك الخاصة هنا داخل البلوك إن أردت، أو اتركها للـ CSS الخارجي -->
 <style>
-    /* تنسيقات الجدول والواجهة المالية */
+    /* تنسيقات الجدول والواجهة المالية الخاصة بالمحفظة فقط */
     .table-container {
         overflow-x: auto;
         border-radius: 16px;
@@ -119,8 +121,6 @@
         margin-bottom: 16px;
         opacity: 0.3;
     }
-
-    /* تنسيقات شريط تقليب الصفحات */
     .pagination-container {
         display: flex;
         justify-content: space-between;
@@ -164,7 +164,8 @@
     }
 </style>
 
-<div style="max-width: 1100px; margin: 0 auto; padding-bottom: 40px;">
+<!-- محتوى الصفحة يوضع هنا مباشرة داخل البلوك دون تكرار لهياكل الـ HTML الخارجية -->
+<div style="width: 100%; padding-bottom: 40px;">
 
     <!-- عنوان الصفحة والزر السريع -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
@@ -178,9 +179,7 @@
             </p>
         </div>
         <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" 
-           style="background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-size: 14px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25); transition: all 0.3s ease;"
-           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(212, 175, 55, 0.35)';"
-           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(212, 175, 55, 0.25)';">
+           style="background: linear-gradient(135deg, #D4AF37 0%, #aa8c2c 100%); color: #0f0717; font-weight: 800; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-size: 14px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.25); transition: all 0.3s ease;">
             <i class="fas fa-arrow-left" style="margin-left: 6px;"></i> طلب سحب جديد
         </a>
     </div>
@@ -209,14 +208,14 @@
     <!-- فلتر البحث والفرز اللحظي -->
     <div class="filter-section">
         <input type="text" id="search-input" placeholder="🔍 بحث برقم الإيصال أو المرجع..." value="{{ request.args.get('q', '') }}" />
-        
+
         <select id="type-filter">
             <option value="">جميع الحركات (إيداع/سحب)</option>
             <option value="credit" {% if request.args.get('trans_type') == 'credit' %}selected{% endif %}>إيداع (+)</option>
             <option value="debit" {% if request.args.get('trans_type') == 'debit' %}selected{% endif %}>سحب (-)</option>
         </select>
 
-        <button id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)';">إعادة ضبط</button>
+        <button id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">إعادة ضبط</button>
         <span style="color: #9ca3af; font-size: 13px; margin-right: auto; font-weight: 600;" id="result-count">جاري التحميل...</span>
     </div>
 
@@ -235,11 +234,9 @@
                 </tr>
             </thead>
             <tbody id="transactions-body">
-                {% set visible_transactions = [] %}
                 {% if transactions and transactions|length > 0 %}
                     {% for trx in transactions %}
                         {% set raw_status = trx.status.value if trx.status and trx.status.value is defined else (trx.status or 'completed') %}
-                        {# إظهار المعاملات المكتملة والموافق عليها فقط وتجاهل قيد الانتظار والفاشلة #}
                         {% if raw_status|lower in ['completed', 'approved'] %}
                             {% set raw_type = trx.transaction_type.value if trx.transaction_type and trx.transaction_type.value is defined else (trx.transaction_type or 'credit') %}
                             {% set voucher = trx.voucher_number or trx.reference_number or '-' %}
@@ -250,7 +247,7 @@
                                 <td class="row-index" style="color: #9ca3af; font-size: 12px; font-family: monospace;">{{ loop.index }}</td>
                                 <td style="font-family: monospace; font-weight: 700; color: #ffffff;">
                                     {% if trx.is_withdrawal and trx.voucher_number %}
-                                        <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=trx.voucher_number) }}" style="color: #D4AF37; text-decoration: none;" title="عرض إيصال السحب">
+                                        <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=trx.voucher_number) }}" style="color: #D4AF37; text-decoration: none;">
                                             {{ voucher }} <i class="fas fa-external-link-alt" style="font-size: 10px; margin-right: 4px;"></i>
                                         </a>
                                     {% else %}
@@ -280,21 +277,17 @@
                                     <span class="status-badge status-completed">✓ مكتمل</span>
                                 </td>
                                 <td style="color: #9ca3af; font-size: 12px; font-family: monospace;">
-                                    {% if trx.created_at %}
-                                        {% if trx.created_at.strftime is defined %}
-                                            {{ trx.created_at.strftime('%Y-%m-%d %H:%M') }}
-                                        {% else %}
-                                            {{ trx.created_at }}
-                                        {% endif %}
+                                    {% if trx.created_at and trx.created_at.strftime is defined %}
+                                        {{ trx.created_at.strftime('%Y-%m-%d %H:%M') }}
                                     {% else %}
-                                        -
+                                        {{ trx.created_at or '-' }}
                                     {% endif %}
                                 </td>
                             </tr>
                         {% endif %}
                     {% endfor %}
                 {% endif %}
-                
+
                 <tr id="empty-row" style="display: none;">
                     <td colspan="7">
                         <div class="empty-state">
@@ -308,7 +301,7 @@
         </table>
     </div>
 
-    <!-- عناصر تقليب الصفحات (Pagination) -->
+    <!-- عناصر تقليب الصفحات -->
     <div class="pagination-container" id="pagination-wrapper">
         <div style="color: #9ca3af; font-size: 13px;">
             صفحة <span id="current-page-num" style="color: #D4AF37; font-weight: 700;">1</span> من <span id="total-pages-num" style="color: white; font-weight: 700;">1</span>
@@ -331,7 +324,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultCount = document.getElementById('result-count');
     const emptyRow = document.getElementById('empty-row');
 
-    // إعدادات الصفحات
     const itemsPerPage = 10;
     let currentPage = 1;
     let filteredRows = [];
@@ -349,11 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filteredRows = rows.filter(row => {
             const searchData = row.getAttribute('data-search')?.toLowerCase() || '';
             const rowType = row.getAttribute('data-type')?.toLowerCase() || '';
-
-            const matchesSearch = !search || searchData.includes(search);
-            const matchesType = !type || rowType === type;
-
-            return matchesSearch && matchesType;
+            return (!search || searchData.includes(search)) && (!type || rowType === type);
         });
 
         currentPage = 1;
@@ -364,7 +352,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalItems = filteredRows.length;
         const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
 
-        // إخفاء كل الصفوف أولاً
         rows.forEach(r => r.style.display = 'none');
 
         if (totalItems === 0) {
@@ -374,25 +361,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (emptyRow) emptyRow.style.display = 'none';
             if (resultCount) resultCount.textContent = `عرض ${totalItems} حركة مالية مكتملة`;
 
-            // إظهار صفوف الصفحة الحالية
             const startIdx = (currentPage - 1) * itemsPerPage;
             const endIdx = startIdx + itemsPerPage;
             const pageItems = filteredRows.slice(startIdx, endIdx);
 
-            pageItems.forEach((row, idx) => {
+4            pageItems.forEach((row, idx) => {
                 row.style.display = '';
-                // تحديث تسلسل الأرقام بناءً على الصفحة الحالية
                 const indexCell = row.querySelector('.row-index');
-                if (indexCell) {
-                    indexCell.textContent = startIdx + idx + 1;
-                }
+                if (indexCell) indexCell.textContent = startIdx + idx + 1;
             });
         }
 
-        // تحديث أزرار وأرقام التصفح
         if (currentPageNumEl) currentPageNumEl.textContent = currentPage;
         if (totalPagesNumEl) totalPagesNumEl.textContent = totalPages;
-
         if (prevBtn) prevBtn.disabled = currentPage === 1;
         if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
 
@@ -402,7 +383,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderPageButtons(totalPages) {
         if (!pageNumbersContainer) return;
         pageNumbersContainer.innerHTML = '';
-
         if (totalPages <= 1) return;
 
         let startPage = Math.max(1, currentPage - 2);
@@ -420,38 +400,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // الأحداث
     if (searchInput) searchInput.addEventListener('input', filterData);
     if (typeFilter) typeFilter.addEventListener('change', filterData);
+    if (resetBtn) resetBtn.addEventListener('click', function() {
+        if (searchInput) searchInput.value = '';
+        if (typeFilter) typeFilter.value = '';
+        filterData();
+    });
+    if (prevBtn) prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTableAndPagination(); } });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+        if (currentPage < totalPages) { currentPage++; renderTableAndPagination(); }
+    });
 
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function() {
-            if (searchInput) searchInput.value = '';
-            if (typeFilter) typeFilter.value = '';
-            filterData();
-        });
-    }
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                renderTableAndPagination();
-            }
-        });
-    }
-
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderTableAndPagination();
-            }
-        });
-    }
-
-    // التشغيل المبدئي
     filterData();
 });
 </script>
