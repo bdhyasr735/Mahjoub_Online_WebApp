@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/wallet/receipts.py - سند صرف مستحقات مالية للمورد
 
-from flask import render_template, request, abort
+from flask import render_template, request, abort, session
 from flask_login import login_required, current_user
 from apps.models.wallet_db import WithdrawalRequest
 from apps.wallet.routes import wallet_bp
