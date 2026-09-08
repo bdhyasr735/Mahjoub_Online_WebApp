@@ -399,14 +399,32 @@ def withdrawal_receipt(request_number):
     supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
     modules = get_sidebar_modules()
 
+    # ✅ جلب الحركة المالية المرتبطة بالطلب بطريقة احترافية
+    # أولاً: البحث عبر رقم السند (VCH-WDR-MAH-...)
+    expected_voucher = f"VCH-WDR-MAH-{receipt.request_number}"
+    transaction = WalletTransaction.query.filter_by(voucher_number=expected_voucher).first()
+
+    # ثانياً: إذا لم نجد، نبحث عبر الوصف
+    if not transaction:
+        transaction = WalletTransaction.query.filter_by(
+            description=f"سحب رصيد - طلب رقم: {receipt.request_number}"
+        ).first()
+
+    # ثالثاً: إذا ما زال غير موجود، نجرب آخر حركة سحب لهذه المحفظة (كمحاولة أخيرة)
+    if not transaction:
+        transaction = WalletTransaction.query.filter_by(
+            wallet_id=wallet.id,
+            transaction_type='withdraw'
+        ).order_by(WalletTransaction.created_at.desc()).first()
+
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
         receipt=receipt,
         req=receipt,
-        # ✅ أضفنا هذا السطر حتى يتوافق القالب مع المتغير withdrawal
         withdrawal=receipt,
         wallet=wallet,
         supplier=supplier,
+        transaction=transaction,  # ✅ تمرير الحركة المالية
         supplier_modules=modules,
         modules_registry=modules
     )
