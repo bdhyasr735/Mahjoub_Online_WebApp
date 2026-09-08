@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from flask import render_template, request, flash, redirect, url_for, session, abort
 from flask_login import login_required
+from sqlalchemy import or_
 
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest, generate_unique_voucher_number
