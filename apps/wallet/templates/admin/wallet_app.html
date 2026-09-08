@@ -3,6 +3,80 @@
 {% block title %}إدارة محافظ الموردين | محجوب أونلاين{% endblock %}
 
 {% block content %}
+<!-- ✅ إضافة CSS مخصص لهذه الصفحة لضمان التنسيق -->
+<style>
+    :root {
+        --royal-purple: #2e003e;
+        --royal-gold: #d4af37;
+        --dashboard-bg: #F9F8F6;
+        --dashboard-card-bg: #FFFFFF;
+        --dashboard-border: #E5E2DC;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        border-bottom: 4px solid var(--royal-gold);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .table-responsive-mahjoub {
+        background: var(--dashboard-card-bg) !important;
+        border-radius: 20px;
+        border: 1px solid var(--dashboard-border) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    }
+
+    .table-mahjoub {
+        width: 100%;
+        font-size: 0.9rem;
+        color: var(--dashboard-text) !important;
+    }
+
+    .table-mahjoub thead {
+        background: linear-gradient(to right, #1a0b2e, #08020d) !important;
+        color: var(--mahjoub-gold) !important;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+
+    .table-mahjoub thead th {
+        color: var(--mahjoub-gold) !important;
+        border: none !important;
+        text-align: right;
+        padding: 16px 18px !important;
+    }
+
+    .table-mahjoub td {
+        padding: 16px 18px !important;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--dashboard-border) !important;
+        color: var(--dashboard-text) !important;
+        text-align: right;
+    }
+
+    .table-mahjoub tbody tr:hover {
+        background-color: rgba(26, 11, 46, 0.03) !important;
+    }
+
+    .btn-royal {
+        background: var(--royal-purple);
+        color: white;
+        border: 1px solid var(--royal-gold);
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-royal:hover {
+        background: var(--royal-gold);
+        color: black;
+    }
+</style>
+
 <div class="container-fluid py-4" dir="rtl">
     <div class="mb-4">
         <a href="{{ url_for('admin_dashboard.index') }}" class="text-decoration-none fw-bold" style="color: var(--royal-purple);">
@@ -10,7 +84,7 @@
         </a>
     </div>
 
-    <!-- ✅ إحصائيات متوافقة مع القالب الأم -->
+    <!-- ✅ إحصائيات - استخدام stat-card المخصص -->
     <div class="row mb-4 g-3">
         <div class="col-md-6">
             <div class="stat-card text-center shadow">
@@ -32,7 +106,7 @@
         </div>
     </div>
 
-    <!-- ✅ الجدول متوافق تماماً مع القالب الأم -->
+    <!-- ✅ الجدول - استخدام table-responsive-mahjoub و table-mahjoub -->
     <div class="table-responsive-mahjoub">
         {% include 'admin/partials/wallet_table_body.html' %}
     </div>
