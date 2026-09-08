@@ -255,3 +255,16 @@ def receive_after_insert_withdrawal(mapper, connection, target):
         connection.execute(
             update(WithdrawalRequest).where(WithdrawalRequest.id == target.id).values(request_number=generated_code)
         )
+
+
+# --- [إضافة جديدة] المحرك التلقائي لضمان كود النمط الفريد VCH-MAH لعمليات المحفظة تلقائياً ---
+@event.listens_for(WalletTransaction, 'after_insert')
+def receive_after_insert_wallet_txn(mapper, connection, target):
+    """توليد رقم سند (VCH-MAH) تلقائياً عند إنشاء معاملة المحفظة إن لم يتم تمريره"""
+    if not target.voucher_number:
+        # استدعاء الدالة الموجودة بالأعلى لتوليد الرقم
+        generated_code = generate_unique_voucher_number()
+        # تحديث السجل مباشرة في قاعدة البيانات
+        connection.execute(
+            update(WalletTransaction).where(WalletTransaction.id == target.id).values(voucher_number=generated_code)
+        )
