@@ -10,7 +10,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_, func
 
 from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet, WalletTransaction, generate_unique_voucher_number
+from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest, generate_unique_voucher_number
 from apps.models.supplier_db import Supplier
 
 logger = logging.getLogger(__name__)
@@ -143,3 +143,138 @@ def add_transaction(supplier_code):
         flash("حدث خطأ أثناء تنفيذ العملية المالية.", "danger")
 
     return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
+
+
+# =========================================================
+# 3. إدارة طلبات السحب (Withdrawals) - للأدمن فقط
+# =========================================================
+
+# 3.1 صفحة قائمة طلبات السحب
+@wallet_bp.route('/admin/withdrawals', methods=['GET'])
+@login_required
+def admin_withdrawals():
+    """عرض جميع طلبات السحب للموردين"""
+    # التأكد من أن المستخدم هو أدمن
+    if session.get('user_type') not in ['admin', 'admin_staff']:
+        abort(403)
+        
+    search = request.args.get('search', '')
+    status_filter = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    
+    query = WithdrawalRequest.query.join(Supplier, WithdrawalRequest.supplier_id == Supplier.id)
+    
+    if search:
+        query = query.filter(or_(
+            Supplier.trade_name.ilike(f'%{search}%'),
+            WithdrawalRequest.request_number.ilike(f'%{search}%'),
+            WithdrawalRequest.status.ilike(f'%{search}%')
+        ))
+    
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    stats = {
+        'pending': WithdrawalRequest.query.filter_by(status='pending').count(),
+        'completed': WithdrawalRequest.query.filter_by(status='completed').count(),
+        'rejected': WithdrawalRequest.query.filter_by(status='rejected').count(),
+    }
+    
+    pagination = query.order_by(WithdrawalRequest.id.desc()).paginate(page=page, per_page=10, error_out=False)
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('admin/partials/withdrawals_table_body.html', requests=pagination.items, pagination=pagination)
+        
+    return render_template('admin/withdrawals_list.html', requests=pagination.items, stats=stats, pagination=pagination, status_filter=status_filter)
+
+
+# 3.2 صفحة تفاصيل طلب سحب واحد
+@wallet_bp.route('/admin/withdrawals/<string:request_number>', methods=['GET'])
+@login_required
+def admin_view_withdrawal(request_number):
+    """عرض تفاصيل طلب سحب معين"""
+    if session.get('user_type') not in ['admin', 'admin_staff']:
+        abort(403)
+        
+    withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
+    return render_template('admin/review_withdrawal.html', withdrawal=withdrawal)
+
+
+# 3.3 اعتماد طلب السحب
+@wallet_bp.route('/admin/withdrawals/<string:request_number>/approve', methods=['POST'])
+@login_required
+def approve_withdrawal(request_number):
+    """اعتماد طلب السحب وخصم المبلغ من المحفظة"""
+    if session.get('user_type') not in ['admin', 'admin_staff']:
+        abort(403)
+        
+    withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
+    wallet = withdrawal.wallet
+    
+    if withdrawal.status != 'pending':
+        flash("لا يمكن تعديل هذا الطلب لأن حالته ليست قيد الانتظار.", "warning")
+        return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
+    
+    try:
+        # 1. تحديث الحالة
+        withdrawal.status = 'completed'
+        withdrawal.updated_at = datetime.utcnow()
+        
+        # 2. تحديث رصيد المحفظة (خصم المبلغ)
+        wallet.total_withdrawn += withdrawal.amount
+        wallet.balance -= withdrawal.amount
+        
+        # 3. تسجيل حركة في المحفظة (Debit)
+        generated_voucher = generate_unique_voucher_number()
+        transaction = WalletTransaction(
+            wallet_id=wallet.id,
+            amount=withdrawal.amount,
+            transaction_type='withdraw',
+            voucher_number=generated_voucher,
+            description=f"سحب رصيد - طلب رقم: {withdrawal.request_number}"
+        )
+        
+        db.session.add(transaction)
+        db.session.add(wallet)
+        db.session.add(withdrawal)
+        db.session.commit()
+        
+        flash("تم اعتماد طلب السحب وخصم المبلغ من المحفظة بنجاح.", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Withdrawal Approve Error: {e}")
+        flash("حدث خطأ أثناء اعتماد الطلب.", "danger")
+        
+    return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
+
+
+# 3.4 رفض طلب السحب
+@wallet_bp.route('/admin/withdrawals/<string:request_number>/reject', methods=['POST'])
+@login_required
+def reject_withdrawal(request_number):
+    """رفض طلب السحب دون خصم المبلغ"""
+    if session.get('user_type') not in ['admin', 'admin_staff']:
+        abort(403)
+        
+    withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
+    
+    if withdrawal.status != 'pending':
+        flash("لا يمكن تعديل هذا الطلب لأن حالته ليست قيد الانتظار.", "warning")
+        return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
+    
+    try:
+        withdrawal.status = 'rejected'
+        withdrawal.updated_at = datetime.utcnow()
+        
+        db.session.add(withdrawal)
+        db.session.commit()
+        
+        flash("تم رفض طلب السحب. المبلغ لم يتم خصمه من المحفظة.", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Withdrawal Reject Error: {e}")
+        flash("حدث خطأ أثناء رفض الطلب.", "danger")
+        
+    return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
