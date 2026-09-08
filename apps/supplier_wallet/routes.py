@@ -386,14 +386,10 @@ def withdrawal_receipt(request_number):
     supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
     modules = get_sidebar_modules()
 
-    # ✅ جلب الحركة المالية المرتبطة بالطلب بطريقة احترافية
-    expected_voucher = f"VCH-WDR-MAH-{receipt.request_number}"
-    transaction = WalletTransaction.query.filter_by(voucher_number=expected_voucher).first()
-
-    if not transaction:
-        transaction = WalletTransaction.query.filter_by(
-            description=f"سحب رصيد - طلب رقم: {receipt.request_number}"
-        ).first()
+    # ✅ جلب الحركة المالية المرتبطة بالطلب بطريقة احترافية (استخدام like للبحث في الوصف)
+    transaction = WalletTransaction.query.filter(
+        WalletTransaction.description.like(f"%{receipt.request_number}%")
+    ).first()
 
     if not transaction:
         transaction = WalletTransaction.query.filter_by(
