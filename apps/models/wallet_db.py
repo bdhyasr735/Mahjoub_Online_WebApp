@@ -208,6 +208,9 @@ class WithdrawalRequest(db.Model):
 
     wallet = db.relationship('SupplierWallet', back_populates='withdrawal_requests', lazy='select')
 
+    # ✅ [علاقة جديدة]: ربط الطلب بالحركات المالية (لتظهر بيانات الجهة ورقم الحوالة في السند)
+    transactions = db.relationship('WalletTransaction', backref='withdrawal_request', lazy='select')
+
     def __init__(self, **kwargs):
         payout_val = kwargs.pop('payout_method', None)
         super().__init__(**kwargs)
