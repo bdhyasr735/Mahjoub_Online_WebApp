@@ -276,7 +276,6 @@
                     <th>م</th>
                     <th>رقم الإيصال / المرجع</th>
                     <th>البيان</th>
-                    <th>المبلغ</th>
                     <th>مدين (-)</th>
                     <th>دائن (+)</th>
                     <th>الرصيد بعد العملية</th>
@@ -322,9 +321,6 @@
                                         </div>
                                     {% endif %}
                                 </td>
-                                <td style="font-family: monospace; font-size: 15px; color: #ffffff;">
-                                    {{ "%.2f"|format(trx.amount or 0) }} {{ wallet.currency if wallet and wallet.currency else '' }}
-                                </td>
                                 <td style="font-weight: 800; font-family: monospace; font-size: 15px; color: #ef4444;">
                                     {% if raw_type|lower == 'debit' %}-{{ "%.2f"|format(trx.amount or 0) }} {{ wallet.currency if wallet and wallet.currency else '' }}
                                     {% else %}<span style="color: #6b7280;">-</span>{% endif %}
@@ -357,7 +353,6 @@
                     <!-- ✅ صف الإجماليات -->
                     <tr class="summary-row">
                         <td colspan="3" style="text-align: left;">الإجمالي:</td>
-                        <td style="font-weight: 900;">-</td>
                         <td style="color: #ef4444; font-weight: 900;">
                             {% set ns = namespace(total_debit=0) %}
                             {% for trx in transactions %}
@@ -388,7 +383,7 @@
                 {% endif %}
 
                 <tr id="empty-row" style="display: none;">
-                    <td colspan="9">
+                    <td colspan="8">
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>
                             <p style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: #ffffff;">لا توجد حركات مالية مكتملة</p>
