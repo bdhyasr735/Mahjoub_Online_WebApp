@@ -3,31 +3,14 @@
 {% block title %}إدارة محافظ الموردين | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<!-- ✅ إضافة تنسيقات CSS مخصصة لهذه الصفحة فقط -->
-<style>
-    :root {
-        --royal-purple: #2e003e;
-        --royal-gold: #d4af37;
-    }
-    .card-royal { border: 1px solid var(--royal-gold); box-shadow: 0 4px 15px rgba(75, 0, 130, 0.3); }
-    .stat-card { background: linear-gradient(135deg, #05000a 0%, #2e003e 100%); color: white; border-radius: 15px; padding: 20px; border-bottom: 4px solid var(--royal-gold); }
-    .stat-card h3 { color: var(--royal-gold); }
-    .page-link { color: #2d144d; cursor: pointer; }
-    .page-item.active .page-link { background-color: #2d144d; border-color: #2d144d; color: white; }
-    .btn-royal { background-color: var(--royal-purple); color: #fff; }
-    .btn-royal:hover { background-color: var(--royal-gold); color: #000; }
-    .wallet-row:hover { background-color: #f8f9fa; }
-</style>
-
 <div class="container-fluid py-4" dir="rtl">
     <div class="mb-4">
-        <!-- ✅ الرابط الصحيح للعودة -->
-        <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="text-decoration-none fw-bold" style="color: #2d144d;">
+        <a href="{{ url_for('admin_dashboard.index') }}" class="text-decoration-none fw-bold" style="color: var(--royal-purple);">
             <i class="fas fa-arrow-right me-2"></i> العودة للوحة التحكم
         </a>
     </div>
 
-    <!-- ✅ إحصائيات -->
+    <!-- ✅ إحصائيات متوافقة مع القالب الأم -->
     <div class="row mb-4 g-3">
         <div class="col-md-6">
             <div class="stat-card text-center shadow">
@@ -43,35 +26,31 @@
         </div>
     </div>
 
-    <div class="card mb-4 card-royal border-0 shadow-sm">
+    <div class="card mb-4 border-0 shadow-sm" style="background: var(--dashboard-card-bg); border: 1px solid var(--dashboard-border);">
         <div class="card-body">
             <input type="text" id="walletSearch" class="form-control form-control-lg" placeholder="ابحث في جميع الصفحات عن مورد أو رمز محفظة...">
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3 border-bottom-0">
-            <h5 class="mb-0 fw-bold" style="color: var(--royal-purple);">قائمة محافظ الموردين</h5>
-        </div>
-        <div class="table-responsive">
-            {% include 'admin/partials/wallet_table_body.html' %}
-        </div>
-        
-        <div class="card-footer bg-white d-flex justify-content-center" id="paginationControls">
-            <nav>
-                <ul class="pagination mb-0" id="paginationList">
-                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                        {% if page_num %}
-                            <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
-                                <a class="page-link" onclick="loadWalletPage({{ page_num }})">{{ page_num }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
-                    {% endfor %}
-                </ul>
-            </nav>
-        </div>
+    <!-- ✅ الجدول متوافق تماماً مع القالب الأم -->
+    <div class="table-responsive-mahjoub">
+        {% include 'admin/partials/wallet_table_body.html' %}
+    </div>
+    
+    <div class="card-footer bg-white d-flex justify-content-center border-0 py-3" id="paginationControls">
+        <nav>
+            <ul class="pagination mb-0" id="paginationList">
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+                            <a class="page-link" onclick="loadWalletPage({{ page_num }})">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </nav>
     </div>
 </div>
 
