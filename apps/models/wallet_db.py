@@ -99,6 +99,7 @@ class WalletTransaction(db.Model):
         db.Index('idx_txn_wallet_id', 'wallet_id'),
         db.Index('idx_txn_voucher', 'voucher_number'),
         db.Index('idx_txn_type', 'transaction_type'),
+        db.Index('idx_txn_status', 'status'),
         db.Index('idx_txn_created', 'created_at'),
         {'extend_existing': True}
     )
@@ -109,12 +110,22 @@ class WalletTransaction(db.Model):
     transaction_type = db.Column(db.String(50), nullable=False)
     voucher_number = db.Column(db.String(100), unique=True, nullable=True, index=True)
 
+    # ✅ [حقول جديدة]: لتخزين المرجع البنكي وشركة التحويل
+    bank_reference = db.Column(db.String(255), nullable=True)
+    transfer_company = db.Column(db.String(255), nullable=True)
+
+    # ✅ [حقل جديد]: حالة الحركة (مكتملة / معلقة / ملغاة)
+    status = db.Column(db.String(20), default='completed', nullable=False)
+
     # [التشفير السيادي]: وصف الحركة المالية مشفر بالكامل في قاعدة البيانات
     _description_enc = db.Column(db.String(500), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='select')
+    
+    # ✅ [علاقة جديدة]: ربط الحركة بالبيانات المالية للطلبات (يظهر في سجل الخزينة)
+    financials = db.relationship('OrderFinancial', back_populates='transaction', lazy='select')
 
     def __init__(self, **kwargs):
         desc_val = kwargs.pop('description', None)
@@ -156,12 +167,15 @@ class WalletTransaction(db.Model):
             'amount': float(self.amount) if self.amount is not None else 0.00,
             'transaction_type': self.transaction_type,
             'voucher_number': self.voucher_number,
+            'status': self.status,
+            'bank_reference': self.bank_reference,
+            'transfer_company': self.transfer_company,
             'description': self.description,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
     def __repr__(self):
-        return f"<WalletTransaction {self.id}: {self.transaction_type} {self.amount}>"
+        return f"<WalletTransaction {self.id}: {self.transaction_type} {self.amount} | Status: {self.status}>"
 
 
 class WithdrawalRequest(db.Model):
