@@ -174,15 +174,24 @@ def transactions(wallet_id):
             traceback.print_exc()
             return safe_redirect_home()
 
-    # ✅ عرض حركات المحفظة الفعلية فقط (بدون أي تكرار)
-    transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).all()
+    # ✅ جلب الحركات بالترتيب الزمني (من الأقدم للأحدث)
+    transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.asc()).all()
     all_transactions = list(transactions_list)
 
+    # ✅ إضافة الرصيد بعد كل حركة (balance_after) - حساب تراكمي للخلف
+    running_balance = Decimal(str(wallet.balance))  # نبدأ من الرصيد الحالي
+    for trx in reversed(all_transactions):
+        trx.balance_after = running_balance
+        if trx.transaction_type in ['credit', 'deposit']:
+            running_balance = running_balance - Decimal(str(trx.amount))
+        elif trx.transaction_type in ['debit', 'withdraw']:
+            running_balance = running_balance + Decimal(str(trx.amount))
+
+    # ✅ ترتيبهم من الأحدث للأقدم للعرض
+    all_transactions.reverse()
+
     def get_sort_key(t):
-        if isinstance(t, dict):
-            dt = t.get('created_at')
-        else:
-            dt = getattr(t, 'created_at', None)
+        dt = getattr(t, 'created_at', None)
         return dt if dt is not None else datetime.min
 
     all_transactions.sort(key=get_sort_key, reverse=True)
