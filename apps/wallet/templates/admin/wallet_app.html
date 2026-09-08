@@ -3,51 +3,63 @@
 {% block title %}إدارة محافظ الموردين | محجوب أونلاين{% endblock %}
 
 {% block content %}
+<!-- ✅ إضافة تنسيقات CSS مخصصة لهذه الصفحة فقط -->
 <style>
-    .card-royal { border: 1px solid #d4af37; box-shadow: 0 4px 15px rgba(75, 0, 130, 0.3); }
-    .stat-card { background: #2d144d; color: white; border-radius: 15px; padding: 20px; border-bottom: 4px solid #d4af37; }
+    :root {
+        --royal-purple: #2e003e;
+        --royal-gold: #d4af37;
+    }
+    .card-royal { border: 1px solid var(--royal-gold); box-shadow: 0 4px 15px rgba(75, 0, 130, 0.3); }
+    .stat-card { background: linear-gradient(135deg, #05000a 0%, #2e003e 100%); color: white; border-radius: 15px; padding: 20px; border-bottom: 4px solid var(--royal-gold); }
+    .stat-card h3 { color: var(--royal-gold); }
     .page-link { color: #2d144d; cursor: pointer; }
     .page-item.active .page-link { background-color: #2d144d; border-color: #2d144d; color: white; }
+    .btn-royal { background-color: var(--royal-purple); color: #fff; }
+    .btn-royal:hover { background-color: var(--royal-gold); color: #000; }
+    .wallet-row:hover { background-color: #f8f9fa; }
 </style>
 
 <div class="container-fluid py-4" dir="rtl">
     <div class="mb-4">
-        <!-- ✅ تم تصحيح الرابط: استخدام suppliers_dashboard.dashboard بدلاً من admin_dashboard_bp.dashboard -->
-        <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="text-decoration-none" style="color: #2d144d; font-weight: 500;">
-            <i class="bi bi-arrow-right-short" style="font-size: 1.5rem; vertical-align: middle;"></i> العودة للوحة التحكم
+        <!-- ✅ الرابط الصحيح للعودة -->
+        <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="text-decoration-none fw-bold" style="color: #2d144d;">
+            <i class="fas fa-arrow-right me-2"></i> العودة للوحة التحكم
         </a>
     </div>
 
     <!-- ✅ إحصائيات -->
-    <div class="row mb-4">
+    <div class="row mb-4 g-3">
         <div class="col-md-6">
-            <div class="stat-card text-center">
-                <p>عدد محافظ الموردين</p>
-                <h3>{{ pagination.total }}</h3>
+            <div class="stat-card text-center shadow">
+                <p class="mb-1">💵 إجمالي رصيد (SAR)</p>
+                <h3 class="fw-bold mb-0">{{ "{:,.2f}".format(stats.total_sar or 0) }}</h3>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="stat-card text-center">
-                <p>💵 إجمالي رصيد (SAR)</p>
-                <h3>{{ "{:,.2f}".format(stats.total_sar or 0) }}</h3>
+            <div class="stat-card text-center shadow">
+                <p class="mb-1">عدد محافظ الموردين</p>
+                <h3 class="fw-bold mb-0">{{ pagination.total }}</h3>
             </div>
         </div>
     </div>
 
     <div class="card mb-4 card-royal border-0 shadow-sm">
         <div class="card-body">
-            <input type="text" id="walletSearch" class="form-control" placeholder="ابحث في جميع الصفحات عن مورد أو رمز محفظة...">
+            <input type="text" id="walletSearch" class="form-control form-control-lg" placeholder="ابحث في جميع الصفحات عن مورد أو رمز محفظة...">
         </div>
     </div>
 
     <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom-0">
+            <h5 class="mb-0 fw-bold" style="color: var(--royal-purple);">قائمة محافظ الموردين</h5>
+        </div>
         <div class="table-responsive">
             {% include 'admin/partials/wallet_table_body.html' %}
         </div>
         
-        <div class="card-footer d-flex justify-content-center" id="paginationControls">
+        <div class="card-footer bg-white d-flex justify-content-center" id="paginationControls">
             <nav>
-                <ul class="pagination" id="paginationList">
+                <ul class="pagination mb-0" id="paginationList">
                     {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
                             <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
@@ -66,7 +78,6 @@
 <script>
     let currentSearch = '';
 
-    // ✅ تم تصحيح الرابط هنا أيضاً ليتوافق مع المسار الصحيح
     function loadWalletPage(page) {
         fetch(`{{ url_for('wallet_app.dashboard') }}?page=${page}&search=${currentSearch}`, {
             headers: {'X-Requested-With': 'XMLHttpRequest'}
