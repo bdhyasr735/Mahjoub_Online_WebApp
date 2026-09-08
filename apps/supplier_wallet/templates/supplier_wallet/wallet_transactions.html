@@ -3,9 +3,7 @@
 {% block title %}كشف حساب المحفظة المالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
-<!-- أضف تنسيقاتك الخاصة هنا داخل البلوك إن أردت، أو اتركها للـ CSS الخارجي -->
 <style>
-    /* تنسيقات الجدول والواجهة المالية الخاصة بالمحفظة فقط */
     .table-container {
         overflow-x: auto;
         border-radius: 16px;
@@ -164,7 +162,6 @@
     }
 </style>
 
-<!-- محتوى الصفحة يوضع هنا مباشرة داخل البلوك دون تكرار لهياكل الـ HTML الخارجية -->
 <div style="width: 100%; padding-bottom: 40px;">
 
     <!-- عنوان الصفحة والزر السريع -->
@@ -189,7 +186,7 @@
         <div>
             <div class="balance-label"><i class="fas fa-circle" style="color: #10b981; font-size: 8px; margin-left: 6px;"></i> الرصيد الحالي القابل للسحب</div>
             <div class="balance-amount">
-                {% set current_balance = balance if balance is defined else 0.00 %}
+                {% set current_balance = wallet.balance if wallet and wallet.balance is not none else 0.00 %}
                 {{ "%.2f"|format(current_balance) }} <span style="font-size: 16px; font-weight: 600; color: #e5e7eb;">ر.س</span>
             </div>
         </div>
@@ -224,11 +221,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th>م</th>
                     <th>رقم الإيصال / المرجع</th>
-                    <th>النوع</th>
-                    <th>المبلغ</th>
-                    <th>الرصيد بعد الحركة</th>
+                    <th>البيان / رقم السند</th>
+                    <th>مدين (-)</th>
+                    <th>دائن (+)</th>
                     <th>الحالة</th>
                     <th>التاريخ والتوقيت</th>
                 </tr>
@@ -255,23 +252,25 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if raw_type|lower == 'credit' %}
-                                        <span class="type-credit"><i class="fas fa-arrow-down" style="margin-left: 4px;"></i> إيداع</span>
-                                    {% elif raw_type|lower == 'debit' %}
-                                        <span class="type-debit"><i class="fas fa-arrow-up" style="margin-left: 4px;"></i> سحب</span>
+                                    {% if trx.transfer_company or trx.bank_reference %}
+                                        <div style="font-weight: 700; color: white;">
+                                            {{ trx.description or 'حركة مالية' }}
+                                        </div>
+                                        <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">
+                                            <span style="color: #10b981;">🏦 {{ trx.transfer_company or 'غير محدد' }}</span>
+                                            <span style="color: #3b82f6; margin-right: 8px;">🔢 رقم الحوالة: {{ trx.bank_reference or 'غير محدد' }}</span>
+                                        </div>
                                     {% else %}
-                                        <span style="color: #d1d5db;">{{ raw_type }}</span>
+                                        <span style="font-weight: 700;">{{ trx.description or 'حركة مالية' }}</span>
                                     {% endif %}
                                 </td>
-                                <td style="font-weight: 700; font-family: monospace; font-size: 14px; {% if raw_type|lower == 'credit' %}color: #10b981;{% else %}color: #ef4444;{% endif %}">
-                                    {% if raw_type|lower == 'credit' %}+{% else %}-{% endif %}{{ "%.2f"|format(trx.amount or 0) }} ر.س
+                                <td style="font-weight: 700; font-family: monospace; font-size: 14px; color: #ef4444;">
+                                    {% if raw_type|lower == 'debit' %}-{{ "%.2f"|format(trx.amount or 0) }} ر.س
+                                    {% else %}<span style="color: #6b7280;">-</span>{% endif %}
                                 </td>
-                                <td style="font-family: monospace; color: #d1d5db;">
-                                    {% if trx.balance_after is not none and trx.balance_after is defined %}
-                                        {{ "%.2f"|format(trx.balance_after) }} ر.س
-                                    {% else %}
-                                        <span style="color: #6b7280;">-</span>
-                                    {% endif %}
+                                <td style="font-weight: 700; font-family: monospace; font-size: 14px; color: #10b981;">
+                                    {% if raw_type|lower == 'credit' %}+{{ "%.2f"|format(trx.amount or 0) }} ر.س
+                                    {% else %}<span style="color: #6b7280;">-</span>{% endif %}
                                 </td>
                                 <td>
                                     <span class="status-badge status-completed">✓ مكتمل</span>
@@ -365,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const endIdx = startIdx + itemsPerPage;
             const pageItems = filteredRows.slice(startIdx, endIdx);
 
-4            pageItems.forEach((row, idx) => {
+            pageItems.forEach((row, idx) => {
                 row.style.display = '';
                 const indexCell = row.querySelector('.row-index');
                 if (indexCell) indexCell.textContent = startIdx + idx + 1;
