@@ -3,6 +3,10 @@
 
 from apps.wallet.routes import wallet_bp
 
+# ✅ استيراد الملفات الجديدة لضمان تسجيل جميع المسارات (طلبات السحب + سند الصرف)
+import apps.wallet.withdrawals
+import apps.wallet.receipts
+
 # نترك الاسم والأيقونة للمرجعية البرمجية
 MODULE_NAME = "إدارة المحافظ"
 MODULE_ICON = "fas fa-wallet"
