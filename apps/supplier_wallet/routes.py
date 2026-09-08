@@ -386,11 +386,20 @@ def withdrawal_receipt(request_number):
     supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
     modules = get_sidebar_modules()
 
-    # ✅ البحث عن الحركة المالية بطريقة صحيحة (بدون استخدام property in query)
-    transaction = WalletTransaction.query.filter_by(
-        wallet_id=wallet.id,
-        transaction_type='withdraw'
-    ).order_by(WalletTransaction.created_at.desc()).first()
+    # ✅ الحل النهائي: البحث عن الحركة المالية الصحيحة المرتبطة بالطلب
+    # 1. البحث عن الحركة التي وصفها يحتوي على رقم الطلب (description هي property وتفك تلقائياً)
+    transaction = None
+    for txn in WalletTransaction.query.filter_by(wallet_id=wallet.id, transaction_type='withdraw').all():
+        if receipt.request_number in txn.description:
+            transaction = txn
+            break
+
+    # 2. إذا لم نجد، نأخذ آخر حركة سحب لهذه المحفظة (كمحاولة أخيرة)
+    if not transaction:
+        transaction = WalletTransaction.query.filter_by(
+            wallet_id=wallet.id,
+            transaction_type='withdraw'
+        ).order_by(WalletTransaction.created_at.desc()).first()
 
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
@@ -399,7 +408,7 @@ def withdrawal_receipt(request_number):
         withdrawal=receipt,
         wallet=wallet,
         supplier=supplier,
-        transaction=transaction,  # ✅ تمرير الحركة المالية
+        transaction=transaction,  # ✅ تمرير الحركة المالية الصحيحة
         supplier_modules=modules,
         modules_registry=modules
     )
