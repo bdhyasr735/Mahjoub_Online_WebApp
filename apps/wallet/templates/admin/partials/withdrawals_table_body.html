@@ -4,8 +4,8 @@
         <!-- 1. رقم الطلب -->
         <td class="font-monospace fw-bold py-3">{{ req.request_number }}</td>
         
-        <!-- 2. اسم المورد (العلاقة المباشرة) -->
-        <td class="fw-bold py-3">{{ req.supplier.trade_name }}</td>
+        <!-- 2. اسم المورد (من خلال المحفظة) -->
+        <td class="fw-bold py-3">{{ req.wallet.supplier.trade_name }}</td>
         
         <!-- 3. المبلغ -->
         <td class="py-3">
