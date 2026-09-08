@@ -2,7 +2,7 @@
     {% for req in requests %}
     <tr class="align-middle">
         <td class="font-monospace fw-bold py-3">{{ req.request_number }}</td>
-        <td class="fw-bold py-3">{{ req.wallet.supplier.trade_name }}</td>
+        <td class="fw-bold py-3">{{ req.supplier.trade_name }}</td>
         <td class="py-3">
             <span class="fw-bold text-success">{{ "{:,.2f}".format(req.amount) }}</span> 
             <small class="text-muted">SAR</small>
