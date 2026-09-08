@@ -17,11 +17,11 @@
         </a>
     </div>
 
-    <!-- ✅ إحصائيات - تم إزالة YER و USD -->
+    <!-- ✅ إحصائيات -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="stat-card text-center">
-                <p>عدد المحافظ</p>
+                <p>عدد محافظ الموردين</p>
                 <h3>{{ pagination.total }}</h3>
             </div>
         </div>
@@ -41,20 +41,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light text-primary">
-                    <tr>
-                        <th>كود المحفظة</th>
-                        <th>المتجر</th>
-                        <th>💵 الرصيد (SAR)</th>
-                        <th>آخر تحديث</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="walletTableBody">
-                    {% include 'admin/partials/wallet_table_body.html' %}
-                </tbody>
-            </table>
+            {% include 'admin/partials/wallet_table_body.html' %}
         </div>
         
         <div class="card-footer d-flex justify-content-center" id="paginationControls">
@@ -78,18 +65,21 @@
 <script>
     let currentSearch = '';
 
-    // دالة تحميل البيانات عبر AJAX
     function loadWalletPage(page) {
         fetch(`{{ url_for('wallet_app.dashboard') }}?page=${page}&search=${currentSearch}`, {
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
         .then(response => response.text())
         .then(html => {
-            document.getElementById('walletTableBody').innerHTML = html;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTbody = doc.getElementById('walletTableBody');
+            if (newTbody) {
+                document.getElementById('walletTableBody').innerHTML = newTbody.innerHTML;
+            }
         });
     }
 
-    // دالة البحث مع تأخير بسيط (Debounce) لتقليل الضغط على الخادم
     let timeout = null;
     document.getElementById('walletSearch').addEventListener('input', function() {
         clearTimeout(timeout);
