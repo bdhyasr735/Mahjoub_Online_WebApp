@@ -3,20 +3,108 @@
 {% block title %}تفاصيل محفظة {{ wallet.supplier.trade_name }}{% endblock %}
 
 {% block content %}
+<style>
+    :root {
+        --royal-purple: #2e003e;
+        --royal-gold: #d4af37;
+        --dashboard-border: #E5E2DC;
+        --dashboard-text: #1E1B18;
+        --dashboard-card-bg: #FFFFFF;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        border-bottom: 4px solid var(--royal-gold);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    .wallet-code-badge {
+        font-family: 'JetBrains Mono', monospace;
+        background: #eee;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        border: 1px solid var(--royal-gold);
+        color: #333;
+    }
+    .table-responsive-mahjoub {
+        background: var(--dashboard-card-bg) !important;
+        border-radius: 20px;
+        border: 1px solid var(--dashboard-border) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    }
+    .table-mahjoub {
+        width: 100%;
+        font-size: 0.9rem;
+        color: var(--dashboard-text) !important;
+    }
+    .table-mahjoub thead {
+        background: linear-gradient(to right, #1a0b2e, #08020d) !important;
+        color: var(--mahjoub-gold) !important;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+    .table-mahjoub thead th {
+        color: var(--mahjoub-gold) !important;
+        border: none !important;
+        text-align: right;
+        padding: 16px 18px !important;
+    }
+    .table-mahjoub td {
+        padding: 16px 18px !important;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--dashboard-border) !important;
+        color: var(--dashboard-text) !important;
+        text-align: right;
+    }
+    .table-mahjoub tbody tr:hover {
+        background-color: rgba(26, 11, 46, 0.03) !important;
+    }
+    .btn-royal {
+        background: var(--royal-purple);
+        color: white;
+        border: 1px solid var(--royal-gold);
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.3s ease;
+    }
+    .btn-royal:hover {
+        background: var(--royal-gold);
+        color: black;
+    }
+</style>
+
 <div class="container-fluid py-4" dir="rtl">
     <!-- الرأس والتفاصيل -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="fw-bold" style="color: var(--royal-purple);"><i class="fas fa-wallet me-2"></i> {{ wallet.supplier.trade_name }}</h3>
-            <p class="text-muted">كود المحفظة: <span class="wallet-code-badge">{{ wallet.wallet_code }}</span></p>
+            <!-- ✅ عرض الاسم واسم المتجر -->
+            <h3 class="fw-bold" style="color: var(--royal-purple);">
+                <i class="fas fa-store me-2"></i> 
+                {{ wallet.supplier.owner_name or 'اسم غير معروف' }} 
+                <small class="text-muted fw-normal fs-6">({{ wallet.supplier.trade_name }})</small>
+            </h3>
+            <p class="text-muted mt-2">
+                <!-- ✅ عرض الكودين -->
+                <span class="me-3">
+                    <i class="fas fa-barcode"></i> كود المحفظة: 
+                    <span class="wallet-code-badge">{{ wallet.wallet_code }}</span>
+                </span>
+                <span class="me-3">
+                    <i class="fas fa-hashtag"></i> كود المورد: 
+                    <span class="font-monospace">{{ wallet.supplier.supplier_code or 'N/A' }}</span>
+                </span>
+            </p>
         </div>
-        <!-- ✅ تصحيح الرابط: استخدام wallet_app.dashboard -->
+        <!-- ✅ زر الرجوع -->
         <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-sm fw-bold text-white px-4" style="background: var(--royal-purple); border: 1px solid var(--mahjoub-gold);">
             <i class="fas fa-arrow-right me-2"></i>رجوع
         </a>
     </div>
 
-    <!-- ✅ بطاقات الأرصدة المتوافقة مع القالب الأم -->
+    <!-- ✅ بطاقات الأرصدة -->
     <div class="row mb-4 g-3">
         <div class="col-md-6 mx-auto">
             <div class="stat-card text-center shadow">
@@ -41,7 +129,7 @@
         </div>
     </div>
 
-    <!-- ✅ جدول الحركات المتوافق تماماً مع الكلاسات المخصصة للمنصة -->
+    <!-- ✅ جدول الحركات -->
     <div class="table-responsive-mahjoub">
         <table class="table-mahjoub" id="transactionsTable">
             <thead>
