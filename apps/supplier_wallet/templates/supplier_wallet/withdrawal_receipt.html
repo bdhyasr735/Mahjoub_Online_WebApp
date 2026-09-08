@@ -387,7 +387,7 @@
             <div class="receipt-info-grid">
                 <div class="receipt-info-item">
                     <span class="label">📌 رقم السند</span>
-                    <span class="value gold">{{ receipt.voucher_number or ('VCH-' ~ receipt.request_number) }}</span>
+                    <span class="value gold">{{ transaction.voucher_number if transaction else ('VCH-' ~ receipt.request_number) }}</span>
                 </div>
                 <div class="receipt-info-item">
                     <span class="label">📋 رقم الطلب</span>
@@ -461,7 +461,7 @@
                 <div class="footer-text">
                     <strong>منصة محجوب أونلاين</strong> • بوابة الموردين<br>
                     تم إصدار هذا السند إلكترونياً وبشكل تلقائي بواسطة النظام المالي.<br>
-                    رقم السند: <strong>{{ receipt.voucher_number or ('VCH-' ~ receipt.request_number) }}</strong>
+                    رقم السند: <strong>{{ transaction.voucher_number if transaction else ('VCH-' ~ receipt.request_number) }}</strong>
                     {% if transaction and transaction.bank_reference %}
                     | رقم المرجع المصرفي: <strong>{{ transaction.bank_reference }}</strong>
                     {% endif %}
