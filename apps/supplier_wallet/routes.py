@@ -386,16 +386,11 @@ def withdrawal_receipt(request_number):
     supplier = Supplier.query.get(supplier_id) if hasattr(Supplier, 'query') else current_user
     modules = get_sidebar_modules()
 
-    # ✅ جلب الحركة المالية المرتبطة بالطلب بطريقة احترافية (استخدام like للبحث في الوصف)
-    transaction = WalletTransaction.query.filter(
-        WalletTransaction.description.like(f"%{receipt.request_number}%")
-    ).first()
-
-    if not transaction:
-        transaction = WalletTransaction.query.filter_by(
-            wallet_id=wallet.id,
-            transaction_type='withdraw'
-        ).order_by(WalletTransaction.created_at.desc()).first()
+    # ✅ البحث عن الحركة المالية بطريقة صحيحة (بدون استخدام property in query)
+    transaction = WalletTransaction.query.filter_by(
+        wallet_id=wallet.id,
+        transaction_type='withdraw'
+    ).order_by(WalletTransaction.created_at.desc()).first()
 
     return render_template(
         'supplier_wallet/withdrawal_receipt.html',
