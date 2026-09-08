@@ -12,6 +12,11 @@ from sqlalchemy import or_, func
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest, generate_unique_voucher_number
 from apps.models.supplier_db import Supplier
+from apps.models.treasury_db import TreasuryEntry
+
+# ✅ استيراد قوائم البنوك والشركات
+from apps.data.yemen_banks import BANKS_LIST  # افترض أن الاسم هكذا
+from apps.data.financial_companies import COMPANIES_LIST  # افترض أن الاسم هكذا
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +167,7 @@ def admin_withdrawals():
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
     
-    query = WithdrawalRequest.query.join(Supplier, WithdrawalRequest.supplier_id == Supplier.id)
+    query = WithdrawalRequest.query.join(SupplierWallet, WithdrawalRequest.wallet_id == SupplierWallet.id).join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
         query = query.filter(or_(
@@ -197,7 +202,7 @@ def admin_view_withdrawal(request_number):
         abort(403)
         
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
-    return render_template('admin/review_withdrawal.html', withdrawal=withdrawal)
+    return render_template('admin/review_withdrawal.html', withdrawal=withdrawal, banks=BANKS_LIST, companies=COMPANIES_LIST)
 
 
 # 3.3 اعتماد طلب السحب
@@ -216,27 +221,51 @@ def approve_withdrawal(request_number):
         return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
     
     try:
+        # ✅ الحقول الجديدة من النموذج
+        bank_name = request.form.get('bank_name', '').strip()
+        transfer_company = request.form.get('transfer_company', '').strip()
+        bank_reference = request.form.get('bank_reference', '').strip()
+        admin_notes = request.form.get('admin_notes', '').strip()
+        
         # 1. تحديث الحالة
         withdrawal.status = 'completed'
         withdrawal.updated_at = datetime.utcnow()
+        withdrawal.notes = admin_notes if admin_notes else 'تمت الموافقة على السحب'
         
         # 2. تحديث رصيد المحفظة (خصم المبلغ)
         wallet.total_withdrawn += withdrawal.amount
         wallet.balance -= withdrawal.amount
+        wallet.updated_at = datetime.utcnow()
         
-        # 3. تسجيل حركة في المحفظة (Debit)
+        # 3. تسجيل حركة في المحفظة (Debit) مع بيانات التحويل
         generated_voucher = generate_unique_voucher_number()
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             amount=withdrawal.amount,
             transaction_type='withdraw',
             voucher_number=generated_voucher,
+            bank_reference=bank_reference if bank_reference else None,
+            transfer_company=transfer_company if transfer_company else None,
             description=f"سحب رصيد - طلب رقم: {withdrawal.request_number}"
         )
         
         db.session.add(transaction)
         db.session.add(wallet)
         db.session.add(withdrawal)
+        
+        # 4. إنشاء حركة خزينة المنصة (TreasuryEntry) - إيداع للمنصة من حساب المورد
+        treasury_entry = TreasuryEntry(
+            reference_number=bank_reference if bank_reference else None,
+            voucher_number=generated_voucher,
+            entry_type='withdraw',  # أو 'debit'
+            amount=withdrawal.amount,
+            currency='SAR',
+            owner_type='supplier',
+            owner_id=withdrawal.supplier_id,
+            description=f"سحب رصيد المورد - طلب رقم: {withdrawal.request_number}"
+        )
+        
+        db.session.add(treasury_entry)
         db.session.commit()
         
         flash("تم اعتماد طلب السحب وخصم المبلغ من المحفظة بنجاح.", "success")
@@ -278,3 +307,20 @@ def reject_withdrawal(request_number):
         flash("حدث خطأ أثناء رفض الطلب.", "danger")
         
     return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
+
+
+# 4. مسار سند صرف مستحقات مالية للمورد
+@wallet_bp.route('/supplier/wallet/receipt/<string:request_number>', methods=['GET'])
+@login_required
+def supplier_withdrawal_receipt(request_number):
+    """عرض سند صرف مستحقات مالية للمورد"""
+    if session.get('user_type') not in ['supplier', 'supplier_staff']:
+        abort(403)
+        
+    withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
+    
+    # التأكد أن المورد الحالي هو صاحب الطلب
+    if withdrawal.supplier_id != current_user.id:
+        abort(403)
+        
+    return render_template('suppliers/withdrawal_receipt.html', withdrawal=withdrawal)
