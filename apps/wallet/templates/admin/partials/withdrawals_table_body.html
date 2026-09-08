@@ -1,22 +1,35 @@
 <tbody id="withdrawalsTableBody">
     {% for req in requests %}
     <tr class="align-middle">
+        <!-- 1. رقم الطلب -->
         <td class="font-monospace fw-bold py-3">{{ req.request_number }}</td>
+        
+        <!-- 2. اسم المورد (العلاقة المباشرة) -->
         <td class="fw-bold py-3">{{ req.supplier.trade_name }}</td>
+        
+        <!-- 3. المبلغ -->
         <td class="py-3">
             <span class="fw-bold text-success">{{ "{:,.2f}".format(req.amount) }}</span> 
             <small class="text-muted">SAR</small>
         </td>
+        
+        <!-- 4. وسيلة الدفع -->
         <td class="text-muted small py-3">{{ req.payout_method or 'غير محدد' }}</td>
+        
+        <!-- 5. الحالة -->
         <td class="py-3">
             {% if req.status == 'pending' %}
-                <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                <span class="badge bg-warning text-dark">قيد المراجعة</span>
             {% elif req.status == 'completed' %}
                 <span class="badge bg-success">مكتملة</span>
             {% elif req.status == 'rejected' %}
                 <span class="badge bg-danger">مرفوضة</span>
+            {% elif req.status == 'approved' %}
+                <span class="badge bg-success">معتمد</span>
             {% endif %}
         </td>
+        
+        <!-- 6. الإجراء -->
         <td class="py-3">
             <a href="{{ url_for('wallet_app.admin_view_withdrawal', request_number=req.request_number) }}" class="btn btn-sm btn-royal">
                 <i class="fas fa-eye me-1"></i> مراجعة
