@@ -70,9 +70,9 @@ def dashboard():
     # ✅ كل 10 موردين كصفحة
     pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=10, error_out=False)
     
-    # ✅ عند طلب AJAX: إرجاع الـ tbody فقط (مع تمرير pagination لضمان ترقيم الصفحات)
+    # ✅ عند طلب AJAX: إرجاع الجدول كاملاً مع الترقيم من الملف الجديد
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('admin/partials/wallet_table_body.html', wallets=pagination.items, pagination=pagination)
+        return render_template('admin/wallet_table_ajax.html', wallets=pagination.items, pagination=pagination)
         
     return render_template('admin/wallet_app.html', wallets=pagination.items, stats=stats, pagination=pagination)
 
