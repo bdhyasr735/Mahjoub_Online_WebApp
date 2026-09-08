@@ -1,1 +1,172 @@
+{% extends "admin/admin_base.html" %}
 
+{% block title %}طلبات السحب | محجوب أونلاين{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --royal-purple: #2e003e;
+        --royal-gold: #d4af37;
+        --dashboard-bg: #F9F8F6;
+        --dashboard-card-bg: #FFFFFF;
+        --dashboard-border: #E5E2DC;
+        --dashboard-text: #1E1B18;
+    }
+
+    .table-responsive-mahjoub {
+        background: var(--dashboard-card-bg) !important;
+        border-radius: 20px;
+        border: 1px solid var(--dashboard-border) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        overflow-x: auto;
+    }
+
+    .table-mahjoub {
+        width: 100%;
+        font-size: 0.9rem;
+        color: var(--dashboard-text) !important;
+        white-space: normal !important;
+    }
+
+    .table-mahjoub thead {
+        background: linear-gradient(to right, #1a0b2e, #08020d) !important;
+        color: var(--mahjoub-gold) !important;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+
+    .table-mahjoub thead th {
+        color: var(--mahjoub-gold) !important;
+        border: none !important;
+        text-align: right;
+        padding: 16px 18px !important;
+    }
+
+    .table-mahjoub td {
+        padding: 16px 18px !important;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--dashboard-border) !important;
+        color: var(--dashboard-text) !important;
+        text-align: right;
+        white-space: normal !important;
+    }
+
+    .table-mahjoub tbody tr:hover {
+        background-color: rgba(26, 11, 46, 0.03) !important;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        border-bottom: 4px solid var(--royal-gold);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-royal {
+        background: var(--royal-purple);
+        color: white;
+        border: 1px solid var(--royal-gold);
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-royal:hover {
+        background: var(--royal-gold);
+        color: black;
+    }
+</style>
+
+<div class="container-fluid py-4" dir="rtl">
+    <div class="mb-4">
+        <a href="{{ url_for('wallet_app.dashboard') }}" class="text-decoration-none fw-bold" style="color: var(--royal-purple);">
+            <i class="fas fa-arrow-right me-2"></i> العودة للمحافظ
+        </a>
+    </div>
+
+    <!-- إحصائيات -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="stat-card text-center shadow">
+                <p class="mb-1">⏳ قيد الانتظار</p>
+                <h3 class="fw-bold mb-0">{{ stats.pending }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center shadow">
+                <p class="mb-1">✅ مكتملة</p>
+                <h3 class="fw-bold mb-0">{{ stats.completed }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center shadow">
+                <p class="mb-1">❌ مرفوضة</p>
+                <h3 class="fw-bold mb-0">{{ stats.rejected }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 border-0 shadow-sm" style="background: var(--dashboard-card-bg); border: 1px solid var(--dashboard-border);">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0" style="color: var(--royal-purple);">إدارة طلبات السحب</h5>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('wallet_app.admin_withdrawals', status='all') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'all' else 'btn-outline-dark' }}">الكل</a>
+                    <a href="{{ url_for('wallet_app.admin_withdrawals', status='pending') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'pending' else 'btn-outline-dark' }}">قيد الانتظار</a>
+                    <a href="{{ url_for('wallet_app.admin_withdrawals', status='completed') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'completed' else 'btn-outline-dark' }}">مكتملة</a>
+                    <a href="{{ url_for('wallet_app.admin_withdrawals', status='rejected') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'rejected' else 'btn-outline-dark' }}">مرفوضة</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive-mahjoub">
+        <table class="table-mahjoub">
+            <thead>
+                <tr>
+                    <th>رقم الطلب</th>
+                    <th>اسم المورد</th>
+                    <th>المبلغ</th>
+                    <th>وسيلة الدفع</th>
+                    <th>الحالة</th>
+                    <th>الإجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests.items %}
+                <tr>
+                    <td class="font-monospace fw-bold">{{ req.request_number }}</td>
+                    <td class="fw-bold">{{ req.wallet.supplier.trade_name }}</td>
+                    <td class="text-success fw-bold">{{ "{:,.2f}".format(req.amount) }} <small>SAR</small></td>
+                    <td class="text-muted small">{{ req.payout_method or 'غير محدد' }}</td>
+                    <td>
+                        {% if req.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                        {% elif req.status == 'completed' %}
+                            <span class="badge bg-success">مكتملة</span>
+                        {% elif req.status == 'rejected' %}
+                            <span class="badge bg-danger">مرفوضة</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('wallet_app.admin_view_withdrawal', request_number=req.request_number) }}" class="btn btn-sm btn-royal">
+                            <i class="fas fa-eye me-1"></i> مراجعة
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-3 d-block opacity-25"></i>
+                        لا توجد طلبات سحب.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
