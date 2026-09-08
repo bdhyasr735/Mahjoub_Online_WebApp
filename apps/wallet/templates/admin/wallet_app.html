@@ -113,55 +113,65 @@
         </div>
     </div>
 
-    <!-- ✅ الجدول -->
-    <div class="table-responsive-mahjoub">
-        <table class="table-mahjoub">
-            <thead>
-                <tr>
-                    <th>كود المحفظة</th>
-                    <th>اسم المتجر</th>
-                    <th>الرصيد</th>
-                    <th>الحالة</th>
-                    <th>تفاصيل</th>
-                </tr>
-            </thead>
-            {% include 'admin/partials/wallet_table_body.html' %}
-        </table>
-    </div>
-    
-    <div class="card-footer bg-white d-flex justify-content-center border-0 py-3" id="paginationControls">
-        <nav>
-            <ul class="pagination mb-0" id="paginationList">
-                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                    {% if page_num %}
-                        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
-                            <a class="page-link" onclick="loadWalletPage({{ page_num }})">{{ page_num }}</a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
-        </nav>
+    <!-- ✅ منطقة الجدول والترقيم (سيتم استبدالها بالكامل عند البحث) -->
+    <div id="walletTableContainer">
+        <div class="table-responsive-mahjoub">
+            <table class="table-mahjoub">
+                <thead>
+                    <tr>
+                        <th>كود المحفظة</th>
+                        <th>اسم المتجر</th>
+                        <th>الرصيد</th>
+                        <th>الحالة</th>
+                        <th>تفاصيل</th>
+                    </tr>
+                </thead>
+                {% include 'admin/partials/wallet_table_body.html' %}
+            </table>
+        </div>
+        
+        <div class="card-footer bg-white d-flex justify-content-center border-0 py-3" id="paginationControls">
+            <nav>
+                <ul class="pagination mb-0" id="paginationList">
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+                                <a class="page-link" onclick="loadWalletPage({{ page_num }})">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
 
 <script>
     let currentSearch = '';
 
-    // دالة تحميل البيانات عبر AJAX
+    // دالة تحميل البيانات عبر AJAX (تعيد الجدول كاملاً مع الترقيم)
     function loadWalletPage(page) {
         fetch(`{{ url_for('wallet_app.dashboard') }}?page=${page}&search=${currentSearch}`, {
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
         .then(response => response.text())
         .then(html => {
-            // ✅ إصلاح البحث: استبدال جسم الجدول (tbody) فقط، وليس رأس الجدول
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newTbody = doc.getElementById('walletTableBody');
-            if (newTbody) {
-                document.getElementById('walletTableBody').innerHTML = newTbody.innerHTML;
+            // ✅ استبدال الجدول والترقيم بالكامل (من الملف الجديد الذي أنشأته)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // استبدال الجدول
+            const newTableContainer = tempDiv.querySelector('.table-responsive-mahjoub');
+            if (newTableContainer) {
+                document.querySelector('.table-responsive-mahjoub').innerHTML = newTableContainer.innerHTML;
+            }
+            
+            // استبدال الترقيم
+            const newPagination = tempDiv.querySelector('#paginationControls');
+            if (newPagination) {
+                document.getElementById('paginationControls').innerHTML = newPagination.innerHTML;
             }
         });
     }
