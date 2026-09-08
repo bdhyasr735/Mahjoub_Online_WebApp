@@ -387,23 +387,23 @@
             <div class="receipt-info-grid">
                 <div class="receipt-info-item">
                     <span class="label">📌 رقم السند</span>
-                    <span class="value gold">{{ withdrawal.transactions[0].voucher_number if withdrawal.transactions else 'VCH-' ~ withdrawal.request_number }}</span>
+                    <span class="value gold">{{ receipt.transactions[0].voucher_number if receipt.transactions else 'VCH-' ~ receipt.request_number }}</span>
                 </div>
                 <div class="receipt-info-item">
                     <span class="label">📋 رقم الطلب</span>
-                    <span class="value">{{ withdrawal.request_number }}</span>
+                    <span class="value">{{ receipt.request_number }}</span>
                 </div>
                 <div class="receipt-info-item">
                     <span class="label">👤 المورد</span>
-                    <span class="value">{{ withdrawal.wallet.supplier.trade_name or withdrawal.wallet.supplier.store_name or 'المورد' }}</span>
+                    <span class="value">{{ supplier.trade_name or supplier.store_name or 'المورد' }}</span>
                 </div>
                 <div class="receipt-info-item">
                     <span class="label">📅 تاريخ الصرف</span>
                     <span class="value">
-                        {% if withdrawal.updated_at %}
-                            {{ withdrawal.updated_at.strftime('%Y-%m-%d | %I:%M %p') }}
-                        {% elif withdrawal.created_at %}
-                            {{ withdrawal.created_at.strftime('%Y-%m-%d | %I:%M %p') }}
+                        {% if receipt.updated_at %}
+                            {{ receipt.updated_at.strftime('%Y-%m-%d | %I:%M %p') }}
+                        {% elif receipt.created_at %}
+                            {{ receipt.created_at.strftime('%Y-%m-%d | %I:%M %p') }}
                         {% else %}
                             -
                         {% endif %}
@@ -412,7 +412,7 @@
                 <div class="receipt-info-item full-width">
                     <span class="label">🏦 الحساب المصرفي / معلومات التحويل</span>
                     <span class="value" style="font-size: 13px; direction: ltr; text-align: right; display: block;">
-                        {{ withdrawal.wallet.supplier.bank_name or 'غير محدد' }}
+                        {{ supplier.bank_name or 'غير محدد' }}
                     </span>
                 </div>
             </div>
@@ -426,30 +426,30 @@
                     المبلغ الصافي المسحوب
                 </div>
                 <div class="amount-value">
-                    <span class="currency">{{ withdrawal.wallet.currency or 'SAR' }}</span>
-                    {{ "%.2f"|format(withdrawal.amount) }}
+                    <span class="currency">{{ wallet.currency or 'SAR' }}</span>
+                    {{ "%.2f"|format(receipt.amount) }}
                 </div>
             </div>
             
             <!-- حالة السند -->
             {% set status_class = 'status-pending' %}
-            {% if withdrawal.status in ['completed', 'approved'] %}
+            {% if receipt.status in ['completed', 'approved'] %}
                 {% set status_class = 'status-approved' %}
-            {% elif withdrawal.status == 'rejected' %}
+            {% elif receipt.status == 'rejected' %}
                 {% set status_class = 'status-rejected' %}
             {% endif %}
 
             <div class="receipt-status-box {{ status_class }}">
                 <div class="status-dot"></div>
                 <span class="fw-bold" style="font-size: 14px;">
-                    {% if withdrawal.status == 'pending' %}
+                    {% if receipt.status == 'pending' %}
                         ⏳ قيد الانتظار والمراجعة
-                    {% elif withdrawal.status in ['completed', 'approved'] %}
+                    {% elif receipt.status in ['completed', 'approved'] %}
                         ✅ مكتمل ومحول إلى الحساب
-                    {% elif withdrawal.status == 'rejected' %}
+                    {% elif receipt.status == 'rejected' %}
                         ❌ مرفوض
                     {% else %}
-                        {{ withdrawal.status }}
+                        {{ receipt.status }}
                     {% endif %}
                 </span>
             </div>
@@ -461,9 +461,9 @@
                 <div class="footer-text">
                     <strong>منصة محجوب أونلاين</strong> • بوابة الموردين<br>
                     تم إصدار هذا السند إلكترونياً وبشكل تلقائي بواسطة النظام المالي.<br>
-                    رقم السند: <strong>{{ withdrawal.transactions[0].voucher_number if withdrawal.transactions else 'VCH-' ~ withdrawal.request_number }}</strong>
-                    {% if withdrawal.transactions[0].bank_reference %}
-                    | رقم المرجع المصرفي: <strong>{{ withdrawal.transactions[0].bank_reference }}</strong>
+                    رقم السند: <strong>{{ receipt.transactions[0].voucher_number if receipt.transactions else 'VCH-' ~ receipt.request_number }}</strong>
+                    {% if receipt.transactions[0].bank_reference %}
+                    | رقم المرجع المصرفي: <strong>{{ receipt.transactions[0].bank_reference }}</strong>
                     {% endif %}
                 </div>
                 
