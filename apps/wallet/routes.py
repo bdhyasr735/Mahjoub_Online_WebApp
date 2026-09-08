@@ -53,9 +53,13 @@ def dashboard():
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
+        # ✅ البحث اللحظي الشامل: أرقام، نصوص، ورموز
         query = query.filter(or_(
             Supplier.trade_name.ilike(f'%{search}%'),
-            SupplierWallet.wallet_code.ilike(f'%{search}%')
+            Supplier.owner_name.ilike(f'%{search}%'),
+            Supplier.supplier_code.ilike(f'%{search}%'),
+            SupplierWallet.wallet_code.ilike(f'%{search}%'),
+            SupplierWallet.id.cast(db.String).ilike(f'%{search}%')  # البحث بالرقم
         ))
     
     # ✅ إحصائيات - استخدام الحقل الصحيح (balance)
@@ -63,15 +67,15 @@ def dashboard():
         'total_sar': query.with_entities(func.sum(SupplierWallet.balance)).scalar() or 0
     }
     
-    pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
+    # ✅ كل 10 موردين كصفحة
+    pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=10, error_out=False)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('admin/partials/wallet_table_body.html', wallets=pagination.items)
+        return render_template('admin/partials/wallet_table_body.html', wallets=pagination.items, pagination=pagination)
         
     return render_template('admin/wallet_app.html', wallets=pagination.items, stats=stats, pagination=pagination)
 
 
-# ✅ تم تعديل هذا المسار ليقبل "كود المورد" (supplier_code) بدلاً من الرقم
 @wallet_bp.route('/admin/manage/<string:supplier_code>', methods=['GET'])
 @login_required
 def manage_wallet(supplier_code):
@@ -84,7 +88,6 @@ def manage_wallet(supplier_code):
     return render_template('admin/view_wallet.html', wallet=wallet)
 
 
-# ✅ تم تعديل هذا المسار أيضاً ليقبل "كود المورد" (supplier_code)
 @wallet_bp.route('/admin/manage/<string:supplier_code>/add_transaction', methods=['POST'])
 @login_required
 def add_transaction(supplier_code):
