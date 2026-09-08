@@ -7,23 +7,20 @@ from apps.wallet.routes import wallet_bp
 MODULE_NAME = "إدارة المحافظ"
 MODULE_ICON = "fas fa-wallet"
 
-# ✅ إضافة الروابط هنا لضمان ظهور "محافظ الموردين" في القائمة الجانبية تحت الرقابة المالية
-LINKS = [
-    {
-        'title': 'محافظ الموردين',
-        'url': '/wallet/admin/dashboard',  # الرابط المباشر
-        'icon': 'fas fa-wallet'            # الأيقونة
-    }
-]
+# ✅ LINKS بشكل قاموس: (Endpoint → Label)
+# النظام الديناميكي سيقرأ هذا القاموس ويستخدم safe_url_for() لبناء الرابط تلقائياً
+LINKS = {
+    'wallet_app.dashboard': 'محافظ الموردين'
+}
 
 def register_module(app):
     """
-    تسجيل موديول المحافظ كـ Blueprint مستقل ليتم استدعاؤه برمجياً،
-    مع إظهار الرابط في القائمة الجانبية.
+    تسجيل موديول المحافظ كـ Blueprint مستقل ليتم استدعاؤه برمجياً.
+    يتم تسجيل البلوبريت (Blueprint) تلقائياً بنفس المسار المحدد.
     """
     try:
-        # ✅ تصحيح اسم البلوبريت: يجب أن يكون wallet_bp وليس wallet_app
+        # تسجيل الـ Blueprint بمسار مستقل
         app.register_blueprint(wallet_bp, url_prefix='/wallet')
-        print("✅ [Registry]: تم تسجيل موديول 'إدارة المحافظ' بنجاح مع إظهار الرابط.")
+        print("✅ [Registry]: تم تسجيل موديول 'إدارة المحافظ' بنجاح (وضع الخلفية).")
     except Exception as e:
         print(f"❌ [Registry Error]: فشل تسجيل موديول 'Wallet': {e}")
