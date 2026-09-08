@@ -76,6 +76,11 @@ def approve_withdrawal(request_number):
         transfer_company = request.form.get('transfer_company', '').strip()
         bank_reference = request.form.get('bank_reference', '').strip()
         admin_notes = request.form.get('admin_notes', '').strip()
+        
+        # ✅ إذا لم يتم اختيار شركة تحويل، استخدم اسم البنك
+        if not transfer_company:
+            transfer_company = bank_name if bank_name else None
+        
         withdrawal.status = 'completed'
         withdrawal.updated_at = datetime.utcnow()
         withdrawal.notes = admin_notes if admin_notes else 'تمت الموافقة على السحب'
