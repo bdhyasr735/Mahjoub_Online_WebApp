@@ -299,11 +299,11 @@
                                     {% endif %}
                                 </td>
                                 <td style="font-weight: 800; font-family: monospace; font-size: 15px; color: #ef4444;">
-                                    {% if raw_type|lower == 'debit' %}-{{ "%.2f"|format(trx.amount or 0) }} {{ wallet.currency if wallet and wallet.currency else '' }}
+                                    {% if raw_type|lower in ['debit', 'withdraw'] %}-{{ "%.2f"|format(trx.amount or 0) }} {{ wallet.currency if wallet and wallet.currency else '' }}
                                     {% else %}<span style="color: #6b7280;">-</span>{% endif %}
                                 </td>
                                 <td style="font-weight: 800; font-family: monospace; font-size: 15px; color: #10b981;">
-                                    {% if raw_type|lower == 'credit' %}+{{ "%.2f"|format(trx.amount or 0) }} {{ wallet.currency if wallet and wallet.currency else '' }}
+                                    {% if raw_type|lower in ['credit', 'deposit'] %}+{{ "%.2f"|format(trx.amount or 0) }} {{ wallet.currency if wallet and wallet.currency else '' }}
                                     {% else %}<span style="color: #6b7280;">-</span>{% endif %}
                                 </td>
                                 <td style="font-family: monospace; color: #d1d5db; font-weight: 700; font-size: 14px;">
@@ -334,7 +334,7 @@
                             {% set ns = namespace(total_debit=0) %}
                             {% for trx in transactions %}
                                 {% if trx.status == 'completed' or trx.status == 'approved' %}
-                                    {% if trx.transaction_type == 'debit' or trx.transaction_type == 'withdraw' %}
+                                    {% if trx.transaction_type in ['debit', 'withdraw'] %}
                                         {% set ns.total_debit = ns.total_debit + (trx.amount or 0) %}
                                     {% endif %}
                                 {% endif %}
@@ -345,7 +345,7 @@
                             {% set ns = namespace(total_credit=0) %}
                             {% for trx in transactions %}
                                 {% if trx.status == 'completed' or trx.status == 'approved' %}
-                                    {% if trx.transaction_type == 'credit' or trx.transaction_type == 'deposit' %}
+                                    {% if trx.transaction_type in ['credit', 'deposit'] %}
                                         {% set ns.total_credit = ns.total_credit + (trx.amount or 0) %}
                                     {% endif %}
                                 {% endif %}
