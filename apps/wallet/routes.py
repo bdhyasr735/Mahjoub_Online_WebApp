@@ -14,7 +14,7 @@ from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalR
 from apps.models.supplier_db import Supplier
 from apps.models.treasury_db import TreasuryEntry
 
-# ✅ استيراد قوائم البنوك والشركات (تأكد من وجودها)
+# ✅ استيراد قوائم البنوك والشركات
 try:
     from apps.data.yemen_banks import BANKS_LIST
 except ImportError:
@@ -33,12 +33,10 @@ wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 # ✅ دالة مركزية لتحديث الرصيد
 def update_wallet_balance(wallet, amount, trans_type):
     """تحديث رصيد المحفظة بناءً على نوع العملية (العملة: SAR فقط)."""
-    if trans_type == 'credit':  # إيداع (زيادة الرصيد)
+    if trans_type == 'credit':
         wallet.balance += amount
-    elif trans_type == 'debit':  # سحب أو خصم (إنقاص الرصيد)
+    elif trans_type == 'debit':
         wallet.balance -= amount
-    
-    # تحديث تاريخ التعديل
     wallet.updated_at = datetime.utcnow()
     return wallet
 
@@ -59,29 +57,23 @@ def my_wallet():
 def dashboard():
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
-    
-    # ✅ استعلام أساسي
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
-    # ✅ البحث اللحظي الشامل: أرقام، نصوص، ورموز
     if search:
         query = query.filter(or_(
             Supplier.trade_name.ilike(f'%{search}%'),
             Supplier.owner_name.ilike(f'%{search}%'),
             Supplier.supplier_code.ilike(f'%{search}%'),
             SupplierWallet.wallet_code.ilike(f'%{search}%'),
-            SupplierWallet.id.cast(db.String).ilike(f'%{search}%')  # البحث بالرقم
+            SupplierWallet.id.cast(db.String).ilike(f'%{search}%')
         ))
     
-    # ✅ إحصائيات
     stats = {
         'total_sar': query.with_entities(func.sum(SupplierWallet.balance)).scalar() or 0
     }
     
-    # ✅ كل 10 موردين كصفحة
     pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=10, error_out=False)
     
-    # ✅ عند طلب AJAX: إرجاع الجدول كاملاً مع الترقيم من الملف الجديد
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/wallet_table_ajax.html', wallets=pagination.items, pagination=pagination)
         
@@ -91,24 +83,16 @@ def dashboard():
 @wallet_bp.route('/admin/manage/<string:supplier_code>', methods=['GET'])
 @login_required
 def manage_wallet(supplier_code):
-    # البحث عن المورد بواسطة كود المورد
     supplier = Supplier.query.filter_by(supplier_code=supplier_code).first_or_404()
-    
-    # البحث عن المحفظة المرتبطة بهذا المورد
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first_or_404()
-    
     return render_template('admin/view_wallet.html', wallet=wallet)
 
 
 @wallet_bp.route('/admin/manage/<string:supplier_code>/add_transaction', methods=['POST'])
 @login_required
 def add_transaction(supplier_code):
-    # البحث عن المورد بواسطة كود المورد
     supplier = Supplier.query.filter_by(supplier_code=supplier_code).first_or_404()
-    
-    # البحث عن المحفظة المرتبطة بهذا المورد
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first_or_404()
-    
     try:
         amount_raw = request.form.get('amount', '0')
         try:
@@ -116,24 +100,15 @@ def add_transaction(supplier_code):
         except InvalidOperation:
             flash("قيمة المبلغ غير صحيحة.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
-            
-        trans_type = request.form.get('type')  # 'credit' أو 'debit'
+        trans_type = request.form.get('type')
         order_ref = request.form.get('reference_number', '').strip()
-        # ✅ العملة ثابتة SAR (مأخوذة من المحفظة)
         currency = wallet.currency or 'SAR'
         description = request.form.get('description', f"تسوية يدوية للطلب {order_ref}")
-        
         if amount <= 0:
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
-
-        # 1. تحديث الرصيد
         wallet = update_wallet_balance(wallet, amount, trans_type)
-        
-        # 2. توليد رقم سند فريد
         generated_voucher = generate_unique_voucher_number()
-
-        # 3. تسجيل العملية
         new_trans = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
@@ -141,18 +116,14 @@ def add_transaction(supplier_code):
             voucher_number=generated_voucher,
             description=f"{description} | مرجع بنكي: {order_ref if order_ref else 'N/A'}"
         )
-        
         db.session.add(new_trans)
         db.session.add(wallet)
         db.session.commit()
-        
         flash("تم تسجيل العملية وتحديث الرصيد بنجاح.", "success")
-        
     except Exception as e:
         db.session.rollback()
         logger.error(f"Financial Error: {e}")
         flash("حدث خطأ أثناء تنفيذ العملية المالية.", "danger")
-
     return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
 
 
@@ -164,11 +135,8 @@ def add_transaction(supplier_code):
 @wallet_bp.route('/admin/withdrawals', methods=['GET'])
 @login_required
 def admin_withdrawals():
-    """عرض جميع طلبات السحب للموردين"""
-    # التأكد من أن المستخدم هو أدمن
     if session.get('user_type') not in ['admin', 'admin_staff']:
         abort(403)
-        
     search = request.args.get('search', '')
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
@@ -203,10 +171,8 @@ def admin_withdrawals():
 @wallet_bp.route('/admin/withdrawals/<string:request_number>', methods=['GET'])
 @login_required
 def admin_view_withdrawal(request_number):
-    """عرض تفاصيل طلب سحب معين"""
     if session.get('user_type') not in ['admin', 'admin_staff']:
         abort(403)
-        
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
     return render_template('admin/review_withdrawal.html', withdrawal=withdrawal, banks=BANKS_LIST, companies=COMPANIES_LIST)
 
@@ -215,10 +181,8 @@ def admin_view_withdrawal(request_number):
 @wallet_bp.route('/admin/withdrawals/<string:request_number>/approve', methods=['POST'])
 @login_required
 def approve_withdrawal(request_number):
-    """اعتماد طلب السحب وخصم المبلغ من المحفظة"""
     if session.get('user_type') not in ['admin', 'admin_staff']:
         abort(403)
-        
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
     wallet = withdrawal.wallet
     
@@ -227,23 +191,19 @@ def approve_withdrawal(request_number):
         return redirect(url_for('wallet_app.admin_view_withdrawal', request_number=request_number))
     
     try:
-        # ✅ الحقول الجديدة من النموذج
         bank_name = request.form.get('bank_name', '').strip()
         transfer_company = request.form.get('transfer_company', '').strip()
         bank_reference = request.form.get('bank_reference', '').strip()
         admin_notes = request.form.get('admin_notes', '').strip()
         
-        # 1. تحديث الحالة
         withdrawal.status = 'completed'
         withdrawal.updated_at = datetime.utcnow()
         withdrawal.notes = admin_notes if admin_notes else 'تمت الموافقة على السحب'
         
-        # 2. تحديث رصيد المحفظة (الخصم الصحيح باستخدام Decimal)
         wallet.balance = Decimal(wallet.balance) - Decimal(withdrawal.amount)
         wallet.total_withdrawn = Decimal(wallet.total_withdrawn) + Decimal(withdrawal.amount)
         wallet.updated_at = datetime.utcnow()
         
-        # 3. تسجيل حركة في المحفظة (Debit) مع بيانات التحويل في الوصف
         generated_voucher = generate_unique_voucher_number()
         transaction = WalletTransaction(
             wallet_id=wallet.id,
@@ -259,8 +219,6 @@ def approve_withdrawal(request_number):
         db.session.add(wallet)
         db.session.add(withdrawal)
         
-        # 4. إنشاء حركة خزينة المنصة (TreasuryEntry)
-        # ✅ حل مشكلة التعارض: توليد رقم سند جديد للخزينة
         treasury_voucher = generate_unique_voucher_number()
         treasury_entry = TreasuryEntry(
             reference_number=bank_reference if bank_reference else None,
@@ -290,10 +248,8 @@ def approve_withdrawal(request_number):
 @wallet_bp.route('/admin/withdrawals/<string:request_number>/reject', methods=['POST'])
 @login_required
 def reject_withdrawal(request_number):
-    """رفض طلب السحب دون خصم المبلغ"""
     if session.get('user_type') not in ['admin', 'admin_staff']:
         abort(403)
-        
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
     
     if withdrawal.status != 'pending':
@@ -303,12 +259,9 @@ def reject_withdrawal(request_number):
     try:
         withdrawal.status = 'rejected'
         withdrawal.updated_at = datetime.utcnow()
-        
         db.session.add(withdrawal)
         db.session.commit()
-        
         flash("تم رفض طلب السحب. المبلغ لم يتم خصمه من المحفظة.", "success")
-        
     except Exception as e:
         db.session.rollback()
         logger.error(f"Withdrawal Reject Error: {e}")
@@ -324,10 +277,8 @@ def supplier_withdrawal_receipt(request_number):
     """عرض سند صرف مستحقات مالية للمورد"""
     if session.get('user_type') not in ['supplier', 'supplier_staff']:
         abort(403)
-        
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
     
-    # التأكد أن المورد الحالي أو موظف المورد هو صاحب الطلب
     if session.get('user_type') == 'supplier':
         if withdrawal.supplier_id != current_user.id:
             abort(403)
