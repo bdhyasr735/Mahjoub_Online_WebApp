@@ -91,7 +91,7 @@
     <div class="row mb-4 g-3">
         <div class="col-md-4">
             <div class="stat-card text-center shadow">
-                <p class="mb-1">⏳ قيد الانتظار</p>
+                <p class="mb-1">⏳ قيد المراجعة</p>
                 <h3 class="fw-bold mb-0">{{ stats.pending }}</h3>
             </div>
         </div>
@@ -115,7 +115,7 @@
                 <h5 class="fw-bold mb-0" style="color: var(--royal-purple);">إدارة طلبات السحب</h5>
                 <div class="d-flex gap-2">
                     <a href="{{ url_for('wallet_app.admin_withdrawals', status='all') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'all' else 'btn-outline-dark' }}">الكل</a>
-                    <a href="{{ url_for('wallet_app.admin_withdrawals', status='pending') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'pending' else 'btn-outline-dark' }}">قيد الانتظار</a>
+                    <a href="{{ url_for('wallet_app.admin_withdrawals', status='pending') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'pending' else 'btn-outline-dark' }}">قيد المراجعة</a>
                     <a href="{{ url_for('wallet_app.admin_withdrawals', status='completed') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'completed' else 'btn-outline-dark' }}">مكتملة</a>
                     <a href="{{ url_for('wallet_app.admin_withdrawals', status='rejected') }}" class="btn btn-sm {{ 'active btn-royal' if status_filter == 'rejected' else 'btn-outline-dark' }}">مرفوضة</a>
                 </div>
@@ -123,6 +123,7 @@
         </div>
     </div>
 
+    <!-- ✅ الجدول -->
     <div class="table-responsive-mahjoub">
         <table class="table-mahjoub">
             <thead>
@@ -135,37 +136,7 @@
                     <th>الإجراء</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for req in requests.items %}
-                <tr>
-                    <td class="font-monospace fw-bold">{{ req.request_number }}</td>
-                    <td class="fw-bold">{{ req.wallet.supplier.trade_name }}</td>
-                    <td class="text-success fw-bold">{{ "{:,.2f}".format(req.amount) }} <small>SAR</small></td>
-                    <td class="text-muted small">{{ req.payout_method or 'غير محدد' }}</td>
-                    <td>
-                        {% if req.status == 'pending' %}
-                            <span class="badge bg-warning text-dark">قيد الانتظار</span>
-                        {% elif req.status == 'completed' %}
-                            <span class="badge bg-success">مكتملة</span>
-                        {% elif req.status == 'rejected' %}
-                            <span class="badge bg-danger">مرفوضة</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('wallet_app.admin_view_withdrawal', request_number=req.request_number) }}" class="btn btn-sm btn-royal">
-                            <i class="fas fa-eye me-1"></i> مراجعة
-                        </a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6" class="text-center py-5 text-muted">
-                        <i class="fas fa-inbox fa-2x mb-3 d-block opacity-25"></i>
-                        لا توجد طلبات سحب.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+            {% include 'admin/partials/withdrawals_table_body.html' %}
         </table>
     </div>
 </div>
