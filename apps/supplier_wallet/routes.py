@@ -174,22 +174,9 @@ def transactions(wallet_id):
             traceback.print_exc()
             return safe_redirect_home()
 
+    # ✅ عرض حركات المحفظة الفعلية فقط (بدون أي تكرار)
     transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).all()
-    withdrawal_requests = WithdrawalRequest.query.filter_by(wallet_id=wallet.id).all()
     all_transactions = list(transactions_list)
-
-    for req in withdrawal_requests:
-        status_val = req.status.value if hasattr(req.status, 'value') else req.status
-        all_transactions.append({
-            'voucher_number': req.request_number,
-            'reference_number': req.request_number,
-            'transaction_type': 'debit',
-            'amount': req.amount,
-            'balance_after': None,
-            'status': status_val,
-            'created_at': req.created_at,
-            'is_withdrawal': True
-        })
 
     def get_sort_key(t):
         if isinstance(t, dict):
@@ -400,17 +387,14 @@ def withdrawal_receipt(request_number):
     modules = get_sidebar_modules()
 
     # ✅ جلب الحركة المالية المرتبطة بالطلب بطريقة احترافية
-    # أولاً: البحث عبر رقم السند (VCH-WDR-MAH-...)
     expected_voucher = f"VCH-WDR-MAH-{receipt.request_number}"
     transaction = WalletTransaction.query.filter_by(voucher_number=expected_voucher).first()
 
-    # ثانياً: إذا لم نجد، نبحث عبر الوصف
     if not transaction:
         transaction = WalletTransaction.query.filter_by(
             description=f"سحب رصيد - طلب رقم: {receipt.request_number}"
         ).first()
 
-    # ثالثاً: إذا ما زال غير موجود، نجرب آخر حركة سحب لهذه المحفظة (كمحاولة أخيرة)
     if not transaction:
         transaction = WalletTransaction.query.filter_by(
             wallet_id=wallet.id,
