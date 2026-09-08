@@ -79,9 +79,13 @@ def approve_withdrawal(request_number):
         withdrawal.status = 'completed'
         withdrawal.updated_at = datetime.utcnow()
         withdrawal.notes = admin_notes if admin_notes else 'تمت الموافقة على السحب'
+        
+        # ✅ المنطق المالي الصحيح (خصم من الرصيد المتاح ورصيد قيد الانتظار)
         wallet.balance = Decimal(wallet.balance) - Decimal(withdrawal.amount)
+        wallet.balance_pending = Decimal(wallet.balance_pending) - Decimal(withdrawal.amount)  # ✅ تصحيح
         wallet.total_withdrawn = Decimal(wallet.total_withdrawn) + Decimal(withdrawal.amount)
         wallet.updated_at = datetime.utcnow()
+        
         generated_voucher = generate_unique_voucher_number()
         transaction = WalletTransaction(
             wallet_id=wallet.id,
@@ -95,6 +99,7 @@ def approve_withdrawal(request_number):
         db.session.add(transaction)
         db.session.add(wallet)
         db.session.add(withdrawal)
+        
         treasury_voucher = generate_unique_voucher_number()
         treasury_entry = TreasuryEntry(
             reference_number=bank_reference if bank_reference else None,
