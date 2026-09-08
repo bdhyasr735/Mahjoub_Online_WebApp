@@ -10,7 +10,8 @@ MODULE_ICON = "fas fa-wallet"
 # ✅ LINKS بشكل قاموس: (Endpoint → Label)
 # النظام الديناميكي سيقرأ هذا القاموس ويستخدم safe_url_for() لبناء الرابط تلقائياً
 LINKS = {
-    'wallet_app.dashboard': 'محافظ الموردين'
+    'wallet_app.dashboard': 'محافظ الموردين',
+    'wallet_app.admin_withdrawals': 'طلبات السحب'
 }
 
 def register_module(app):
