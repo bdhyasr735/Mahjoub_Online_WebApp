@@ -403,6 +403,8 @@ def withdrawal_receipt(request_number):
         'supplier_wallet/withdrawal_receipt.html',
         receipt=receipt,
         req=receipt,
+        # ✅ أضفنا هذا السطر حتى يتوافق القالب مع المتغير withdrawal
+        withdrawal=receipt,
         wallet=wallet,
         supplier=supplier,
         supplier_modules=modules,
