@@ -113,12 +113,11 @@
         </div>
     </div>
 
-    <!-- ✅ الجدول مع رأس الجدول (thead) -->
+    <!-- ✅ الجدول -->
     <div class="table-responsive-mahjoub">
         <table class="table-mahjoub">
             <thead>
                 <tr>
-                    <th>م</th>
                     <th>كود المحفظة</th>
                     <th>اسم المتجر</th>
                     <th>الرصيد</th>
@@ -150,12 +149,14 @@
 <script>
     let currentSearch = '';
 
+    // دالة تحميل البيانات عبر AJAX
     function loadWalletPage(page) {
         fetch(`{{ url_for('wallet_app.dashboard') }}?page=${page}&search=${currentSearch}`, {
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
         .then(response => response.text())
         .then(html => {
+            // ✅ إصلاح البحث: استبدال جسم الجدول (tbody) فقط، وليس رأس الجدول
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const newTbody = doc.getElementById('walletTableBody');
