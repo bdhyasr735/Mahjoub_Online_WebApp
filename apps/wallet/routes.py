@@ -14,9 +14,15 @@ from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalR
 from apps.models.supplier_db import Supplier
 from apps.models.treasury_db import TreasuryEntry
 
-# ✅ استيراد قوائم البنوك والشركات
-from apps.data.yemen_banks import BANKS_LIST  # افترض أن الاسم هكذا
-from apps.data.financial_companies import COMPANIES_LIST  # افترض أن الاسم هكذا
+# ✅ استيراد قوائم البنوك والشركات (تأكد من وجودها)
+try:
+    from apps.data.yemen_banks import BANKS_LIST
+except ImportError:
+    BANKS_LIST = []
+try:
+    from apps.data.financial_companies import COMPANIES_LIST
+except ImportError:
+    COMPANIES_LIST = []
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +211,7 @@ def admin_view_withdrawal(request_number):
     return render_template('admin/review_withdrawal.html', withdrawal=withdrawal, banks=BANKS_LIST, companies=COMPANIES_LIST)
 
 
-# 3.3 اعتماد طلب السحب
+# 3.3 اعتماد طلب السحب (مع حل مشكلة تعارض رقم السند)
 @wallet_bp.route('/admin/withdrawals/<string:request_number>/approve', methods=['POST'])
 @login_required
 def approve_withdrawal(request_number):
@@ -253,11 +259,13 @@ def approve_withdrawal(request_number):
         db.session.add(wallet)
         db.session.add(withdrawal)
         
-        # 4. إنشاء حركة خزينة المنصة (TreasuryEntry) - إيداع للمنصة من حساب المورد
+        # 4. إنشاء حركة خزينة المنصة (TreasuryEntry)
+        # ✅ حل مشكلة التعارض: توليد رقم سند جديد للخزينة
+        treasury_voucher = generate_unique_voucher_number()
         treasury_entry = TreasuryEntry(
             reference_number=bank_reference if bank_reference else None,
-            voucher_number=generated_voucher,
-            entry_type='withdraw',  # أو 'debit'
+            voucher_number=treasury_voucher,  # ✅ رقم سند مختلف
+            entry_type='withdraw',
             amount=withdrawal.amount,
             currency='SAR',
             owner_type='supplier',
@@ -319,8 +327,12 @@ def supplier_withdrawal_receipt(request_number):
         
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number).first_or_404()
     
-    # التأكد أن المورد الحالي هو صاحب الطلب
-    if withdrawal.supplier_id != current_user.id:
-        abort(403)
+    # التأكد أن المورد الحالي أو موظف المورد هو صاحب الطلب
+    if session.get('user_type') == 'supplier':
+        if withdrawal.supplier_id != current_user.id:
+            abort(403)
+    elif session.get('user_type') == 'supplier_staff':
+        if withdrawal.supplier_id != current_user.supplier_id:
+            abort(403)
         
     return render_template('suppliers/withdrawal_receipt.html', withdrawal=withdrawal)
