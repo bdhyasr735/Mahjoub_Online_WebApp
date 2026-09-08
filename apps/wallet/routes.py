@@ -71,17 +71,28 @@ def dashboard():
     return render_template('admin/wallet_app.html', wallets=pagination.items, stats=stats, pagination=pagination)
 
 
-@wallet_bp.route('/admin/manage/<int:supplier_id>', methods=['GET'])
+# ✅ تم تعديل هذا المسار ليقبل "كود المورد" (supplier_code) بدلاً من الرقم
+@wallet_bp.route('/admin/manage/<string:supplier_code>', methods=['GET'])
 @login_required
-def manage_wallet(supplier_id):
-    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
+def manage_wallet(supplier_code):
+    # البحث عن المورد بواسطة كود المورد
+    supplier = Supplier.query.filter_by(supplier_code=supplier_code).first_or_404()
+    
+    # البحث عن المحفظة المرتبطة بهذا المورد
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first_or_404()
+    
     return render_template('admin/view_wallet.html', wallet=wallet)
 
 
-@wallet_bp.route('/admin/manage/<int:supplier_id>/add_transaction', methods=['POST'])
+# ✅ تم تعديل هذا المسار أيضاً ليقبل "كود المورد" (supplier_code)
+@wallet_bp.route('/admin/manage/<string:supplier_code>/add_transaction', methods=['POST'])
 @login_required
-def add_transaction(supplier_id):
-    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
+def add_transaction(supplier_code):
+    # البحث عن المورد بواسطة كود المورد
+    supplier = Supplier.query.filter_by(supplier_code=supplier_code).first_or_404()
+    
+    # البحث عن المحفظة المرتبطة بهذا المورد
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first_or_404()
     
     try:
         amount_raw = request.form.get('amount', '0')
@@ -89,7 +100,7 @@ def add_transaction(supplier_id):
             amount = Decimal(amount_raw)
         except InvalidOperation:
             flash("قيمة المبلغ غير صحيحة.", "danger")
-            return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
+            return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
             
         trans_type = request.form.get('type')  # 'credit' أو 'debit'
         order_ref = request.form.get('reference_number', '').strip()
@@ -99,7 +110,7 @@ def add_transaction(supplier_id):
         
         if amount <= 0:
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
-            return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
+            return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
 
         # 1. تحديث الرصيد (باستخدام الحقل الصحيح balance بدلاً من balance_sar)
         wallet = update_wallet_balance(wallet, amount, trans_type)
@@ -128,4 +139,4 @@ def add_transaction(supplier_id):
         logger.error(f"Financial Error: {e}")
         flash("حدث خطأ أثناء تنفيذ العملية المالية.", "danger")
 
-    return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
+    return redirect(url_for('wallet_app.manage_wallet', supplier_code=supplier_code))
