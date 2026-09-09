@@ -12,6 +12,7 @@ from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.utils import get_current_supplier_id
+from apps.supplier_wallet.routes import get_sidebar_modules  # ✅ استيراد الدالة المسؤولة عن القائمة الجانبية
 
 # إنشاء Blueprint فرعي للإيصالات
 receipt_bp = Blueprint('receipt_bp', __name__, url_prefix='/supplier/wallet/receipt')
@@ -45,6 +46,9 @@ def view_receipt(transaction_id):
 
     supplier = Supplier.query.filter_by(id=supplier_id).first()
     balance = wallet.balance if wallet.balance else Decimal('0.0')
+    
+    # ✅ جلب الموديولات للقائمة الجانبية
+    modules = get_sidebar_modules()
 
     return render_template(
         'supplier_wallet/receipt.html',
@@ -52,7 +56,9 @@ def view_receipt(transaction_id):
         wallet=wallet,
         supplier=supplier,
         balance=balance,
-        now=datetime.now()
+        now=datetime.now(),
+        supplier_modules=modules,      # ✅ تمرير القائمة الجانبية
+        modules_registry=modules       # ✅ تمرير نسخة احتياطية
     )
 
 
@@ -85,13 +91,18 @@ def print_receipt(transaction_id):
     supplier = Supplier.query.filter_by(id=supplier_id).first()
     balance = wallet.balance if wallet.balance else Decimal('0.0')
 
+    # ✅ جلب الموديولات للقائمة الجانبية
+    modules = get_sidebar_modules()
+
     return render_template(
         'supplier_wallet/print_receipt.html',
         transaction=transaction,
         wallet=wallet,
         supplier=supplier,
         balance=balance,
-        now=datetime.now()
+        now=datetime.now(),
+        supplier_modules=modules,      # ✅ تمرير القائمة الجانبية
+        modules_registry=modules       # ✅ تمرير نسخة احتياطية
     )
 
 
