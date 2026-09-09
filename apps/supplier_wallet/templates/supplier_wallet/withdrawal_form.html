@@ -3,7 +3,48 @@
 {% block title %}طلب سحب جديد - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="container py-5" dir="rtl">
+<style>
+    /* 🎨 استعادة ألوان وهويات الموقع الأساسية لتطابق لوحة التحكم */
+    .withdraw-page {
+        background-color: #f8f9fa;
+    }
+    
+    .gold-header {
+        background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
+        border-bottom: 3px solid #C9A84C;
+    }
+    
+    .text-gold {
+        color: #C9A84C !important;
+    }
+    
+    .btn-gold {
+        background-color: #C9A84C;
+        border-color: #C9A84C;
+        color: #fff;
+        font-weight: 700;
+    }
+    
+    .btn-gold:hover {
+        background-color: #b8983a;
+        border-color: #b8983a;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(201, 168, 76, 0.3);
+    }
+    
+    .card-custom {
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* تنسيق الجدول والحقول لتطابق الثيم الداكن للوحة */
+    .form-control:focus, .form-select:focus {
+        border-color: #C9A84C !important;
+        box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15) !important;
+    }
+</style>
+
+<div class="container py-5 withdraw-page" dir="rtl">
 
     <!-- رسائل التنبيه -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -11,7 +52,7 @@
             <div class="row justify-content-center mb-4">
                 <div class="col-lg-8">
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show shadow-sm border-0 rounded-3 text-center" role="alert">
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show shadow-sm border-0 rounded-4 text-center" role="alert">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
@@ -21,54 +62,71 @@
         {% endif %}
     {% endwith %}
 
-    <!-- رأس الصفحة -->
-    <div class="row mb-4 text-center">
+    <!-- رأس الصفحة (بنفس أسلوب العناوين في الموقع) -->
+    <div class="row mb-5 text-center">
         <div class="col-12">
-            <h2 class="fw-bold mb-1">سحب رصيد</h2>
-            <p class="text-muted mb-0">أدخل المبلغ ثم اضغط على زر السحب</p>
+            <h2 class="fw-bold mb-2" style="color: #1a0b2e;">طلب سحب جديد</h2>
+            <p class="text-muted">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
         </div>
     </div>
 
-    <!-- تنبيه: طلب سحب معلق -->
     {% if latest_request and latest_request.status == 'pending' %}
     <div class="row mb-4 justify-content-center">
         <div class="col-lg-6">
-            <div class="alert alert-warning border-0 rounded-3 shadow-sm text-center py-2 mb-0" role="alert">
-                <strong>⏳ لديك طلب سحب قيد المراجعة!</strong> (رقم الطلب: {{ latest_request.request_number }} - المبلغ: {{ "%.2f"|format(latest_request.amount|float) }} {{ currency_symbol }})
+            <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center gap-3 py-3 px-4" role="alert">
+                <i class="bi bi-clock-history fs-3" style="color: #856404;"></i>
+                <div>
+                    <strong>⏳ لديك طلب سحب قيد المراجعة!</strong><br>
+                    رقم الطلب: <strong>{{ latest_request.request_number }}</strong> |
+                    المبلغ: <strong>{{ "%.2f"|format(latest_request.amount|float) }} {{ currency_symbol }}</strong>
+                </div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- نموذج السحب -->
+    <!-- ============================================================ -->
+    <!-- نموذج السحب (احترافي ومتناسق مع الثيم) -->
+    <!-- ============================================================ -->
     <div class="row justify-content-center mb-5">
         <div class="col-lg-5 col-md-8">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="card-body p-5">
+            <div class="card card-custom border-0 shadow-lg rounded-4 overflow-hidden">
+                
+                <!-- رأس النموذج (داكن مثل باقي أقسام الموقع) -->
+                <div class="card-header gold-header py-4 text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-3">
+                        <i class="bi bi-wallet2 fs-2" style="color: #C9A84C;"></i>
+                        <h4 class="text-white mt-2 mb-0 fw-bold">تقديم طلب سحب</h4>
+                    </div>
+                </div>
+
+                <div class="card-body p-5" style="background: #fff;">
                     <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" id="withdrawalForm">
                         
-                        <!-- عرض الرصيد المتاح -->
+                        <!-- الرصيد المتاح -->
                         <div class="text-center mb-4">
                             <small class="text-muted d-block">الرصيد المتاح للسحب</small>
-                            <h3 class="fw-bold mb-0 text-warning">
+                            <h3 class="fw-bold mb-0 text-gold">
                                 {{ "%.2f"|format(available_balance) }} <small class="text-muted fs-6">{{ currency_symbol }}</small>
                             </h3>
                         </div>
 
-                        <!-- حقل إدخال المبلغ -->
+                        <!-- حقل المبلغ -->
                         <div class="mb-4">
                             <label for="amount" class="form-label fw-bold text-center d-block">المبلغ ({{ currency_symbol }})</label>
-                            <input type="number" 
-                                   name="amount" 
-                                   id="amount" 
-                                   class="form-control form-control-lg border-0 bg-light text-center fw-bold shadow-sm" 
-                                   placeholder="أدخل المبلغ هنا" 
-                                   step="0.01" 
-                                   min="{{ min_withdrawal_amount }}" 
-                                   max="{{ available_balance }}" 
-                                   required
-                                   {% if latest_request and latest_request.status == 'pending' %}disabled{% endif %}>
-                            
+                            <div class="input-group input-group-lg">
+                                <input type="number" 
+                                       name="amount" 
+                                       id="amount" 
+                                       class="form-control border-0 bg-light rounded-end-3 text-center fw-bold" 
+                                       placeholder="0.00" 
+                                       step="0.01" 
+                                       min="{{ min_withdrawal_amount }}" 
+                                       max="{{ available_balance }}" 
+                                       required
+                                       {% if latest_request and latest_request.status == 'pending' %}disabled{% endif %}>
+                                <span class="input-group-text bg-light border-0 fw-bold">{{ currency_symbol }}</span>
+                            </div>
                             <small class="text-muted d-block text-center mt-2">
                                 الحد الأدنى للسحب: {{ min_withdrawal_amount }} {{ currency_symbol }}
                             </small>
@@ -76,11 +134,11 @@
 
                         <!-- زر السحب -->
                         {% if latest_request and latest_request.status == 'pending' %}
-                        <button type="button" class="btn btn-secondary btn-lg w-100" disabled>
+                        <button type="button" class="btn btn-secondary btn-lg w-100" disabled style="font-weight: 700;">
                             <i class="bi bi-clock-history me-2"></i> طلب قيد المراجعة
                         </button>
                         {% else %}
-                        <button type="submit" class="btn btn-warning btn-lg w-100 shadow-sm text-dark fw-bold">
+                        <button type="submit" class="btn btn-gold btn-lg w-100 shadow-sm" style="font-size: 18px; border-radius: 10px;">
                             <i class="bi bi-cash-stack me-2"></i> سحب
                         </button>
                         {% endif %}
@@ -91,13 +149,17 @@
         </div>
     </div>
 
-    <!-- جدول الحركات والطلبات -->
+    <!-- ============================================================ -->
+    <!-- سجل الحركات والطلبات -->
+    <!-- ============================================================ -->
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="card-header bg-white border-0 py-4 px-4">
-                    <h4 class="fw-bold mb-1"><i class="bi bi-clock-history ms-2 text-warning"></i>سجل الحركات والطلبات</h4>
-                    <p class="text-muted small mb-0">جميع عمليات السحب السابقة الخاصة بحسابك</p>
+            <div class="card card-custom border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="fw-bold mb-0" style="color: #1a0b2e;"><i class="bi bi-clock-history ms-2 text-gold"></i>سجل الحركات والطلبات</h4>
+                        <p class="text-muted small mb-0">جميع عمليات السحب السابقة الخاصة بحسابك</p>
+                    </div>
                 </div>
 
                 <div class="card-body p-4">
@@ -153,7 +215,7 @@
                                     <tr>
                                         <td>{{ loop.index }}</td>
                                         <td><strong>{{ request.request_number or request.id }}</strong></td>
-                                        <td>{{ "%.2f"|format(request.amount|float) }} {{ currency_symbol }}</td>
+                                        <td class="text-gold fw-bold">{{ "%.2f"|format(request.amount|float) }} {{ currency_symbol }}</td>
                                         <td>
                                             {% if request.status == 'pending' %}
                                                 <span class="badge bg-warning text-dark">قيد المراجعة</span>
@@ -182,7 +244,6 @@
                         </table>
                     </div>
 
-                    <!-- تقليب الصفحات -->
                     {% if pagination and pagination.pages > 1 %}
                     <div class="d-flex justify-content-center mt-4">
                         <nav aria-label="Page navigation">
@@ -220,7 +281,6 @@
 
 </div>
 
-<!-- JavaScript (التحقق) -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var form = document.getElementById('withdrawalForm');
