@@ -2,7 +2,6 @@
 # 📂 apps/supplier_wallet/withdrawals_routes.py
 
 from decimal import Decimal
-
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
@@ -13,9 +12,10 @@ from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 
 
+# ✅ إعادة تسمية الدالة إلى process_withdraw لتجنب التعارض
 @supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
-def withdraw(wallet_id):
+def process_withdraw(wallet_id):  # تغيير الاسم من withdraw إلى process_withdraw
     supplier_id = get_current_supplier_id()
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
@@ -35,13 +35,12 @@ def withdraw(wallet_id):
             db.session.rollback()
             return safe_redirect_home()
 
-    # ✅ الرصيد الكامل المتاح (بدون خصم أي احتياطي)
     current_balance = get_wallet_balance(wallet)
     
     # ✅ أدنى مبلغ للسحب هو 50 ر.س
     min_withdrawal_amount = Decimal('50.00')
     
-    # ✅ الرصيد المتاح للسحب هو الرصيد الكامل
+    # ✅ الرصيد المتاح هو الرصيد الكامل (بدون خصم)
     available_balance = current_balance
     
     currency_symbol = getattr(wallet, 'currency', 'ر.س')
@@ -69,7 +68,7 @@ def withdraw(wallet_id):
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
             flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والتدقيق حالياً.", "success")
-            return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id, success='true'))
+            return redirect(url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id, success='true'))  # تغيير الرابط
 
         except ValueError as e:
             db.session.rollback()
@@ -79,7 +78,7 @@ def withdraw(wallet_id):
             db.session.rollback()
             flash("حدث خطأ غير متوقع أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً.", "danger")
 
-        return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
+        return redirect(url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id))
 
     try:
         page = request.args.get('page', 1, type=int)
@@ -112,7 +111,7 @@ def withdraw(wallet_id):
                 'icon': 'fas fa-wallet',
                 'links': {
                     'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
-                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                    'supplier_wallet_bp.process_withdraw_redirect': 'سحب الرصيد'
                 }
             }
 
@@ -120,7 +119,7 @@ def withdraw(wallet_id):
             'supplier_wallet/withdrawal_form.html',
             wallet=wallet,
             balance=current_balance,
-            available_balance=available_balance,  # ✅ الآن الرصيد الكامل
+            available_balance=available_balance,  # ✅ الرصيد الكامل
             min_withdrawal_amount=min_withdrawal_amount,  # ✅ أدنى سحب 50
             currency_symbol=currency_symbol,  # ✅ رمز العملة
             active_bank=active_bank,
