@@ -35,15 +35,15 @@ def withdraw(wallet_id):
             db.session.rollback()
             return safe_redirect_home()
 
+    # ✅ الرصيد الكامل المتاح (بدون خصم أي احتياطي)
     current_balance = get_wallet_balance(wallet)
     
-    # ✅ حساب المتغيرات وإضافة المتغيرات الناقصة التي يحتاجها القالب
-    reserved_balance = Decimal('50.00')
-    available_balance = current_balance - reserved_balance
-    if available_balance < Decimal('0.00'):
-        available_balance = Decimal('0.00')
+    # ✅ أدنى مبلغ للسحب هو 50 ر.س
+    min_withdrawal_amount = Decimal('50.00')
     
-    min_withdrawal_amount = Decimal('10.00')
+    # ✅ الرصيد المتاح للسحب هو الرصيد الكامل
+    available_balance = current_balance
+    
     currency_symbol = getattr(wallet, 'currency', 'ر.س')
 
     if request.method == 'POST':
@@ -59,10 +59,7 @@ def withdraw(wallet_id):
                 raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal_amount:.2f} {currency_symbol}")
 
             if amount > available_balance:
-                raise ValueError(
-                    f"لا يمكنك سحب هذا المبلغ. يجب الإبقاء على {reserved_balance:.2f} {currency_symbol} كحد أدنى في المحفظة. "
-                    f"المبلغ المتاح لك للسحب حالياً هو {available_balance:.2f} {currency_symbol} فقط."
-                )
+                raise ValueError(f"لا يمكنك سحب هذا المبلغ. رصيدك المتاح هو {available_balance:.2f} {currency_symbol}")
 
             bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
             notes = request.form.get('notes', '')
@@ -123,9 +120,9 @@ def withdraw(wallet_id):
             'supplier_wallet/withdrawal_form.html',
             wallet=wallet,
             balance=current_balance,
-            available_balance=available_balance,  # ✅ إضافة المتغير
-            min_withdrawal_amount=min_withdrawal_amount,  # ✅ إضافة المتغير
-            currency_symbol=currency_symbol,  # ✅ إضافة رمز العملة
+            available_balance=available_balance,  # ✅ الآن الرصيد الكامل
+            min_withdrawal_amount=min_withdrawal_amount,  # ✅ أدنى سحب 50
+            currency_symbol=currency_symbol,  # ✅ رمز العملة
             active_bank=active_bank,
             pagination=pagination,
             latest_request=latest_request,
