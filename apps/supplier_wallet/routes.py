@@ -213,14 +213,14 @@ def transactions(wallet_id):
             start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(hour=0, minute=0, second=0)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at >= start_dt]
         except ValueError:
-        pass
+            pass
 
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at <= end_dt]
         except ValueError:
-        pass
+            pass
 
     if search_query:
         filtered_list = []
@@ -278,7 +278,7 @@ def transactions(wallet_id):
 
 
 # =========================================================
-# ✅ استيراد الملفات الفرعية (بدون تكرار أي دالة)
+# ✅ استيراد الملفات الفرعية (وضعها هنا بدون أي try/except فارغ)
 # =========================================================
 import apps.supplier_wallet.withdrawals_routes
 import apps.supplier_wallet.receipt_routes
