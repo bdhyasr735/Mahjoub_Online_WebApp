@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>كشف حساب المحفظة المالية</title>
+    <style>
+        body {
+            font-family: 'Tajawal', 'Cairo', sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #000;
+        }
+        h1 {
+            text-align: center;
+            color: #1a0b2e;
+            margin-bottom: 10px;
+        }
+        .info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .info div {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #1a0b2e;
+            color: white;
+            padding: 12px;
+            text-align: right;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: right;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px solid #1a0b2e;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>
+    <h1>كشف حساب المحفظة المالية - منصة محجوب أونلاين</h1>
+    
+    <div class="info">
+        <div>رمز المحفظة: {{ wallet.wallet_code if wallet else 'N/A' }}</div>
+        <div>اسم المتجر: {{ supplier.trade_name or supplier.store_name if supplier else 'N/A' }}</div>
+        <div>الرصيد الحالي: {{ "%.2f"|format(wallet.balance if wallet else 0) }} {{ wallet.currency if wallet else 'SAR' }}</div>
+        <div>تاريخ الطباعة: {{ now.strftime('%Y-%m-%d %H:%M') if now else '' }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>م</th>
+                <th>رقم الإيصال / المرجع</th>
+                <th>البيان</th>
+                <th>مدين (-)</th>
+                <th>دائن (+)</th>
+                <th>الرصيد بعد العملية</th>
+                <th>الحالة</th>
+                <th>التاريخ والتوقيت</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trx in transactions %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ trx.voucher_number or '-' }}</td>
+                    <td>{{ trx.description or 'حركة مالية' }}</td>
+                    <td>{% if trx.transaction_type in ['debit', 'withdraw'] %}-{{ "%.2f"|format(trx.amount or 0) }}{% else %}-{% endif %}</td>
+                    <td>{% if trx.transaction_type in ['credit', 'deposit'] %}+{{ "%.2f"|format(trx.amount or 0) }}{% else %}-{% endif %}</td>
+                    <td>{{ "%.2f"|format(trx.balance_after if trx.balance_after is not none else 0) }}</td>
+                    <td>مكتمل</td>
+                    <td>{{ trx.created_at.strftime('%Y-%m-%d %H:%M') if trx.created_at else '-' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary">
+        الإجمالي: {{ "%.2f"|format(wallet.balance if wallet else 0) }} {{ wallet.currency if wallet else 'SAR' }}
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>
