@@ -1,6 +1,6 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}طلب سحب جديد - منصة محجوب أونلاين{% endblock %}
+{% block title %}طلب سحب رصيد - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
@@ -267,7 +267,7 @@
     <div class="row mb-4 text-center">
         <div class="col-12">
             <h1 class="gold-title">
-                <i class="fas fa-wallet me-2"></i> طلب سحب جديد
+                <i class="fas fa-wallet me-2"></i> طلب سحب رصيد
             </h1>
             <p class="text-muted mt-1">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
         </div>
@@ -306,8 +306,6 @@
                     <h4 class="text-white fw-bold m-0">تقديم طلب سحب</h4>
                 </div>
                 <div class="withdraw-card-body">
-                    <!-- ✅ إضافة CSRF Token لحل مشكلة خطأ 400 -->
-                    <!-- ✅ تم تغيير الرابط إلى process_withdraw -->
                     <form method="POST" action="{{ url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" id="withdrawalForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
@@ -379,7 +377,7 @@
                             {% for request in pagination.items %}
                             <tr class="transaction-row" data-status="{{ request.status }}" data-search="{{ request.request_number }}">
                                 <td class="text-muted font-monospace">{{ loop.index }}</td>
-                                <!-- ✅ تم تمرير wallet_id و request_number معاً لحل مشكلة BuildError -->
+                                <!-- ✅ تم تمرير wallet_id و request_number معاً -->
                                 <td>
                                     <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', wallet_id=wallet.wallet_code or wallet.id, request_number=request.request_number or request.id) }}" 
                                        class="fw-bold font-monospace text-decoration-none" 
@@ -427,7 +425,6 @@
                 </div>
                 <div class="d-flex gap-2">
                     {% if pagination.has_prev %}
-                    <!-- ✅ تم تغيير الرابط إلى process_withdraw -->
                     <a href="{{ url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.prev_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="page-btn-dark">
                         <i class="fas fa-chevron-right me-1"></i> السابق
                     </a>
@@ -438,7 +435,6 @@
                             {% if page_num == pagination.page %}
                                 <button class="page-btn-dark active">{{ page_num }}</button>
                             {% else %}
-                                <!-- ✅ تم تغيير الرابط إلى process_withdraw -->
                                 <a href="{{ url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet.wallet_code or wallet.id, page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="page-btn-dark">{{ page_num }}</a>
                             {% endif %}
                         {% else %}
@@ -447,7 +443,6 @@
                     {% endfor %}
 
                     {% if pagination.has_next %}
-                    <!-- ✅ تم تغيير الرابط إلى process_withdraw -->
                     <a href="{{ url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.next_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="page-btn-dark">
                         التالي <i class="fas fa-chevron-left ms-1"></i>
                     </a>
