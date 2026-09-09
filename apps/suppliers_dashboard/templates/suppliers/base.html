@@ -344,7 +344,7 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ توليد روابط الموديولات ديناميكياً مع دعم wallet_id تلقائياً -->
+            <!-- ✅ توليد روابط الموديولات ديناميكياً مع دعم wallet_id تلقائياً وآمن -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
@@ -369,13 +369,16 @@
                                 <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
                                     {% for endpoint, link_title in module.links.items() %}
                                         <li>
-                                            {# ✅ إصلاح جذري: إضافة wallet_id تلقائياً #}
-                                            {% set url = url_for(endpoint) %}
-                                            {% if 'supplier_wallet' in endpoint and wallet is defined %}
-                                                {% set wallet_id = wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else '1') %}
-                                                {% set url = url_for(endpoint, wallet_id=wallet_id) %}
+                                            {# ✅ إصلاح نهائي وآمن للغاية: جلب الـ wallet_id تلقائياً أو استخدام قيمة افتراضية #}
+                                            {% set wallet_id_value = '1' %}
+                                            {% if wallet is defined and wallet %}
+                                                {% set wallet_id_value = wallet.wallet_code if wallet.wallet_code else (wallet.id if wallet.id else '1') %}
+                                            {% elif current_user is defined and current_user and current_user.wallet is defined and current_user.wallet %}
+                                                {% set wallet_id_value = current_user.wallet.wallet_code if current_user.wallet.wallet_code else (current_user.wallet.id if current_user.wallet.id else '1') %}
                                             {% endif %}
 
+                                            {% set url = url_for(endpoint, wallet_id=wallet_id_value) if 'supplier_wallet' in endpoint else url_for(endpoint) %}
+                                            
                                             <a href="{{ url }}" 
                                                class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
                                                 <i class="fas fa-circle"></i> 
@@ -388,12 +391,15 @@
                         {% else %}
                             <!-- ✅ رابط مفرد ديناميكي -->
                             {% for endpoint, link_title in module.links.items() %}
-                                {# ✅ إصلاح جذري: إضافة wallet_id تلقائياً #}
-                                {% set url = url_for(endpoint) %}
-                                {% if 'supplier_wallet' in endpoint and wallet is defined %}
-                                    {% set wallet_id = wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else '1') %}
-                                    {% set url = url_for(endpoint, wallet_id=wallet_id) %}
+                                {# ✅ إصلاح نهائي وآمن للغاية #}
+                                {% set wallet_id_value = '1' %}
+                                {% if wallet is defined and wallet %}
+                                    {% set wallet_id_value = wallet.wallet_code if wallet.wallet_code else (wallet.id if wallet.id else '1') %}
+                                {% elif current_user is defined and current_user and current_user.wallet is defined and current_user.wallet %}
+                                    {% set wallet_id_value = current_user.wallet.wallet_code if current_user.wallet.wallet_code else (current_user.wallet.id if current_user.wallet.id else '1') %}
                                 {% endif %}
+
+                                {% set url = url_for(endpoint, wallet_id=wallet_id_value) if 'supplier_wallet' in endpoint else url_for(endpoint) %}
 
                                 <a href="{{ url }}" 
                                    class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
