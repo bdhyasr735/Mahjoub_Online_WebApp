@@ -11,10 +11,11 @@ MODULE_NAME = "المحفظة الرقمية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ تعديل جوهري: استخدام الـ Endpoints الحقيقية لصفحات المحفظة (وليس الـ redirects)
+# ✅ التعديل الجوهري هنا:
+# استخدام أسماء الدوال (endpoints) الحقيقية الموجودة في routes.py
 LINKS = {
-    "supplier_wallet_bp.wallet_transactions": "حركة المحفظة",
-    "supplier_wallet_bp.withdraw": "سحب الرصيد"  # أو withdraw_redirect إذا لم يكن withdraw موجوداً
+    "supplier_wallet_bp.transactions": "حركة المحفظة",
+    "supplier_wallet_bp.withdraw": "سحب الرصيد"
 }
 
 
@@ -46,14 +47,11 @@ def register_module(app):
 
 def get_supplier_id():
     """الحصول على معرف المورد من مصادر متعددة."""
-    # 1️⃣ محاولة من session
     supplier_id = session.get('user_id') or session.get('supplier_id')
     
-    # 2️⃣ محاولة من current_user
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
         
-    # 3️⃣ محاولة من current_app
     if not supplier_id and hasattr(current_app, 'config'):
         supplier_id = current_app.config.get('TEST_SUPPLIER_ID')
         
@@ -66,10 +64,8 @@ def get_module_stats():
         from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
         from sqlalchemy import func
 
-        # ✅ الحصول على supplier_id بشكل آمن
         supplier_id = get_supplier_id()
         
-        # ✅ إذا لم يوجد supplier_id، نعيد إحصائيات فارغة
         if not supplier_id:
             return {
                 'balance': 0.0,
@@ -79,7 +75,6 @@ def get_module_stats():
                 'wallet_code': None
             }
 
-        # ✅ البحث عن المحفظة
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
         
         if not wallet:
@@ -91,16 +86,13 @@ def get_module_stats():
                 'wallet_code': None
             }
 
-        # ✅ جلب الرصيد
         balance = float(getattr(wallet, 'balance', 0) or getattr(wallet, 'balance_sar', 0) or 0)
         
-        # ✅ جلب عدد السحوبات المعلقة
         pending_withdrawals = WithdrawalRequest.query.filter_by(
             wallet_id=wallet.id, 
             status='pending'
         ).count()
         
-        # ✅ جلب عدد المعاملات الإجمالي
         total_transactions = WalletTransaction.query.filter_by(
             wallet_id=wallet.id
         ).count()
@@ -130,8 +122,8 @@ def get_module_stats():
 def get_module_link():
     """الحصول على رابط الموديول."""
     try:
-        # ✅ محاولة إنشاء الرابط عبر url_for (الآن يشير للصفحة الحقيقية)
-        return url_for('supplier_wallet_bp.wallet_transactions')
+        # ✅ الآن يشير للصفحة الحقيقية (وليس الـ redirect)
+        return url_for('supplier_wallet_bp.transactions', wallet_id=get_current_wallet_identifier())
     except Exception as e:
         logger.warning(f"⚠️ [Registry Supplier Wallet Link Error]: {e}")
         # ✅ حل آمن: استخدام المسار المباشر
@@ -142,10 +134,8 @@ def get_dashboard_card():
     """الحصول على بطاقة لوحة التحكم للموديول."""
     stats = get_module_stats()
     
-    # ✅ تنسيق الرصيد
     balance_str = f"{stats.get('balance', 0.0):,.2f} ر.س"
     
-    # ✅ تحديد لون البطاقة بناءً على الرصيد
     if stats.get('balance', 0) > 100000:
         color = 'gold'
     elif stats.get('balance', 0) > 10000:
@@ -175,7 +165,7 @@ def get_nav_metadata():
         'icon': MODULE_ICON,
         'show_in_supplier': SHOW_IN_SUPPLIER,
         'links': LINKS,
-        'priority': 10,  # ترتيب الظهور في القائمة
+        'priority': 10,
         'badge': lambda: f"{get_module_stats().get('pending_withdrawals', 0)}"
     }
 
