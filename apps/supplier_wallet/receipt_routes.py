@@ -1,269 +1,163 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_wallet/receipt_routes.py
+# 📂 apps/supplier_wallet/withdrawals_routes.py
 
-import traceback
 from decimal import Decimal
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, jsonify, send_file
+from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
 from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.supplier_db import Supplier
-from apps.supplier_wallet.utils import get_current_supplier_id
-from apps.supplier_wallet.routes import get_sidebar_modules  # ✅ استيراد الدالة المسؤولة عن القائمة الجانبية
+from apps.models.wallet_db import SupplierWallet, WithdrawalRequest
+from apps.supplier_wallet.routes import supplier_wallet_bp, get_current_supplier_id, get_wallet_balance, get_sidebar_modules, safe_redirect_home
+from apps.supplier_wallet.services.wallet_service import WalletService
+from apps.supplier_wallet.services.notification_service import NotificationService
 
-# إنشاء Blueprint فرعي للإيصالات
-receipt_bp = Blueprint('receipt_bp', __name__, url_prefix='/supplier/wallet/receipt')
+# ✅ ثوابت التكوين
+RESERVED_BALANCE = Decimal('50.00')
+MIN_WITHDRAWAL = Decimal('10.00')
+DEFAULT_CURRENCY = 'SAR'
 
 
-# =========================================================
-# 📄 مسار عرض الإيصال
-# =========================================================
-
-@receipt_bp.route('/<string:transaction_id>')
+@supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
-def view_receipt(transaction_id):
-    """عرض إيصال المعاملة المالية."""
+def withdraw(wallet_id):
     supplier_id = get_current_supplier_id()
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
 
     if not supplier_id:
-        flash('يرجى تسجيل الدخول أولاً', 'warning')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
+        return safe_redirect_home()
 
-    transaction = WalletTransaction.query.filter_by(id=transaction_id).first()
-    if not transaction:
-        flash('المعاملة غير موجودة', 'danger')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
+    wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
+    if not wallet and hasattr(SupplierWallet, 'wallet_code'):
+        wallet = SupplierWallet.query.filter_by(wallet_code=wallet_id).first()
 
-    wallet = SupplierWallet.query.filter_by(id=transaction.wallet_id).first()
-    if not wallet or wallet.supplier_id != supplier_id:
-        flash('غير مصرح لك بعرض هذا الإيصال', 'danger')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
-
-    supplier = Supplier.query.filter_by(id=supplier_id).first()
-    balance = wallet.balance if wallet.balance else Decimal('0.0')
-    
-    # ✅ جلب الموديولات للقائمة الجانبية
-    modules = get_sidebar_modules()
-
-    return render_template(
-        'supplier_wallet/receipt.html',
-        transaction=transaction,
-        wallet=wallet,
-        supplier=supplier,
-        balance=balance,
-        now=datetime.now(),
-        supplier_modules=modules,      # ✅ تمرير القائمة الجانبية
-        modules_registry=modules       # ✅ تمرير نسخة احتياطية
-    )
-
-
-# =========================================================
-# 🖨️ مسار طباعة الإيصال
-# =========================================================
-
-@receipt_bp.route('/<string:transaction_id>/print')
-@login_required
-def print_receipt(transaction_id):
-    """طباعة إيصال المعاملة."""
-    supplier_id = get_current_supplier_id()
-    if not supplier_id and hasattr(current_user, 'id'):
-        supplier_id = current_user.id
-
-    if not supplier_id:
-        flash('يرجى تسجيل الدخول أولاً', 'warning')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
-
-    transaction = WalletTransaction.query.filter_by(id=transaction_id).first()
-    if not transaction:
-        flash('المعاملة غير موجودة', 'danger')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
-
-    wallet = SupplierWallet.query.filter_by(id=transaction.wallet_id).first()
-    if not wallet or wallet.supplier_id != supplier_id:
-        flash('غير مصرح لك بطباعة هذا الإيصال', 'danger')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
-
-    supplier = Supplier.query.filter_by(id=supplier_id).first()
-    balance = wallet.balance if wallet.balance else Decimal('0.0')
-
-    # ✅ جلب الموديولات للقائمة الجانبية
-    modules = get_sidebar_modules()
-
-    return render_template(
-        'supplier_wallet/print_receipt.html',
-        transaction=transaction,
-        wallet=wallet,
-        supplier=supplier,
-        balance=balance,
-        now=datetime.now(),
-        supplier_modules=modules,      # ✅ تمرير القائمة الجانبية
-        modules_registry=modules       # ✅ تمرير نسخة احتياطية
-    )
-
-
-# =========================================================
-# 📊 مسار تصدير الإيصال كـ PDF
-# =========================================================
-
-@receipt_bp.route('/<string:transaction_id>/pdf')
-@login_required
-def export_receipt_pdf(transaction_id):
-    """تصدير الإيصال كملف PDF."""
-    try:
-        supplier_id = get_current_supplier_id()
-        if not supplier_id and hasattr(current_user, 'id'):
-            supplier_id = current_user.id
-
-        if not supplier_id:
-            return jsonify({'error': 'غير مصرح'}), 401
-
-        transaction = WalletTransaction.query.filter_by(id=transaction_id).first()
-        if not transaction:
-            return jsonify({'error': 'المعاملة غير موجودة'}), 404
-
-        wallet = SupplierWallet.query.filter_by(id=transaction.wallet_id).first()
-        if not wallet or wallet.supplier_id != supplier_id:
-            return jsonify({'error': 'غير مصرح'}), 403
-
+    if not wallet:
         try:
-            from weasyprint import HTML
-            import tempfile
-            import os
-
-            supplier = Supplier.query.filter_by(id=supplier_id).first()
-            balance = wallet.balance if wallet.balance else Decimal('0.0')
-
-            html_content = render_template(
-                'supplier_wallet/pdf_receipt.html',
-                transaction=transaction,
-                wallet=wallet,
-                supplier=supplier,
-                balance=balance,
-                now=datetime.now()
-            )
-
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-                pdf_path = tmp_file.name
-
-            HTML(string=html_content).write_pdf(pdf_path)
-
-            return send_file(
-                pdf_path,
-                as_attachment=True,
-                download_name=f'إيصال_#{transaction.id}.pdf',
-                mimetype='application/pdf'
-            )
-
-        except ImportError:
-            flash('مكتبة PDF غير مثبتة، يرجى تثبيت weasyprint', 'warning')
-            return redirect(url_for('receipt_bp.view_receipt', transaction_id=transaction_id))
-
+            wallet = WalletService.get_or_create_wallet(db.session, supplier_id, getattr(current_user, 'trade_name', 'متجر المورد'))
+            db.session.commit()
         except Exception as e:
-            print(f"⚠️ [PDF Export Error]: {str(e)}")
-            traceback.print_exc()
-            flash('حدث خطأ أثناء تصدير الـ PDF', 'danger')
-            return redirect(url_for('receipt_bp.view_receipt', transaction_id=transaction_id))
+            db.session.rollback()
+            return safe_redirect_home()
 
-    except Exception as e:
-        print(f"⚠️ [PDF Export Error]: {str(e)}")
-        traceback.print_exc()
-        flash('حدث خطأ أثناء تصدير الـ PDF', 'danger')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
+    current_balance = get_wallet_balance(wallet)
+    
+    # ✅ الحصول على العملة من المحفظة
+    currency = getattr(wallet, 'currency', DEFAULT_CURRENCY)
 
-
-# =========================================================
-# 📧 مسار إرسال الإيصال عبر البريد الإلكتروني
-# =========================================================
-
-@receipt_bp.route('/<string:transaction_id>/email', methods=['POST'])
-@login_required
-def email_receipt(transaction_id):
-    """إرسال الإيصال عبر البريد الإلكتروني."""
-    try:
-        supplier_id = get_current_supplier_id()
-        if not supplier_id and hasattr(current_user, 'id'):
-            supplier_id = current_user.id
-
-        if not supplier_id:
-            return jsonify({'error': 'غير مصرح'}), 401
-
-        transaction = WalletTransaction.query.filter_by(id=transaction_id).first()
-        if not transaction:
-            return jsonify({'error': 'المعاملة غير موجودة'}), 404
-
-        wallet = SupplierWallet.query.filter_by(id=transaction.wallet_id).first()
-        if not wallet or wallet.supplier_id != supplier_id:
-            return jsonify({'error': 'غير مصرح'}), 403
-
-        supplier = Supplier.query.filter_by(id=supplier_id).first()
-        if not supplier or not supplier.email:
-            return jsonify({'error': 'البريد الإلكتروني للمورد غير متوفر'}), 400
-
-        subject = f'إيصال معاملة #{transaction.id}'
-        body = f"""
-مرحباً {supplier.trade_name or 'مورد'}،
-
-نرفق لكم إيصال المعاملة المالية رقم #{transaction.id}.
-
-المبلغ: {transaction.amount} ريال
-النوع: {transaction.transaction_type}
-التاريخ: {transaction.created_at.strftime('%Y-%m-%d %H:%M')}
-
-شكراً لتعاملكم معنا.
-"""
-
+    if request.method == 'POST':
         try:
-            from flask_mail import Message
-            from apps.extensions import mail
+            # 🛑 1. التحقق من عدم وجود طلب سحب معلق
+            has_pending = WithdrawalRequest.query.filter_by(wallet_id=wallet.id, status='pending').first()
+            if has_pending:
+                raise ValueError("لديك طلب سحب قيد المراجعة حالياً، لا يمكنك تقديم طلب جديد حتى يتم البت فيه.")
 
-            msg = Message(subject, sender=current_app.config.get('MAIL_DEFAULT_SENDER'), recipients=[supplier.email])
-            msg.body = body
+            raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
+            amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
-            try:
-                from weasyprint import HTML
-                import tempfile
-                import os
+            # 🛑 2. تطبيق شرط الرصيد الاحتياطي
+            available_balance = current_balance - RESERVED_BALANCE
+            if available_balance < Decimal('0.00'):
+                available_balance = Decimal('0.00')
 
-                balance = wallet.balance if wallet.balance else Decimal('0.0')
-                html_content = render_template(
-                    'supplier_wallet/pdf_receipt.html',
-                    transaction=transaction,
-                    wallet=wallet,
-                    supplier=supplier,
-                    balance=balance,
-                    now=datetime.now()
+            if amount < MIN_WITHDRAWAL:
+                raise ValueError(f"أدنى مبلغ يمكن سحبه هو {MIN_WITHDRAWAL:.2f} {currency}")
+
+            if amount > available_balance:
+                raise ValueError(
+                    f"لا يمكنك سحب هذا المبلغ. يجب الإبقاء على {RESERVED_BALANCE:.2f} {currency} كحد أدنى في المحفظة. "
+                    f"المبلغ المتاح لك للسحب حالياً هو {available_balance:.2f} {currency} فقط."
                 )
 
-                with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-                    pdf_path = tmp_file.name
+            bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
+            notes = request.form.get('notes', '')
 
-                HTML(string=html_content).write_pdf(pdf_path)
+            wdr = WalletService.create_withdrawal_request(db.session, wallet.id, bank_account, amount, notes)
+            db.session.commit()
 
-                with open(pdf_path, 'rb') as f:
-                    msg.attach(f'إيصال_#{transaction.id}.pdf', 'application/pdf', f.read())
+            NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
+            flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والتدقيق حالياً.", "success")
+            return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id, success='true'))
 
-                os.unlink(pdf_path)
-
-            except ImportError:
-                pass
-
-            mail.send(msg)
-            flash('تم إرسال الإيصال بنجاح إلى بريدك الإلكتروني', 'success')
-
-        except ImportError:
-            flash('خدمة البريد الإلكتروني غير متاحة', 'warning')
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), "danger")
+            NotificationService.notify_error(str(e), "خطأ في طلب السحب")
         except Exception as e:
-            flash(f'فشل إرسال البريد الإلكتروني: {str(e)}', 'danger')
+            db.session.rollback()
+            flash("حدث خطأ غير متوقع أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً.", "danger")
 
-        return redirect(url_for('receipt_bp.view_receipt', transaction_id=transaction_id))
+        return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
 
+    try:
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('q', '').strip()
+        status_filter = request.args.get('status', '').strip()
+
+        query = WithdrawalRequest.query.filter_by(wallet_id=wallet.id)
+
+        if search_query:
+            query = query.filter(WithdrawalRequest.request_number.ilike(f"%{search_query}%"))
+
+        if status_filter:
+            if status_filter == 'approved':
+                query = query.filter(WithdrawalRequest.status.in_(['approved', 'completed']))
+            else:
+                query = query.filter(WithdrawalRequest.status == status_filter)
+
+        query = query.order_by(WithdrawalRequest.created_at.desc())
+
+        pagination = query.paginate(page=page, per_page=10, error_out=False)
+        latest_request = query.first()
+
+        # ✅ الحصول على الحسابات البنكية للمورد (من قاعدة البيانات)
+        # هذا افتراضي، يمكنك جلبها من جدول منفصل
+        bank_accounts = [
+            {'id': 'bank_1', 'name': 'البنك الأهلي', 'iban': 'SA1234567890'},
+            {'id': 'bank_2', 'name': 'مصرف الراجحي', 'iban': 'SA0987654321'},
+            {'id': 'bank_3', 'name': 'بنك الرياض', 'iban': 'SA1122334455'},
+        ]
+
+        active_bank = {
+            'bank_name': 'الحساب البنكي المعتمد للمورد',
+            'id': 1
+        }
+
+        modules = get_sidebar_modules()
+
+        if not modules or 'supplier_wallet' not in modules:
+            modules['supplier_wallet'] = {
+                'title': 'المحفظة الرقمية',
+                'icon': 'fas fa-wallet',
+                'links': {
+                    'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
+                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                }
+            }
+
+        # ✅ حساب الرصيد المتاح
+        available_balance = current_balance - RESERVED_BALANCE
+        if available_balance < Decimal('0.00'):
+            available_balance = Decimal('0.00')
+
+        # ✅ تمرير جميع المتغيرات للقالب
+        return render_template(
+            'supplier_wallet/withdrawal_form.html',
+            wallet=wallet,
+            balance=current_balance,           # ✅ الرصيد الكامل
+            available_balance=available_balance, # ✅ الرصيد المتاح للسحب
+            currency=currency,                  # ✅ العملة
+            min_withdrawal_amount=MIN_WITHDRAWAL, # ✅ الحد الأدنى
+            reserved_balance=RESERVED_BALANCE,   # ✅ الرصيد الاحتياطي
+            bank_accounts=bank_accounts,        # ✅ الحسابات البنكية
+            active_bank=active_bank,
+            pagination=pagination,
+            latest_request=latest_request,
+            supplier_modules=modules,
+            modules_registry=modules
+        )
     except Exception as e:
-        print(f"⚠️ [Email Receipt Error]: {str(e)}")
+        print(f"❌ [Withdraw Error]: {e}")
         traceback.print_exc()
-        flash('حدث خطأ أثناء إرسال الإيصال', 'danger')
-        return redirect(url_for('supplier_wallet_bp.transactions_redirect'))
+        return safe_redirect_home()
