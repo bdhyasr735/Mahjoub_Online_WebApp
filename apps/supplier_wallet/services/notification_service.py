@@ -58,7 +58,7 @@ class NotificationService:
 
     @classmethod
     def notify_withdrawal_rejected(cls, amount: Union[float, Decimal], reason: str = ""):
-        """تنبيه فوري عند رفض طلب السحب وإعادة الرصيد للمورد"""
+        """تنبيه فوري عند رفض طلب السحب وإعادة الرصيد للمحفظة"""
         formatted_amount = cls._format_amount(amount)
         msg = f'تم رفض طلب السحب بمبلغ {formatted_amount} ر.س وإعادة الرصيد للمحفظة.'
         if reason:
