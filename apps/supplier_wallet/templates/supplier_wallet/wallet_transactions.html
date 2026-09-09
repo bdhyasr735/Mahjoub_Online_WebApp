@@ -82,6 +82,31 @@
         min-width: 160px;
     }
     
+    /* 🎨 التقويم يعمل بشكل صحيح مع RTL */
+    .date-filter-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+    }
+    .date-filter-group input[type="date"] {
+        flex: 0 0 auto;
+        min-width: 160px;
+        direction: ltr; /* هام جداً لجعل التقويم يفتح بشكل صحيح */
+        text-align: right;
+        background: #1e1e2f;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: white;
+        font-size: 14px;
+        outline: none;
+    }
+    
     .balance-card {
         background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
         border: 1px solid rgba(212, 175, 55, 0.3);
@@ -212,33 +237,6 @@
         margin-bottom: 20px;
         opacity: 0.4;
     }
-
-    /* 🎨 تنسيق الطباعة */
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-        .table-container, .table-container * {
-            visibility: visible;
-        }
-        .table-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-        .table-container th {
-            background: #1a0b2e !important;
-            color: #FFD700 !important;
-        }
-        .table-container td {
-            color: #000000 !important;
-            border-bottom: 1px solid #ddd !important;
-        }
-    }
 </style>
 
 <div style="width: 100%; padding-bottom: 40px;">
@@ -258,7 +256,7 @@
             <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" class="btn-withdraw">
                 <i class="fas fa-arrow-left" style="margin-left: 8px;"></i> طلب سحب جديد
             </a>
-            <button onclick="window.print()" class="btn-print">
+            <button onclick="printStatement()" class="btn-print">
                 <i class="fas fa-print"></i> طباعة الكشف
             </button>
         </div>
@@ -297,12 +295,12 @@
         <span style="color: #9ca3af; font-size: 14px; margin-right: auto; font-weight: 600;" id="result-count">جاري التحميل...</span>
     </div>
 
-    <!-- 🎨 فلاتر تحديد الفترة -->
-    <div class="filter-section" style="border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 12px;">
+    <!-- 🎨 فلاتر تحديد الفترة (تعمل بشكل صحيح) -->
+    <div class="date-filter-group">
         <label style="color: #FFD700; font-weight: 700;">📅 تحديد الفترة:</label>
-        <input type="date" id="start-date" value="{{ request.args.get('start_date', '') }}" style="flex: 0 0 auto;" />
+        <input type="date" id="start-date" value="{{ request.args.get('start_date', '') }}" />
         <span style="color: #9ca3af;">إلى</span>
-        <input type="date" id="end-date" value="{{ request.args.get('end_date', '') }}" style="flex: 0 0 auto;" />
+        <input type="date" id="end-date" value="{{ request.args.get('end_date', '') }}" />
         <button id="apply-date-filter" style="background: #FFD700; color: #1a0b2e; font-weight: 800; padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer;">تصفية</button>
         <button id="clear-date-filter" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 12px 20px; border-radius: 8px; cursor: pointer;">مسح الفترة</button>
     </div>
@@ -577,5 +575,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     filterData();
 });
+
+// 🎨 دالة الطباعة - تفتح ملف الطباعة المستقل في نافذة جديدة
+function printStatement() {
+    let url = new URL("{{ url_for('supplier_wallet_bp.print_wallet_transactions') }}");
+    url.searchParams.set('start_date', document.getElementById('start-date').value);
+    url.searchParams.set('end_date', document.getElementById('end-date').value);
+    window.open(url.toString(), '_blank');
+}
 </script>
 {% endblock %}
