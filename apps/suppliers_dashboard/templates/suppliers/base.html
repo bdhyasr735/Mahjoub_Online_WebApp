@@ -17,10 +17,11 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    {% set wallet_css = safe_url_for('supplier_wallet.static', filename='css/theme.css') if safe_url_for is defined else '#' %}
-    {% if wallet_css and wallet_css != '#' %}
+    <!-- ✅ تم إزالة مسار supplier_wallet.static غير الموجود -->
+    <!-- {% set wallet_css = safe_url_for('supplier_wallet.static', filename='css/theme.css') if safe_url_for is defined else '#' %} -->
+    <!-- {% if wallet_css and wallet_css != '#' %}
         <link rel="stylesheet" href="{{ wallet_css }}">
-    {% endif %}
+    {% endif %} -->
 
     <style>
         :root {
@@ -348,7 +349,7 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ توليد روابط الموديولات ديناميكياً بدون مشاكل في أجهزة التوجيه المباشرة -->
+            <!-- ✅ توليد روابط الموديولات ديناميكياً -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
@@ -384,7 +385,7 @@
                                 </ul>
                             </div>
                         {% else %}
-                            <!-- ✅ رابط مفرد ديناميكي من داخل القاموس -->
+                            <!-- ✅ رابط مفرد ديناميكي -->
                             {% for endpoint, link_title in module.links.items() %}
                                 {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
                                 <a href="{{ url }}" 
@@ -400,9 +401,8 @@
 
             <hr class="nav-divider">
 
-            <!-- ✅ تسجيل الخروج ديناميكي -->
-            {% set logout_url = safe_url_for('suppliers_dashboard.logout') if safe_url_for is defined else url_for('suppliers_dashboard.logout') %}
-            <a href="{{ logout_url }}" id="logout-btn" class="nav-link-custom text-danger">
+            <!-- ✅ تسجيل الخروج - استخدام المسار المباشر -->
+            <a href="/supplier/logout" id="logout-btn" class="nav-link-custom text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
             </a>
         </nav>
