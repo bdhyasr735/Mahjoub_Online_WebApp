@@ -220,7 +220,7 @@ def transactions(wallet_id):
             end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at <= end_dt]
         except ValueError:
-            pass
+            pass  # ✅ تم إصلاح المسافة البادئة هنا (السطر 223)
 
     if search_query:
         filtered_list = []
