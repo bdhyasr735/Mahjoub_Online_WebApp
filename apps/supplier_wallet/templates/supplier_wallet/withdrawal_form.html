@@ -4,9 +4,9 @@
 
 {% block content %}
 <style>
-    /* 🎨 الألوان والثيم (نفس ألوان كشف الحساب) */
+    /* 🎨 الثيم الداكن الفاخر (نفس ألوان كشف الحساب) */
     .wallet-section {
-        max-width: 1200px;
+        max-width: 900px;
         margin: 0 auto;
     }
 
@@ -15,7 +15,6 @@
         border: 1px solid rgba(212, 175, 55, 0.3);
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        width: 100%;
     }
 
     .wallet-card-header {
@@ -32,11 +31,11 @@
     .gold-title {
         color: #FFD700;
         font-weight: 900;
-        font-size: 28px;
+        font-size: 32px;
     }
 
     .balance-display {
-        font-size: 40px;
+        font-size: 36px;
         font-weight: 900;
         color: #FFD700;
         text-align: center;
@@ -149,14 +148,20 @@
         min-width: 220px;
     }
 
-    /* 📱 التجاوب */
+    /* 📱 التجاوب مع الشاشات */
     @media (max-width: 768px) {
+        .wallet-section {
+            max-width: 100%;
+        }
         .balance-display {
-            font-size: 28px;
+            font-size: 24px;
             padding: 16px;
         }
         .wallet-card-body {
             padding: 20px;
+        }
+        .gold-title {
+            font-size: 24px;
         }
         .filter-group {
             flex-direction: column;
@@ -168,16 +173,16 @@
     }
 </style>
 
-<!-- ✅ استخدام نظام Bootstrap Grid الصحيح -->
-<div class="container-fluid px-4 py-5 wallet-section">
+<!-- ✅ الالتزام بنظام Grid الخاص بالـ base -->
+<div class="container-fluid wallet-section">
 
     <!-- 🎨 العنوان -->
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <h1 class="gold-title">
+    <div class="row mb-4 text-center">
+        <div class="col-12">
+            <h1 class="gold-title mb-2">
                 <i class="fas fa-wallet me-2"></i> طلب سحب جديد
             </h1>
-            <p class="text-muted mt-1">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
+            <p class="text-muted">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
         </div>
     </div>
 
