@@ -65,14 +65,14 @@
             position: fixed;
             right: 0;
             top: 0;
-            z-index: 1050; /* رفعنا الـ z-index لضمان ظهوره فوق المحتوى */
+            z-index: 1050;
             transition: var(--transition);
             border-left: 1px solid rgba(212, 175, 55, 0.25);
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: rgba(212,175,55,0.3) transparent;
             box-shadow: -5px 0 25px rgba(0,0,0,0.15);
-            flex-shrink: 0; /* منع الانكماش */
+            flex-shrink: 0;
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
@@ -344,7 +344,7 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ توليد روابط الموديولات ديناميكياً -->
+            <!-- ✅ توليد روابط الموديولات ديناميكياً مع دعم wallet_id تلقائياً -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
@@ -369,7 +369,13 @@
                                 <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
                                     {% for endpoint, link_title in module.links.items() %}
                                         <li>
-                                            {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                            {# ✅ إصلاح جذري: إضافة wallet_id تلقائياً #}
+                                            {% set url = url_for(endpoint) %}
+                                            {% if 'supplier_wallet' in endpoint and wallet is defined %}
+                                                {% set wallet_id = wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else '1') %}
+                                                {% set url = url_for(endpoint, wallet_id=wallet_id) %}
+                                            {% endif %}
+
                                             <a href="{{ url }}" 
                                                class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
                                                 <i class="fas fa-circle"></i> 
@@ -382,7 +388,13 @@
                         {% else %}
                             <!-- ✅ رابط مفرد ديناميكي -->
                             {% for endpoint, link_title in module.links.items() %}
-                                {% set url = safe_url_for(endpoint) if safe_url_for is defined else url_for(endpoint) %}
+                                {# ✅ إصلاح جذري: إضافة wallet_id تلقائياً #}
+                                {% set url = url_for(endpoint) %}
+                                {% if 'supplier_wallet' in endpoint and wallet is defined %}
+                                    {% set wallet_id = wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else '1') %}
+                                    {% set url = url_for(endpoint, wallet_id=wallet_id) %}
+                                {% endif %}
+
                                 <a href="{{ url }}" 
                                    class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
                                     <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
