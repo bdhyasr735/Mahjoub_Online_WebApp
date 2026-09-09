@@ -365,7 +365,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>م</th>
+                            <!-- ✅ تم حذف عمود الترقيم "م" -->
                             <th>رقم الطلب</th>
                             <th>المبلغ</th>
                             <th>الحالة</th>
@@ -376,8 +376,7 @@
                         {% if pagination and pagination.items %}
                             {% for request in pagination.items %}
                             <tr class="transaction-row" data-status="{{ request.status }}" data-search="{{ request.request_number }}">
-                                <td class="text-muted font-monospace">{{ loop.index }}</td>
-                                <!-- ✅ تم تمرير wallet_id و request_number معاً -->
+                                <!-- ✅ تم حذف خلية الترقيم -->
                                 <td>
                                     <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', wallet_id=wallet.wallet_code or wallet.id, request_number=request.request_number or request.id) }}" 
                                        class="fw-bold font-monospace text-decoration-none" 
@@ -400,7 +399,6 @@
                                         <span class="badge bg-secondary">{{ request.status }}</span>
                                     {% endif %}
                                 </td>
-                                <!-- ✅ التاريخ والوقت يظهران بلون أبيض ناصع -->
                                 <td class="timestamp">
                                     {{ request.created_at.strftime('%Y-%m-%d %H:%M') if request.created_at else '---' }}
                                 </td>
@@ -408,7 +406,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" class="text-center py-5" style="color: #9ca3af;">
+                                <td colspan="4" class="text-center py-5" style="color: #9ca3af;">
                                     <i class="fas fa-inbox d-block mb-3" style="font-size: 40px; opacity: 0.4;"></i>
                                     <p class="m-0">لا توجد طلبات سحب سابقة</p>
                                 </td>
