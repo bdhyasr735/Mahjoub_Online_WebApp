@@ -11,9 +11,10 @@ MODULE_NAME = "المحفظة الرقمية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
+# ✅ تعديل جوهري: استخدام الـ Endpoints الحقيقية لصفحات المحفظة (وليس الـ redirects)
 LINKS = {
-    "supplier_wallet_bp.transactions_redirect": "حركة المحفظة",
-    "supplier_wallet_bp.withdraw_redirect": "سحب الرصيد"
+    "supplier_wallet_bp.wallet_transactions": "حركة المحفظة",
+    "supplier_wallet_bp.withdraw": "سحب الرصيد"  # أو withdraw_redirect إذا لم يكن withdraw موجوداً
 }
 
 
@@ -129,8 +130,8 @@ def get_module_stats():
 def get_module_link():
     """الحصول على رابط الموديول."""
     try:
-        # ✅ محاولة إنشاء الرابط عبر url_for
-        return url_for('supplier_wallet_bp.transactions_redirect')
+        # ✅ محاولة إنشاء الرابط عبر url_for (الآن يشير للصفحة الحقيقية)
+        return url_for('supplier_wallet_bp.wallet_transactions')
     except Exception as e:
         logger.warning(f"⚠️ [Registry Supplier Wallet Link Error]: {e}")
         # ✅ حل آمن: استخدام المسار المباشر
