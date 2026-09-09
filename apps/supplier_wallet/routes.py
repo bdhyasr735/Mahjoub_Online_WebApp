@@ -196,6 +196,9 @@ def transactions(wallet_id):
 
     all_transactions.sort(key=get_sort_key, reverse=True)
 
+    # ✅ جلب المورد
+    supplier = Supplier.query.filter_by(id=supplier_id).first()
+
     search_query = request.args.get('q', '').strip()
     trans_type = request.args.get('trans_type', '').strip()
     status = request.args.get('status', '').strip()
@@ -247,6 +250,7 @@ def transactions(wallet_id):
         wallet=wallet,
         balance=balance,
         transactions=all_transactions,
+        supplier=supplier,
         supplier_modules=modules,
         modules_registry=modules,
         get_trx_type_attr=get_trx_type_attr,
