@@ -11,14 +11,86 @@
         background: var(--flat-bg);
     }
     
-    .gold-title {
-        color: var(--mahjoub-gold);
-        font-weight: 900;
-        font-size: 32px;
-        text-align: center;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* 🎨 رأس الصفحة الاحترافي */
+    .page-header {
+        background: linear-gradient(135deg, var(--royal-purple) 0%, #0d0520 100%);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        border-radius: 20px;
+        padding: 30px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin-bottom: 30px;
     }
     
+    .page-header-title {
+        color: white;
+        font-weight: 900;
+        font-size: 28px;
+        margin: 0;
+    }
+    
+    .page-header-title i {
+        color: var(--mahjoub-gold);
+        font-size: 26px;
+    }
+    
+    .page-header-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        margin-top: 4px;
+    }
+    
+    .page-header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    
+    .btn-header {
+        background: var(--mahjoub-gold);
+        color: var(--royal-purple);
+        font-weight: 900;
+        font-size: 14px;
+        padding: 12px 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-header:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+    }
+    
+    .btn-header-outline {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 12px 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-header-outline:hover {
+        border-color: var(--mahjoub-gold);
+        color: var(--mahjoub-gold);
+    }
+    
+    /* 🎨 بطاقة الرصيد */
     .balance-card {
         background: linear-gradient(135deg, var(--royal-purple) 0%, var(--deep-black) 100%);
         border: 1px solid rgba(212, 175, 55, 0.3);
@@ -34,16 +106,49 @@
     }
     
     .balance-amount {
-        font-size: 40px;
+        font-size: 44px;
         font-weight: 900;
         color: var(--mahjoub-gold);
+        line-height: 1;
     }
     
     .balance-label {
         color: #d1d5db;
         font-size: 14px;
         font-weight: 600;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
+    }
+    
+    .balance-info {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .balance-info-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(212, 175, 55, 0.15);
+        border-radius: 12px;
+        padding: 12px 20px;
+    }
+    
+    .balance-info-item .label {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .balance-info-item .value {
+        font-size: 16px;
+        font-weight: 900;
+        color: white;
+        font-family: monospace;
+        margin-top: 2px;
     }
     
     .withdraw-card {
@@ -232,13 +337,22 @@
     
     /* 📱 التجاوب مع الشاشات */
     @media (max-width: 768px) {
+        .page-header {
+            padding: 20px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .page-header-actions {
+            flex-direction: column;
+            align-items: flex-start;
+        }
         .balance-card {
             flex-direction: column;
             align-items: flex-start;
             padding: 16px;
         }
         .balance-amount {
-            font-size: 28px;
+            font-size: 32px;
         }
         .withdraw-card-body {
             padding: 20px;
@@ -263,13 +377,27 @@
 
 <div class="container-fluid wallet-page">
 
-    <!-- 🎨 العنوان -->
-    <div class="row mb-4 text-center">
-        <div class="col-12">
-            <h1 class="gold-title">
+    <!-- 🎨 رأس الصفحة الاحترافي (Header) -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title">
                 <i class="fas fa-wallet me-2"></i> طلب سحب رصيد
             </h1>
-            <p class="text-muted mt-1">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
+            <p class="page-header-subtitle">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
+        </div>
+        <div class="page-header-actions">
+            <!-- ✅ زر الرجوع للداشبورد -->
+            <a href="{{ url_for('suppliers_dashboard.index') }}" class="btn-header-outline">
+                <i class="fas fa-home"></i> رجوع للداشبورد
+            </a>
+            
+            <a href="{{ url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-header">
+                <i class="fas fa-redo-alt"></i> تحديث
+            </a>
+            
+            <a href="{{ url_for('supplier_wallet_bp.transactions', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-header-outline">
+                <i class="fas fa-arrow-right"></i> العودة للحركات
+            </a>
         </div>
     </div>
 
@@ -283,14 +411,14 @@
                         {{ "%.2f"|format(available_balance) }} <span class="fs-6 text-light">{{ currency_symbol }}</span>
                     </div>
                 </div>
-                <div class="d-flex gap-4 flex-wrap">
-                    <div>
-                        <div class="balance-label">رمز المحفظة</div>
-                        <div class="fw-bold text-white font-monospace">{{ wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else 'N/A') }}</div>
+                <div class="balance-info">
+                    <div class="balance-info-item">
+                        <div class="label">رمز المحفظة</div>
+                        <div class="value">{{ wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else 'N/A') }}</div>
                     </div>
-                    <div>
-                        <div class="balance-label">الحد الأدنى للسحب</div>
-                        <div class="fw-bold text-white">{{ min_withdrawal_amount }} {{ currency_symbol }}</div>
+                    <div class="balance-info-item">
+                        <div class="label">الحد الأدنى للسحب</div>
+                        <div class="value">{{ min_withdrawal_amount }} {{ currency_symbol }}</div>
                     </div>
                 </div>
             </div>
@@ -365,7 +493,6 @@
                 <table>
                     <thead>
                         <tr>
-                            <!-- ✅ تم حذف عمود الترقيم "م" -->
                             <th>رقم الطلب</th>
                             <th>المبلغ</th>
                             <th>الحالة</th>
@@ -376,7 +503,6 @@
                         {% if pagination and pagination.items %}
                             {% for request in pagination.items %}
                             <tr class="transaction-row" data-status="{{ request.status }}" data-search="{{ request.request_number }}">
-                                <!-- ✅ تم حذف خلية الترقيم -->
                                 <td>
                                     <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', wallet_id=wallet.wallet_code or wallet.id, request_number=request.request_number or request.id) }}" 
                                        class="fw-bold font-monospace text-decoration-none" 
