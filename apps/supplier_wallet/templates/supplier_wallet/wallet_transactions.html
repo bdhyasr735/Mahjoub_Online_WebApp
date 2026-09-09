@@ -3,6 +3,25 @@
 {% block title %}كشف حساب المحفظة المالية - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
+<!-- ✅ تأكد من وجود supplier_modules للقائمة الجانبية -->
+{% if not supplier_modules %}
+    {% set supplier_modules = modules_registry or {} %}
+{% endif %}
+
+<!-- ✅ إذا كانت supplier_modules لا تزال فارغة، أضف الموديول الحالي -->
+{% if not supplier_modules or supplier_modules|length == 0 %}
+    {% set supplier_modules = {
+        'supplier_wallet': {
+            'title': 'المحفظة الرقمية',
+            'icon': 'fas fa-wallet',
+            'links': {
+                'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
+                'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+            }
+        }
+    } %}
+{% endif %}
+
 <style>
     .table-container {
         overflow-x: auto;
@@ -82,7 +101,6 @@
         min-width: 160px;
     }
     
-    /* 🎨 التقويم يعمل بشكل صحيح مع RTL */
     .date-filter-group {
         display: flex;
         gap: 12px;
@@ -96,7 +114,7 @@
     .date-filter-group input[type="date"] {
         flex: 0 0 auto;
         min-width: 160px;
-        direction: ltr; /* هام جداً لجعل التقويم يفتح بشكل صحيح */
+        direction: ltr;
         text-align: right;
         background: #1e1e2f;
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -295,7 +313,7 @@
         <span style="color: #9ca3af; font-size: 14px; margin-right: auto; font-weight: 600;" id="result-count">جاري التحميل...</span>
     </div>
 
-    <!-- 🎨 فلاتر تحديد الفترة (تعمل بشكل صحيح) -->
+    <!-- 🎨 فلاتر تحديد الفترة -->
     <div class="date-filter-group">
         <label style="color: #FFD700; font-weight: 700;">📅 تحديد الفترة:</label>
         <input type="date" id="start-date" value="{{ request.args.get('start_date', '') }}" />
@@ -391,7 +409,6 @@
                         {% endif %}
                     {% endfor %}
                     
-                    <!-- ✅ صف الإجماليات -->
                     <tr class="summary-row">
                         <td colspan="3" style="text-align: left;">الإجمالي:</td>
                         <td style="color: #ef4444; font-weight: 900;">
@@ -436,7 +453,6 @@
         </table>
     </div>
 
-    <!-- 🎨 عناصر تقليب الصفحات -->
     <div class="pagination-container" id="pagination-wrapper">
         <div style="color: #9ca3af; font-size: 14px;">
             صفحة <span id="current-page-num" style="color: #FFD700; font-weight: 700;">1</span> من <span id="total-pages-num" style="color: white; font-weight: 700;">1</span>
@@ -548,7 +564,6 @@ document.addEventListener('DOMContentLoaded', function() {
         filterData();
     });
 
-    // ✅ فلاتر تحديد الفترة
     if (applyDateBtn) {
         applyDateBtn.addEventListener('click', function() {
             let url = new URL(window.location.href);
@@ -576,7 +591,6 @@ document.addEventListener('DOMContentLoaded', function() {
     filterData();
 });
 
-// ✅ دالة الطباعة - تم إصلاحها بإضافة wallet_id
 function printStatement() {
     let url = new URL("{{ url_for('supplier_wallet_bp.print_wallet_transactions', wallet_id=wallet.wallet_code or wallet.id) }}");
     url.searchParams.set('start_date', document.getElementById('start-date').value);
