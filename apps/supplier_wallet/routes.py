@@ -65,11 +65,13 @@ def get_sidebar_modules():
         supplier_modules.update(current_app.supplier_modules)
 
     # 3️⃣ المسح الديناميكي على كافة سجلات الموديولات (Registries) المسجلة في التطبيق
+    # ✅ إصلاح جذري: إضافة جميع الموديولات الممكنة حتى تظهر القائمة كاملة في كل الصفحات
     registry_paths = [
+        'apps.suppliers_dashboard.registry',
         'apps.supplier_products.registry',
         'apps.supplier_orders.registry',
         'apps.supplier_wallet.registry',
-        'apps.suppliers_dashboard.registry'
+        'apps.suppliers_permissions.registry'  # ✅ أضفنا هذا الموديول المهم جداً
     ]
 
     for path in registry_paths:
@@ -85,13 +87,14 @@ def get_sidebar_modules():
             continue
 
     # 4️⃣ في حالة التعذر الكامل، يتم تقديم الموديول الحالي كقيمة احتياطية بدلاً من تقييد القائمة
+    # ✅ تم تحديث الروابط لاستخدام الـ Endpoints الحقيقية (بدلاً من redirects)
     if not supplier_modules:
         supplier_modules['supplier_wallet'] = {
             'title': 'المحفظة الرقمية',
             'icon': 'fas fa-wallet',
             'links': {
-                'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
-                'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                'supplier_wallet_bp.transactions': 'حركة المحفظة',
+                'supplier_wallet_bp.withdraw': 'سحب الرصيد'
             }
         }
 
