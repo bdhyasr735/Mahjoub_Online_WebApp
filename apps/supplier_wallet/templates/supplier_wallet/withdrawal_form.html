@@ -3,27 +3,9 @@
 {% block title %}طلب سحب جديد - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
-<!-- ============================================================ -->
-<!-- تنسيقات الألوان الداخلية (بدون استدعاء مكتبات خارجية) -->
-<!-- ============================================================ -->
-<style>
-    .text-gold { color: #C9A84C !important; }
-    .bg-gold { background-color: #C9A84C !important; }
-    .btn-gold { background-color: #C9A84C !important; border-color: #C9A84C !important; color: #ffffff !important; font-weight: 700 !important; }
-    .btn-gold:hover { background-color: #b8983a !important; border-color: #b8983a !important; color: #ffffff !important; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15) !important; }
-    
-    .bg-dark-custom { background-color: #1a0b2e !important; }
-    .card-header-custom { background-color: #1a0b2e !important; border-bottom: 3px solid #C9A84C !important; }
-    .text-white-custom { color: #ffffff !important; }
-    
-    body { background-color: #f8f9fa; }
-</style>
-
 <div class="container py-5" dir="rtl">
 
-    <!-- ============================================================ -->
-    <!-- رسائل التنبيه (تظهر أعلى الصفحة فقط عند وجود خطأ أو نجاح) -->
-    <!-- ============================================================ -->
+    <!-- رسائل التنبيه -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="row justify-content-center mb-4">
@@ -39,72 +21,66 @@
         {% endif %}
     {% endwith %}
 
-    <!-- ============================================================ -->
     <!-- رأس الصفحة -->
-    <!-- ============================================================ -->
     <div class="row mb-4 text-center">
         <div class="col-12">
-            <h2 class="fw-bold mb-1 text-gold">سحب رصيد</h2>
+            <h2 class="fw-bold mb-1">سحب رصيد</h2>
             <p class="text-muted mb-0">أدخل المبلغ ثم اضغط على زر السحب</p>
         </div>
     </div>
 
-    <!-- ============================================================ -->
     <!-- تنبيه: طلب سحب معلق -->
-    <!-- ============================================================ -->
     {% if latest_request and latest_request.status == 'pending' %}
     <div class="row mb-4 justify-content-center">
         <div class="col-lg-6">
             <div class="alert alert-warning border-0 rounded-3 shadow-sm text-center py-2 mb-0" role="alert">
-                <strong>⏳ لديك طلب سحب قيد المراجعة!</strong> (رقم الطلب: {{ latest_request.request_number }} - المبلغ: {{ "%.2f"|format(latest_request.amount|float) }} {{ wallet.currency if wallet and wallet.currency else 'ر.س' }})
+                <strong>⏳ لديك طلب سحب قيد المراجعة!</strong> (رقم الطلب: {{ latest_request.request_number }} - المبلغ: {{ "%.2f"|format(latest_request.amount|float) }} {{ currency_symbol }})
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- ============================================================ -->
-    <!-- نموذج السحب (حقل المبلغ + زر السحب فقط) -->
-    <!-- ============================================================ -->
+    <!-- نموذج السحب -->
     <div class="row justify-content-center mb-5">
         <div class="col-lg-5 col-md-8">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="card-body p-5">
                     <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" id="withdrawalForm">
                         
-                        <!-- عرض الرصيد المتاح بشكل بسيط في الأعلى -->
+                        <!-- عرض الرصيد المتاح -->
                         <div class="text-center mb-4">
                             <small class="text-muted d-block">الرصيد المتاح للسحب</small>
-                            <h3 class="fw-bold mb-0 text-gold">
-                                {{ "%.2f"|format(available_balance) }} <small class="text-muted fs-6">{{ wallet.currency if wallet and wallet.currency else 'ر.س' }}</small>
+                            <h3 class="fw-bold mb-0 text-warning">
+                                {{ "%.2f"|format(available_balance) }} <small class="text-muted fs-6">{{ currency_symbol }}</small>
                             </h3>
                         </div>
 
                         <!-- حقل إدخال المبلغ -->
                         <div class="mb-4">
-                            <label for="amount" class="form-label fw-bold text-center d-block">المبلغ ({{ wallet.currency if wallet and wallet.currency else 'ر.س' }})</label>
+                            <label for="amount" class="form-label fw-bold text-center d-block">المبلغ ({{ currency_symbol }})</label>
                             <input type="number" 
                                    name="amount" 
                                    id="amount" 
                                    class="form-control form-control-lg border-0 bg-light text-center fw-bold shadow-sm" 
                                    placeholder="أدخل المبلغ هنا" 
                                    step="0.01" 
-                                   min="{{ min_withdrawal_amount|default(10) }}" 
+                                   min="{{ min_withdrawal_amount }}" 
                                    max="{{ available_balance }}" 
                                    required
                                    {% if latest_request and latest_request.status == 'pending' %}disabled{% endif %}>
                             
                             <small class="text-muted d-block text-center mt-2">
-                                الحد الأدنى للسحب: {{ min_withdrawal_amount|default(10) }} {{ wallet.currency if wallet and wallet.currency else 'ر.س' }}
+                                الحد الأدنى للسحب: {{ min_withdrawal_amount }} {{ currency_symbol }}
                             </small>
                         </div>
 
-                        <!-- زر السحب فقط -->
+                        <!-- زر السحب -->
                         {% if latest_request and latest_request.status == 'pending' %}
-                        <button type="button" class="btn btn-secondary btn-lg w-100" disabled style="font-weight: 700;">
+                        <button type="button" class="btn btn-secondary btn-lg w-100" disabled>
                             <i class="bi bi-clock-history me-2"></i> طلب قيد المراجعة
                         </button>
                         {% else %}
-                        <button type="submit" class="btn btn-gold btn-lg w-100 shadow-sm" style="font-size: 18px; border-radius: 10px;">
+                        <button type="submit" class="btn btn-warning btn-lg w-100 shadow-sm text-dark fw-bold">
                             <i class="bi bi-cash-stack me-2"></i> سحب
                         </button>
                         {% endif %}
@@ -115,23 +91,20 @@
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- جدول الحركات والطلبات (فلاتر + بحث + تقليب صفحات) -->
-    <!-- ============================================================ -->
+    <!-- جدول الحركات والطلبات -->
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="card-header-custom py-4 px-4">
-                    <h4 class="fw-bold mb-1 text-white-custom"><i class="bi bi-clock-history ms-2 text-gold"></i>سجل الحركات والطلبات</h4>
-                    <p class="text-white-50 small mb-0">جميع عمليات السحب السابقة الخاصة بحسابك</p>
+                <div class="card-header bg-white border-0 py-4 px-4">
+                    <h4 class="fw-bold mb-1"><i class="bi bi-clock-history ms-2 text-warning"></i>سجل الحركات والطلبات</h4>
+                    <p class="text-muted small mb-0">جميع عمليات السحب السابقة الخاصة بحسابك</p>
                 </div>
 
                 <div class="card-body p-4">
                     
-                    <!-- ====== الفلاتر والبحث ====== -->
+                    <!-- الفلاتر والبحث -->
                     <form method="GET" action="" class="row g-3 mb-4">
                         
-                        <!-- البحث برقم الطلب -->
                         <div class="col-md-4">
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
@@ -139,7 +112,6 @@
                             </div>
                         </div>
 
-                        <!-- فلتر الحالة -->
                         <div class="col-md-3">
                             <select name="status" class="form-select bg-light border-0">
                                 <option value="">كل الحالات</option>
@@ -150,14 +122,12 @@
                             </select>
                         </div>
 
-                        <!-- زر التصفية -->
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-dark w-100">
                                 <i class="bi bi-funnel me-1"></i> تصفية
                             </button>
                         </div>
 
-                        <!-- زر مسح الفلاتر -->
                         <div class="col-md-3 d-grid">
                             <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn btn-outline-secondary w-100">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i> إعادة تعيين
@@ -165,7 +135,7 @@
                         </div>
                     </form>
 
-                    <!-- ====== الجدول ====== -->
+                    <!-- الجدول -->
                     <div class="table-responsive">
                         <table class="table table-hover align-middle text-center">
                             <thead class="table-light">
@@ -183,7 +153,7 @@
                                     <tr>
                                         <td>{{ loop.index }}</td>
                                         <td><strong>{{ request.request_number or request.id }}</strong></td>
-                                        <td>{{ "%.2f"|format(request.amount|float) }} {{ wallet.currency if wallet and wallet.currency else 'ر.س' }}</td>
+                                        <td>{{ "%.2f"|format(request.amount|float) }} {{ currency_symbol }}</td>
                                         <td>
                                             {% if request.status == 'pending' %}
                                                 <span class="badge bg-warning text-dark">قيد المراجعة</span>
@@ -212,7 +182,7 @@
                         </table>
                     </div>
 
-                    <!-- ====== تقليب الصفحات (Pagination) ====== -->
+                    <!-- تقليب الصفحات -->
                     {% if pagination and pagination.pages > 1 %}
                     <div class="d-flex justify-content-center mt-4">
                         <nav aria-label="Page navigation">
@@ -250,13 +220,12 @@
 
 </div>
 
-<!-- ============================================================ -->
-<!-- JavaScript (تحقق بسيط جداً) -->
-<!-- ============================================================ -->
+<!-- JavaScript (التحقق) -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var form = document.getElementById('withdrawalForm');
         var amountInput = document.getElementById('amount');
+        var currencySymbol = "{{ currency_symbol }}";
 
         if (form) {
             form.addEventListener('submit', function(e) {
@@ -271,16 +240,16 @@
                 }
                 if (amount < minAmount) {
                     e.preventDefault();
-                    alert('⚠️ المبلغ أقل من الحد الأدنى (' + minAmount + ' ' + '{{ wallet.currency if wallet and wallet.currency else "ر.س" }}' + ').');
+                    alert('⚠️ المبلغ أقل من الحد الأدنى (' + minAmount + ' ' + currencySymbol + ').');
                     return false;
                 }
                 if (amount > maxAmount) {
                     e.preventDefault();
-                    alert('⚠️ المبلغ أكبر من الرصيد المتاح (' + maxAmount.toFixed(2) + ' ' + '{{ wallet.currency if wallet and wallet.currency else "ر.س" }}' + ').');
+                    alert('⚠️ المبلغ أكبر من الرصيد المتاح (' + maxAmount.toFixed(2) + ' ' + currencySymbol + ').');
                     return false;
                 }
                 
-                return confirm('هل أنت متأكد من سحب ' + amount.toFixed(2) + ' ' + '{{ wallet.currency if wallet and wallet.currency else "ر.س" }}' + '؟');
+                return confirm('هل أنت متأكد من سحب ' + amount.toFixed(2) + ' ' + currencySymbol + '؟');
             });
         }
     });
