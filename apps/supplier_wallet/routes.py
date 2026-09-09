@@ -5,7 +5,7 @@ import re
 import traceback
 import importlib
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
 from flask_login import login_required, current_user
@@ -199,9 +199,28 @@ def transactions(wallet_id):
     # ✅ جلب المورد
     supplier = Supplier.query.filter_by(id=supplier_id).first()
 
+    # ✅ فلاتر البحث والفرز
     search_query = request.args.get('q', '').strip()
     trans_type = request.args.get('trans_type', '').strip()
     status = request.args.get('status', '').strip()
+
+    # ✅ فلاتر تحديد الفترة
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(hour=0, minute=0, second=0)
+            all_transactions = [t for t in all_transactions if t.created_at and t.created_at >= start_dt]
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            all_transactions = [t for t in all_transactions if t.created_at and t.created_at <= end_dt]
+        except ValueError:
+            pass
 
     if search_query:
         filtered_list = []
