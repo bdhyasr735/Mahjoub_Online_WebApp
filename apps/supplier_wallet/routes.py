@@ -15,6 +15,7 @@ from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction, WithdrawalRequest
 from apps.models.supplier_db import Supplier
 from apps.supplier_wallet.services.wallet_service import WalletService
+from apps.supplier_wallet.services.notification_service import NotificationService
 from apps.supplier_wallet.utils import get_current_supplier_id, get_trx_type_attr
 
 supplier_wallet_bp = Blueprint('supplier_wallet_bp', __name__, template_folder='templates', url_prefix='/supplier/wallet')
@@ -212,14 +213,14 @@ def transactions(wallet_id):
             start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(hour=0, minute=0, second=0)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at >= start_dt]
         except ValueError:
-            pass
+        pass
 
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at <= end_dt]
         except ValueError:
-            pass
+        pass
 
     if search_query:
         filtered_list = []
@@ -277,7 +278,7 @@ def transactions(wallet_id):
 
 
 # =========================================================
-# ✅ استيراد الملفات الفرعية (بعد التقسيم)
+# ✅ استيراد الملفات الفرعية (بدون تكرار أي دالة)
 # =========================================================
 import apps.supplier_wallet.withdrawals_routes
 import apps.supplier_wallet.receipt_routes
