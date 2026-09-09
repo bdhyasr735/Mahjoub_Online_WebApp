@@ -4,37 +4,31 @@
 
 {% block content %}
 <style>
-    /* 🎨 تطبيق نفس الثيم الداكن الموجود في كشف الحساب */
+    /* 🎨 الثيم الداكن الفاخر */
     .withdraw-card {
         background: linear-gradient(145deg, #1a0b2e 0%, #08020d 100%);
         border: 1px solid rgba(212, 175, 55, 0.3);
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        width: 100%;
     }
     
     .withdraw-card-header {
         background: rgba(212, 175, 55, 0.1);
         border-bottom: 2px solid rgba(212, 175, 55, 0.3);
-        border-radius: 20px 20px 0 0;
-        padding: 24px;
+        padding: 20px;
         text-align: center;
     }
     
     .withdraw-card-body {
-        padding: 32px;
-    }
-    
-    .form-label-dark {
-        color: #d1d5db;
-        font-weight: 800;
-        font-size: 14px;
+        padding: 24px;
     }
     
     .form-input-dark {
         background: #1e1e2f;
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 12px;
-        padding: 16px;
+        padding: 14px;
         color: white;
         font-size: 18px;
         font-weight: 800;
@@ -46,10 +40,6 @@
     
     .form-input-dark:focus {
         border-color: #FFD700;
-    }
-    
-    .form-input-dark::placeholder {
-        color: #6b7280;
     }
     
     .btn-gold-dark {
@@ -64,6 +54,10 @@
         cursor: pointer;
         box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
     }
     
     .btn-gold-dark:hover {
@@ -71,77 +65,53 @@
         box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
     }
     
-    .balance-label-dark {
-        color: #9ca3af;
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 6px;
-    }
-    
-    .balance-amount-dark {
-        font-size: 36px;
-        font-weight: 900;
-        color: #FFD700;
-    }
-    
     .balance-card-dark {
         background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%);
         border: 1px solid rgba(212, 175, 55, 0.3);
         border-radius: 20px;
-        padding: 24px;
+        padding: 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        gap: 20px;
+        gap: 15px;
         margin-bottom: 24px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
     
-    .page-title-dark {
+    .balance-amount-dark {
         font-size: 28px;
         font-weight: 900;
         color: #FFD700;
-        margin: 0;
     }
     
-    .page-subtitle-dark {
-        color: #9ca3af;
-        font-size: 14px;
-        margin-top: 6px;
-    }
-    
-    /* 🎨 تنسيق الجدول والسجل (كما في كشف الحساب) */
     .table-container {
         overflow-x: auto;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.15);
         background: linear-gradient(145deg, #1e1e2f 0%, #2a2a40 100%);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        width: 100%;
     }
+    
     .table-container table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 750px;
     }
-    .table-container th {
-        background: rgba(212, 175, 55, 0.15);
-        color: #FFD700;
-        font-weight: 800;
-        font-size: 14px;
-        padding: 16px 18px;
-        text-align: right;
-        border-bottom: 2px solid rgba(212, 175, 55, 0.3);
-    }
-    .table-container td {
-        padding: 16px 18px;
+    
+    .table-container th, .table-container td {
+        padding: 14px 16px;
         border-bottom: 1px solid rgba(255,255,255,0.08);
         color: #ffffff;
         font-size: 14px;
         vertical-align: middle;
+        text-align: center;
     }
-    .table-container tr:hover td {
-        background: rgba(212, 175, 55, 0.05);
+    
+    .table-container th {
+        background: rgba(212, 175, 55, 0.15);
+        color: #FFD700;
+        font-weight: 800;
     }
     
     .filter-section {
@@ -151,8 +121,8 @@
         align-items: center;
         margin-bottom: 24px;
     }
-    .filter-section input,
-    .filter-section select {
+    
+    .filter-section input, .filter-section select {
         background: #1e1e2f;
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 10px;
@@ -162,159 +132,151 @@
         outline: none;
         transition: border-color 0.2s;
     }
-    .filter-section input:focus,
-    .filter-section select:focus {
+    
+    .filter-section input:focus, .filter-section select:focus {
         border-color: #FFD700;
-    }
-    .filter-section input {
-        flex: 1;
-        min-width: 220px;
-    }
-    .filter-section select {
-        min-width: 160px;
     }
     
-    .pagination-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 20px;
-        padding: 16px;
-        background: #1a0b2e;
-        border-radius: 14px;
-        border: 1px solid rgba(212, 175, 55, 0.15);
+    /* 📱 التجاوب مع الشاشات الصغيرة */
+    @media (max-width: 768px) {
+        .balance-card-dark {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+        }
+        .balance-amount-dark {
+            font-size: 24px;
+        }
+        .withdraw-card-body {
+            padding: 18px;
+        }
+        .filter-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .filter-section input, .filter-section select {
+            width: 100%;
+        }
+        .table-container th, .table-container td {
+            padding: 10px 8px;
+            font-size: 12px;
+        }
+        .pagination-container {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
     }
-    .page-btn {
-        background: #2a2a40;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #e5e7eb;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .page-btn:hover:not(:disabled) {
-        border-color: #FFD700;
-        color: #FFD700;
-    }
-    .page-btn.active {
-        background: #FFD700;
-        color: #1a0b2e;
-        font-weight: 800;
-        border-color: #FFD700;
-    }
-    .page-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
+    
+    @media (max-width: 480px) {
+        .balance-amount-dark {
+            font-size: 20px;
+        }
+        .btn-gold-dark {
+            font-size: 16px;
+            padding: 14px;
+        }
+        .page-title-dark {
+            font-size: 22px;
+        }
     }
 </style>
 
-<div style="width: 100%; padding-bottom: 40px;">
+<div class="container-fluid px-3 px-md-4 py-4" style="padding-bottom: 40px;">
 
     <!-- 🎨 عنوان الصفحة -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 30px;">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="page-title-dark">
-                <i class="fas fa-wallet" style="color: #1a0b2e; margin-left: 12px;"></i>
+            <h1 class="page-title-dark fw-bold m-0" style="font-size: 28px; color: #FFD700;">
+                <i class="fas fa-wallet" style="margin-left: 12px;"></i>
                 طلب سحب جديد
             </h1>
-            <p class="page-subtitle-dark">
-                قم بتقديم طلب سحب من رصيد محفظتك الرقمية
-            </p>
+            <p class="text-muted mb-0 mt-1">قم بتقديم طلب سحب من رصيد محفظتك الرقمية</p>
         </div>
-        <div style="display: flex; gap: 12px;">
-            <a href="{{ url_for('supplier_wallet_bp.transactions', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" style="background: transparent; border: 1px solid #1a0b2e; color: #1a0b2e; font-weight: 900; padding: 14px 28px; border-radius: 14px; text-decoration: none; font-size: 15px;">
-                <i class="fas fa-arrow-right" style="margin-right: 8px;"></i> العودة للحركات
+        <div>
+            <a href="{{ url_for('supplier_wallet_bp.transactions', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" class="btn btn-outline-dark fw-bold px-4 py-2 rounded-3" style="border-color: #1a0b2e; color: #1a0b2e;">
+                <i class="fas fa-arrow-right me-2"></i> العودة للحركات
             </a>
         </div>
     </div>
 
-    <!-- 🎨 بطاقة الرصيد المتاح (كما في كشف الحساب) -->
-    <div class="balance-card-dark">
+    <!-- 🎨 بطاقة الرصيد المتاح (بدون خصم 50 ريال) -->
+    <div class="balance-card-dark mb-4">
         <div>
-            <div class="balance-label-dark"><i class="fas fa-circle" style="color: #10b981; font-size: 8px; margin-left: 6px;"></i> الرصيد الحالي القابل للسحب</div>
+            <div class="text-muted small fw-bold mb-1"><i class="fas fa-circle text-success me-2" style="font-size: 8px;"></i> الرصيد الحالي القابل للسحب</div>
             <div class="balance-amount-dark">
-                {{ "%.2f"|format(available_balance) }} <span style="font-size: 18px; font-weight: 600; color: #e5e7eb;">{{ currency_symbol }}</span>
+                {{ "%.2f"|format(available_balance) }} <span class="fs-6 text-light">{{ currency_symbol }}</span>
             </div>
         </div>
-        <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+        <div class="d-flex gap-4 flex-wrap">
             <div>
-                <div class="balance-label-dark">رمز المحفظة</div>
-                <div style="font-weight: 700; color: white; font-family: monospace; font-size: 16px;">{{ wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else 'N/A') }}</div>
+                <div class="text-muted small fw-bold">رمز المحفظة</div>
+                <div class="fw-bold text-white font-monospace">{{ wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else 'N/A') }}</div>
             </div>
             <div>
-                <div class="balance-label-dark">الحد الأدنى للسحب</div>
-                <div style="font-weight: 700; color: white; font-size: 14px;">{{ min_withdrawal_amount }} {{ currency_symbol }}</div>
+                <div class="text-muted small fw-bold">الحد الأدنى للسحب</div>
+                <div class="fw-bold text-white">{{ min_withdrawal_amount }} {{ currency_symbol }}</div>
             </div>
         </div>
     </div>
 
     <!-- 🎨 إذا كان هناك طلب معلق -->
     {% if latest_request and latest_request.status == 'pending' %}
-    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 800;">
+    <div class="mb-4 p-3 rounded-3 fw-bold" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171;">
         ⏳ لديك طلب سحب قيد المراجعة! (رقم الطلب: {{ latest_request.request_number }} - المبلغ: {{ "%.2f"|format(latest_request.amount|float) }} {{ currency_symbol }})
     </div>
     {% endif %}
 
-    <!-- 🎨 نموذج السحب -->
-    <div style="max-width: 600px; margin: 0 auto;">
-        <div class="withdraw-card">
-            
-            <!-- رأس البطاقة -->
-            <div class="withdraw-card-header">
-                <i class="fas fa-paper-plane" style="color: #FFD700; font-size: 32px; margin-bottom: 10px;"></i>
-                <h4 style="color: white; font-weight: 900; margin: 0;">تقديم طلب سحب</h4>
-            </div>
-
-            <!-- جسم البطاقة -->
-            <div class="withdraw-card-body">
-                <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" id="withdrawalForm">
-                    
-                    <!-- حقل المبلغ -->
-                    <div style="margin-bottom: 24px;">
-                        <label for="amount" class="form-label-dark" style="display: block; text-align: center; margin-bottom: 12px;">المبلغ المطلوب سحبه ({{ currency_symbol }})</label>
-                        <input type="number" 
-                               name="amount" 
-                               id="amount" 
-                               class="form-input-dark" 
-                               placeholder="0.00" 
-                               step="0.01" 
-                               min="{{ min_withdrawal_amount }}" 
-                               max="{{ available_balance }}" 
-                               required
-                               {% if latest_request and latest_request.status == 'pending' %}disabled{% endif %}>
-                        <div style="text-align: center; margin-top: 8px;">
-                            <span style="color: #9ca3af; font-size: 12px;">الحد الأدنى: {{ min_withdrawal_amount }} {{ currency_symbol }}</span>
+    <!-- 🎨 نموذج السحب (متجاوب 100%) -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="withdraw-card">
+                <div class="withdraw-card-header">
+                    <i class="fas fa-paper-plane d-block mb-2" style="color: #FFD700; font-size: 28px;"></i>
+                    <h4 class="text-white fw-bold m-0">تقديم طلب سحب</h4>
+                </div>
+                <div class="withdraw-card-body">
+                    <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" id="withdrawalForm">
+                        <div class="mb-4">
+                            <label for="amount" class="form-label-dark d-block text-center fw-bold mb-2" style="color: #d1d5db;">المبلغ المطلوب سحبه ({{ currency_symbol }})</label>
+                            <input type="number" 
+                                   name="amount" 
+                                   id="amount" 
+                                   class="form-input-dark" 
+                                   placeholder="0.00" 
+                                   step="0.01" 
+                                   min="{{ min_withdrawal_amount }}" 
+                                   max="{{ available_balance }}" 
+                                   required
+                                   {% if latest_request and latest_request.status == 'pending' %}disabled{% endif %}>
+                            <div class="text-center mt-2">
+                                <span class="text-muted small">الحد الأدنى: {{ min_withdrawal_amount }} {{ currency_symbol }}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- زر السحب -->
-                    {% if latest_request and latest_request.status == 'pending' %}
-                    <button type="button" disabled style="background: #4b5563; color: white; font-weight: 900; font-size: 18px; padding: 16px; border-radius: 14px; border: none; width: 100%;">
-                        <i class="fas fa-hourglass-half"></i> طلب قيد المراجعة
-                    </button>
-                    {% else %}
-                    <button type="submit" class="btn-gold-dark">
-                        <i class="fas fa-money-bill-wave" style="margin-left: 8px;"></i> سحب
-                    </button>
-                    {% endif %}
-
-                </form>
+                        {% if latest_request and latest_request.status == 'pending' %}
+                        <button type="button" disabled class="btn btn-secondary w-100 fw-bold py-3" style="background: #4b5563; border: none;">
+                            <i class="fas fa-hourglass-half me-2"></i> طلب قيد المراجعة
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn-gold-dark">
+                            <i class="fas fa-money-bill-wave"></i> سحب
+                        </button>
+                        {% endif %}
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 🎨 جدول سجل الحركات والطلبات (نفس تصميم كشف الحساب) -->
-    <div style="margin-top: 40px;">
-        <h4 style="color: #1a0b2e; font-weight: 900; margin-bottom: 16px;">
-            <i class="fas fa-history" style="color: #1a0b2e; margin-left: 8px;"></i>
+    <!-- 🎨 جدول سجل الحركات والطلبات -->
+    <div class="mt-4">
+        <h4 class="fw-bold mb-3" style="color: #1a0b2e;">
+            <i class="fas fa-history me-2" style="color: #1a0b2e;"></i>
             سجل طلبات السحب
         </h4>
         
-        <!-- الفلاتر -->
         <div class="filter-section">
             <input type="text" id="search-input" placeholder="🔍 بحث برقم الطلب..." value="{{ request.args.get('q', '') }}" />
             <select id="status-filter">
@@ -324,10 +286,9 @@
                 <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
                 <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>مرفوض</option>
             </select>
-            <button id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">إعادة ضبط</button>
+            <button id="reset-filters" class="btn btn-sm fw-bold rounded-3" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">إعادة ضبط</button>
         </div>
 
-        <!-- الجدول -->
         <div class="table-container">
             <table>
                 <thead>
@@ -343,9 +304,9 @@
                     {% if pagination and pagination.items %}
                         {% for request in pagination.items %}
                         <tr class="transaction-row" data-status="{{ request.status }}" data-search="{{ request.request_number }}">
-                            <td style="color: #9ca3af; font-size: 13px; font-family: monospace;">{{ loop.index }}</td>
-                            <td style="font-family: monospace; font-weight: 700; color: #ffffff;">{{ request.request_number or request.id }}</td>
-                            <td style="font-family: monospace; font-weight: 800; font-size: 15px; color: #FFD700;">{{ "%.2f"|format(request.amount|float) }} {{ currency_symbol }}</td>
+                            <td style="color: #9ca3af; font-family: monospace;">{{ loop.index }}</td>
+                            <td class="fw-bold font-monospace text-white">{{ request.request_number or request.id }}</td>
+                            <td class="fw-bold font-monospace" style="color: #FFD700;">{{ "%.2f"|format(request.amount|float) }} {{ currency_symbol }}</td>
                             <td>
                                 {% if request.status == 'pending' %}
                                     <span class="badge bg-warning text-dark">قيد المراجعة</span>
@@ -359,14 +320,14 @@
                                     <span class="badge bg-secondary">{{ request.status }}</span>
                                 {% endif %}
                             </td>
-                            <td style="color: #9ca3af; font-size: 13px; font-family: monospace;">{{ request.created_at.strftime('%Y-%m-%d %H:%M') if request.created_at else '---' }}</td>
+                            <td style="color: #9ca3af; font-family: monospace;">{{ request.created_at.strftime('%Y-%m-%d %H:%M') if request.created_at else '---' }}</td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
-                                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.4;"></i>
-                                <p style="margin: 0;">لا توجد طلبات سحب سابقة</p>
+                            <td colspan="5" class="text-center py-5" style="color: #9ca3af;">
+                                <i class="fas fa-inbox d-block mb-3" style="font-size: 40px; opacity: 0.4;"></i>
+                                <p class="m-0">لا توجد طلبات سحب سابقة</p>
                             </td>
                         </tr>
                     {% endif %}
@@ -374,35 +335,30 @@
             </table>
         </div>
 
-        <!-- 🎨 الترقيم -->
         {% if pagination and pagination.pages > 1 %}
-        <div class="pagination-container">
-            <div style="color: #9ca3af; font-size: 14px;">
-                صفحة <span id="current-page-num" style="color: #FFD700; font-weight: 700;">1</span> من <span id="total-pages-num" style="color: white; font-weight: 700;">{{ pagination.pages }}</span>
+        <div class="pagination-container d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 p-3 rounded-3" style="background: #1a0b2e; border: 1px solid rgba(212, 175, 55, 0.15);">
+            <div class="text-muted small">
+                صفحة <span class="fw-bold" style="color: #FFD700;">{{ pagination.page }}</span> من <span class="fw-bold text-white">{{ pagination.pages }}</span>
             </div>
-            <div class="pagination-buttons">
+            <div class="d-flex gap-2">
                 {% if pagination.has_prev %}
-                <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.prev_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="page-btn">
-                    <i class="fas fa-chevron-right" style="margin-left: 4px;"></i> السابق
-                </a>
+                <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.prev_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="btn btn-sm btn-outline-light rounded-3">السابق</a>
                 {% endif %}
                 
                 {% for page_num in pagination.iter_pages() %}
                     {% if page_num %}
                         {% if page_num == pagination.page %}
-                            <button class="page-btn active">{{ page_num }}</button>
+                            <button class="btn btn-sm fw-bold rounded-3" style="background: #FFD700; color: #1a0b2e;">{{ page_num }}</button>
                         {% else %}
-                            <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="page-btn">{{ page_num }}</a>
+                            <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="btn btn-sm btn-outline-light rounded-3">{{ page_num }}</a>
                         {% endif %}
                     {% else %}
-                        <span class="page-btn" style="opacity: 0.3;">...</span>
+                        <span class="text-muted">...</span>
                     {% endif %}
                 {% endfor %}
 
                 {% if pagination.has_next %}
-                <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.next_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="page-btn">
-                    التالي <i class="fas fa-chevron-left" style="margin-right: 4px;"></i>
-                </a>
+                <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id, page=pagination.next_num, q=request.args.get('q'), status=request.args.get('status')) }}" class="btn btn-sm btn-outline-light rounded-3">التالي</a>
                 {% endif %}
             </div>
         </div>
