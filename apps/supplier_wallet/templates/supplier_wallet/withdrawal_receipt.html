@@ -1,486 +1,262 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}سند صرف مستحقات مالية - منصة محجوب أونلاين{% endblock %}
+{% block title %}إيصال طلب السحب - منصة محجوب أونلاين{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4" dir="rtl">
-    <style>
-        /* تنسيق السند الداخلي */
-        .receipt-wrapper {
-            padding: 20px;
-            width: 100%;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-        }
 
-        .receipt-container {
-            width: 100%;
-            max-width: 800px;
-            background: linear-gradient(145deg, #1a0b2e, #12071f);
-            border: 1px solid rgba(212, 175, 55, 0.25);
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            position: relative;
-            overflow: hidden;
-            color: #e5e7eb;
-            margin: 0 auto;
-        }
-        
-        .receipt-container::before {
-            content: '';
-            position: absolute;
-            top: -100px;
-            right: -100px;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .receipt-container::after {
-            content: '';
-            position: absolute;
-            bottom: -100px;
-            left: -100px;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-        
-        .receipt-header {
-            text-align: center;
-            border-bottom: 2px solid rgba(212, 175, 55, 0.15);
-            padding-bottom: 24px;
-            margin-bottom: 30px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .receipt-logo {
-            font-size: 28px;
-            font-weight: 900;
-            color: #D4AF37;
-            letter-spacing: 1px;
-        }
-        
-        .receipt-logo span {
-            font-size: 13px;
-            font-weight: 500;
-            color: #9ca3af;
-            display: block;
-            letter-spacing: 3px;
-            margin-top: 4px;
-        }
-        
-        .receipt-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #10b981;
-            margin-top: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .receipt-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(16, 185, 129, 0.12);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #10b981;
-            padding: 4px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        
-        .receipt-info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 30px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .receipt-info-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 14px 18px;
-        }
-
-        .receipt-info-item.full-width {
-            grid-column: span 2;
-        }
-        
-        .receipt-info-item .label {
-            font-size: 11px;
-            color: #9ca3af;
-            font-weight: 600;
-            display: block;
-            margin-bottom: 4px;
-        }
-        
-        .receipt-info-item .value {
-            font-size: 15px;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        
-        .receipt-info-item .value.gold {
-            color: #D4AF37;
-        }
-        
-        .receipt-info-item .value.green {
-            color: #10b981;
-        }
-        
-        .receipt-divider {
-            border: none;
-            border-top: 1px dashed rgba(255, 255, 255, 0.1);
-            margin: 24px 0;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .receipt-amount-box {
-            text-align: center;
-            padding: 24px;
-            background: rgba(212, 175, 55, 0.05);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            border-radius: 16px;
-            margin-bottom: 24px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .receipt-amount-box .amount-label {
-            font-size: 13px;
-            color: #9ca3af;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        
-        .receipt-amount-box .amount-value {
-            font-size: 38px;
-            font-weight: 900;
-            color: #D4AF37;
-            margin-top: 6px;
-            font-family: SFMono-Regular, Consolas, monospace;
-        }
-        
-        .receipt-amount-box .amount-value .currency {
-            font-size: 18px;
-            font-weight: 700;
-            color: #9ca3af;
-            margin-right: 6px;
-        }
-        
-        .receipt-status-box {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .status-pending {
-            background: rgba(245, 158, 11, 0.08);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
-        }
-
-        .status-approved {
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-
-        .status-rejected {
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.85); }
-        }
-        
-        .receipt-footer {
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            position: relative;
-            z-index: 1;
-        }
-        
-        .receipt-footer .footer-text {
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1.6;
-        }
-        
-        .receipt-footer .footer-text strong {
-            color: #D4AF37;
-        }
-        
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.06);
-            color: #d1d5db;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 10px 20px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 13px;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-        }
-        
-        .btn-print {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: linear-gradient(135deg, #D4AF37 0%, #b8941f 100%);
-            color: #0f0717;
-            border: none;
-            border-radius: 10px;
-            padding: 10px 20px;
-            font-weight: 800;
-            font-size: 13px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        
-        .btn-print:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
-        }
-        
-        .receipt-watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 110px;
-            font-weight: 900;
-            color: rgba(212, 175, 55, 0.025);
-            letter-spacing: 15px;
-            pointer-events: none;
-            white-space: nowrap;
-        }
-        
-        @media (max-width: 640px) {
-            .receipt-container {
-                padding: 24px 18px;
-            }
-            .receipt-info-grid {
-                grid-template-columns: 1fr;
-            }
-            .receipt-info-item.full-width {
-                grid-column: span 1;
-            }
-            .receipt-amount-box .amount-value {
-                font-size: 28px;
-            }
-            .receipt-watermark {
-                font-size: 50px;
-            }
-        }
-        
-        @media print {
-            .no-print, header, nav, sidebar, footer {
-                display: none !important;
-            }
-            body, .receipt-wrapper {
-                background: #ffffff !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .receipt-container {
-                box-shadow: none !important;
-                border: 1px solid #ddd !important;
-                background: #ffffff !important;
-                color: #000000 !important;
-                max-width: 100% !important;
-                padding: 30px !important;
-            }
-            .receipt-logo {
-                color: #000000 !important;
-            }
-            .receipt-info-item {
-                background: #f9fafb !important;
-                border: 1px solid #e5e7eb !important;
-            }
-            .receipt-info-item .value {
-                color: #000000 !important;
-            }
-            .receipt-amount-box {
-                background: #fefce8 !important;
-                border: 1px solid #fef08a !important;
-            }
-            .receipt-amount-box .amount-value {
-                color: #854d0e !important;
-            }
-            .receipt-footer .footer-text {
-                color: #4b5563 !important;
-            }
-        }
-    </style>
-
-    <div class="receipt-wrapper">
-        <div class="receipt-container">
-            
-            <!-- علامة مائية -->
-            <div class="receipt-watermark">MAHJOUB</div>
-            
-            <!-- رأس السند -->
-            <div class="receipt-header">
-                <div class="receipt-logo">
-                    منصة محجوب
-                    <span>بوابة الموردين</span>
-                </div>
-                <div class="receipt-title">
-                    <i class="fas fa-file-invoice"></i>
-                    سند صرف مستحقات مالية
-                </div>
-                <div style="margin-top: 10px;">
-                    <span class="receipt-badge">
-                        <i class="fas fa-check-circle"></i> مستند معتمد
-                    </span>
-                </div>
-            </div>
-            
-            <!-- معلومات السند -->
-            <div class="receipt-info-grid">
-                <div class="receipt-info-item">
-                    <span class="label">📌 رقم السند</span>
-                    <span class="value gold">{{ transaction.voucher_number if transaction else ('VCH-' ~ receipt.request_number) }}</span>
-                </div>
-                <div class="receipt-info-item">
-                    <span class="label">📋 رقم الطلب</span>
-                    <span class="value">{{ receipt.request_number }}</span>
-                </div>
-                <div class="receipt-info-item">
-                    <span class="label">👤 المورد</span>
-                    <span class="value">{{ supplier.trade_name or supplier.store_name or 'المورد' }}</span>
-                </div>
-                <div class="receipt-info-item">
-                    <span class="label">📅 تاريخ الصرف</span>
-                    <span class="value">
-                        {% if receipt.updated_at %}
-                            {{ receipt.updated_at.strftime('%Y-%m-%d | %I:%M %p') }}
-                        {% elif receipt.created_at %}
-                            {{ receipt.created_at.strftime('%Y-%m-%d | %I:%M %p') }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="receipt-info-item full-width">
-                    <span class="label">🏦 الحساب المصرفي / معلومات التحويل</span>
-                    <span class="value" style="font-size: 13px; direction: ltr; text-align: right; display: block;">
-                        {{ transaction.transfer_company if transaction and transaction.transfer_company else 'غير محدد' }}
-                    </span>
-                </div>
-            </div>
-            
-            <hr class="receipt-divider">
-            
-            <!-- مبلغ السند -->
-            <div class="receipt-amount-box">
-                <div class="amount-label">
-                    <i class="fas fa-money-bill-wave"></i>
-                    المبلغ الصافي المسحوب
-                </div>
-                <div class="amount-value">
-                    <span class="currency">{{ wallet.currency or 'SAR' }}</span>
-                    {{ "%.2f"|format(receipt.amount) }}
-                </div>
-            </div>
-            
-            <!-- حالة السند -->
-            {% set status_class = 'status-pending' %}
-            {% if receipt.status in ['completed', 'approved'] %}
-                {% set status_class = 'status-approved' %}
-            {% elif receipt.status == 'rejected' %}
-                {% set status_class = 'status-rejected' %}
+    <!-- عرض رسائل التنبيه -->
+    <div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1080; width: 100%; max-width: 500px;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show shadow-lg border-0 rounded-4 d-flex align-items-center justify-content-between mb-2 py-3 px-4" role="alert">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi {{ 'bi-exclamation-triangle-fill' if category == 'error' else 'bi-check-circle-fill' }} fs-4"></i>
+                            <div class="fw-bold">{{ message }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
             {% endif %}
+        {% endwith %}
+    </div>
 
-            <div class="receipt-status-box {{ status_class }}">
-                <div class="status-dot"></div>
-                <span class="fw-bold" style="font-size: 14px;">
-                    {% if receipt.status == 'pending' %}
-                        ⏳ قيد الانتظار والمراجعة
-                    {% elif receipt.status in ['completed', 'approved'] %}
-                        ✅ مكتمل ومحول إلى الحساب
-                    {% elif receipt.status == 'rejected' %}
-                        ❌ مرفوض
-                    {% else %}
-                        {{ receipt.status }}
-                    {% endif %}
-                </span>
-            </div>
-            
-            <hr class="receipt-divider">
-            
-            <!-- تذييل السند -->
-            <div class="receipt-footer">
-                <div class="footer-text">
-                    <strong>منصة محجوب أونلاين</strong> • بوابة الموردين<br>
-                    تم إصدار هذا السند إلكترونياً وبشكل تلقائي بواسطة النظام المالي.<br>
-                    رقم السند: <strong>{{ transaction.voucher_number if transaction else ('VCH-' ~ receipt.request_number) }}</strong>
-                    {% if transaction and transaction.bank_reference %}
-                    | رقم المرجع المصرفي: <strong>{{ transaction.bank_reference }}</strong>
-                    {% endif %}
-                </div>
+    <!-- رأس الصفحة -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-1" style="color: #C9A84C;">
+                <i class="bi bi-receipt-cutoff ms-2"></i> إيصال طلب السحب
+            </h2>
+            <p class="text-muted mb-0">تفاصيل طلب السحب المقدم من حسابك في المحفظة الرقمية</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="{{ url_for('supplier_wallet_bp.transactions_redirect') }}" class="btn btn-outline-secondary px-4 shadow-sm">
+                <i class="bi bi-arrow-right ms-1"></i> العودة إلى الحركات
+            </a>
+        </div>
+    </div>
+
+    <!-- بطاقة الإيصال -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
                 
-                <!-- أزرار الإجراء -->
-                <div class="no-print" style="display: flex; justify-content: center; gap: 12px; margin-top: 20px;">
-                    <button onclick="window.print()" class="btn-print">
-                        <i class="fas fa-print"></i>
-                        طباعة السند
+                <!-- رأس الإيصال -->
+                <div class="card-header text-center py-4" style="background: linear-gradient(135deg, #1a0b2e 0%, #08020d 100%); border-bottom: 3px solid #C9A84C;">
+                    <div class="mb-2">
+                        <span style="font-size: 28px; font-weight: 900; color: #C9A84C;">محجوب أونلاين</span>
+                    </div>
+                    <div style="font-size: 13px; color: rgba(255,255,255,0.5); letter-spacing: 1px; text-transform: uppercase;">
+                        إيصال طلب سحب
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge" style="background-color: #C9A84C; color: #1a0b2e; font-size: 14px; padding: 8px 20px;">
+                            <i class="bi bi-check-circle-fill me-1"></i> تم تقديم الطلب بنجاح
+                        </span>
+                    </div>
+                </div>
+
+                <!-- جسم الإيصال -->
+                <div class="card-body p-4 p-md-5">
+                    
+                    <!-- رقم الطلب والتاريخ -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">رقم الطلب</small>
+                            <strong class="fs-5 font-monospace">{{ withdrawal_request.id if withdrawal_request else '---' }}</strong>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <small class="text-muted d-block">تاريخ الطلب</small>
+                            <strong class="fs-5">{{ withdrawal_request.created_at.strftime('%Y-%m-%d %H:%M') if withdrawal_request and withdrawal_request.created_at else '---' }}</strong>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- تفاصيل المورد -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6 class="fw-bold" style="color: #C9A84C;"><i class="bi bi-person ms-1"></i> معلومات المورد</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">اسم المورد</small>
+                            <strong>{{ supplier.trade_name if supplier else 'غير محدد' }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">كود المورد</small>
+                            <strong>{{ supplier.supplier_code if supplier else '---' }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">كود المحفظة</small>
+                            <strong>{{ wallet.wallet_code if wallet and wallet.wallet_code else (wallet.id if wallet else '---') }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">رقم الإيصال</small>
+                            <strong>{{ withdrawal_request.voucher_number if withdrawal_request and withdrawal_request.voucher_number else '---' }}</strong>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- تفاصيل السحب -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6 class="fw-bold" style="color: #C9A84C;"><i class="bi bi-arrow-down-circle ms-1"></i> تفاصيل السحب</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">المبلغ المطلوب</small>
+                            <strong class="fs-4" style="color: #C9A84C;">
+                                {{ "%.2f"|format(withdrawal_request.amount|float if withdrawal_request and withdrawal_request.amount else 0) }}
+                                <small style="font-size: 16px; color: #6c757d;">{{ wallet.currency if wallet and wallet.currency else 'ر.س' }}</small>
+                            </strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">حالة الطلب</small>
+                            <span class="badge bg-warning text-dark" style="font-size: 14px; padding: 6px 16px;">
+                                <i class="bi bi-clock-history me-1"></i> قيد المراجعة
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">طريقة السحب</small>
+                            <strong>{{ withdrawal_request.payment_method or 'تحويل بنكي' }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">البنك المستلم</small>
+                            <strong>{{ withdrawal_request.bank_name or supplier.bank_name or 'غير محدد' }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">رقم الحساب البنكي</small>
+                            <strong>{{ withdrawal_request.bank_account or supplier.bank_account_number or '---' }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">اسم صاحب الحساب</small>
+                            <strong>{{ withdrawal_request.account_holder_name or supplier.owner_name or '---' }}</strong>
+                        </div>
+                    </div>
+
+                    {% if withdrawal_request.notes %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <small class="text-muted d-block">ملاحظات</small>
+                            <p class="border rounded-3 p-3 bg-light mb-0">{{ withdrawal_request.notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr class="my-4">
+
+                    <!-- الرصيد بعد السحب -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">الرصيد قبل السحب</small>
+                            <strong>{{ "%.2f"|format((wallet.balance|float + withdrawal_request.amount|float) if wallet and wallet.balance and withdrawal_request and withdrawal_request.amount else (wallet.balance|float if wallet else 0)) }} {{ wallet.currency if wallet and wallet.currency else 'ر.س' }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">الرصيد المتوقع بعد السحب</small>
+                            <strong class="fs-5" style="color: #10b981;">
+                                {{ "%.2f"|format(wallet.balance|float if wallet and wallet.balance else 0) }} {{ wallet.currency if wallet and wallet.currency else 'ر.س' }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- تنبيه -->
+                    <div class="alert alert-info border-0 rounded-4 d-flex align-items-start gap-3" role="alert">
+                        <i class="bi bi-info-circle-fill fs-4 mt-1" style="color: #0c63e4;"></i>
+                        <div>
+                            <strong class="d-block mb-1">تنبيه مهم</strong>
+                            <p class="mb-0" style="font-size: 14px;">
+                                سيتم مراجعة طلب السحب من قبل إدارة المحفظة خلال 24 ساعة عمل. 
+                                سيتم إشعارك عند اكتمال المعاملة عبر البريد الإلكتروني أو لوحة التحكم.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- تذييل الإيصال -->
+                <div class="card-footer text-center py-3" style="background: #f8f9fa; border-top: 1px solid #e9ecef;">
+                    <div style="font-size: 12px; color: #6c757d;">
+                        <i class="bi bi-printer me-1"></i>
+                        تم إنشاء هذا الإيصال بواسطة نظام المحفظة الرقمية - محجوب أونلاين
+                        <br>
+                        <span class="text-muted">جميع الحقوق محفوظة &copy; {{ now.year if now is defined else '2024' }}</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div class="row mt-4">
+                <div class="col-12 text-center">
+                    <button onclick="window.print()" class="btn btn-primary px-5 py-2 me-2" style="background-color: #C9A84C; border-color: #C9A84C;">
+                        <i class="bi bi-printer me-1"></i> طباعة الإيصال
                     </button>
-                    <a href="{{ url_for('supplier_wallet_bp.wallet_dashboard', wallet_id=wallet.wallet_code or wallet.id) }}" class="btn-back">
-                        <i class="fas fa-arrow-right"></i>
-                        العودة للوحة التحكم
+                    <a href="{{ url_for('supplier_wallet_bp.transactions_redirect') }}" class="btn btn-outline-secondary px-5 py-2">
+                        <i class="bi bi-arrow-right me-1"></i> العودة إلى الحركات
                     </a>
                 </div>
             </div>
-            
+
         </div>
     </div>
+
 </div>
+
+<style>
+    @media print {
+        .btn,
+        .btn-outline-secondary,
+        .no-print {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+        .card-header {
+            background: #f8f9fa !important;
+            border-bottom: 2px solid #C9A84C !important;
+        }
+        .alert-info {
+            border: 1px solid #d1e7dd !important;
+            background: #f8f9fa !important;
+        }
+        .badge {
+            border: 1px solid #C9A84C !important;
+        }
+        body {
+            background: white !important;
+            padding: 20px !important;
+        }
+        .container-fluid {
+            padding: 0 !important;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // إغلاق التنبيهات تلقائياً بعد 5 ثواني
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+</script>
+
 {% endblock %}
