@@ -4,7 +4,7 @@
 
 {% block content %}
 <style>
-    /* 🎨 نظام الألوان الداكن الكامل (مطابق لكشف الحساب) */
+    /* 🎨 نظام الألوان الداكن الفاخر (مطابق لكشف الحساب) */
     .wallet-page {
         max-width: 100%;
         margin: 0 auto;
@@ -14,8 +14,9 @@
     .gold-title {
         color: var(--mahjoub-gold);
         font-weight: 900;
-        font-size: 28px;
+        font-size: 32px;
         text-align: center;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .balance-card {
@@ -33,7 +34,7 @@
     }
     
     .balance-amount {
-        font-size: 36px;
+        font-size: 40px;
         font-weight: 900;
         color: var(--mahjoub-gold);
     }
@@ -177,6 +178,13 @@
         text-align: center;
     }
     
+    /* ✅ إبراز التواريخ والأوقات بلون أبيض ناصع */
+    .table-container-dark td.timestamp {
+        color: #ffffff !important;
+        font-weight: 700;
+        font-family: 'Courier New', monospace;
+    }
+    
     .table-container-dark tr:hover td {
         background: rgba(212, 175, 55, 0.05);
     }
@@ -230,7 +238,7 @@
             padding: 16px;
         }
         .balance-amount {
-            font-size: 24px;
+            font-size: 28px;
         }
         .withdraw-card-body {
             padding: 20px;
@@ -370,7 +378,15 @@
                             {% for request in pagination.items %}
                             <tr class="transaction-row" data-status="{{ request.status }}" data-search="{{ request.request_number }}">
                                 <td class="text-muted font-monospace">{{ loop.index }}</td>
-                                <td class="fw-bold font-monospace text-white">{{ request.request_number or request.id }}</td>
+                                <!-- ✅ رقم الطلب أصبح رابطاً ينتقل إلى سند الإيصال -->
+                                <td>
+                                    <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=request.request_number or request.id) }}" 
+                                       class="fw-bold font-monospace text-decoration-none" 
+                                       style="color: var(--mahjoub-gold);">
+                                        {{ request.request_number or request.id }}
+                                        <i class="fas fa-external-link-alt ms-1" style="font-size: 10px;"></i>
+                                    </a>
+                                </td>
                                 <td class="fw-bold font-monospace" style="color: var(--mahjoub-gold);">{{ "%.2f"|format(request.amount|float) }} {{ currency_symbol }}</td>
                                 <td>
                                     {% if request.status == 'pending' %}
@@ -385,7 +401,10 @@
                                         <span class="badge bg-secondary">{{ request.status }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-muted font-monospace">{{ request.created_at.strftime('%Y-%m-%d %H:%M') if request.created_at else '---' }}</td>
+                                <!-- ✅ التاريخ والوقت يظهران بلون أبيض ناصع -->
+                                <td class="timestamp">
+                                    {{ request.created_at.strftime('%Y-%m-%d %H:%M') if request.created_at else '---' }}
+                                </td>
                             </tr>
                             {% endfor %}
                         {% else %}
