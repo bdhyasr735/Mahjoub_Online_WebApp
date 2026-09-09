@@ -19,6 +19,7 @@ from apps.utils.seeder import seed_database
 ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
 
+
 def import_all_models():
     """استيراد جميع ملفات النماذج تلقائياً من مجلد apps/models"""
     models_dir = os.path.join(os.path.dirname(__file__), 'models')
@@ -30,6 +31,7 @@ def import_all_models():
                     importlib.import_module(f"apps.models.{module_name}")
                 except Exception as e:
                     print(f"⚠️ [خطأ في استيراد النموذج] فشل استيراد النموذج '{module_name}': {e}")
+
 
 def reset_database_safe():
     """إعادة تعيين قاعدة البيانات بشكل آمن مع تجاوز أخطاء الأنواع المكررة"""
@@ -69,6 +71,7 @@ def reset_database_safe():
         db.session.rollback()
         print(f"❌ [خطأ إعادة تعيين قاعدة البيانات]: {e}")
         return False
+
 
 def create_app():
     app = Flask(__name__, static_folder='../static')
@@ -500,22 +503,60 @@ def create_app():
                 except Exception as e:
                     print(f"❌ [خطأ التسجيل الديناميكي]: فشل تسجيل موديول '{item}' - السبب: {e}")
 
+    # =========================================================
+    # ✅ CONTEXT PROCESSOR المُحسَّن - لحل مشكلة القائمة الجانبية
+    # =========================================================
     @app.context_processor
     def inject_vars():
+        """إضافة متغيرات ودوال مساعدة لجميع قوالب التطبيق."""
+        
+        # ====== دالة safe_url_for الآمنة ======
         def safe_url_for(endpoint, **values):
+            """إنشاء رابط آمن مع تجنب الأخطاء."""
             try:
                 return url_for(endpoint, **values)
-            except Exception:
+            except Exception as e:
+                # تسجيل الخطأ للتصحيح
+                print(f"⚠️ [safe_url_for] فشل إنشاء الرابط للمسار '{endpoint}': {e}")
                 return '#'
 
+        # ====== دالة get_supplier_id ======
+        def get_supplier_id():
+            """الحصول على معرف المورد الحالي."""
+            try:
+                if current_user.is_authenticated:
+                    user_type = session.get('user_type')
+                    if user_type in ['supplier', 'supplier_staff']:
+                        if hasattr(current_user, 'supplier_id'):
+                            return current_user.supplier_id
+                        if hasattr(current_user, 'id'):
+                            return current_user.id
+            except Exception:
+                pass
+            return None
+
+        # ====== دالة get_current_supplier ======
+        def get_current_supplier():
+            """الحصول على كائن المورد الحالي."""
+            try:
+                supplier_id = get_supplier_id()
+                if supplier_id:
+                    from apps.models.supplier_db import Supplier
+                    return db.session.get(Supplier, supplier_id)
+            except Exception:
+                pass
+            return None
+
+        # ====== تجهيز سياق المورد ======
         supplier_context = {
-            'current_supplier': None, 
+            'current_supplier': None,
             'owner_full_name': '',
-            'supplier_bank_name': '', 
+            'supplier_bank_name': '',
             'supplier_bank_account': ''
         }
-        if current_user.is_authenticated:
-            try:
+        
+        try:
+            if current_user.is_authenticated:
                 user_type = session.get('user_type')
                 if user_type in ['supplier', 'supplier_staff', 'staff']:
                     supplier_id = getattr(current_user, 'supplier_id', None) if user_type != 'supplier' else getattr(current_user, 'id', None)
@@ -529,20 +570,35 @@ def create_app():
                                 'supplier_bank_name': getattr(supplier_obj, 'bank_name', ''),
                                 'supplier_bank_account': getattr(supplier_obj, 'bank_account_number', ''),
                             })
-            except Exception as e:
-                db.session.rollback()
-                print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [خطأ معالج السياق Context Processor]: {e}")
 
+        # ====== دمج الموديولات ======
         combined_supplier_modules = SUPPLIER_MODULES.copy()
-        if hasattr(app, 'supplier_modules'):
+        if hasattr(app, 'supplier_modules') and app.supplier_modules:
             for key, value in app.supplier_modules.items():
                 combined_supplier_modules[key] = value
 
+        # ====== إضافة موديول المحفظة إذا لم يكن موجوداً ======
+        if 'supplier_wallet' not in combined_supplier_modules:
+            combined_supplier_modules['supplier_wallet'] = {
+                'display_name': 'المحفظة الرقمية',
+                'icon': 'fas fa-wallet',
+                'links': {
+                    'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
+                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                }
+            }
+
+        # ====== إرجاع جميع المتغيرات ======
         return {
             'registered_modules': ADMIN_MODULES,
             'admin_modules': ADMIN_MODULES,
             'supplier_modules': combined_supplier_modules,
             'safe_url_for': safe_url_for,
+            'get_supplier_id': get_supplier_id,
+            'get_current_supplier': get_current_supplier,
             **supplier_context
         }
 
