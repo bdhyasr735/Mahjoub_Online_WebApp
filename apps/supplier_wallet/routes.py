@@ -52,7 +52,6 @@ def get_sidebar_modules():
     """تجميع موديولات القائمة الجانبية للمورد ديناميكياً لتشمل جميع الموديولات المتاحة."""
     supplier_modules = {}
 
-    # 1️⃣ محاولة جلب الموديولات من السجل المركزي للداشبورد إن وجد
     try:
         from apps.suppliers_dashboard.registry import MODULES_REGISTRY
         if MODULES_REGISTRY:
@@ -60,11 +59,9 @@ def get_sidebar_modules():
     except ImportError:
         pass
 
-    # 2️⃣ محاولة جلب الموديولات الممررة على مستوى التطبيق (current_app)
     if hasattr(current_app, 'supplier_modules') and current_app.supplier_modules:
         supplier_modules.update(current_app.supplier_modules)
 
-    # 3️⃣ المسح الديناميكي على كافة سجلات الموديولات (Registries) المسجلة في التطبيق
     registry_paths = [
         'apps.suppliers_dashboard.registry',
         'apps.supplier_products.registry',
@@ -85,25 +82,21 @@ def get_sidebar_modules():
         except (ImportError, AttributeError):
             continue
 
-    # 4️⃣ ✅ الخطوة الأهم: توليد روابط جاهزة داخل الموديولات بدلاً من مجرد Endpoints
     for key, module in supplier_modules.items():
         if 'links' in module and isinstance(module['links'], dict):
             final_links = {}
             for endpoint, title in module['links'].items():
                 try:
                     if 'supplier_wallet' in endpoint:
-                        # الحصول على wallet_id من المتغيرات المتاحة
                         wallet_id_val = get_current_wallet_identifier()
                         final_links[endpoint] = {'title': title, 'url': url_for(endpoint, wallet_id=wallet_id_val)}
                     else:
                         final_links[endpoint] = {'title': title, 'url': url_for(endpoint)}
                 except BuildError:
-                    # في حالة فشل بناء الرابط، نستخدم مسار احتياطي آمن
                     fallback_url = '/supplier/wallet/transactions' if 'supplier_wallet' in endpoint else '#'
                     final_links[endpoint] = {'title': title, 'url': fallback_url}
             module['links'] = final_links
 
-    # 5️⃣ في حالة التعذر الكامل، يتم تقديم الموديول الحالي كقيمة احتياطية
     if not supplier_modules:
         wallet_id_val = get_current_wallet_identifier()
         supplier_modules['supplier_wallet'] = {
@@ -194,12 +187,10 @@ def transactions(wallet_id):
             traceback.print_exc()
             return safe_redirect_home()
 
-    # ✅ جلب الحركات بالترتيب الزمني (من الأقدم للأحدث)
     transactions_list = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.asc()).all()
     all_transactions = list(transactions_list)
 
-    # ✅ إضافة الرصيد بعد كل حركة (balance_after) - حساب تراكمي للخلف
-    running_balance = Decimal(str(wallet.balance))  # نبدأ من الرصيد الحالي
+    running_balance = Decimal(str(wallet.balance))
     for trx in reversed(all_transactions):
         trx.balance_after = running_balance
         if trx.transaction_type in ['credit', 'deposit']:
@@ -207,7 +198,6 @@ def transactions(wallet_id):
         elif trx.transaction_type in ['debit', 'withdraw']:
             running_balance = running_balance + Decimal(str(trx.amount))
 
-    # ✅ ترتيبهم من الأحدث للأقدم للعرض
     all_transactions.reverse()
 
     def get_sort_key(t):
@@ -216,15 +206,12 @@ def transactions(wallet_id):
 
     all_transactions.sort(key=get_sort_key, reverse=True)
 
-    # ✅ جلب المورد
     supplier = Supplier.query.filter_by(id=supplier_id).first()
 
-    # ✅ فلاتر البحث والفرز
     search_query = request.args.get('q', '').strip()
     trans_type = request.args.get('trans_type', '').strip()
     status = request.args.get('status', '').strip()
 
-    # ✅ فلاتر تحديد الفترة
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
 
@@ -245,12 +232,8 @@ def transactions(wallet_id):
     if search_query:
         filtered_list = []
         for t in all_transactions:
-            if isinstance(t, dict):
-                v_num = str(t.get('voucher_number', '') or '')
-                r_num = str(t.get('reference_number', '') or '')
-            else:
-                v_num = str(getattr(t, 'voucher_number', '') or '')
-                r_num = str(getattr(t, 'reference_number', '') or '')
+            v_num = str(getattr(t, 'voucher_number', '') or '')
+            r_num = str(getattr(t, 'reference_number', '') or '')
             if search_query.lower() in v_num.lower() or search_query.lower() in r_num.lower():
                 filtered_list.append(t)
         all_transactions = filtered_list
@@ -258,12 +241,9 @@ def transactions(wallet_id):
     if trans_type:
         filtered_list = []
         for t in all_transactions:
-            if isinstance(t, dict):
-                t_type = t.get('transaction_type')
-            else:
-                t_type = getattr(t, 'transaction_type', None)
-                if hasattr(t_type, 'value'):
-                    t_type = t_type.value
+            t_type = getattr(t, 'transaction_type', None)
+            if hasattr(t_type, 'value'):
+                t_type = t_type.value
             if str(t_type).lower() == trans_type.lower():
                 filtered_list.append(t)
         all_transactions = filtered_list
@@ -271,19 +251,14 @@ def transactions(wallet_id):
     if status:
         filtered_list = []
         for t in all_transactions:
-            if isinstance(t, dict):
-                s_val = t.get('status')
-            else:
-                s_val = getattr(t, 'status', None)
-                if hasattr(s_val, 'value'):
-                    s_val = s_val.value
+            s_val = getattr(t, 'status', None)
+            if hasattr(s_val, 'value'):
+                s_val = s_val.value
             if str(s_val).lower() == status.lower():
                 filtered_list.append(t)
         all_transactions = filtered_list
 
     balance = get_wallet_balance(wallet)
-    
-    # ✅ استدعاء الدالة المحدثة التي تولد روابط جاهزة
     modules = get_sidebar_modules()
 
     return render_template(
