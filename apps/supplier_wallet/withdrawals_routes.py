@@ -15,7 +15,7 @@ from apps.supplier_wallet.services.notification_service import NotificationServi
 # ✅ إعادة تسمية الدالة إلى process_withdraw لتجنب التعارض
 @supplier_wallet_bp.route('/<string:wallet_id>/withdraw', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
-def process_withdraw(wallet_id):  # تغيير الاسم من withdraw إلى process_withdraw
+def process_withdraw(wallet_id):
     supplier_id = get_current_supplier_id()
     if not supplier_id and hasattr(current_user, 'id'):
         supplier_id = current_user.id
@@ -68,7 +68,7 @@ def process_withdraw(wallet_id):  # تغيير الاسم من withdraw إلى p
 
             NotificationService.notify_withdrawal_requested(float(amount), wdr.request_number)
             flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة والتدقيق حالياً.", "success")
-            return redirect(url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id, success='true'))  # تغيير الرابط
+            return redirect(url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id, success='true'))
 
         except ValueError as e:
             db.session.rollback()
@@ -119,9 +119,9 @@ def process_withdraw(wallet_id):  # تغيير الاسم من withdraw إلى p
             'supplier_wallet/withdrawal_form.html',
             wallet=wallet,
             balance=current_balance,
-            available_balance=available_balance,  # ✅ الرصيد الكامل
-            min_withdrawal_amount=min_withdrawal_amount,  # ✅ أدنى سحب 50
-            currency_symbol=currency_symbol,  # ✅ رمز العملة
+            available_balance=available_balance,
+            min_withdrawal_amount=min_withdrawal_amount,
+            currency_symbol=currency_symbol,
             active_bank=active_bank,
             pagination=pagination,
             latest_request=latest_request,
