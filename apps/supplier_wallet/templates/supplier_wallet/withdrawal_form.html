@@ -379,9 +379,9 @@
                             {% for request in pagination.items %}
                             <tr class="transaction-row" data-status="{{ request.status }}" data-search="{{ request.request_number }}">
                                 <td class="text-muted font-monospace">{{ loop.index }}</td>
-                                <!-- ✅ رقم الطلب أصبح رابطاً ينتقل إلى سند الإيصال -->
+                                <!-- ✅ تم تمرير wallet_id و request_number معاً لحل مشكلة BuildError -->
                                 <td>
-                                    <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', request_number=request.request_number or request.id) }}" 
+                                    <a href="{{ url_for('supplier_wallet_bp.withdrawal_receipt', wallet_id=wallet.wallet_code or wallet.id, request_number=request.request_number or request.id) }}" 
                                        class="fw-bold font-monospace text-decoration-none" 
                                        style="color: var(--mahjoub-gold);">
                                         {{ request.request_number or request.id }}
