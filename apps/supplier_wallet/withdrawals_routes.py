@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WithdrawalRequest
-from apps.supplier_wallet.routes import supplier_wallet_bp, get_current_supplier_id, get_wallet_balance, safe_redirect_home
+from apps.supplier_wallet.routes import supplier_wallet_bp, get_current_supplier_id, get_wallet_balance, get_sidebar_modules, safe_redirect_home
 from apps.supplier_wallet.services.wallet_service import WalletService
 from apps.supplier_wallet.services.notification_service import NotificationService
 
