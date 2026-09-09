@@ -2,7 +2,6 @@
 # 📂 apps/supplier_wallet/withdrawals_routes.py
 
 from decimal import Decimal
-from datetime import datetime
 
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
@@ -38,18 +37,17 @@ def withdraw(wallet_id):
 
     current_balance = get_wallet_balance(wallet)
     
-    # ✅ حساب المتغيرات التي يحتاجها القالب (كما في الكود السابق)
+    # ✅ حساب المتغيرات وإضافة المتغيرات الناقصة التي يحتاجها القالب
     reserved_balance = Decimal('50.00')
     available_balance = current_balance - reserved_balance
     if available_balance < Decimal('0.00'):
         available_balance = Decimal('0.00')
     
     min_withdrawal_amount = Decimal('10.00')
-    currency_symbol = getattr(wallet, 'currency', 'ر.س')  # استيراد رمز العملة
+    currency_symbol = getattr(wallet, 'currency', 'ر.س')
 
     if request.method == 'POST':
         try:
-            # 🛑 1. التحقق من عدم وجود طلب سحب معلق آخر للمحفظة
             has_pending = WithdrawalRequest.query.filter_by(wallet_id=wallet.id, status='pending').first()
             if has_pending:
                 raise ValueError("لديك طلب سحب قيد المراجعة حالياً، لا يمكنك تقديم طلب جديد حتى يتم البت فيه.")
@@ -57,7 +55,6 @@ def withdraw(wallet_id):
             raw_amount = request.form.get('amount', '0').strip().replace(',', '.')
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
-            # 🛑 2. تطبيق شرط إبقاء 50 ريال احتياطي في المحفظة
             if amount < min_withdrawal_amount:
                 raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal_amount:.2f} {currency_symbol}")
 
@@ -108,15 +105,10 @@ def withdraw(wallet_id):
         pagination = query.paginate(page=page, per_page=10, error_out=False)
         latest_request = query.first()
 
-        active_bank = {
-            'bank_name': 'الحساب البنكي المعتمد للمورد',
-            'id': 1
-        }
+        active_bank = {'bank_name': 'الحساب البنكي المعتمد للمورد', 'id': 1}
         
-        # ✅ استخدام الدالة المحدثة التي تجلب جميع الموديولات (بما فيها الصلاحيات)
         modules = get_sidebar_modules()
         
-        # ✅ تأكد من وجود موديول المحفظة
         if not modules or 'supplier_wallet' not in modules:
             modules['supplier_wallet'] = {
                 'title': 'المحفظة الرقمية',
@@ -127,21 +119,18 @@ def withdraw(wallet_id):
                 }
             }
 
-        # ✅ للتصحيح
-        print(f"🔍 [Withdraw DEBUG] modules keys: {list(modules.keys())}")
-
         return render_template(
             'supplier_wallet/withdrawal_form.html',
             wallet=wallet,
             balance=current_balance,
-            available_balance=available_balance,  # ✅ إضافة المتغير الناقص
-            min_withdrawal_amount=min_withdrawal_amount,  # ✅ إضافة الحد الأدنى
+            available_balance=available_balance,  # ✅ إضافة المتغير
+            min_withdrawal_amount=min_withdrawal_amount,  # ✅ إضافة المتغير
+            currency_symbol=currency_symbol,  # ✅ إضافة رمز العملة
             active_bank=active_bank,
             pagination=pagination,
             latest_request=latest_request,
             supplier_modules=modules,
-            modules_registry=modules,
-            currency_symbol=currency_symbol  # ✅ تمرير رمز العملة
+            modules_registry=modules
         )
     except Exception as e:
         print(f"❌ [Withdraw Error]: {e}")
