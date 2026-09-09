@@ -20,11 +20,6 @@ def register_module(app):
     try:
         from apps.supplier_wallet.routes import supplier_wallet_bp
         
-        # ✅ استيراد الملفات الإضافية لضمان تسجيل جميع المسارات
-        import apps.supplier_wallet.withdrawals_routes
-        import apps.supplier_wallet.receipt_routes
-        import apps.supplier_wallet.print_routes
-        
         if 'supplier_wallet_bp' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp)
             print("✅ [Registry Supplier Wallet]: تم تسجيل موديول المحفظة الرقمية.")
