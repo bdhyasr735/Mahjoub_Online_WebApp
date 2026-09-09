@@ -298,7 +298,9 @@
                     <h4 class="text-white fw-bold m-0">تقديم طلب سحب</h4>
                 </div>
                 <div class="withdraw-card-body">
+                    <!-- ✅ إضافة CSRF Token لحل مشكلة خطأ 400 -->
                     <form method="POST" action="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id) }}" id="withdrawalForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
                         <div class="mb-4">
                             <label for="amount" class="form-label-dark d-block text-center mb-2">المبلغ المطلوب سحبه ({{ currency_symbol }})</label>
