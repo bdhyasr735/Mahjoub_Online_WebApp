@@ -327,13 +327,13 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ ✅ ✅ التعديل النهائي: استخدام الروابط الجاهزة من Backend بدلاً من url_for ✅ ✅ ✅ -->
+            <!-- ✅ توليد روابط الموديولات ديناميكياً - يدعم الروابط النصية والجاهزة -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
                         {% if module.links|length > 1 %}
                             {% set ns = namespace(is_active_module=false) %}
-                            {% for endpoint, link_data in module.links.items() %}
+                            {% for endpoint, link_item in module.links.items() %}
                                 {% if request.endpoint == endpoint %}
                                     {% set ns.is_active_module = true %}
                                 {% endif %}
@@ -350,13 +350,30 @@
                                     <i class="fas fa-chevron-down {% if ns.is_active_module %}rotated{% endif %}"></i>
                                 </div>
                                 <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
-                                    {% for endpoint, link_data in module.links.items() %}
+                                    {% for endpoint, link_item in module.links.items() %}
                                         <li>
-                                            <!-- ✅ استخدام الرابط الجاهز مباشرة -->
-                                            <a href="{{ link_data.url }}" 
+                                            <!-- ✅ دعم مزدوج: إذا كان الرابط نصاً، نبنيه يدوياً. إذا كان كائناً، نستخدمه مباشرة -->
+                                            {% if link_item is mapping %}
+                                                {% set link_url = link_item.url %}
+                                                {% set link_title = link_item.title %}
+                                            {% else %}
+                                                {% set link_title = link_item %}
+                                                {% set link_url = url_for(endpoint) %}
+                                                {% if 'supplier_wallet' in endpoint %}
+                                                    {% set wallet_id_value = '1' %}
+                                                    {% if wallet is defined and wallet %}
+                                                        {% set wallet_id_value = wallet.wallet_code if wallet.wallet_code else (wallet.id if wallet.id else '1') %}
+                                                    {% elif current_user is defined and current_user and current_user.wallet is defined and current_user.wallet %}
+                                                        {% set wallet_id_value = current_user.wallet.wallet_code if current_user.wallet.wallet_code else (current_user.wallet.id if current_user.wallet.id else '1') %}
+                                                    {% endif %}
+                                                    {% set link_url = url_for(endpoint, wallet_id=wallet_id_value) %}
+                                                {% endif %}
+                                            {% endif %}
+
+                                            <a href="{{ link_url }}" 
                                                class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
                                                 <i class="fas fa-circle"></i> 
-                                                <span>{{ link_data.title }}</span>
+                                                <span>{{ link_title }}</span>
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -364,12 +381,29 @@
                             </div>
                         {% else %}
                             <!-- ✅ رابط مفرد ديناميكي -->
-                            {% for endpoint, link_data in module.links.items() %}
-                                <!-- ✅ استخدام الرابط الجاهز مباشرة -->
-                                <a href="{{ link_data.url }}" 
+                            {% for endpoint, link_item in module.links.items() %}
+                                <!-- ✅ دعم مزدوج: إذا كان الرابط نصاً، نبنيه يدوياً. إذا كان كائناً، نستخدمه مباشرة -->
+                                {% if link_item is mapping %}
+                                    {% set link_url = link_item.url %}
+                                    {% set link_title = link_item.title %}
+                                {% else %}
+                                    {% set link_title = link_item %}
+                                    {% set link_url = url_for(endpoint) %}
+                                    {% if 'supplier_wallet' in endpoint %}
+                                        {% set wallet_id_value = '1' %}
+                                        {% if wallet is defined and wallet %}
+                                            {% set wallet_id_value = wallet.wallet_code if wallet.wallet_code else (wallet.id if wallet.id else '1') %}
+                                        {% elif current_user is defined and current_user and current_user.wallet is defined and current_user.wallet %}
+                                            {% set wallet_id_value = current_user.wallet.wallet_code if current_user.wallet.wallet_code else (current_user.wallet.id if current_user.wallet.id else '1') %}
+                                        {% endif %}
+                                        {% set link_url = url_for(endpoint, wallet_id=wallet_id_value) %}
+                                    {% endif %}
+                                {% endif %}
+
+                                <a href="{{ link_url }}" 
                                    class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
                                     <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                                    <span>{{ link_data.title }}</span>
+                                    <span>{{ link_title }}</span>
                                 </a>
                             {% endfor %}
                         {% endif %}
