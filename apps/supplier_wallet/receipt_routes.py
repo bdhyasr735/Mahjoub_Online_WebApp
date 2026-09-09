@@ -213,7 +213,7 @@ def transactions(wallet_id):
             start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(hour=0, minute=0, second=0)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at >= start_dt]
         except ValueError:
-        pass
+            pass
 
     if end_date:
         try:
