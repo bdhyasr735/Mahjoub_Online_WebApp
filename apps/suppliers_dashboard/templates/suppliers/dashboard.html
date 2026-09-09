@@ -3,7 +3,7 @@
 {% block title %}لوحة التحكم | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" style="position: relative; z-index: 1;">
     
     <!-- رسالة الترحيب واسم المتجر والمستخدم -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
@@ -24,22 +24,20 @@
     <!-- البطاقات الإحصائية الرئيسية (KPIs) -->
     <div class="row g-3 mb-4">
         
-        <!-- بطاقة المحفظة (بتصميم مميز فاخر) -->
+        <!-- بطاقة المحفظة (تم تعديلها لتصبح بيضاء ومتناسقة مع الصفحة لإزالة "المربع الغريب") -->
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden text-white" style="background: linear-gradient(135deg, #632C8F 0%, #1a0b2e 100%);">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="d-block text-white-50 small mb-1">رصيد المحفظة</span>
-                            <h3 class="fw-bold mb-0">{{ "%.2f"|format(balance or 0) }} <small class="fs-6 fw-normal">ر.س</small></h3>
-                        </div>
-                        <div class="bg-white bg-opacity-10 p-3 rounded-circle">
-                            <i class="fas fa-wallet fa-2x text-warning"></i>
-                        </div>
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background: #ffffff; border: 1px solid #e2e8f0;">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="d-block text-muted small mb-1">رصيد المحفظة</span>
+                        <h3 class="fw-bold mb-0" style="color: #570575;">{{ "%.2f"|format(balance or 0) }} <small class="fs-6 fw-normal text-muted">ر.س</small></h3>
                     </div>
-                    <div class="mt-3 pt-2 border-top border-light border-opacity-10 small text-white-50">
-                        كود المحفظة: <span class="font-monospace text-white">{{ wallet.wallet_code if wallet else 'N/A' }}</span>
+                    <div class="p-3 rounded-circle" style="background: #F3E8F4; color: #570575;">
+                        <i class="fas fa-wallet fa-2x"></i>
                     </div>
+                </div>
+                <div class="px-4 pb-3 pt-1 small text-muted">
+                    كود المحفظة: <span class="font-monospace fw-bold" style="color: #570575;">{{ wallet.wallet_code if wallet else 'N/A' }}</span>
                 </div>
             </div>
         </div>
