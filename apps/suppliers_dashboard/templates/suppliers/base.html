@@ -40,12 +40,12 @@
             min-height: 100vh; 
         }
 
-        /* ✅ الشريط الجانبي الثابت (الأساسي والصحيح) */
+        /* ✅ الشريط الجانبي الثابت */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
             height: 100vh;
-            position: fixed; /* ✅ ثابت دائماً */
+            position: fixed;
             right: 0;
             top: 0;
             z-index: 1050;
@@ -189,7 +189,7 @@
         .nav-divider { border: none; border-top: 1px solid rgba(255, 255, 255, 0.06); margin: 18px 14px; }
 
         .main-wrapper {
-            margin-right: var(--sidebar-width); /* ✅ المساحة المخصصة للشريط */
+            margin-right: var(--sidebar-width);
             margin-left: 0;
             transition: var(--transition);
             min-height: 100vh;
@@ -327,13 +327,13 @@
             <span class="sidebar-sub">بوابة الموردين المركزية</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ توليد روابط الموديولات ديناميكياً مع دعم wallet_id تلقائياً وآمن -->
+            <!-- ✅ ✅ ✅ التعديل النهائي: استخدام الروابط الجاهزة من Backend بدلاً من url_for ✅ ✅ ✅ -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links is mapping %}
                         {% if module.links|length > 1 %}
                             {% set ns = namespace(is_active_module=false) %}
-                            {% for endpoint, link_title in module.links.items() %}
+                            {% for endpoint, link_data in module.links.items() %}
                                 {% if request.endpoint == endpoint %}
                                     {% set ns.is_active_module = true %}
                                 {% endif %}
@@ -350,22 +350,13 @@
                                     <i class="fas fa-chevron-down {% if ns.is_active_module %}rotated{% endif %}"></i>
                                 </div>
                                 <ul class="submenu {% if ns.is_active_module %}show{% endif %}" id="submenu-{{ key }}">
-                                    {% for endpoint, link_title in module.links.items() %}
+                                    {% for endpoint, link_data in module.links.items() %}
                                         <li>
-                                            {# ✅ إصلاح نهائي وآمن للغاية: جلب الـ wallet_id تلقائياً أو استخدام قيمة افتراضية #}
-                                            {% set wallet_id_value = '1' %}
-                                            {% if wallet is defined and wallet %}
-                                                {% set wallet_id_value = wallet.wallet_code if wallet.wallet_code else (wallet.id if wallet.id else '1') %}
-                                            {% elif current_user is defined and current_user and current_user.wallet is defined and current_user.wallet %}
-                                                {% set wallet_id_value = current_user.wallet.wallet_code if current_user.wallet.wallet_code else (current_user.wallet.id if current_user.wallet.id else '1') %}
-                                            {% endif %}
-
-                                            {% set url = url_for(endpoint, wallet_id=wallet_id_value) if 'supplier_wallet' in endpoint else url_for(endpoint) %}
-                                            
-                                            <a href="{{ url }}" 
+                                            <!-- ✅ استخدام الرابط الجاهز مباشرة -->
+                                            <a href="{{ link_data.url }}" 
                                                class="nav-link-custom-sub {% if request.endpoint == endpoint %}active{% endif %}">
                                                 <i class="fas fa-circle"></i> 
-                                                <span>{{ link_title }}</span>
+                                                <span>{{ link_data.title }}</span>
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -373,21 +364,12 @@
                             </div>
                         {% else %}
                             <!-- ✅ رابط مفرد ديناميكي -->
-                            {% for endpoint, link_title in module.links.items() %}
-                                {# ✅ إصلاح نهائي وآمن للغاية #}
-                                {% set wallet_id_value = '1' %}
-                                {% if wallet is defined and wallet %}
-                                    {% set wallet_id_value = wallet.wallet_code if wallet.wallet_code else (wallet.id if wallet.id else '1') %}
-                                {% elif current_user is defined and current_user and current_user.wallet is defined and current_user.wallet %}
-                                    {% set wallet_id_value = current_user.wallet.wallet_code if current_user.wallet.wallet_code else (current_user.wallet.id if current_user.wallet.id else '1') %}
-                                {% endif %}
-
-                                {% set url = url_for(endpoint, wallet_id=wallet_id_value) if 'supplier_wallet' in endpoint else url_for(endpoint) %}
-
-                                <a href="{{ url }}" 
+                            {% for endpoint, link_data in module.links.items() %}
+                                <!-- ✅ استخدام الرابط الجاهز مباشرة -->
+                                <a href="{{ link_data.url }}" 
                                    class="nav-link-custom {% if request.endpoint == endpoint %}active{% endif %}">
                                     <i class="{{ module.icon | default('fas fa-folder') }}"></i> 
-                                    <span>{{ link_title }}</span>
+                                    <span>{{ link_data.title }}</span>
                                 </a>
                             {% endfor %}
                         {% endif %}
