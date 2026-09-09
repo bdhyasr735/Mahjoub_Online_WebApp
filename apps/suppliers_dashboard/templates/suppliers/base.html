@@ -17,12 +17,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    <!-- ✅ تم إزالة مسار supplier_wallet.static غير الموجود -->
-    <!-- {% set wallet_css = safe_url_for('supplier_wallet.static', filename='css/theme.css') if safe_url_for is defined else '#' %} -->
-    <!-- {% if wallet_css and wallet_css != '#' %}
-        <link rel="stylesheet" href="{{ wallet_css }}">
-    {% endif %} -->
-
     <style>
         :root {
             --royal-purple-dark: #0f051d;
@@ -55,7 +49,7 @@
 
         * { box-sizing: border-box; }
 
-        body { 
+        html, body { 
             font-family: 'Cairo', 'Tajawal', sans-serif !important; 
             background: var(--flat-bg) !important; 
             color: #1e293b !important;
@@ -71,13 +65,14 @@
             position: fixed;
             right: 0;
             top: 0;
-            z-index: 1050;
+            z-index: 1050; /* رفعنا الـ z-index لضمان ظهوره فوق المحتوى */
             transition: var(--transition);
             border-left: 1px solid rgba(212, 175, 55, 0.25);
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: rgba(212,175,55,0.3) transparent;
             box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+            flex-shrink: 0; /* منع الانكماش */
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
