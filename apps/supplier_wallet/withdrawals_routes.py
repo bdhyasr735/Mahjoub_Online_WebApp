@@ -112,6 +112,20 @@ def withdraw(wallet_id):
         
         # ✅ استخدام الدالة المحدثة التي تجلب جميع الموديولات (بما فيها الصلاحيات)
         modules = get_sidebar_modules()
+        
+        # ✅ تأكد من وجود موديول المحفظة
+        if not modules or 'supplier_wallet' not in modules:
+            modules['supplier_wallet'] = {
+                'title': 'المحفظة الرقمية',
+                'icon': 'fas fa-wallet',
+                'links': {
+                    'supplier_wallet_bp.transactions_redirect': 'حركة المحفظة',
+                    'supplier_wallet_bp.withdraw_redirect': 'سحب الرصيد'
+                }
+            }
+
+        # ✅ للتصحيح
+        print(f"🔍 [Withdraw DEBUG] modules keys: {list(modules.keys())}")
 
         return render_template(
             'supplier_wallet/withdrawal_form.html',
@@ -124,4 +138,5 @@ def withdraw(wallet_id):
             modules_registry=modules
         )
     except Exception as e:
+        print(f"❌ [Withdraw Error]: {e}")
         return safe_redirect_home()
