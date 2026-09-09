@@ -111,7 +111,7 @@ def get_sidebar_modules():
             'icon': 'fas fa-wallet',
             'links': {
                 'supplier_wallet_bp.transactions': {'title': 'حركة المحفظة', 'url': url_for('supplier_wallet_bp.transactions', wallet_id=wallet_id_val)},
-                'supplier_wallet_bp.withdraw': {'title': 'سحب الرصيد', 'url': url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id_val)}
+                'supplier_wallet_bp.process_withdraw': {'title': 'سحب الرصيد', 'url': url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id_val)}
             }
         }
 
@@ -152,7 +152,7 @@ def transactions_redirect():
 @login_required
 def withdraw_redirect():
     wallet_id = get_current_wallet_identifier()
-    return redirect(url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id))
+    return redirect(url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id))
 
 
 @supplier_wallet_bp.route('/', strict_slashes=False)
