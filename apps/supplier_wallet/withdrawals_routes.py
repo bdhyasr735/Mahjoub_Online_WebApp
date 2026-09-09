@@ -37,6 +37,15 @@ def withdraw(wallet_id):
             return safe_redirect_home()
 
     current_balance = get_wallet_balance(wallet)
+    
+    # ✅ حساب المتغيرات التي يحتاجها القالب (كما في الكود السابق)
+    reserved_balance = Decimal('50.00')
+    available_balance = current_balance - reserved_balance
+    if available_balance < Decimal('0.00'):
+        available_balance = Decimal('0.00')
+    
+    min_withdrawal_amount = Decimal('10.00')
+    currency_symbol = getattr(wallet, 'currency', 'ر.س')  # استيراد رمز العملة
 
     if request.method == 'POST':
         try:
@@ -49,19 +58,13 @@ def withdraw(wallet_id):
             amount = Decimal(raw_amount) if raw_amount else Decimal('0')
 
             # 🛑 2. تطبيق شرط إبقاء 50 ريال احتياطي في المحفظة
-            reserved_balance = Decimal('50.00')
-            available_balance = current_balance - reserved_balance
-            if available_balance < Decimal('0.00'):
-                available_balance = Decimal('0.00')
-
-            min_withdrawal = Decimal('10.00')
-            if amount < min_withdrawal:
-                raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal:.2f} ر.س")
+            if amount < min_withdrawal_amount:
+                raise ValueError(f"أدنى مبلغ يمكن سحبه هو {min_withdrawal_amount:.2f} {currency_symbol}")
 
             if amount > available_balance:
                 raise ValueError(
-                    f"لا يمكنك سحب هذا المبلغ. يجب الإبقاء على {reserved_balance:.2f} ر.س كحد أدنى في المحفظة. "
-                    f"المبلغ المتاح لك للسحب حالياً هو {available_balance:.2f} ر.س فقط."
+                    f"لا يمكنك سحب هذا المبلغ. يجب الإبقاء على {reserved_balance:.2f} {currency_symbol} كحد أدنى في المحفظة. "
+                    f"المبلغ المتاح لك للسحب حالياً هو {available_balance:.2f} {currency_symbol} فقط."
                 )
 
             bank_account = request.form.get('bank_account_id', 'الحساب البنكي المعتمد للمورد')
@@ -131,11 +134,14 @@ def withdraw(wallet_id):
             'supplier_wallet/withdrawal_form.html',
             wallet=wallet,
             balance=current_balance,
+            available_balance=available_balance,  # ✅ إضافة المتغير الناقص
+            min_withdrawal_amount=min_withdrawal_amount,  # ✅ إضافة الحد الأدنى
             active_bank=active_bank,
             pagination=pagination,
             latest_request=latest_request,
             supplier_modules=modules,
-            modules_registry=modules
+            modules_registry=modules,
+            currency_symbol=currency_symbol  # ✅ تمرير رمز العملة
         )
     except Exception as e:
         print(f"❌ [Withdraw Error]: {e}")
