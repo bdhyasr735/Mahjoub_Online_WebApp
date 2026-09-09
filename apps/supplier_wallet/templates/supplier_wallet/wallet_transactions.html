@@ -576,9 +576,9 @@ document.addEventListener('DOMContentLoaded', function() {
     filterData();
 });
 
-// 🎨 دالة الطباعة - تفتح ملف الطباعة المستقل في نافذة جديدة
+// ✅ دالة الطباعة - تم إصلاحها بإضافة wallet_id
 function printStatement() {
-    let url = new URL("{{ url_for('supplier_wallet_bp.print_wallet_transactions') }}");
+    let url = new URL("{{ url_for('supplier_wallet_bp.print_wallet_transactions', wallet_id=wallet.wallet_code or wallet.id) }}");
     url.searchParams.set('start_date', document.getElementById('start-date').value);
     url.searchParams.set('end_date', document.getElementById('end-date').value);
     window.open(url.toString(), '_blank');
