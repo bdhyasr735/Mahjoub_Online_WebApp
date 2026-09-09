@@ -16,13 +16,11 @@ def withdrawal_receipt(wallet_id, request_number):
     if not supplier_id:
         return safe_redirect_home()
 
-    # البحث عن طلب السحب بواسطة رقم الطلب
     withdrawal = WithdrawalRequest.query.filter_by(request_number=request_number, wallet_id=wallet_id).first()
     if not withdrawal:
         flash('لم يتم العثور على طلب السحب.', 'danger')
         return redirect(url_for('supplier_wallet_bp.process_withdraw', wallet_id=wallet_id))
 
-    # جلب المحفظة والمورد
     wallet = SupplierWallet.query.filter_by(id=withdrawal.wallet_id).first()
     supplier = wallet.supplier if wallet else None
 
