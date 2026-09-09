@@ -65,13 +65,12 @@ def get_sidebar_modules():
         supplier_modules.update(current_app.supplier_modules)
 
     # 3️⃣ المسح الديناميكي على كافة سجلات الموديولات (Registries) المسجلة في التطبيق
-    # ✅ إصلاح جذري: إضافة جميع الموديولات الممكنة حتى تظهر القائمة كاملة في كل الصفحات
     registry_paths = [
         'apps.suppliers_dashboard.registry',
         'apps.supplier_products.registry',
         'apps.supplier_orders.registry',
         'apps.supplier_wallet.registry',
-        'apps.suppliers_permissions.registry'  # ✅ أضفنا هذا الموديول المهم جداً
+        'apps.suppliers_permissions.registry'
     ]
 
     for path in registry_paths:
@@ -86,15 +85,33 @@ def get_sidebar_modules():
         except (ImportError, AttributeError):
             continue
 
-    # 4️⃣ في حالة التعذر الكامل، يتم تقديم الموديول الحالي كقيمة احتياطية بدلاً من تقييد القائمة
-    # ✅ تم تحديث الروابط لاستخدام الـ Endpoints الحقيقية (بدلاً من redirects)
+    # 4️⃣ ✅ الخطوة الأهم: توليد روابط جاهزة داخل الموديولات بدلاً من مجرد Endpoints
+    for key, module in supplier_modules.items():
+        if 'links' in module and isinstance(module['links'], dict):
+            final_links = {}
+            for endpoint, title in module['links'].items():
+                try:
+                    if 'supplier_wallet' in endpoint:
+                        # الحصول على wallet_id من المتغيرات المتاحة
+                        wallet_id_val = get_current_wallet_identifier()
+                        final_links[endpoint] = {'title': title, 'url': url_for(endpoint, wallet_id=wallet_id_val)}
+                    else:
+                        final_links[endpoint] = {'title': title, 'url': url_for(endpoint)}
+                except BuildError:
+                    # في حالة فشل بناء الرابط، نستخدم مسار احتياطي آمن
+                    fallback_url = '/supplier/wallet/transactions' if 'supplier_wallet' in endpoint else '#'
+                    final_links[endpoint] = {'title': title, 'url': fallback_url}
+            module['links'] = final_links
+
+    # 5️⃣ في حالة التعذر الكامل، يتم تقديم الموديول الحالي كقيمة احتياطية
     if not supplier_modules:
+        wallet_id_val = get_current_wallet_identifier()
         supplier_modules['supplier_wallet'] = {
             'title': 'المحفظة الرقمية',
             'icon': 'fas fa-wallet',
             'links': {
-                'supplier_wallet_bp.transactions': 'حركة المحفظة',
-                'supplier_wallet_bp.withdraw': 'سحب الرصيد'
+                'supplier_wallet_bp.transactions': {'title': 'حركة المحفظة', 'url': url_for('supplier_wallet_bp.transactions', wallet_id=wallet_id_val)},
+                'supplier_wallet_bp.withdraw': {'title': 'سحب الرصيد', 'url': url_for('supplier_wallet_bp.withdraw', wallet_id=wallet_id_val)}
             }
         }
 
@@ -223,7 +240,7 @@ def transactions(wallet_id):
             end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
             all_transactions = [t for t in all_transactions if t.created_at and t.created_at <= end_dt]
         except ValueError:
-            pass  # ✅ تم إصلاح المسافة البادئة هنا (السطر 223)
+            pass
 
     if search_query:
         filtered_list = []
@@ -265,6 +282,8 @@ def transactions(wallet_id):
         all_transactions = filtered_list
 
     balance = get_wallet_balance(wallet)
+    
+    # ✅ استدعاء الدالة المحدثة التي تولد روابط جاهزة
     modules = get_sidebar_modules()
 
     return render_template(
