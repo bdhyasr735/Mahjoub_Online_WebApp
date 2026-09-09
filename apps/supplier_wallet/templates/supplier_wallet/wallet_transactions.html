@@ -140,6 +140,23 @@
         box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
     }
     
+    .btn-print {
+        background: #1a0b2e;
+        color: #FFD700;
+        font-weight: 900;
+        padding: 14px 28px;
+        border-radius: 14px;
+        text-decoration: none;
+        font-size: 15px;
+        border: 1px solid #FFD700;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .btn-print:hover {
+        background: #FFD700;
+        color: #1a0b2e;
+    }
+    
     .summary-row td {
         background: rgba(212, 175, 55, 0.15);
         color: #ffffff;
@@ -195,6 +212,33 @@
         margin-bottom: 20px;
         opacity: 0.4;
     }
+
+    /* 🎨 تنسيق الطباعة */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .table-container, .table-container * {
+            visibility: visible;
+        }
+        .table-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .table-container th {
+            background: #1a0b2e !important;
+            color: #FFD700 !important;
+        }
+        .table-container td {
+            color: #000000 !important;
+            border-bottom: 1px solid #ddd !important;
+        }
+    }
 </style>
 
 <div style="width: 100%; padding-bottom: 40px;">
@@ -210,9 +254,14 @@
                 عرض الحركات المكتملة والإيداعات والسحوبات الخاصة بحسابك
             </p>
         </div>
-        <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" class="btn-withdraw">
-            <i class="fas fa-arrow-left" style="margin-left: 8px;"></i> طلب سحب جديد
-        </a>
+        <div style="display: flex; gap: 12px;">
+            <a href="{{ url_for('supplier_wallet_bp.withdraw', wallet_id=wallet.wallet_code or wallet.id if wallet else '1') }}" class="btn-withdraw">
+                <i class="fas fa-arrow-left" style="margin-left: 8px;"></i> طلب سحب جديد
+            </a>
+            <button onclick="window.print()" class="btn-print">
+                <i class="fas fa-print"></i> طباعة الكشف
+            </button>
+        </div>
     </div>
 
     <!-- 🎨 بطاقة ملخص المحفظة -->
@@ -246,6 +295,16 @@
         </select>
         <button id="reset-filters" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">إعادة ضبط</button>
         <span style="color: #9ca3af; font-size: 14px; margin-right: auto; font-weight: 600;" id="result-count">جاري التحميل...</span>
+    </div>
+
+    <!-- 🎨 فلاتر تحديد الفترة -->
+    <div class="filter-section" style="border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 12px;">
+        <label style="color: #FFD700; font-weight: 700;">📅 تحديد الفترة:</label>
+        <input type="date" id="start-date" value="{{ request.args.get('start_date', '') }}" style="flex: 0 0 auto;" />
+        <span style="color: #9ca3af;">إلى</span>
+        <input type="date" id="end-date" value="{{ request.args.get('end_date', '') }}" style="flex: 0 0 auto;" />
+        <button id="apply-date-filter" style="background: #FFD700; color: #1a0b2e; font-weight: 800; padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer;">تصفية</button>
+        <button id="clear-date-filter" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 12px 20px; border-radius: 8px; cursor: pointer;">مسح الفترة</button>
     </div>
 
     <!-- 🎨 جدول كشف الحركات المالية -->
@@ -402,6 +461,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultCount = document.getElementById('result-count');
     const emptyRow = document.getElementById('empty-row');
 
+    const startDate = document.getElementById('start-date');
+    const endDate = document.getElementById('end-date');
+    const applyDateBtn = document.getElementById('apply-date-filter');
+    const clearDateBtn = document.getElementById('clear-date-filter');
+
     const itemsPerPage = 10;
     let currentPage = 1;
     let filteredRows = [];
@@ -485,6 +549,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeFilter) typeFilter.value = '';
         filterData();
     });
+
+    // ✅ فلاتر تحديد الفترة
+    if (applyDateBtn) {
+        applyDateBtn.addEventListener('click', function() {
+            let url = new URL(window.location.href);
+            if (startDate.value) url.searchParams.set('start_date', startDate.value);
+            if (endDate.value) url.searchParams.set('end_date', endDate.value);
+            window.location.href = url.toString();
+        });
+    }
+
+    if (clearDateBtn) {
+        clearDateBtn.addEventListener('click', function() {
+            let url = new URL(window.location.href);
+            url.searchParams.delete('start_date');
+            url.searchParams.delete('end_date');
+            window.location.href = url.toString();
+        });
+    }
+
     if (prevBtn) prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTableAndPagination(); } });
     if (nextBtn) nextBtn.addEventListener('click', () => {
         const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
