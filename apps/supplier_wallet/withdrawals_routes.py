@@ -109,6 +109,8 @@ def withdraw(wallet_id):
             'bank_name': 'الحساب البنكي المعتمد للمورد',
             'id': 1
         }
+        
+        # ✅ استخدام الدالة المحدثة التي تجلب جميع الموديولات (بما فيها الصلاحيات)
         modules = get_sidebar_modules()
 
         return render_template(
