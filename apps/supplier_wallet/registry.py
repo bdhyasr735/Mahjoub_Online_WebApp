@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/supplier_wallet/registry.py
 
 import logging
@@ -11,11 +11,10 @@ MODULE_NAME = "المحفظة الرقمية"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ التعديل الجوهري هنا:
-# استخدام أسماء الدوال (endpoints) الحقيقية الموجودة في routes.py
+# ✅ التعديل الأهم: استخدام الـ Endpoints الحقيقية للصفحات (موجودة في routes.py)
 LINKS = {
-    "supplier_wallet_bp.transactions": "حركة المحفظة",
-    "supplier_wallet_bp.withdraw": "سحب الرصيد"
+    "supplier_wallet_bp.transactions": "حركة المحفظة",  # بدلاً من transactions_redirect
+    "supplier_wallet_bp.withdraw": "سحب الرصيد"           # بدلاً من withdraw_redirect
 }
 
 
@@ -122,11 +121,10 @@ def get_module_stats():
 def get_module_link():
     """الحصول على رابط الموديول."""
     try:
-        # ✅ الآن يشير للصفحة الحقيقية (وليس الـ redirect)
+        # ✅ استخدام الصفحة الحقيقية: supplier_wallet_bp.transactions
         return url_for('supplier_wallet_bp.transactions', wallet_id=get_current_wallet_identifier())
     except Exception as e:
         logger.warning(f"⚠️ [Registry Supplier Wallet Link Error]: {e}")
-        # ✅ حل آمن: استخدام المسار المباشر
         return '/supplier/wallet/transactions'
 
 
